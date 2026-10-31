@@ -1,21 +1,10 @@
 ﻿namespace LanguageGenerator;
 
-//I figure this is the top-level object
-public class Language
+//chooses everything about a language. The result is a plain Language, which
+//knows nothing about how it was chosen
+public static class Generator
 {
-    public string? Name { get; set; }
-    public List<SyllableRule> SyllableRules { get; set; } = [];
-    public List<Category<Vowel>> Vowels { get; set; } = [];
-    public List<Category<Consonant>> Consonants { get; set; } = [];
-    public List<Word> Words { get; set; } = [];
-    public WordOrder WordOrder { get; set; }
-    public Morphology Morphology { get; set; }
-    public bool HasArticles { get; set; }
-    public MorphosyntacticAlignment MorphosyntacticAlignment { get; set; }
-    public List<Case> Cases { get; set; }
-    public Dictionary<CaseUse, RoleMarker> RoleMarkers { get; set; }
-
-    public Language(Random rand)
+    public static Language Generate(Random rand)
     {
         //categories
         //all percentage chances in this program should bubble up somehow, so that they can be easily tweaked in one place
@@ -53,22 +42,10 @@ public class Language
         var consonants = GenerateConsonants(rand, 0.15, 0.50);
         var syllableRule = SelectSyllableRule(rand, vowels, consonants);
 
-        Console.WriteLine(syllableRule);
-
-        var syllables = new List<Syllable>();
-        for (int i = 0; i < 10; i++)
-        {
-            syllables.Add(GenerateSyllable(rand, syllableRule, syllableDropoff));
-        }
-
         var words = new List<Word>();
         for (int i = 0; i < wordCount; i++)
         {
             words.Add(GenerateWord(rand, syllableRule, syllableDropoff));
-        }
-        foreach (var word in words)
-        {
-            Console.WriteLine(word.Transcription);
         }
 
         //here's a different approach
@@ -100,26 +77,25 @@ public class Language
         //    Console.WriteLine(word.Transcription);
         //}
 
-        Morphology = SelectMorphology(rand);
-        WordOrder = WordOrder.Select(rand);
+        var morphology = SelectMorphology(rand);
+        var wordOrder = SelectWordOrder(rand);
 
-        Console.WriteLine(Morphology);
-        Console.WriteLine(WordOrder.ConstituentWordOrder);
-        Console.WriteLine($"{WordOrder.HeadDirectionality}, {WordOrder.VerbPhraseDirectionality}, {WordOrder.NounPhraseDirectionality}, {WordOrder.AdjectivePhraseDirectionality}, {WordOrder.AdpositionalPhraseDirectionality}");
+        var alignment = SelectAlignment(rand, 0.5, 0.25);
+        var cases = SelectCases(rand, alignment, 0.75, 0.6, 0.35, 0.65, 0.25, 0.2);
 
-        MorphosyntacticAlignment = SelectAlignment(rand, 0.5, 0.25);
-        Cases = SelectCases(rand, MorphosyntacticAlignment, 0.75, 0.6, 0.35, 0.65, 0.25, 0.2);
-        RoleMarkers = SelectRoleMarkers(MorphosyntacticAlignment, Cases, WordOrder);
-
-        Console.WriteLine(MorphosyntacticAlignment);
-        foreach(var @case in Cases) {
-            Console.Write(@case);
-        }
-        Console.WriteLine();
-        foreach (var (use, marker) in RoleMarkers)
+        return new Language
         {
-            Console.WriteLine($"{use}: {marker}");
-        }
+            Vowels = vowels,
+            Consonants = consonants,
+            SyllableRule = syllableRule,
+            Words = words,
+            Morphology = morphology,
+            WordOrder = wordOrder,
+            HasArticles = rand.NextDouble() < 0.7,
+            MorphosyntacticAlignment = alignment,
+            Cases = cases,
+            RoleMarkers = SelectRoleMarkers(alignment, cases, wordOrder),
+        };
     }
 
     public static Word GenerateWord(Random rand, SyllableRule rule, double dropoff)
@@ -424,6 +400,61 @@ public class Language
     //these percentages are made up because I CAN'T FIND DATA
     //WALS refuses to categorize languages in this way, hence,
     //it seems, nobody else does, either
+    //I've rounded off the real percentages to more even numbers for convenience
+    private static readonly (ConstituentWordOrder Order, double Probability)[] ConstituentWordOrders =
+    [
+        (ConstituentWordOrder.SOV, 0.45),
+        (ConstituentWordOrder.SVO, 0.40),
+        (ConstituentWordOrder.VSO, 0.10),
+        (ConstituentWordOrder.VOS, 0.03),
+        (ConstituentWordOrder.OSV, 0.01),
+        (ConstituentWordOrder.OVS, 0.01),
+    ];
+
+    public static WordOrder SelectWordOrder(Random rand)
+    {
+        var roll = rand.NextDouble();
+        var cumulative = 0.0;
+        //rounding can leave the cumulative total a hair under 1; the remainder goes to the last order
+        var order = ConstituentWordOrders[^1].Order;
+        foreach (var (candidate, probability) in ConstituentWordOrders)
+        {
+            cumulative += probability;
+            if (roll < cumulative)
+            {
+                order = candidate;
+                break;
+            }
+        }
+
+        //some languages are consistently head-initial, while others are consistently head-final;
+        //many are somewhere in the middle. Probability starts at 50%, and every head-initial
+        //choice makes the next one likelier to be head-initial too
+        var numerator = 1.0;
+        var denominator = 2.0;
+        HeadDirectionality NextDirectionality()
+        {
+            var initial = rand.NextDouble() < numerator / denominator;
+            if (initial)
+            {
+                numerator++;
+            }
+            denominator++;
+            return initial ? HeadDirectionality.Initial : HeadDirectionality.Final;
+        }
+
+        //initializers run in order, so this is the order the choices are weighted in
+        return new WordOrder
+        {
+            ConstituentWordOrder = order,
+            HeadDirectionality = NextDirectionality(),
+            VerbPhraseDirectionality = NextDirectionality(),
+            NounPhraseDirectionality = NextDirectionality(),
+            AdjectivePhraseDirectionality = NextDirectionality(),
+            AdpositionalPhraseDirectionality = NextDirectionality(),
+        };
+    }
+
     public static Morphology SelectMorphology(Random rand)
     {
         return rand.NextDouble() switch
@@ -536,12 +567,4 @@ public class Language
 
         return Enum.GetValues<CaseUse>().ToDictionary(use => use, MarkerFor);
     }
-}
-
-public enum Morphology
-{
-    Analytic,
-    Fusional,
-    Agglutinative,
-    //planning to leave out polysynthetic or the dubious oligosynthetic
 }
