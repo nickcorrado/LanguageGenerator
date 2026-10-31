@@ -63,30 +63,6 @@ public static class PhonemeManager
     [
         Consonant.s, Consonant.ʃ,
     ];
-
-    //consonants
-    //by place
-    //public static Category<Consonant> Labials { get; private set; } = new Category<Consonant>(Consonants.Where(c => c.Place == ConsonantPlace.Labial));
-    //public static Category<Consonant> Dentals { get; private set; } = new Category<Consonant>(Consonants.Where(c => c.Place == ConsonantPlace.Dental));
-    //public static Category<Consonant> PostAlveolars { get; private set; } = new Category<Consonant>(Consonants.Where(c => c.Place == ConsonantPlace.PostAlveolar));
-    //public static Category<Consonant> Retroflexes { get; private set; } = new Category<Consonant>(Consonants.Where(c => c.Place == ConsonantPlace.Retroflex));
-    //public static Category<Consonant> Velars { get; private set; } = new Category<Consonant>(Consonants.Where(c => c.Place == ConsonantPlace.Velar));
-    //public static Category<Consonant> LabioDentals { get; private set; } = new Category<Consonant>(Consonants.Where(c => c.Place == ConsonantPlace.LabioDental));
-
-    ////by manner
-    //public static Category<Consonant> Nasals { get; private set; } = new Category<Consonant>(Consonants.Where(c => c.Manner == ConsonantManner.Nasal));
-    //public static Category<Consonant> Plosives { get; private set; } = new Category<Consonant>(Consonants.Where(c => c.Manner == ConsonantManner.Plosive));
-    //public static Category<Consonant> Sibilants { get; private set; } = new Category<Consonant>(Consonants.Where(c => c.Manner == ConsonantManner.Sibilant));
-    //public static Category<Consonant> Fricatives { get; private set; } = new Category<Consonant>(Consonants.Where(c => c.Manner == ConsonantManner.Fricative));
-    //public static Category<Consonant> Approximants { get; private set; } = new Category<Consonant>(Consonants.Where(c => c.Manner is ConsonantManner.Approximant or ConsonantManner.LateralApproximant));
-
-    ////list of categories! we need this so that some can be pruned
-    //public static List<Category<Consonant>> ConsonantCategories { get; private set; } = new List<Category<Consonant>>() { Labials, Dentals, PostAlveolars, Retroflexes, Velars, LabioDentals, Nasals, Plosives, Sibilants, Fricatives, Approximants };
-
-    //public static Category<Vowel> Opens { get; private set; } = new Category<Vowel>(Vowels.Where(v => v.Height is VowelHeight.NearOpen or VowelHeight.Open));
-    //public static Category<Vowel> Mids { get; private set; } = new Category<Vowel>(Vowels.Where(v => v.Height is VowelHeight.CloseMid or VowelHeight.Mid));
-    //public static Category<Vowel> Closes { get; private set; } = new Category<Vowel>(Vowels.Where(v => v.Height is VowelHeight.Close or VowelHeight.CloseMid));
-    //public static List<Category<Vowel>> VowelCategories { get; private set; } = new List<Category<Vowel>>() { Opens, Mids, Closes };
 }
 
 //This is more readable, but I don't love the need for pragmas

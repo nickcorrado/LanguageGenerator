@@ -6,36 +6,8 @@ public static class Generator
 {
     public static Language Generate(Random rand)
     {
-        //categories
         //all percentage chances in this program should bubble up somehow, so that they can be easily tweaked in one place
-        //var consonantCategories = GenerateCategories(1, 5, PhonemeManager.Consonants, 0.4);
-        //var vowelCategories = GenerateCategories(1, 3, PhonemeManager.Vowels, 0.6);
-
-        //var syllableRules = GenerateSyllableRules(1, 3, consonantCategories, vowelCategories, 0.4, 0.15, 0.25);
-
-        //foreach (var rule in syllableRules)
-        //{
-        //    Console.WriteLine(rule);
-        //}
-
-        //now, generate a syllable
         var syllableDropoff = 0.15;
-
-        //var syllables = new List<Syllable>();
-        //for (int i = 0; i < 10; i++)
-        //{
-        //    syllables.Add(GenerateSyllable(syllableRules, syllableDropoff));
-        //}
-
-        //var words = new List<Word>();
-        //for (int i = 0; i < wordCount; i++)
-        //{
-        //    words.Add(GenerateWord(syllableRules, syllableDropoff));
-        //}
-        //foreach (var word in words)
-        //{
-        //    Console.WriteLine(word.Transcription);
-        //}
 
         var vowels = GenerateVowels(rand, 0.15, 0.30);
         var consonants = GenerateConsonants(rand, 0.15, 0.50);
@@ -51,35 +23,6 @@ public static class Generator
         };
 
         var lexicon = GenerateLexicon(rand, syllableRule, syllableDropoff);
-
-        //here's a different approach
-        //these results are still trash. for some reason, the bias toward certain phonemes is super strong; probably
-        //the lists need to be shuffled before anything is picked
-        //var consonantCategories2 = GenerateConsonantCategories2(0.7, 0.6);
-        //var vowelCategories2 = GenerateVowelCategories2(1, 0.4, 0.2);
-
-        //var syllableRules2 = GenerateSyllableRules(1, 3, consonantCategories2, vowelCategories2, 0.9, 0.15, 0.4, 0.1);
-
-        //foreach (var rule in syllableRules2)
-        //{
-        //    Console.WriteLine(rule);
-        //}
-
-        //var syllables2 = new List<Syllable>();
-        //for (int i = 0; i < 10; i++)
-        //{
-        //    syllables2.Add(GenerateSyllable(syllableRules2, syllableDropoff));
-        //}
-
-        //var words2 = new List<Word>();
-        //for (int i = 0; i < wordCount; i++)
-        //{
-        //    words2.Add(GenerateWord(syllableRules2, syllableDropoff));
-        //}
-        //foreach (var word in words2)
-        //{
-        //    Console.WriteLine(word.Transcription);
-        //}
 
         var morphology = SelectMorphology(rand);
         var wordOrder = SelectWordOrder(rand);
@@ -290,25 +233,6 @@ public static class Generator
         return exponents;
     }
 
-    //public static Word GenerateWord(List<SyllableRule> syllableRules, double syllableDropoff)
-    //{
-    //    var word = new Word();
-    //    int numberOfSyllables = 1;
-
-    //    //20% chance of monosyllable
-    //    var rand = new Random();
-    //    if (rand.NextDouble() > 0.2)
-    //    {
-    //        //these appear to be arbitrary values picked by Mark
-    //        numberOfSyllables += 1 + Utilities.PowerLaw(4, 0.5);
-    //    }
-    //    for (int i = 0; i < numberOfSyllables; i++)
-    //    {
-    //        word.Syllables.Add(GenerateSyllable(syllableRules, syllableDropoff));
-    //    }
-    //    return word;
-    //}
-
     public static Syllable GenerateSyllable(Random rand, SyllableRule rule, double dropoff)
     {
         var syllable = rule.GenerateSyllable(rand, dropoff);
@@ -317,82 +241,12 @@ public static class Generator
         return syllable;
     }
 
-    //public static Syllable GenerateSyllable(List<SyllableRule> syllableRules, double syllableDropoff)
-    //{
-    //    //pick a syllable rule
-    //    var r = Utilities.PowerLaw(syllableRules.Count, 0.5);
-    //    var rule = syllableRules[r];
-
-    //    var syllable = new Syllable
-    //    {
-    //        Onset = new ConsonantCluster(rule.GetConcreteOnset(syllableDropoff)),
-    //        Nucleus = rule.GetConcreteNucleus(syllableDropoff),
-    //        Coda = rule.GetConcreteCoda(syllableDropoff),
-    //    };
-    //    syllable = Sandhi.ElideDuplicates(syllable);
-    //    return syllable;
-    //}
-
     //only one rule now!
     public static SyllableRule SelectSyllableRule(Random rand, List<Vowel> vowels, List<Consonant> consonants)
     {
         var template = SyllableTemplates.All[rand.Next(SyllableTemplates.All.Count)];
         return new SyllableRule(template, vowels, consonants);
     }
-
-    //public static List<SyllableRule> GenerateSyllableRules(int min, int max,
-    //                                                       List<Category<Consonant>> consonantCategories,
-    //                                                       List<Category<Vowel>> vowelCategories,
-    //                                                       double chanceOfOnset, double chanceOfOnsetCluster,
-    //                                                       double chanceOfCoda)
-    //{
-    //    //rewrite rules
-    //    var rand = new Random();
-    //    var numberOfRules = rand.Next(min, max);
-    //    var rules = new List<SyllableRule>();
-
-    //    for (int i = 0; i < numberOfRules; i++)
-    //    {
-    //        var onset = new List<Category<Consonant>>();
-    //        if (rand.NextDouble() < chanceOfOnset)
-    //        {
-    //            onset.Add(consonantCategories[rand.Next(consonantCategories.Count)]);
-    //            //can add multiple consonants in a row
-    //            while (rand.NextDouble() < chanceOfOnsetCluster)
-    //            {
-    //                //we should just allow approximants and nothing else
-    //                //I'm not happy with this solution, but at least the
-    //                //results aren't garbage
-    //                onset.Add(new Category<Consonant> { Phonemes = PhonemeManager.Liquids });
-    //            }
-    //        }
-
-    //        var nucleus = vowelCategories[rand.Next(vowelCategories.Count)];
-
-    //        var coda = new Category<Consonant>();
-    //        //var coda = new List<Category<Consonant>>();
-    //        if (rand.NextDouble() < chanceOfCoda)
-    //        {
-    //            coda = consonantCategories[rand.Next(consonantCategories.Count)];
-    //            //while (rand.NextDouble() < chanceOfCodaCluster)
-    //            //{
-    //            //    coda.Add(consonantCategories[rand.Next(consonantCategories.Count)]);
-    //            //}
-    //        }
-
-
-    //        rules.Add(new SyllableRule()
-    //        {
-    //            Onset1 = new SyllableCategory<Consonant>() { Phonemes = onset[0] },
-    //            Onset2 = new SyllableCategory<Consonant>() { Phonemes = onset[1] },
-    //            Onset3 = new SyllableCategory<Consonant>() { Phonemes = onset[2] },
-    //            Nucleus = new SyllableCategory<Vowel>() { Phonemes = nucleus },
-    //            Coda = new SyllableCategory<Consonant>() { Phonemes = coda },
-    //        });
-    //    }
-
-    //    return rules;
-    //}
 
     public static List<Vowel> GenerateVowels(Random rand, double chanceOfPhonemePruning, double chanceOfCategoryPruning)
     {
@@ -451,129 +305,6 @@ public static class Generator
         return consonants;
     }
 
-    //public static List<Category<Consonant>> GenerateConsonantCategories2(double chanceOfPhonemePruning, double chanceOfCategoryPruning)
-    //{
-    //    var categories = new List<Category<Consonant>>();
-    //    categories.AddRange(PhonemeManager.ConsonantCategories);
-
-    //    //shuffle phonemes
-    //    for (int i = 0; i < categories.Count; i++)
-    //    {
-    //        categories[i].Phonemes = Utilities.Shuffle(categories[i].Phonemes).ToList();
-    //    }
-
-    //    //prune categories
-    //    var rand = new Random();
-    //    for (int i = 0; i < categories.Count; i++)
-    //    {
-    //        if (rand.NextDouble() < chanceOfCategoryPruning)
-    //        {
-    //            categories.RemoveAt(i);
-    //        }
-    //    }
-
-    //    //prune phonemes
-    //    foreach (var category in categories)
-    //    {
-    //        for (int i = 0; i < category.Phonemes.Count; i++)
-    //        {
-    //            if (rand.NextDouble() < chanceOfPhonemePruning)
-    //            {
-    //                category.Phonemes.RemoveAt(i);
-    //            }
-    //        }
-    //    }
-
-    //    var result = new List<Category<Consonant>>();
-    //    foreach (var category in categories)
-    //    {
-    //        if (category.Phonemes.Count > 0)
-    //        {
-    //            result.Add(category);
-    //        }
-    //    }
-
-    //    return result;
-    //}
-
-    //public static List<Category<Vowel>> GenerateVowelCategories2(int min, double chanceOfPhonemePruning, double chanceOfCategoryPruning)
-    //{
-    //    //prune categories
-    //    var categories = new List<Category<Vowel>>();
-    //    categories.AddRange(PhonemeManager.VowelCategories);
-
-    //    //shuffle phonemes
-    //    for (int i = 0; i < categories.Count; i++)
-    //    {
-    //        categories[i].Phonemes = Utilities.Shuffle(categories[i].Phonemes.ToArray()).ToList();
-    //    }
-
-    //    //prune categories
-    //    var rand = new Random();
-    //    for (int i = 0; i < categories.Count; i++)
-    //    {
-    //        if (rand.NextDouble() < chanceOfCategoryPruning && categories.Count > 1)
-    //        {
-    //            categories.RemoveAt(i);
-    //        }
-    //    }
-
-    //    //prune phonemes
-    //    foreach (var category in categories)
-    //    {
-    //        for (int i = 0; i < category.Phonemes.Count; i++)
-    //        {
-    //            if (rand.NextDouble() < chanceOfPhonemePruning && category.Phonemes.Count > 1)
-    //            {
-    //                category.Phonemes.RemoveAt(i);
-    //            }
-    //        }
-    //    }
-
-    //    var result = new List<Category<Vowel>>();
-    //    foreach (var category in categories)
-    //    {
-    //        if (category.Phonemes.Count > 0)
-    //        {
-    //            result.Add(category);
-    //        }
-    //    }
-
-    //    return result;
-    //}
-
-    //public static List<Category<T>> GenerateCategories<T>(int min, int max, IEnumerable<T> phonemes, double chanceOfSelection) where T : Phoneme
-    //{
-    //    var rand = new Random();
-    //    var numberOfCategories = rand.Next(min, max);
-
-    //    var categories = new Category<T>[numberOfCategories];
-
-    //    int i = 0;
-    //    while (i < numberOfCategories)
-    //    {
-    //        categories[i] = new Category<T>();
-    //        var category = categories[i];
-
-    //        foreach (var phoneme in phonemes)
-    //        {
-    //            if (rand.NextDouble() < chanceOfSelection)
-    //            {
-    //                category.Phonemes.Add(phoneme);
-    //            }
-    //        }
-
-    //        if (category.Phonemes.Count > 0)
-    //        {
-    //            i++;
-    //        }
-    //    }
-    //    return categories.ToList();
-    //}
-
-    //these percentages are made up because I CAN'T FIND DATA
-    //WALS refuses to categorize languages in this way, hence,
-    //it seems, nobody else does, either
     //I've rounded off the real percentages to more even numbers for convenience
     private static readonly (ConstituentWordOrder Order, double Probability)[] ConstituentWordOrders =
     [
@@ -629,6 +360,9 @@ public static class Generator
         };
     }
 
+    //these percentages are made up because I CAN'T FIND DATA
+    //WALS refuses to categorize languages in this way, hence,
+    //it seems, nobody else does, either
     public static Morphology SelectMorphology(Random rand)
     {
         return rand.NextDouble() switch
