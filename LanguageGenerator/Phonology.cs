@@ -103,8 +103,9 @@ public class Phonology
     }
 
     //one edit to the bad cluster: the first one that fixes it if any does, and otherwise the first
-    //one at all. Every edit leaves shorter clusters behind, and a lone consonant between vowels or
-    //at either edge can always be fixed, so repeating this always ends
+    //one at all. Every edit leaves shorter clusters behind, so repeating this always ends: a lone
+    //consonant between vowels or at either edge is legal as an onset or a coda, or else it's legal
+    //nowhere (a coda restriction in a template with no onsets), and then it's deleted
     private List<Segment> Repair(List<Segment> segments, (int Start, int End) cluster)
     {
         var atStart = cluster.Start == 0;
@@ -120,7 +121,8 @@ public class Phonology
                 candidates.Add(([.. segments[..at], new Segment(EpentheticVowel, morpheme), .. segments[at..]], cluster.End + 1));
             }
         }
-        else
+        //deletion, or the only fix left for a consonant no vowel can save
+        if (candidates.Count == 0)
         {
             for (int i = cluster.Start; i < cluster.End; i++)
             {

@@ -274,8 +274,23 @@ public static class Generator
     public static SyllableRule SelectSyllableRule(Random rand, List<Vowel> vowels, List<Consonant> consonants)
     {
         var template = SyllableTemplates.All[rand.Next(SyllableTemplates.All.Count)];
-        return new SyllableRule(template, vowels, consonants);
+        //a restriction only matters for templates with a coda, and only makes sense for ones with an
+        //onset too: in VF every consonant is a coda, so restricting codas would restrict the whole
+        //inventory to nasals, say
+        var restrictable = template.Slots.Any(s => s is FinalSlot) && template.Slots[0] is not VowelSlot;
+        var codas = restrictable ? Draw(rand, CodaRestrictionWeights) : CodaRestriction.Any;
+        return new SyllableRule(template, vowels, consonants, codas);
     }
+
+    //weights, and a guess: WALS's chapter on syllable structure counts how many consonants may close
+    //a syllable but not which ones, and no survey of that turned up
+    private static readonly (CodaRestriction Value, int Weight)[] CodaRestrictionWeights =
+    [
+        (CodaRestriction.Any, 50),
+        (CodaRestriction.Sonorants, 25),
+        (CodaRestriction.Nasals, 15),
+        (CodaRestriction.SingleNasal, 10),
+    ];
 
     public static List<Vowel> GenerateVowels(Random rand, double chanceOfPhonemePruning, double chanceOfCategoryPruning)
     {

@@ -135,10 +135,23 @@ public static class SyllableTemplates
     public static IReadOnlyList<SyllableTemplate> All { get; } = [CV, CVF, VF, CLV, CLVF, SCV, SCVF, SCLVF];
 }
 
+//which consonants may close a syllable. Many languages allow only some: Mandarin allows only
+//nasals, and Japanese only its moraic n
+public enum CodaRestriction
+{
+    Any,
+    //nasals, liquids and glides
+    Sonorants,
+    Nasals,
+    //a single nasal: n, if the language has it
+    SingleNasal,
+}
+
 //a syllable template resolved against a language's phoneme inventory
 public class SyllableRule
 {
     public SyllableTemplate Template { get; }
+    public CodaRestriction Codas { get; }
 
     private readonly Category<Vowel> vowels;
     private readonly Category<Consonant> consonants;
@@ -146,9 +159,10 @@ public class SyllableRule
     private readonly Category<Consonant> liquids;
     private readonly Category<Consonant> finals;
 
-    public SyllableRule(SyllableTemplate template, List<Vowel> vowels, List<Consonant> consonants)
+    public SyllableRule(SyllableTemplate template, List<Vowel> vowels, List<Consonant> consonants, CodaRestriction codas = CodaRestriction.Any)
     {
         Template = template;
+        Codas = codas;
         //Where() keeps the inventory's order, which matters because picks are biased toward the front
         this.vowels = new(vowels);
         this.consonants = new(consonants);
@@ -156,9 +170,17 @@ public class SyllableRule
         //L is any approximant, liquids and glides alike, as in pl, kw or by
         sibilants = new(consonants.Where(c => c.Manner == ConsonantManner.Sibilant && !c.Voiced));
         liquids = new(consonants.Where(c => c.Manner is ConsonantManner.Approximant or ConsonantManner.LateralApproximant));
-        //TODO many languages allow only some consonants in a coda (only nasals, say, or only n).
-        //that would be a choice each language makes, in its syllable rule
-        finals = new(consonants);
+        //generation, legality and cluster repair all read this one class, so restricting it
+        //restricts codas everywhere. A restriction can leave nothing (a nasals-only language that
+        //lost both nasals to pruning), and then syllables simply have no codas
+        finals = new(codas switch
+        {
+            CodaRestriction.Any => consonants,
+            CodaRestriction.Sonorants => consonants.Where(c => c.Manner is ConsonantManner.Nasal or ConsonantManner.Approximant or ConsonantManner.LateralApproximant or ConsonantManner.Flap or ConsonantManner.Trill),
+            CodaRestriction.Nasals => consonants.Where(c => c.Manner == ConsonantManner.Nasal),
+            CodaRestriction.SingleNasal => consonants.Contains(Consonant.n) ? new[] { Consonant.n } : consonants.Where(c => c.Manner == ConsonantManner.Nasal).Take(1),
+            _ => throw new ArgumentOutOfRangeException(nameof(codas), codas, null),
+        });
     }
 
     public Syllable GenerateSyllable(Random rand, double dropoff)
@@ -234,5 +256,6 @@ public class SyllableRule
     }
 
     public override string ToString() =>
-        $"{Template.Name}: " + string.Join(" ", Template.Slots.Select(s => s is VowelSlot ? $"V{vowels}" : $"{s.Letter}{Resolve(s).Phonemes}"));
+        $"{Template.Name}: " + string.Join(" ", Template.Slots.Select(s => s is VowelSlot ? $"V{vowels}" : $"{s.Letter}{Resolve(s).Phonemes}"))
+        + (Codas != CodaRestriction.Any && Template.Slots.Any(s => s is FinalSlot) ? $" ({Codas} codas)" : "");
 }

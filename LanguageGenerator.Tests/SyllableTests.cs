@@ -111,6 +111,75 @@ public class SyllableTests
         Assert.Equal(legal, rule.IsLegalCoda(Consonants(coda)));
     }
 
+    [Theory]
+    [InlineData(CodaRestriction.Any, "k", true)]
+    [InlineData(CodaRestriction.Sonorants, "l", true)]
+    [InlineData(CodaRestriction.Sonorants, "m", true)]
+    [InlineData(CodaRestriction.Sonorants, "t", false)]
+    [InlineData(CodaRestriction.Nasals, "m", true)]
+    [InlineData(CodaRestriction.Nasals, "l", false)]
+    [InlineData(CodaRestriction.SingleNasal, "n", true)]
+    [InlineData(CodaRestriction.SingleNasal, "m", false)]
+    public void IsLegalCoda_WithARestriction_AllowsOnlyItsClass(CodaRestriction codas, string coda, bool legal)
+    {
+        var rule = new SyllableRule(SyllableTemplates.CVF, TestData.Vowels, TestData.Consonants, codas);
+
+        Assert.Equal(legal, rule.IsLegalCoda(Consonants(coda)));
+    }
+
+    [Theory]
+    [InlineData(CodaRestriction.Sonorants)]
+    [InlineData(CodaRestriction.Nasals)]
+    [InlineData(CodaRestriction.SingleNasal)]
+    public void GenerateSyllable_WithARestriction_OnlyGeneratesLegalCodas(CodaRestriction codas)
+    {
+        var rule = new SyllableRule(SyllableTemplates.CVF, TestData.Vowels, TestData.Consonants, codas);
+        var rand = new Random(1);
+
+        var codaConsonants = Enumerable.Range(0, 5000).Select(_ => rule.GenerateSyllable(rand, 0.15).Coda).OfType<Consonant>().ToList();
+
+        Assert.NotEmpty(codaConsonants);
+        Assert.All(codaConsonants, c => Assert.True(rule.IsLegalCoda([c]), $"{c.IpaSymbol} isn't a legal {codas} coda"));
+    }
+
+    [Fact]
+    public void SingleNasal_WithoutN_FallsBackOnAnotherNasal()
+    {
+        var noN = TestData.Consonants.Where(c => c != Consonant.n).ToList();
+
+        var rule = new SyllableRule(SyllableTemplates.CVF, TestData.Vowels, noN, CodaRestriction.SingleNasal);
+
+        Assert.True(rule.IsLegalCoda([Consonant.m]));
+    }
+
+    [Fact]
+    public void CodaRestriction_LeavingNoConsonants_MeansNoCodas()
+    {
+        var noNasals = TestData.Consonants.Where(c => c.Manner != ConsonantManner.Nasal).ToList();
+        var rule = new SyllableRule(SyllableTemplates.CVF, TestData.Vowels, noNasals, CodaRestriction.Nasals);
+        var rand = new Random(1);
+
+        Assert.All(Enumerable.Range(0, 2000).Select(_ => rule.GenerateSyllable(rand, 0.15)), s => Assert.Null(s.Coda));
+        Assert.All(noNasals, c => Assert.False(rule.IsLegalCoda([c])));
+    }
+
+    [Fact]
+    public void SelectSyllableRule_ManyDraws_RestrictCodasOnlyWhereTheTemplateHasThem()
+    {
+        var rand = new Random(1);
+        var rules = Enumerable.Range(0, 40000).Select(_ => Generator.SelectSyllableRule(rand, TestData.Vowels, TestData.Consonants)).ToList();
+        //only templates with both an onset and a coda get a restriction; in VF every consonant is a coda
+        var withCodas = rules.Where(r => r.Template.Slots.Any(s => s is FinalSlot) && r.Template.Slots[0] is not VowelSlot).ToList();
+
+        Assert.All(rules.Except(withCodas), r => Assert.Equal(CodaRestriction.Any, r.Codas));
+        Assert.Contains(rules, r => r.Template == SyllableTemplates.VF);
+        double Share(CodaRestriction codas) => withCodas.Count(r => r.Codas == codas) / (double)withCodas.Count;
+        Assert.InRange(Share(CodaRestriction.Any), 0.48, 0.52);
+        Assert.InRange(Share(CodaRestriction.Sonorants), 0.23, 0.27);
+        Assert.InRange(Share(CodaRestriction.Nasals), 0.13, 0.17);
+        Assert.InRange(Share(CodaRestriction.SingleNasal), 0.08, 0.12);
+    }
+
     //single-letter IPA symbols only, which covers everything these tests need
     private static List<Consonant> Consonants(string ipa) =>
         [.. ipa.Select(symbol => TestData.Consonants.Single(c => c.IpaSymbol == symbol.ToString()))];

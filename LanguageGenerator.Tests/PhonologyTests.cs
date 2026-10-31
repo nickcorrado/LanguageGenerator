@@ -34,6 +34,41 @@ public class PhonologyTests
     }
 
     [Fact]
+    public void Realize_FinalConsonantOutsideTheCodaRestriction_IsRepaired()
+    {
+        var phonology = new Phonology
+        {
+            Vowels = TestData.Vowels,
+            Consonants = TestData.Consonants,
+            SyllableRule = new SyllableRule(SyllableTemplates.CVF, TestData.Vowels, TestData.Consonants, CodaRestriction.Nasals),
+            SandhiRules = [],
+            ClusterRepair = ClusterRepair.Epenthesis,
+            EpentheticVowel = Vowel.ə,
+        };
+
+        //a nasal can close a syllable, but a stop needs a vowel after it, as with Japanese batto 'bat'
+        Assert.Equal("kaba-n", phonology.Realize(TestData.Word(Kaba, [Consonant.n])).Segmented(Orthography.Ipa));
+        Assert.Equal("ka.ba.tə", phonology.Realize(TestData.Word(Kaba, [Consonant.t])).Syllabified(Orthography.Ipa));
+    }
+
+    [Fact]
+    public void Realize_ConsonantLegalNowhere_IsDeletedEvenWithEpenthesis()
+    {
+        //VF has no onsets, so with only nasal codas a t can't go anywhere, and no inserted vowel helps
+        var phonology = new Phonology
+        {
+            Vowels = TestData.Vowels,
+            Consonants = TestData.Consonants,
+            SyllableRule = new SyllableRule(SyllableTemplates.VF, TestData.Vowels, TestData.Consonants, CodaRestriction.Nasals),
+            SandhiRules = [],
+            ClusterRepair = ClusterRepair.Epenthesis,
+            EpentheticVowel = Vowel.ə,
+        };
+
+        Assert.Equal("a.an", phonology.Realize(TestData.Word([Vowel.a, Consonant.t, Vowel.a, Consonant.n])).Syllabified(Orthography.Ipa));
+    }
+
+    [Fact]
     public void Realize_AffixDeletedEntirely_ShowsAsEmpty()
     {
         var surface = TestData.Phonology(SyllableTemplates.CV, ClusterRepair.Deletion).Realize(TestData.Word(Kaba, S));
