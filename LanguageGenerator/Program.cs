@@ -16,10 +16,14 @@ var rand = new Random(seed);
 
 var lang = Generator.Generate(rand);
 
-Console.WriteLine(lang.SyllableRule);
+var phonology = lang.Phonology;
+Console.WriteLine(phonology.SyllableRule);
+Console.WriteLine($"Sandhi: {(phonology.SandhiRules.Count == 0 ? "none" : string.Join(", ", phonology.SandhiRules))}");
+var repair = phonology.ClusterRepair == ClusterRepair.Epenthesis ? $"epenthesis of {phonology.EpentheticVowel.Transcription}" : "deletion";
+Console.WriteLine($"Illegal clusters: {repair}");
 foreach (var lexeme in lang.Lexicon)
 {
-    Console.WriteLine($"{lexeme.Root.Meaning} ({lexeme.PartOfSpeech}): {new Word([lexeme.Root]).Transcription}");
+    Console.WriteLine($"{lexeme.Root.Meaning} ({lexeme.PartOfSpeech}): {phonology.Realize(new Word([lexeme.Root])).Syllabified}");
 }
 
 var order = lang.WordOrder;
@@ -35,7 +39,8 @@ foreach (var (use, marker) in lang.RoleMarkers)
     Console.WriteLine($"{use}: {marker}");
 }
 
-//each paradigm, shown on the first lexeme that uses it
+//each paradigm, shown on the first lexeme that uses it. Surface forms come first, with the
+//underlying form after them wherever sandhi or cluster repair changed something
 foreach (var paradigm in lang.Paradigms.Values)
 {
     Console.WriteLine();
@@ -44,8 +49,11 @@ foreach (var paradigm in lang.Paradigms.Values)
     var lexeme = lang.Lexicon.First(l => l.PartOfSpeech == paradigm.PartOfSpeech);
     foreach (var cell in paradigm.Cells)
     {
-        var words = paradigm.Inflect(lexeme, cell);
-        Console.WriteLine($"  {string.Join(" ", words.Select(w => w.Segmented)),-24} {string.Join(" ", words.Select(w => w.Gloss))}");
+        var forms = paradigm.Inflect(lexeme, cell).Select(phonology.Realize).ToList();
+        var surface = string.Join(" ", forms.Select(f => f.Segmented));
+        var underlying = string.Join(" ", forms.Select(f => f.Word.Segmented));
+        var gloss = string.Join(" ", forms.Select(f => f.Gloss));
+        Console.WriteLine($"  {surface,-24} {gloss,-20}{(surface == underlying ? "" : $" /{underlying}/")}");
     }
 }
 

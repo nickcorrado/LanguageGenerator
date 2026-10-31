@@ -1,8 +1,8 @@
 ﻿namespace LanguageGenerator;
 
-//a word is a sequence of morphemes, and everything else about it is derived from them
-//TODO for now its form is just the morphemes' forms run together. Sandhi at morpheme
-//boundaries and syllabification of the whole word belong here
+//a word is a sequence of morphemes, and everything else about it is derived from them.
+//Transcription and Segmented here are the underlying form, the morphemes simply run
+//together; Phonology.Realize gives the surface form, after sandhi and syllabification
 public record Word(IReadOnlyList<Morpheme> Morphemes)
 {
     public string Transcription => string.Concat(Morphemes.Select(m => m.Transcription));

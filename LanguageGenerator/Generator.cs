@@ -40,6 +40,15 @@ public static class Generator
         var vowels = GenerateVowels(rand, 0.15, 0.30);
         var consonants = GenerateConsonants(rand, 0.15, 0.50);
         var syllableRule = SelectSyllableRule(rand, vowels, consonants);
+        var phonology = new Phonology
+        {
+            Vowels = vowels,
+            Consonants = consonants,
+            SyllableRule = syllableRule,
+            SandhiRules = SelectSandhiRules(rand),
+            ClusterRepair = rand.NextDouble() < 0.6 ? ClusterRepair.Epenthesis : ClusterRepair.Deletion,
+            EpentheticVowel = SelectEpentheticVowel(vowels),
+        };
 
         var lexicon = GenerateLexicon(rand, syllableRule, syllableDropoff);
 
@@ -77,13 +86,11 @@ public static class Generator
 
         var alignment = SelectAlignment(rand, 0.5, 0.25);
         var cases = SelectCases(rand, alignment, 0.75, 0.6, 0.35, 0.65, 0.25, 0.2);
-        var paradigms = GenerateParadigms(rand, morphology, wordOrder, alignment, cases, syllableRule, syllableDropoff);
+        var paradigms = GenerateParadigms(rand, morphology, wordOrder, alignment, cases, phonology, syllableDropoff);
 
         return new Language
         {
-            Vowels = vowels,
-            Consonants = consonants,
-            SyllableRule = syllableRule,
+            Phonology = phonology,
             Lexicon = lexicon,
             Paradigms = paradigms,
             Morphology = morphology,
@@ -98,6 +105,30 @@ public static class Generator
     //basic meanings to fill the lexicon with, glossed the way the Leipzig rules gloss roots
     private static readonly string[] NounMeanings = ["person", "dog", "fish", "bird", "tree", "stone", "water", "fire", "sun", "house"];
     private static readonly string[] VerbMeanings = ["see", "eat", "drink", "sleep", "walk", "give", "know", "hear"];
+
+    //each rule is independent of the others, and they apply in this order
+    public static List<SandhiRule> SelectSandhiRules(Random rand)
+    {
+        var rules = new List<SandhiRule>();
+        if (rand.NextDouble() < 0.5)
+        {
+            rules.Add(new NasalAssimilation());
+        }
+        if (rand.NextDouble() < 0.5)
+        {
+            rules.Add(new Degemination());
+        }
+        if (rand.NextDouble() < 0.3)
+        {
+            rules.Add(new IntervocalicVoicing());
+        }
+        return rules;
+    }
+
+    //schwa and i are the usual epenthetic vowels; failing those, the language's commonest vowel,
+    //which is the first one since picks are biased toward the front
+    public static Vowel SelectEpentheticVowel(List<Vowel> vowels) =>
+        vowels.Contains(Vowel.ə) ? Vowel.ə : vowels.Contains(Vowel.i) ? Vowel.i : vowels[0];
 
     public static List<Lexeme> GenerateLexicon(Random rand, SyllableRule rule, double dropoff)
     {
@@ -131,11 +162,11 @@ public static class Generator
         return form;
     }
 
-    public static Dictionary<PartOfSpeech, Paradigm> GenerateParadigms(Random rand, Morphology morphology, WordOrder wordOrder, MorphosyntacticAlignment alignment, List<Case> cases, SyllableRule rule, double dropoff)
+    public static Dictionary<PartOfSpeech, Paradigm> GenerateParadigms(Random rand, Morphology morphology, WordOrder wordOrder, MorphosyntacticAlignment alignment, List<Case> cases, Phonology phonology, double dropoff)
     {
         //case and number particles on nouns behave like adpositions, so they follow the same directionality
-        var nouns = GenerateParadigm(rand, PartOfSpeech.Noun, SelectNounCategories(rand, alignment, cases), morphology, wordOrder.AdpositionalPhraseDirectionality, rule, dropoff);
-        var verbs = GenerateParadigm(rand, PartOfSpeech.Verb, SelectVerbCategories(rand), morphology, wordOrder.VerbPhraseDirectionality, rule, dropoff);
+        var nouns = GenerateParadigm(rand, PartOfSpeech.Noun, SelectNounCategories(rand, alignment, cases), morphology, wordOrder.AdpositionalPhraseDirectionality, phonology, dropoff);
+        var verbs = GenerateParadigm(rand, PartOfSpeech.Verb, SelectVerbCategories(rand), morphology, wordOrder.VerbPhraseDirectionality, phonology, dropoff);
         return new() { [PartOfSpeech.Noun] = nouns, [PartOfSpeech.Verb] = verbs };
     }
 
@@ -190,7 +221,7 @@ public static class Generator
         _ => throw new ArgumentOutOfRangeException(nameof(morphology), morphology, null),
     };
 
-    public static Paradigm GenerateParadigm(Random rand, PartOfSpeech partOfSpeech, List<InflectionalCategory> categories, Morphology morphology, HeadDirectionality directionality, SyllableRule rule, double dropoff)
+    public static Paradigm GenerateParadigm(Random rand, PartOfSpeech partOfSpeech, List<InflectionalCategory> categories, Morphology morphology, HeadDirectionality directionality, Phonology phonology, double dropoff)
     {
         var (fuseChance, particleChance) = Tendencies(morphology);
         //head-final languages are overwhelmingly suffixing; head-initial ones prefix more often
@@ -224,25 +255,30 @@ public static class Generator
             {
                 Categories = slotCategories,
                 Position = position,
-                Exponents = GenerateExponents(rand, slotCategories, position, rule, dropoff),
+                Exponents = GenerateExponents(rand, slotCategories, position, phonology, dropoff),
             });
         }
         return new Paradigm { PartOfSpeech = partOfSpeech, Categories = categories, Slots = slots };
     }
 
-    //one exponent per combination of values, each a single syllable. Forms are kept distinct within a
-    //slot where possible; if the phonology keeps producing repeats, the syncretism is allowed
+    //one exponent per combination of values. Forms are kept distinct within a slot where possible;
+    //if the phonology keeps producing repeats, the syncretism is allowed
     //TODO real paradigms often leave the commonest cell unmarked (SG, PRS, NOM), with no exponent at all
-    private static List<(IReadOnlyList<Tagmeme> Values, Morpheme Exponent)> GenerateExponents(Random rand, List<InflectionalCategory> categories, ExponentPosition position, SyllableRule rule, double dropoff)
+    private static List<(IReadOnlyList<Tagmeme> Values, Morpheme Exponent)> GenerateExponents(Random rand, List<InflectionalCategory> categories, ExponentPosition position, Phonology phonology, double dropoff)
     {
         var exponents = new List<(IReadOnlyList<Tagmeme>, Morpheme)>();
         var usedForms = new HashSet<string>();
         foreach (var values in Paradigm.Combinations(categories))
         {
+            //affixes are often a bare consonant (English -s, -t), which is what gives sandhi and cluster
+            //repair work to do; particles are words of their own, so they're always a whole syllable
+            var bare = position is ExponentPosition.Prefix or ExponentPosition.Suffix && rand.NextDouble() < 0.3;
             var form = new List<Phoneme>();
             for (int attempt = 0; attempt < 20; attempt++)
             {
-                form = [.. GenerateSyllable(rand, rule, dropoff).Phonemes];
+                form = bare
+                    ? [phonology.Consonants[Utilities.PowerLaw(rand, phonology.Consonants.Count, dropoff)]]
+                    : [.. GenerateSyllable(rand, phonology.SyllableRule, dropoff).Phonemes];
                 if (usedForms.Add(string.Concat(form.Select(p => p.Transcription))))
                 {
                     break;

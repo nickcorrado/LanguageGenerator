@@ -189,6 +189,29 @@ public class SyllableRule
         return new Syllable(new ConsonantCluster(onset), nucleus!, coda);
     }
 
+    //whether these consonants can open, or close, a syllable of this shape
+    public bool IsLegalOnset(IReadOnlyList<Consonant> consonants) =>
+        Fits(consonants, [.. Template.Slots.TakeWhile(s => s is not VowelSlot)]);
+    public bool IsLegalCoda(IReadOnlyList<Consonant> consonants) =>
+        Fits(consonants, [.. Template.Slots.SkipWhile(s => s is not VowelSlot).Skip(1)]);
+
+    //every slot is optional, so the consonants only have to fill some of the slots, in order
+    private bool Fits(IReadOnlyList<Consonant> consonants, IReadOnlyList<Slot> slots)
+    {
+        if (consonants.Count == 0)
+        {
+            return true;
+        }
+        for (int i = 0; i < slots.Count; i++)
+        {
+            if (Resolve(slots[i]).Phonemes.Contains(consonants[0]) && Fits([.. consonants.Skip(1)], [.. slots.Skip(i + 1)]))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
     //which phonemes can fill a consonantal slot, and how often it's filled
     private (Category<Consonant> Phonemes, double Chance) Resolve(Slot slot) => slot switch
     {
