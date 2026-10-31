@@ -24,7 +24,7 @@ public static class Generator
 
         var lexicon = GenerateLexicon(rand, syllableRule, syllableDropoff);
 
-        //word order comes first because how much a language prefixes depends on it
+        //word order comes first because how isolating a language is, and how much it prefixes, depend on it
         var wordOrder = SelectWordOrder(rand);
         var morphology = SelectMorphologicalProfile(rand, wordOrder.ConstituentWordOrder);
 
@@ -358,13 +358,22 @@ public static class Generator
     //WALS won't classify languages as fusional, agglutinative or analytic, but it does measure the
     //properties underneath, each drawn here in proportion to WALS's language counts
 
-    // https://wals.info/chapter/20 (165 languages). Neither tone nor ablaut is modeled, so values
-    //pairing one with another strategy count as that strategy; the 3 exclusively tonal languages are left out
-    private static readonly (Fusion Value, int Languages)[] FusionCounts =
+    // https://wals.info/combinations/20A_83A: fusion by the order of object and verb. Isolating
+    //morphology is far commoner in VO languages; the OV counts are small, but 26A's languages with
+    //little affixation lean the same way (35 OV to 100 VO). Neither tone nor ablaut is modeled, so
+    //values pairing one with another strategy count as that strategy, and the exclusively tonal
+    //languages are left out, as are those with no dominant order
+    private static readonly (Fusion Value, int Languages)[] ObjectVerbFusionCounts =
     [
-        (Fusion.Concatenative, 125 + 5 + 2),
-        (Fusion.Mixed, 13),
-        (Fusion.Isolating, 16 + 1),
+        (Fusion.Concatenative, 70 + 1 + 0),
+        (Fusion.Mixed, 5),
+        (Fusion.Isolating, 3 + 0),
+    ];
+    private static readonly (Fusion Value, int Languages)[] VerbObjectFusionCounts =
+    [
+        (Fusion.Concatenative, 38 + 3 + 2),
+        (Fusion.Mixed, 7),
+        (Fusion.Isolating, 12 + 1),
     ];
 
     // https://wals.info/combinations/26A_83A: affixation by the order of object and verb, which makes
@@ -391,7 +400,7 @@ public static class Generator
     public static bool ObjectPrecedesVerb(ConstituentWordOrder order) => order is ConstituentWordOrder.SOV or ConstituentWordOrder.OSV or ConstituentWordOrder.OVS;
 
     public static MorphologicalProfile SelectMorphologicalProfile(Random rand, ConstituentWordOrder order) => new(
-        Draw(rand, FusionCounts),
+        Draw(rand, ObjectPrecedesVerb(order) ? ObjectVerbFusionCounts : VerbObjectFusionCounts),
         new Exponence(
             // https://wals.info/chapter/21: 8 of the 87 languages with case mark it together with number
             CaseWithNumber: rand.NextDouble() < 8 / 87.0,

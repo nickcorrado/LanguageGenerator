@@ -53,10 +53,6 @@ public class GeneratorTests
         var draws = Enumerable.Range(0, 100000).Select(_ => Generator.SelectMorphologicalProfile(rand, ConstituentWordOrder.SOV)).ToList();
 
         double Share(Func<MorphologicalProfile, bool> which) => draws.Count(which) / 100000.0;
-        //WALS 20A, out of the 162 languages kept
-        Assert.InRange(Share(p => p.Fusion == Fusion.Concatenative), 132 / 162.0 - 0.005, 132 / 162.0 + 0.005);
-        Assert.InRange(Share(p => p.Fusion == Fusion.Mixed), 13 / 162.0 - 0.005, 13 / 162.0 + 0.005);
-        Assert.InRange(Share(p => p.Fusion == Fusion.Isolating), 17 / 162.0 - 0.005, 17 / 162.0 + 0.005);
         //WALS 21A and 21B
         Assert.InRange(Share(p => p.Exponence.CaseWithNumber), 8 / 87.0 - 0.005, 8 / 87.0 + 0.005);
         Assert.InRange(Share(p => p.Exponence.TamWithAgreement), 24 / 156.0 - 0.005, 24 / 156.0 + 0.005);
@@ -76,6 +72,36 @@ public class GeneratorTests
 
         Assert.InRange(draws.Count(a => a == Affixation.StronglySuffixing) / 100000.0, stronglySuffixing / (double)languages - 0.006, stronglySuffixing / (double)languages + 0.006);
         Assert.InRange(draws.Count(a => a == Affixation.StronglyPrefixing) / 100000.0, stronglyPrefixing / (double)languages - 0.006, stronglyPrefixing / (double)languages + 0.006);
+    }
+
+    //WALS 20A crossed with 83A, folded as in the generator: the languages in each column, then the
+    //concatenative, mixed and isolating counts in it
+    [Theory]
+    [InlineData(ConstituentWordOrder.SOV, 79, 71, 5, 3)]
+    [InlineData(ConstituentWordOrder.SVO, 63, 43, 7, 13)]
+    public void SelectMorphologicalProfile_ManyDraws_MatchTheWalsFusionCountsForTheirWordOrder(ConstituentWordOrder order, int languages, int concatenative, int mixed, int isolating)
+    {
+        var rand = new Random(1);
+        var draws = Enumerable.Range(0, 100000).Select(_ => Generator.SelectMorphologicalProfile(rand, order).Fusion).ToList();
+
+        double Share(Fusion fusion) => draws.Count(f => f == fusion) / 100000.0;
+        Assert.InRange(Share(Fusion.Concatenative), concatenative / (double)languages - 0.006, concatenative / (double)languages + 0.006);
+        Assert.InRange(Share(Fusion.Mixed), mixed / (double)languages - 0.006, mixed / (double)languages + 0.006);
+        Assert.InRange(Share(Fusion.Isolating), isolating / (double)languages - 0.006, isolating / (double)languages + 0.006);
+    }
+
+    [Fact]
+    public void Generate_IsolatingMorphology_IsCommonerInVerbObjectLanguages()
+    {
+        double IsolatingShare(bool objectFirst)
+        {
+            var group = GeneratedLanguages.Sample.Where(l => Generator.ObjectPrecedesVerb(l.WordOrder.ConstituentWordOrder) == objectFirst).ToList();
+            return group.Count(l => l.MorphologicalProfile.Fusion == Fusion.Isolating) / (double)group.Count;
+        }
+
+        //WALS gives about 4% for OV and 21% for VO
+        Assert.InRange(IsolatingShare(objectFirst: true), 0, 0.10);
+        Assert.InRange(IsolatingShare(objectFirst: false), 0.12, 0.30);
     }
 
     [Fact]
