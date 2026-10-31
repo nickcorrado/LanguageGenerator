@@ -3,8 +3,8 @@
 //builders for hand-made phonologies and words, using the full phoneme inventory
 internal static class TestData
 {
-    public static List<Vowel> Vowels { get; } = [.. PhonemeManager.Vowels];
-    public static List<Consonant> Consonants { get; } = [.. PhonemeManager.Consonants];
+    public static List<Vowel> Vowels { get; } = [.. Vowel.All];
+    public static List<Consonant> Consonants { get; } = [.. Consonant.All];
 
     public static Phonology Phonology(SyllableTemplate template, ClusterRepair repair, params SandhiRule[] rules) =>
         Phonology(template, repair, Consonants, rules);

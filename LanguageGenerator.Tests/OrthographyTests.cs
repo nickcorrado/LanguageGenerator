@@ -38,7 +38,7 @@ public class OrthographyTests
         Assert.Throws<ArgumentException>(() => orthography.Spell(Vowel.i));
     }
 
-    private static readonly List<Phoneme> FullInventory = [.. PhonemeManager.Vowels.Concat<Phoneme>(PhonemeManager.Consonants)];
+    private static readonly List<Phoneme> FullInventory = [.. Vowel.All.Concat<Phoneme>(Consonant.All)];
 
     private static IEnumerable<OrthographicStyle> EveryStyle() =>
         from postalveolars in Enum.GetValues<PostalveolarSpelling>()

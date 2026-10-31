@@ -279,7 +279,7 @@ public static class Generator
 
     public static List<Vowel> GenerateVowels(Random rand, double chanceOfPhonemePruning, double chanceOfCategoryPruning)
     {
-        var vowels = new List<Vowel>(PhonemeManager.Vowels);
+        var vowels = new List<Vowel>(Vowel.All);
 
         for (int i = vowels.Count - 1; i >= 0; i--)
         {
@@ -304,7 +304,7 @@ public static class Generator
 
     public static List<Consonant> GenerateConsonants(Random rand, double chanceofPhonemePruning, double chanceOfCategoryPruning)
     {
-        var consonants = new List<Consonant>(PhonemeManager.Consonants);
+        var consonants = new List<Consonant>(Consonant.All);
 
         for (int i = consonants.Count - 1; i >= 0; i--)
         {

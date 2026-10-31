@@ -69,7 +69,7 @@ public class SyllableTests
     {
         var twoConsonants = Generate(SyllableTemplates.CLV, TestData.Consonants, 20000).Where(s => s.Onset.Count() == 2).ToList();
 
-        Assert.All(twoConsonants, s => Assert.Contains(s.Onset.Last(), PhonemeManager.Liquids));
+        Assert.All(twoConsonants, s => Assert.True(s.Onset.Last().Manner is ConsonantManner.Approximant or ConsonantManner.LateralApproximant));
         //C fills half the time and L 30% of the time
         Assert.InRange(twoConsonants.Count / 20000.0, 0.13, 0.17);
     }
@@ -77,11 +77,11 @@ public class SyllableTests
     [Fact]
     public void GenerateSyllable_CategoryPrunedFromInventory_LeavesThatSlotUnfilled()
     {
-        var noSibilants = TestData.Consonants.Except(PhonemeManager.Sibilants).ToList();
+        var noSibilants = TestData.Consonants.Where(c => c.Manner != ConsonantManner.Sibilant).ToList();
 
         var syllables = Generate(SyllableTemplates.SCV, noSibilants, 2000);
 
-        Assert.All(syllables, s => Assert.True(s.Onset.Count() <= 1 && !s.Onset.Any(PhonemeManager.Sibilants.Contains)));
+        Assert.All(syllables, s => Assert.True(s.Onset.Count() <= 1 && !s.Onset.Any(c => c.Manner == ConsonantManner.Sibilant)));
     }
 
     [Theory]

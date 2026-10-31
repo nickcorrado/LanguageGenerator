@@ -22,7 +22,7 @@ public class Orthography
 
     //IPA as an orthography, for debugging and for underlying forms
     public static Orthography Ipa { get; } =
-        new(PhonemeManager.Vowels.Concat<Phoneme>(PhonemeManager.Consonants).ToDictionary(p => p, p => p.IpaSymbol));
+        new(Vowel.All.Concat<Phoneme>(Consonant.All).ToDictionary(p => p, p => p.IpaSymbol));
 
     public string Spell(Phoneme phoneme) => spellings.TryGetValue(phoneme, out var spelling)
         ? spelling

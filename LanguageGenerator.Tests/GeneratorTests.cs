@@ -215,7 +215,7 @@ public class GeneratorTests
     [InlineData(false, false, "a")]
     public void SelectEpentheticVowel_PrefersSchwaThenI(bool hasSchwa, bool hasI, string expected)
     {
-        var vowels = PhonemeManager.Vowels.Where(v => (hasSchwa || v != Vowel.ə) && (hasI || v != Vowel.i)).ToList();
+        var vowels = Vowel.All.Where(v => (hasSchwa || v != Vowel.ə) && (hasI || v != Vowel.i)).ToList();
 
         Assert.Equal(expected, Generator.SelectEpentheticVowel(vowels).IpaSymbol);
     }

@@ -12,55 +12,6 @@ public class Phoneme
     }
 }
 
-//Strongly considering using this to define default categories, from which the
-//generator prunes phonemes
-public static class PhonemeManager
-{
-    public static IReadOnlySet<Phoneme> Phonemes { get; } = new HashSet<Phoneme>
-    {
-        Vowel.a, Vowel.e, Vowel.i, Vowel.æ,
-        Vowel.ɛ, Vowel.ə, Vowel.ɔ, Vowel.o,
-        Vowel.iː, Vowel.oː,
-        Consonant.b, Consonant.d, Consonant.g, Consonant.k,
-        Consonant.m, Consonant.n, Consonant.p, Consonant.s,
-        Consonant.t, Consonant.z, Consonant.ʃ, Consonant.ʒ,
-        Consonant.f, Consonant.v, Consonant.ɹ, Consonant.l,
-    };
-
-    public static IReadOnlyList<Vowel> Vowels { get; } = [
-        Vowel.a, Vowel.e, Vowel.i, Vowel.æ, Vowel.ɛ, Vowel.ə, Vowel.ɔ, Vowel.o,
-        Vowel.iː, Vowel.oː,
-    ];
-
-    public static IReadOnlyList<Consonant> Consonants { get; } =
-    [
-        Consonant.b, Consonant.d, Consonant.g, Consonant.k,
-        Consonant.m, Consonant.n, Consonant.p, Consonant.s,
-        Consonant.t, Consonant.z, Consonant.ʃ, Consonant.ʒ,
-        Consonant.f, Consonant.v, Consonant.ɹ, Consonant.l,
-        Consonant.j, Consonant.w,
-    ];
-
-    public static IReadOnlyList<Consonant> Finals { get; } =
-    [
-        Consonant.b, Consonant.d, Consonant.g, Consonant.k,
-        Consonant.m, Consonant.n, Consonant.p, Consonant.s,
-        Consonant.t, Consonant.z, Consonant.ʃ, Consonant.ʒ,
-        Consonant.f, Consonant.v, Consonant.ɹ, Consonant.l,
-        Consonant.j, Consonant.w,
-    ];
-
-    public static IReadOnlyList<Consonant> Liquids { get; } =
-    [
-        Consonant.l, Consonant.ɹ, Consonant.j, Consonant.w,
-    ];
-
-    public static IReadOnlyList<Consonant> Sibilants { get; } =
-    [
-        Consonant.s, Consonant.ʃ,
-    ];
-}
-
 public class Vowel : Phoneme
 {
     public static Vowel i { get; } = new("i", VowelHeight.Close, VowelFrontness.Front, false, false);
@@ -73,6 +24,10 @@ public class Vowel : Phoneme
     public static Vowel ɔ { get; } = new("ɔ", VowelHeight.OpenMid, VowelFrontness.Back, true, false);
     public static Vowel o { get; } = new("o", VowelHeight.CloseMid, VowelFrontness.Back, true, false);
     public static Vowel oː { get; } = new("oː", VowelHeight.CloseMid, VowelFrontness.Back, true, true);
+
+    //every vowel a language can have, from which the generator prunes. Declared after the vowels
+    //themselves, since static properties initialize in order
+    public static IReadOnlyList<Vowel> All { get; } = [a, e, i, æ, ɛ, ə, ɔ, o, iː, oː];
 
     public VowelHeight Height { get; }
     public VowelFrontness Backness { get; }
@@ -101,14 +56,17 @@ public class Consonant : Phoneme
     public static Consonant g { get; } = new("g", ConsonantPlace.Velar, ConsonantManner.Plosive, true);
     public static Consonant s { get; } = new("s", ConsonantPlace.Dental, ConsonantManner.Sibilant, false);
     public static Consonant z { get; } = new("z", ConsonantPlace.Dental, ConsonantManner.Sibilant, true);
-    public static Consonant ʃ { get; } = new("ʃ", ConsonantPlace.PostAlveolar, ConsonantManner.Fricative, false);
-    public static Consonant ʒ { get; } = new("ʒ", ConsonantPlace.PostAlveolar, ConsonantManner.Fricative, true);
+    public static Consonant ʃ { get; } = new("ʃ", ConsonantPlace.PostAlveolar, ConsonantManner.Sibilant, false);
+    public static Consonant ʒ { get; } = new("ʒ", ConsonantPlace.PostAlveolar, ConsonantManner.Sibilant, true);
     public static Consonant f { get; } = new("f", ConsonantPlace.LabioDental, ConsonantManner.Fricative, false);
     public static Consonant v { get; } = new("v", ConsonantPlace.LabioDental, ConsonantManner.Fricative, true);
     public static Consonant ɹ { get; } = new("ɹ", ConsonantPlace.PostAlveolar, ConsonantManner.Approximant, true);
     public static Consonant l { get; } = new("l", ConsonantPlace.PostAlveolar, ConsonantManner.LateralApproximant, true);
     public static Consonant j { get; } = new("j", ConsonantPlace.Palatal, ConsonantManner.Approximant, true);
     public static Consonant w { get; } = new("w", ConsonantPlace.Velar, ConsonantManner.Approximant, true);
+
+    //every consonant a language can have, from which the generator prunes
+    public static IReadOnlyList<Consonant> All { get; } = [b, d, g, k, m, n, p, s, t, z, ʃ, ʒ, f, v, ɹ, l, j, w];
 
     public ConsonantPlace Place { get; }
     public ConsonantManner Manner { get; }

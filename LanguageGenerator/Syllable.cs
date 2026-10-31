@@ -152,9 +152,13 @@ public class SyllableRule
         //Where() keeps the inventory's order, which matters because picks are biased toward the front
         this.vowels = new(vowels);
         this.consonants = new(consonants);
-        sibilants = new(consonants.Where(PhonemeManager.Sibilants.Contains));
-        liquids = new(consonants.Where(PhonemeManager.Liquids.Contains));
-        finals = new(consonants.Where(PhonemeManager.Finals.Contains));
+        //natural classes, by feature: S is a voiceless sibilant, as in s-clusters like st or šp, and
+        //L is any approximant, liquids and glides alike, as in pl, kw or by
+        sibilants = new(consonants.Where(c => c.Manner == ConsonantManner.Sibilant && !c.Voiced));
+        liquids = new(consonants.Where(c => c.Manner is ConsonantManner.Approximant or ConsonantManner.LateralApproximant));
+        //TODO many languages allow only some consonants in a coda (only nasals, say, or only n).
+        //that would be a choice each language makes, in its syllable rule
+        finals = new(consonants);
     }
 
     public Syllable GenerateSyllable(Random rand, double dropoff)
