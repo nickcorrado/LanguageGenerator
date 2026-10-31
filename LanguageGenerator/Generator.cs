@@ -103,7 +103,7 @@ public static class Generator
     }
 
     //basic meanings to fill the lexicon with, glossed the way the Leipzig rules gloss roots
-    private static readonly string[] NounMeanings = ["person", "dog", "fish", "bird", "tree", "stone", "water", "fire", "sun", "house"];
+    private static readonly string[] NounMeanings = ["person", "dog", "cat", "fish", "bird", "tree", "stone", "water", "fire", "sun", "house"];
     private static readonly string[] VerbMeanings = ["see", "eat", "drink", "sleep", "walk", "give", "know", "hear"];
 
     //each rule is independent of the others, and they apply in this order

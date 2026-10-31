@@ -15,6 +15,9 @@ public class Language
     public required MorphosyntacticAlignment MorphosyntacticAlignment { get; init; }
     public required List<Case> Cases { get; init; }
     public required Dictionary<CaseUse, RoleMarker> RoleMarkers { get; init; }
+
+    //the lexeme with this meaning, like "dog"
+    public Lexeme FindLexeme(string meaning) => Lexicon.Single(l => l.Root.Meaning == meaning);
 }
 
 public enum Morphology
