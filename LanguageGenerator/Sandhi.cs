@@ -25,21 +25,20 @@ public static class Sandhi
         return result;
     }
 
-    //convert unvoiced in onset to voiced
-    public static Syllable VoiceOnset(Syllable syllable)
+    //convert unvoiced in onset to voiced, using the language's own inventory so that
+    //voicing never introduces a phoneme the language doesn't have. A consonant with no
+    //voiced counterpart in the inventory is left as it is
+    //TODO this voices every onset unconditionally, which is unrealistic. Real languages
+    //mostly voice in context, e.g. intervocalically (apa -> aba) or after a nasal
+    //(anta -> anda), where one syllable meets the next. That wants a word-level rule
+    //that looks at the preceding syllable and calls this for the onsets it applies to
+    public static Syllable VoiceOnset(Syllable syllable, IEnumerable<Consonant> inventory)
     {
-        var onset = syllable.Onset;
         var onsetResult = new List<Consonant>();
-        if (onset.Any(c => c.Voiced))
+        foreach (var o in syllable.Onset)
         {
-            foreach (var o in onset)
-            {
-                var voicedOnset = onset.FirstOrDefault(c => c.Voiced && o.Manner == c.Manner && o.Place == c.Place);
-                if (voicedOnset != null)
-                {
-                    onsetResult.Add(voicedOnset);
-                }
-            }
+            var voiced = o.Voiced ? o : inventory.FirstOrDefault(c => c.Voiced && c.Manner == o.Manner && c.Place == o.Place);
+            onsetResult.Add(voiced ?? o);
         }
         var result = new Syllable(new ConsonantCluster(onsetResult), syllable.Nucleus, syllable.Coda);
         return result;
