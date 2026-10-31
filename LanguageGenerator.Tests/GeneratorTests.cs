@@ -95,7 +95,7 @@ public class GeneratorTests
     {
         double IsolatingShare(bool objectFirst)
         {
-            var group = GeneratedLanguages.Sample.Where(l => Generator.ObjectPrecedesVerb(l.WordOrder.ConstituentWordOrder) == objectFirst).ToList();
+            var group = GeneratedLanguages.Sample.Where(l => WordOrder.ObjectPrecedesVerb(l.WordOrder.ConstituentWordOrder) == objectFirst).ToList();
             return group.Count(l => l.MorphologicalProfile.Fusion == Fusion.Isolating) / (double)group.Count;
         }
 
@@ -110,7 +110,7 @@ public class GeneratorTests
         //weighting each 26A band's prefix share by its count gives about 0.23 for OV and 0.46 for VO
         double PrefixShare(bool objectFirst)
         {
-            var affixes = GeneratedLanguages.Sample.Where(l => Generator.ObjectPrecedesVerb(l.WordOrder.ConstituentWordOrder) == objectFirst)
+            var affixes = GeneratedLanguages.Sample.Where(l => WordOrder.ObjectPrecedesVerb(l.WordOrder.ConstituentWordOrder) == objectFirst)
                 .SelectMany(l => l.Paradigms.Values.SelectMany(p => p.Slots))
                 .Where(s => s.Position is ExponentPosition.Prefix or ExponentPosition.Suffix).ToList();
             return affixes.Count(s => s.Position == ExponentPosition.Prefix) / (double)affixes.Count;
@@ -129,16 +129,53 @@ public class GeneratorTests
     [InlineData(ConstituentWordOrder.VOS, false)]
     public void ObjectPrecedesVerb_ReadsTheConstituentOrder(ConstituentWordOrder order, bool expected)
     {
-        Assert.Equal(expected, Generator.ObjectPrecedesVerb(order));
+        Assert.Equal(expected, WordOrder.ObjectPrecedesVerb(order));
     }
 
     [Fact]
-    public void SelectWordOrder_HeadDirectionality_VariesIndependentlyOfConstituentOrder()
+    public void SelectWordOrder_VerbPhrase_FollowsTheOrderOfObjectAndVerb()
     {
-        var sov = GeneratedLanguages.Sample.Where(l => l.WordOrder.ConstituentWordOrder == ConstituentWordOrder.SOV);
+        Assert.All(GeneratedLanguages.Sample, l => Assert.Equal(
+            WordOrder.ObjectPrecedesVerb(l.WordOrder.ConstituentWordOrder) ? HeadDirectionality.Final : HeadDirectionality.Initial,
+            l.WordOrder.VerbPhraseDirectionality));
+    }
 
-        Assert.Equal(2, sov.Select(l => l.WordOrder.AdpositionalPhraseDirectionality).Distinct().Count());
-        Assert.InRange(GeneratedLanguages.Sample.Count(l => l.WordOrder.HeadDirectionality == HeadDirectionality.Initial) / 300.0, 0.4, 0.6);
+    //WALS's head-initial and total counts for each phrase in OV and in VO languages
+    [Theory]
+    [InlineData("Adpositional", 14, 486, 456, 498)]
+    [InlineData("NounPhrase", 332, 548, 456, 570)]
+    [InlineData("AdjectivePhrase", 72, 200, 107, 195)]
+    public void SelectWordOrder_ManyDraws_MatchTheWalsCountsForEachPhrase(string phrase, int objectVerbInitial, int objectVerbLanguages, int verbObjectInitial, int verbObjectLanguages)
+    {
+        var rand = new Random(1);
+        var draws = Enumerable.Range(0, 100000).Select(_ => Generator.SelectWordOrder(rand)).ToList();
+        HeadDirectionality Of(WordOrder w) => phrase switch
+        {
+            "Adpositional" => w.AdpositionalPhraseDirectionality,
+            "NounPhrase" => w.NounPhraseDirectionality,
+            _ => w.AdjectivePhraseDirectionality,
+        };
+        double InitialShare(bool objectFirst)
+        {
+            var group = draws.Where(w => WordOrder.ObjectPrecedesVerb(w.ConstituentWordOrder) == objectFirst).ToList();
+            return group.Count(w => Of(w) == HeadDirectionality.Initial) / (double)group.Count;
+        }
+
+        Assert.InRange(InitialShare(objectFirst: true), objectVerbInitial / (double)objectVerbLanguages - 0.01, objectVerbInitial / (double)objectVerbLanguages + 0.01);
+        Assert.InRange(InitialShare(objectFirst: false), verbObjectInitial / (double)verbObjectLanguages - 0.01, verbObjectInitial / (double)verbObjectLanguages + 0.01);
+    }
+
+    [Theory]
+    [InlineData(ConstituentWordOrder.SVO, HeadDirectionality.Initial, HeadDirectionality.Initial, HeadDirectionality.Initial, HeadDirectionality.Initial)]
+    [InlineData(ConstituentWordOrder.SOV, HeadDirectionality.Final, HeadDirectionality.Initial, HeadDirectionality.Final, HeadDirectionality.Final)]
+    //two phrases each way: the verb phrase decides
+    [InlineData(ConstituentWordOrder.SOV, HeadDirectionality.Initial, HeadDirectionality.Initial, HeadDirectionality.Final, HeadDirectionality.Final)]
+    [InlineData(ConstituentWordOrder.SVO, HeadDirectionality.Final, HeadDirectionality.Final, HeadDirectionality.Initial, HeadDirectionality.Initial)]
+    public void HeadDirectionality_IsWhicheverWayMostPhrasesGo(ConstituentWordOrder order, HeadDirectionality noun, HeadDirectionality adjective, HeadDirectionality adposition, HeadDirectionality expected)
+    {
+        var wordOrder = new WordOrder { ConstituentWordOrder = order, NounPhraseDirectionality = noun, AdjectivePhraseDirectionality = adjective, AdpositionalPhraseDirectionality = adposition };
+
+        Assert.Equal(expected, wordOrder.HeadDirectionality);
     }
 
     [Fact]

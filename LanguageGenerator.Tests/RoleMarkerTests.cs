@@ -5,8 +5,6 @@ public class RoleMarkerTests
     private static readonly WordOrder Postpositional = new()
     {
         ConstituentWordOrder = ConstituentWordOrder.SOV,
-        HeadDirectionality = HeadDirectionality.Final,
-        VerbPhraseDirectionality = HeadDirectionality.Final,
         NounPhraseDirectionality = HeadDirectionality.Final,
         AdjectivePhraseDirectionality = HeadDirectionality.Final,
         AdpositionalPhraseDirectionality = HeadDirectionality.Final,

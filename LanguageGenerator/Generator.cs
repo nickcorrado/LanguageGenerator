@@ -327,33 +327,41 @@ public static class Generator
             }
         }
 
-        //some languages are consistently head-initial, while others are consistently head-final;
-        //many are somewhere in the middle. Probability starts at 50%, and every head-initial
-        //choice makes the next one likelier to be head-initial too
-        var numerator = 1.0;
-        var denominator = 2.0;
-        HeadDirectionality NextDirectionality()
-        {
-            var initial = rand.NextDouble() < numerator / denominator;
-            if (initial)
-            {
-                numerator++;
-            }
-            denominator++;
-            return initial ? HeadDirectionality.Initial : HeadDirectionality.Final;
-        }
-
-        //initializers run in order, so this is the order the choices are weighted in
+        //the verb phrase's direction follows from the order itself; the others are drawn by it.
+        //initializers run in order, so the draws always happen in this order
+        var objectFirst = WordOrder.ObjectPrecedesVerb(order);
         return new WordOrder
         {
             ConstituentWordOrder = order,
-            HeadDirectionality = NextDirectionality(),
-            VerbPhraseDirectionality = NextDirectionality(),
-            NounPhraseDirectionality = NextDirectionality(),
-            AdjectivePhraseDirectionality = NextDirectionality(),
-            AdpositionalPhraseDirectionality = NextDirectionality(),
+            AdpositionalPhraseDirectionality = Draw(rand, objectFirst ? ObjectVerbAdpositionCounts : VerbObjectAdpositionCounts),
+            NounPhraseDirectionality = Draw(rand, objectFirst ? ObjectVerbNounPhraseCounts : VerbObjectNounPhraseCounts),
+            AdjectivePhraseDirectionality = Draw(rand, objectFirst ? ObjectVerbAdjectivePhraseCounts : VerbObjectAdjectivePhraseCounts),
         };
     }
+
+    //each phrase's head-initial and head-final counts, by the order of object and verb. Languages
+    //with no dominant order of either kind are left out, since every generated language has one
+
+    // https://wals.info/feature/95A: prepositions are head-initial and postpositions head-final.
+    //adposition order follows the verb almost without exception
+    private static readonly (HeadDirectionality Value, int Languages)[] ObjectVerbAdpositionCounts =
+        [(HeadDirectionality.Initial, 14), (HeadDirectionality.Final, 472)];
+    private static readonly (HeadDirectionality Value, int Languages)[] VerbObjectAdpositionCounts =
+        [(HeadDirectionality.Initial, 456), (HeadDirectionality.Final, 42)];
+
+    // https://wals.info/feature/97A: noun-adjective is head-initial. Adjective order barely
+    //follows the verb; Dryer's chapter is known for showing that
+    private static readonly (HeadDirectionality Value, int Languages)[] ObjectVerbNounPhraseCounts =
+        [(HeadDirectionality.Initial, 332), (HeadDirectionality.Final, 216)];
+    private static readonly (HeadDirectionality Value, int Languages)[] VerbObjectNounPhraseCounts =
+        [(HeadDirectionality.Initial, 456), (HeadDirectionality.Final, 114)];
+
+    // https://wals.info/combinations/83A_91A: an adjective before its degree word ("big very") is
+    //head-initial
+    private static readonly (HeadDirectionality Value, int Languages)[] ObjectVerbAdjectivePhraseCounts =
+        [(HeadDirectionality.Initial, 72), (HeadDirectionality.Final, 128)];
+    private static readonly (HeadDirectionality Value, int Languages)[] VerbObjectAdjectivePhraseCounts =
+        [(HeadDirectionality.Initial, 107), (HeadDirectionality.Final, 88)];
 
     //WALS won't classify languages as fusional, agglutinative or analytic, but it does measure the
     //properties underneath, each drawn here in proportion to WALS's language counts
@@ -397,10 +405,8 @@ public static class Generator
         (Affixation.StronglyPrefixing, 51),
     ];
 
-    public static bool ObjectPrecedesVerb(ConstituentWordOrder order) => order is ConstituentWordOrder.SOV or ConstituentWordOrder.OSV or ConstituentWordOrder.OVS;
-
     public static MorphologicalProfile SelectMorphologicalProfile(Random rand, ConstituentWordOrder order) => new(
-        Draw(rand, ObjectPrecedesVerb(order) ? ObjectVerbFusionCounts : VerbObjectFusionCounts),
+        Draw(rand, WordOrder.ObjectPrecedesVerb(order) ? ObjectVerbFusionCounts : VerbObjectFusionCounts),
         new Exponence(
             // https://wals.info/chapter/21: 8 of the 87 languages with case mark it together with number
             CaseWithNumber: rand.NextDouble() < 8 / 87.0,
@@ -408,7 +414,7 @@ public static class Generator
             TamWithAgreement: rand.NextDouble() < 24 / 156.0,
             //a guess: WALS counts tense and aspect together as TAM, so it has no figure for this
             TenseWithAspect: rand.NextDouble() < 0.3),
-        Draw(rand, ObjectPrecedesVerb(order) ? ObjectVerbAffixationCounts : VerbObjectAffixationCounts));
+        Draw(rand, WordOrder.ObjectPrecedesVerb(order) ? ObjectVerbAffixationCounts : VerbObjectAffixationCounts));
 
     //a value, with probability proportional to how many languages have it
     private static T Draw<T>(Random rand, (T Value, int Languages)[] counts)
