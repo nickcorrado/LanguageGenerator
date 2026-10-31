@@ -57,7 +57,7 @@ public class Language
         var syllables = new List<Syllable>();
         for (int i = 0; i < 10; i++)
         {
-            syllables.Add(GenerateSyllable(syllableRule, syllableDropoff, 0.50, 0.30, 0.20, 0.50));
+            syllables.Add(GenerateSyllable(syllableRule, syllableDropoff));
         }
 
         var words = new List<Word>();
@@ -129,7 +129,7 @@ public class Language
 
         for (int i = 0; i < numberOfSyllables; i++)
         {
-            word.Syllables.Add(GenerateSyllable(rule, dropoff, 0.50, 0.30, 0.20, 0.50));
+            word.Syllables.Add(GenerateSyllable(rule, dropoff));
         }
         return word;
     }
@@ -153,9 +153,9 @@ public class Language
     //    return word;
     //}
 
-    public static Syllable GenerateSyllable(SyllableRule rule, double dropoff, double onset1Chance, double onset2Chance, double onset3Chance, double codaChance)
+    public static Syllable GenerateSyllable(SyllableRule rule, double dropoff)
     {
-        var syllable = new Syllable(new ConsonantCluster(rule.GetConcreteOnset(dropoff, onset1Chance, onset2Chance, onset3Chance)), rule.GetConcreteNucleus(dropoff), rule.GetConcreteCoda(dropoff, codaChance));
+        var syllable = rule.GenerateSyllable(dropoff);
 
         syllable = Sandhi.ElideDuplicates(syllable);
         return syllable;
@@ -181,9 +181,8 @@ public class Language
     public static SyllableRule SelectSyllableRule(List<Vowel> vowels, List<Consonant> consonants)
     {
         var rand = new Random();
-        var rule = (EnumeratedSyllableRule)rand.Next(0, 8);
-        return new SyllableRule(vowels, consonants, rule);
-        //return SyllableRuleManager.SyllableRules[rand.Next(SyllableRuleManager.SyllableRules.Count)];
+        var template = SyllableTemplates.All[rand.Next(SyllableTemplates.All.Count)];
+        return new SyllableRule(template, vowels, consonants);
     }
 
     //public static List<SyllableRule> GenerateSyllableRules(int min, int max,

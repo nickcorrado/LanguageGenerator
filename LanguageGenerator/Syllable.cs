@@ -58,159 +58,141 @@ public class Category<T> : IEnumerable<T> where T : Phoneme
     IEnumerator IEnumerable.GetEnumerator() => Phonemes.GetEnumerator();
 }
 
+//the C, S, L, V and F of templates like CLVF. A slot is only a kind of sound;
+//which phonemes can fill it isn't known until it's resolved against a language's
+//inventory. Consonantal slots are optional and get filled with the given chance
+public record ConsonantSlot(double Chance);
+public record SibilantSlot(double Chance);
+public record LiquidSlot(double Chance);
+public record FinalSlot(double Chance);
+//every syllable has exactly one nucleus, so this one is never optional
+public record VowelSlot;
+
+public union Slot(ConsonantSlot, SibilantSlot, LiquidSlot, VowelSlot, FinalSlot)
+{
+    public char Letter => this switch
+    {
+        ConsonantSlot => 'C',
+        SibilantSlot => 'S',
+        LiquidSlot => 'L',
+        VowelSlot => 'V',
+        FinalSlot => 'F',
+    };
+}
+
+//slots before the vowel make up the onset; at most one slot may follow it, as the coda
+public class SyllableTemplate
+{
+    public IReadOnlyList<Slot> Slots { get; }
+    public string Name => string.Concat(Slots.Select(s => s.Letter));
+
+    public SyllableTemplate(params Slot[] slots)
+    {
+        Slots = slots;
+
+        var nuclei = Slots.Count(s => s is VowelSlot);
+        if (nuclei != 1)
+        {
+            throw new ArgumentException($"{Name} has {nuclei} vowel slots, but a syllable needs exactly one.", nameof(slots));
+        }
+
+        var codaSlots = Slots.Count - Slots.ToList().FindIndex(s => s is VowelSlot) - 1;
+        if (codaSlots > 1)
+        {
+            throw new ArgumentException($"{Name} has {codaSlots} slots after the vowel, but a syllable only has room for one coda.", nameof(slots));
+        }
+    }
+
+    public override string ToString() => Name;
+}
+
+//templates don't depend on the inventory, so unlike rules they can be defined up front.
+//the chances are carried over from when every rule shared one set of positional chances
+public static class SyllableTemplates
+{
+    public static SyllableTemplate CV { get; } = new(new ConsonantSlot(0.5), new VowelSlot());
+    public static SyllableTemplate CVF { get; } = new(new ConsonantSlot(0.5), new VowelSlot(), new FinalSlot(0.5));
+    public static SyllableTemplate VF { get; } = new(new VowelSlot(), new FinalSlot(0.5));
+    public static SyllableTemplate CLV { get; } = new(new ConsonantSlot(0.5), new LiquidSlot(0.3), new VowelSlot());
+    public static SyllableTemplate CLVF { get; } = new(new ConsonantSlot(0.5), new LiquidSlot(0.3), new VowelSlot(), new FinalSlot(0.5));
+    public static SyllableTemplate SCV { get; } = new(new SibilantSlot(0.5), new ConsonantSlot(0.3), new VowelSlot());
+    public static SyllableTemplate SCVF { get; } = new(new SibilantSlot(0.5), new ConsonantSlot(0.3), new VowelSlot(), new FinalSlot(0.5));
+    public static SyllableTemplate SCLVF { get; } = new(new SibilantSlot(0.5), new ConsonantSlot(0.3), new LiquidSlot(0.2), new VowelSlot(), new FinalSlot(0.5));
+
+    public static IReadOnlyList<SyllableTemplate> All { get; } = [CV, CVF, VF, CLV, CLVF, SCV, SCVF, SCLVF];
+}
+
+//a syllable template resolved against a language's phoneme inventory
 public class SyllableRule
 {
-    public SyllableCategory<Consonant>? Onset1 { get; set; }
-    public SyllableCategory<Consonant>? Onset2 { get; set; }
-    public SyllableCategory<Consonant>? Onset3 { get; set; }
-    public SyllableCategory<Vowel> Nucleus { get; set; }
-    public SyllableCategory<Consonant> Coda { get; set; }
+    public SyllableTemplate Template { get; }
 
-    public EnumeratedSyllableRule EnumeratedSyllableRule { get; set; }
+    private readonly Category<Vowel> vowels;
+    private readonly Category<Consonant> consonants;
+    private readonly Category<Consonant> sibilants;
+    private readonly Category<Consonant> liquids;
+    private readonly Category<Consonant> finals;
 
-    public SyllableRule(List<Vowel> vowels, List<Consonant> consonants, EnumeratedSyllableRule rule)
+    public SyllableRule(SyllableTemplate template, List<Vowel> vowels, List<Consonant> consonants)
     {
-        //this code is complete and utter garbage
-        //at the very least, we might as well pass sibilants and liquids, just so this is all more readable
-        //even if it duplicates consonants
-        Onset1 = rule switch
-        {
-            EnumeratedSyllableRule.CV or EnumeratedSyllableRule.CVF or EnumeratedSyllableRule.CLV or EnumeratedSyllableRule.CLVF => new SyllableCategory<Consonant>(new Category<Consonant>(consonants)),
-            EnumeratedSyllableRule.SCV or EnumeratedSyllableRule.SCVF or EnumeratedSyllableRule.SCLVF => new SyllableCategory<Consonant>(new Category<Consonant>(consonants.Where(c => PhonemeManager.Sibilants.Any(s => s == c)).ToList())),
-            _ => null
-        };
-        Onset2 = rule switch
-        {
-            EnumeratedSyllableRule.CLV or EnumeratedSyllableRule.CLVF => new SyllableCategory<Consonant>(new Category<Consonant>(consonants.Where(c => PhonemeManager.Liquids.Any(l => l == c)).ToList())),
-            EnumeratedSyllableRule.SCV or EnumeratedSyllableRule.SCVF or EnumeratedSyllableRule.SCLVF => new SyllableCategory<Consonant>(new Category<Consonant>(consonants)),
-            _ => null
-        };
-        Onset3 = rule switch
-        {
-            EnumeratedSyllableRule.SCLVF => new SyllableCategory<Consonant>(new Category<Consonant>(consonants.Where(c => PhonemeManager.Liquids.Any(l => l == c)).ToList())),
-            _ => null
-        };
-        Nucleus = new SyllableCategory<Vowel>(new Category<Vowel>(vowels));
-        Coda = new SyllableCategory<Consonant>(new Category<Consonant>(consonants));
-
-        EnumeratedSyllableRule = rule;
+        Template = template;
+        //Where() keeps the inventory's order, which matters because picks are biased toward the front
+        this.vowels = new(vowels);
+        this.consonants = new(consonants);
+        sibilants = new(consonants.Where(PhonemeManager.Sibilants.Contains));
+        liquids = new(consonants.Where(PhonemeManager.Liquids.Contains));
+        finals = new(consonants.Where(PhonemeManager.Finals.Contains));
     }
 
-    //TODO rename; concrete sounds weird
-    public List<Consonant> GetConcreteOnset(double dropoff, double onset1Chance, double onset2Chance, double onset3Chance)
+    public Syllable GenerateSyllable(double dropoff)
     {
         var onset = new List<Consonant>();
-        var rand = new Random();
-        if (Onset1 is not null && rand.NextDouble() < onset1Chance)
+        Vowel? nucleus = null;
+        Consonant? coda = null;
+
+        foreach (var slot in Template.Slots)
         {
-            onset.Add(Onset1[Utilities.PowerLaw(Onset1.Count(), dropoff)]);
+            if (slot is VowelSlot)
+            {
+                nucleus = Pick(vowels, 1, dropoff) ?? throw new InvalidOperationException("The inventory has no vowels.");
+            }
+            else if (Resolve(slot) is var (phonemes, chance) && Pick(phonemes, chance, dropoff) is { } consonant)
+            {
+                if (nucleus is null)
+                {
+                    onset.Add(consonant);
+                }
+                else
+                {
+                    coda = consonant;
+                }
+            }
         }
-        if (Onset2 is not null && rand.NextDouble() < onset2Chance)
-        {
-            onset.Add(Onset2[Utilities.PowerLaw(Onset2.Count(), dropoff)]);
-        }
-        if (Onset3 is not null && rand.NextDouble() < onset3Chance)
-        {
-            onset.Add(Onset3[Utilities.PowerLaw(Onset3.Count(), dropoff)]);
-        }
-        return onset;
+
+        //the template guarantees exactly one vowel slot
+        return new Syllable(new ConsonantCluster(onset), nucleus!, coda);
     }
 
-    public Vowel GetConcreteNucleus(double dropoff) => Nucleus[Utilities.PowerLaw(Nucleus.Count(), dropoff)];
-
-    public Consonant? GetConcreteCoda(double dropoff, double codaChance)
+    //which phonemes can fill a consonantal slot, and how often it's filled
+    private (Category<Consonant> Phonemes, double Chance) Resolve(Slot slot) => slot switch
     {
-        var rand = new Random();
-        if (rand.NextDouble() < codaChance)
-        {
-            return Coda[Utilities.PowerLaw(Coda.Count(), dropoff)];
-        }
-        else
+        ConsonantSlot c => (consonants, c.Chance),
+        SibilantSlot s => (sibilants, s.Chance),
+        LiquidSlot l => (liquids, l.Chance),
+        FinalSlot f => (finals, f.Chance),
+        VowelSlot => throw new ArgumentException("A vowel slot is the nucleus, not a consonant.", nameof(slot)),
+    };
+
+    private static T? Pick<T>(Category<T> phonemes, double chance, double dropoff) where T : Phoneme
+    {
+        //pruning can empty a category (say, both sibilants); then the slot just goes unfilled
+        if (!phonemes.Any() || Random.Shared.NextDouble() >= chance)
         {
             return null;
         }
+        return phonemes[Utilities.PowerLaw(phonemes.Count(), dropoff)];
     }
 
-    public override string ToString()
-    {
-        var result = "Onset: ";
-        if (Onset1 is not null)
-        {
-            result += $"{Onset1.Phonemes}";
-        }
-        if (Onset2 is not null)
-        {
-            result += $"{Onset2.Phonemes}";
-        }
-        if (Onset3 is not null)
-        {
-            result += $"{Onset3.Phonemes}";
-        }
-        //foreach (var category in Onset)
-        //{
-        //    result += $"{category}";
-        //}
-
-        result += $", nucleus: {Nucleus.Phonemes}";
-
-        if (Coda is not null)
-        {
-            result += $", coda: {Coda.Phonemes}";
-        }
-        //foreach (var category in Coda)
-        //{
-        //    result += $"{category}";
-        //}
-
-        return result;
-    }
-}
-
-public class SyllableCategory<T> : IEnumerable<T> where T : Phoneme
-{
-    public string? Name { get; set; }
-    public SyllableCategory EnumeratedCategory { get; init; }
-    public Category<T> Phonemes { get; set; }
-
-    public SyllableCategory(Category<T> phonemes)
-    {
-        Phonemes = phonemes;
-    }
-
-    public T this[int index]
-    {
-        get => Phonemes[index];
-        set => Phonemes[index] = value;
-    }
-
-    public IEnumerator<T> GetEnumerator() => Phonemes.GetEnumerator();
-
-    IEnumerator IEnumerable.GetEnumerator() => Phonemes.GetEnumerator();
-}
-
-public enum SyllableCategory
-{
-    Consonant, Vowel, Sibilant, Liquid, Final
-}
-
-public enum EnumeratedSyllableRule
-{
-    CV, CVF, VF, CLV, CLVF, SCV, SCVF, SCLVF
-}
-
-//I think Consonant, Vowel, Sibilant, Liquid, and Final actually
-//need to be *types*; it's not like we would be giving the SyllableRule
-//here the correct phonemes for the language, since those haven't been
-//determined when this assignment is made
-public class SyllableRuleManager
-{
-    //how to initialize these??
-    public static SyllableRule? CV { get; private set; }
-    public static SyllableRule? CVF { get; private set; }
-    public static SyllableRule? VF { get; private set; }
-    public static SyllableRule? CLV { get; private set; }
-    public static SyllableRule? CLVF { get; private set; }
-    public static SyllableRule? SCV { get; private set; }
-    public static SyllableRule? SCVF { get; private set; }
-    public static SyllableRule? SCLVF { get; private set; }
+    public override string ToString() =>
+        $"{Template.Name}: " + string.Join(" ", Template.Slots.Select(s => s is VowelSlot ? $"V{vowels}" : $"{s.Letter}{Resolve(s).Phonemes}"));
 }
