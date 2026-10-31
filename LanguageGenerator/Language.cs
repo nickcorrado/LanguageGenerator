@@ -15,7 +15,7 @@ public class Language
     public List<Case> Cases { get; set; }
     public Dictionary<CaseUse, RoleMarker> RoleMarkers { get; set; }
 
-    public Language()
+    public Language(Random rand)
     {
         //categories
         //all percentage chances in this program should bubble up somehow, so that they can be easily tweaked in one place
@@ -49,22 +49,22 @@ public class Language
         //    Console.WriteLine(word.Transcription);
         //}
 
-        var vowels = GenerateVowels(0.15, 0.30);
-        var consonants = GenerateConsonants(0.15, 0.50);
-        var syllableRule = SelectSyllableRule(vowels, consonants);
+        var vowels = GenerateVowels(rand, 0.15, 0.30);
+        var consonants = GenerateConsonants(rand, 0.15, 0.50);
+        var syllableRule = SelectSyllableRule(rand, vowels, consonants);
 
         Console.WriteLine(syllableRule);
 
         var syllables = new List<Syllable>();
         for (int i = 0; i < 10; i++)
         {
-            syllables.Add(GenerateSyllable(syllableRule, syllableDropoff));
+            syllables.Add(GenerateSyllable(rand, syllableRule, syllableDropoff));
         }
 
         var words = new List<Word>();
         for (int i = 0; i < wordCount; i++)
         {
-            words.Add(GenerateWord(syllableRule, syllableDropoff));
+            words.Add(GenerateWord(rand, syllableRule, syllableDropoff));
         }
         foreach (var word in words)
         {
@@ -100,15 +100,15 @@ public class Language
         //    Console.WriteLine(word.Transcription);
         //}
 
-        Morphology = SelectMorphology();
-        WordOrder = SelectWordOrder();
+        Morphology = SelectMorphology(rand);
+        WordOrder = WordOrder.Select(rand);
 
         Console.WriteLine(Morphology);
         Console.WriteLine(WordOrder.ConstituentWordOrder);
         Console.WriteLine($"{WordOrder.HeadDirectionality}, {WordOrder.VerbPhraseDirectionality}, {WordOrder.NounPhraseDirectionality}, {WordOrder.AdjectivePhraseDirectionality}, {WordOrder.AdpositionalPhraseDirectionality}");
 
-        MorphosyntacticAlignment = SelectAlignment(0.5, 0.25);
-        Cases = SelectCases(MorphosyntacticAlignment, 0.75, 0.6, 0.35, 0.65, 0.25, 0.2);
+        MorphosyntacticAlignment = SelectAlignment(rand, 0.5, 0.25);
+        Cases = SelectCases(rand, MorphosyntacticAlignment, 0.75, 0.6, 0.35, 0.65, 0.25, 0.2);
         RoleMarkers = SelectRoleMarkers(MorphosyntacticAlignment, Cases, WordOrder);
 
         Console.WriteLine(MorphosyntacticAlignment);
@@ -122,21 +122,20 @@ public class Language
         }
     }
 
-    public static Word GenerateWord(SyllableRule rule, double dropoff)
+    public static Word GenerateWord(Random rand, SyllableRule rule, double dropoff)
     {
         var word = new Word();
         int numberOfSyllables = 1;
 
         //20% chance of monosyllable
-        var rand = new Random();
         if (rand.NextDouble() > 0.2)
         {
-            numberOfSyllables += 1 + Utilities.PowerLaw(3, 0.20);
+            numberOfSyllables += 1 + Utilities.PowerLaw(rand, 3, 0.20);
         }
 
         for (int i = 0; i < numberOfSyllables; i++)
         {
-            word.Syllables.Add(GenerateSyllable(rule, dropoff));
+            word.Syllables.Add(GenerateSyllable(rand, rule, dropoff));
         }
         return word;
     }
@@ -160,9 +159,9 @@ public class Language
     //    return word;
     //}
 
-    public static Syllable GenerateSyllable(SyllableRule rule, double dropoff)
+    public static Syllable GenerateSyllable(Random rand, SyllableRule rule, double dropoff)
     {
-        var syllable = rule.GenerateSyllable(dropoff);
+        var syllable = rule.GenerateSyllable(rand, dropoff);
 
         syllable = Sandhi.ElideDuplicates(syllable);
         return syllable;
@@ -185,9 +184,8 @@ public class Language
     //}
 
     //only one rule now!
-    public static SyllableRule SelectSyllableRule(List<Vowel> vowels, List<Consonant> consonants)
+    public static SyllableRule SelectSyllableRule(Random rand, List<Vowel> vowels, List<Consonant> consonants)
     {
-        var rand = new Random();
         var template = SyllableTemplates.All[rand.Next(SyllableTemplates.All.Count)];
         return new SyllableRule(template, vowels, consonants);
     }
@@ -246,11 +244,10 @@ public class Language
     //    return rules;
     //}
 
-    public static List<Vowel> GenerateVowels(double chanceOfPhonemePruning, double chanceOfCategoryPruning)
+    public static List<Vowel> GenerateVowels(Random rand, double chanceOfPhonemePruning, double chanceOfCategoryPruning)
     {
         var vowels = new List<Vowel>(PhonemeManager.Vowels);
 
-        var rand = new Random();
         for (int i = vowels.Count - 1; i >= 0; i--)
         {
             Vowel vowel = vowels[i];
@@ -267,16 +264,15 @@ public class Language
             vowels.RemoveAll(v => v.Long);
         }
 
-        vowels = Utilities.Shuffle(vowels).ToList();
+        vowels = Utilities.Shuffle(rand, vowels).ToList();
 
         return vowels;
     }
 
-    public static List<Consonant> GenerateConsonants(double chanceofPhonemePruning, double chanceOfCategoryPruning)
+    public static List<Consonant> GenerateConsonants(Random rand, double chanceofPhonemePruning, double chanceOfCategoryPruning)
     {
         var consonants = new List<Consonant>(PhonemeManager.Consonants);
 
-        var rand = new Random();
         for (int i = consonants.Count - 1; i >= 0; i--)
         {
             Consonant consonant = consonants[i];
@@ -300,7 +296,7 @@ public class Language
             consonants.RemoveAll(c => c.Place == ConsonantPlace.Retroflex);
         }
 
-        consonants = Utilities.Shuffle(consonants).ToList();
+        consonants = Utilities.Shuffle(rand, consonants).ToList();
 
         return consonants;
     }
@@ -425,29 +421,11 @@ public class Language
     //    return categories.ToList();
     //}
 
-    //I don't like that I'm duplicating the probabilities here,
-    //without even referencing them to boot. Maybe this can be
-    //moved somehow into WordOrder
-    public static WordOrder SelectWordOrder()
-    {
-        var rand = new Random();
-        return rand.NextDouble() switch
-        {
-            < 0.45 => WordOrder.SOV,
-            < 0.85 => WordOrder.SVO,
-            < 0.95 => WordOrder.VSO,
-            < 0.98 => WordOrder.VOS,
-            < 0.99 => WordOrder.OSV,
-            _ => WordOrder.OVS //default case
-        };
-    }
-
     //these percentages are made up because I CAN'T FIND DATA
     //WALS refuses to categorize languages in this way, hence,
     //it seems, nobody else does, either
-    public static Morphology SelectMorphology()
+    public static Morphology SelectMorphology(Random rand)
     {
-        var rand = new Random();
         return rand.NextDouble() switch
         {
             < 0.5 => Morphology.Fusional,
@@ -456,9 +434,8 @@ public class Language
         };
     }
 
-    public static MorphosyntacticAlignment SelectAlignment(double nominativeChance, double ergativeChance)
+    public static MorphosyntacticAlignment SelectAlignment(Random rand, double nominativeChance, double ergativeChance)
     {
-        var rand = new Random();
         if (rand.NextDouble() < nominativeChance)
         {
             return MorphosyntacticAlignment.NominativeAccusative;
@@ -474,7 +451,7 @@ public class Language
         }
     }
 
-    public static List<Case> SelectCases(MorphosyntacticAlignment alignment, double genitiveChance, double dativeChance, double ablativeChance, double vocativeChance, double locativeChance, double instrumentalChance)
+    public static List<Case> SelectCases(Random rand, MorphosyntacticAlignment alignment, double genitiveChance, double dativeChance, double ablativeChance, double vocativeChance, double locativeChance, double instrumentalChance)
     {
         var cases = new List<Case>();
         switch (alignment)
@@ -491,7 +468,6 @@ public class Language
                 break;
         }
 
-        var rand = new Random();
         if (rand.NextDouble() < genitiveChance)
         {
             cases.Add(Case.Genitive);

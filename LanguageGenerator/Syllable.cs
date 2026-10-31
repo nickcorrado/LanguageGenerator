@@ -144,7 +144,7 @@ public class SyllableRule
         finals = new(consonants.Where(PhonemeManager.Finals.Contains));
     }
 
-    public Syllable GenerateSyllable(double dropoff)
+    public Syllable GenerateSyllable(Random rand, double dropoff)
     {
         var onset = new List<Consonant>();
         Vowel? nucleus = null;
@@ -154,9 +154,9 @@ public class SyllableRule
         {
             if (slot is VowelSlot)
             {
-                nucleus = Pick(vowels, 1, dropoff) ?? throw new InvalidOperationException("The inventory has no vowels.");
+                nucleus = Pick(rand, vowels, 1, dropoff) ?? throw new InvalidOperationException("The inventory has no vowels.");
             }
-            else if (Resolve(slot) is var (phonemes, chance) && Pick(phonemes, chance, dropoff) is { } consonant)
+            else if (Resolve(slot) is var (phonemes, chance) && Pick(rand, phonemes, chance, dropoff) is { } consonant)
             {
                 if (nucleus is null)
                 {
@@ -183,14 +183,14 @@ public class SyllableRule
         VowelSlot => throw new ArgumentException("A vowel slot is the nucleus, not a consonant.", nameof(slot)),
     };
 
-    private static T? Pick<T>(Category<T> phonemes, double chance, double dropoff) where T : Phoneme
+    private static T? Pick<T>(Random rand, Category<T> phonemes, double chance, double dropoff) where T : Phoneme
     {
         //pruning can empty a category (say, both sibilants); then the slot just goes unfilled
-        if (!phonemes.Any() || Random.Shared.NextDouble() >= chance)
+        if (!phonemes.Any() || rand.NextDouble() >= chance)
         {
             return null;
         }
-        return phonemes[Utilities.PowerLaw(phonemes.Count(), dropoff)];
+        return phonemes[Utilities.PowerLaw(rand, phonemes.Count(), dropoff)];
     }
 
     public override string ToString() =>

@@ -6,12 +6,32 @@
 public class WordOrder
 {
     //I've rounded off the real percentages to more even numbers for convenience
-    public static WordOrder SOV { get; } = new WordOrder(ConstituentWordOrder.SOV, 0.45); //45%
-    public static WordOrder SVO { get; } = new WordOrder(ConstituentWordOrder.SVO, 0.4); //40%
-    public static WordOrder VSO { get; } = new WordOrder(ConstituentWordOrder.VSO, 0.1); //10%
-    public static WordOrder VOS { get; } = new WordOrder(ConstituentWordOrder.VOS, 0.03); //3%
-    public static WordOrder OSV { get; } = new WordOrder(ConstituentWordOrder.OSV, 0.01); //1%
-    public static WordOrder OVS { get; } = new WordOrder(ConstituentWordOrder.OVS, 0.01); //1%
+    private static readonly (ConstituentWordOrder Order, double Probability)[] ConstituentWordOrders =
+    [
+        (ConstituentWordOrder.SOV, 0.45),
+        (ConstituentWordOrder.SVO, 0.40),
+        (ConstituentWordOrder.VSO, 0.10),
+        (ConstituentWordOrder.VOS, 0.03),
+        (ConstituentWordOrder.OSV, 0.01),
+        (ConstituentWordOrder.OVS, 0.01),
+    ];
+
+    public static WordOrder Select(Random rand)
+    {
+        var roll = rand.NextDouble();
+        var cumulative = 0.0;
+        foreach (var (order, probability) in ConstituentWordOrders)
+        {
+            cumulative += probability;
+            if (roll < cumulative)
+            {
+                return new WordOrder(rand, order, probability);
+            }
+        }
+        //rounding can leave the cumulative total a hair under 1; give the remainder to the last order
+        var (lastOrder, lastProbability) = ConstituentWordOrders[^1];
+        return new WordOrder(rand, lastOrder, lastProbability);
+    }
 
     public ConstituentWordOrder ConstituentWordOrder { get; private set; }
     public double Probability { get; private set; }
@@ -28,18 +48,17 @@ public class WordOrder
     //public HeadDirectionality DeterminerPhraseDirectionality { get; private set; }
 
 
-    private WordOrder(ConstituentWordOrder enumeratedWordOrder, double probability)
+    private WordOrder(Random rand, ConstituentWordOrder enumeratedWordOrder, double probability)
     {
         ConstituentWordOrder = enumeratedWordOrder;
         Probability = probability;
 
-        var random = new Random();
         //probability starts at 50%. every time things go < fraction,
         //the numerator gets relatively bigger
         var numerator = 1.0;
         var denominator = 2.0;
 
-        if (random.NextDouble() < numerator / denominator)
+        if (rand.NextDouble() < numerator / denominator)
         {
             HeadDirectionality = HeadDirectionality.Initial;
             numerator++;
@@ -50,7 +69,7 @@ public class WordOrder
         }
         denominator++;
 
-        if (random.NextDouble() < numerator / denominator)
+        if (rand.NextDouble() < numerator / denominator)
         {
             VerbPhraseDirectionality = HeadDirectionality.Initial;
             numerator++;
@@ -61,7 +80,7 @@ public class WordOrder
         }
         denominator++;
 
-        if (random.NextDouble() < numerator / denominator)
+        if (rand.NextDouble() < numerator / denominator)
         {
             NounPhraseDirectionality = HeadDirectionality.Initial;
             numerator++;
@@ -72,7 +91,7 @@ public class WordOrder
         }
         denominator++;
 
-        if (random.NextDouble() < numerator / denominator)
+        if (rand.NextDouble() < numerator / denominator)
         {
             AdjectivePhraseDirectionality = HeadDirectionality.Initial;
             numerator++;
@@ -83,7 +102,7 @@ public class WordOrder
         }
         denominator++;
 
-        if (random.NextDouble() < numerator / denominator)
+        if (rand.NextDouble() < numerator / denominator)
         {
             AdpositionalPhraseDirectionality = HeadDirectionality.Initial;
         }
