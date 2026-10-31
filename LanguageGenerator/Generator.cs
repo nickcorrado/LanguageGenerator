@@ -24,7 +24,7 @@ public static class Generator
 
         var lexicon = GenerateLexicon(rand, syllableRule, syllableDropoff);
 
-        var morphology = SelectMorphology(rand);
+        var morphology = SelectMorphologicalProfile(rand);
         var wordOrder = SelectWordOrder(rand);
 
         var alignment = SelectAlignment(rand, 0.5, 0.25);
@@ -36,7 +36,7 @@ public static class Generator
             Phonology = phonology,
             Lexicon = lexicon,
             Paradigms = paradigms,
-            Morphology = morphology,
+            MorphologicalProfile = morphology,
             WordOrder = wordOrder,
             HasArticles = rand.NextDouble() < 0.7,
             MorphosyntacticAlignment = alignment,
@@ -105,7 +105,7 @@ public static class Generator
         return form;
     }
 
-    public static Dictionary<PartOfSpeech, Paradigm> GenerateParadigms(Random rand, Morphology morphology, WordOrder wordOrder, MorphosyntacticAlignment alignment, List<Case> cases, Phonology phonology, double dropoff)
+    public static Dictionary<PartOfSpeech, Paradigm> GenerateParadigms(Random rand, MorphologicalProfile morphology, WordOrder wordOrder, MorphosyntacticAlignment alignment, List<Case> cases, Phonology phonology, double dropoff)
     {
         //case and number particles on nouns behave like adpositions, so they follow the same directionality
         var nouns = GenerateParadigm(rand, PartOfSpeech.Noun, SelectNounCategories(rand, alignment, cases), morphology, wordOrder.AdpositionalPhraseDirectionality, phonology, dropoff);
@@ -153,41 +153,35 @@ public static class Generator
         return categories;
     }
 
-    //this is the only place morphological type matters: the chance of fusing a category into the
-    //slot before it, and the chance of expressing a new slot with particles rather than affixes.
-    //they're tendencies, so any language can end up with some of each
-    private static (double Fuse, double Particle) Tendencies(Morphology morphology) => morphology switch
+    //whether a category shares its marker with the one just inside it
+    private static bool FusesWithPrevious(InflectionalCategory inner, InflectionalCategory outer, Exponence exponence) => (inner.Values[0], outer.Values[0]) switch
     {
-        Morphology.Fusional => (0.75, 0.05),
-        Morphology.Agglutinative => (0.1, 0.05),
-        Morphology.Analytic => (0.3, 0.8),
-        _ => throw new ArgumentOutOfRangeException(nameof(morphology), morphology, null),
+        //person and number agreement is fused in nearly every language that has it (1SG, 3PL)
+        (Person, Number) => true,
+        (Number, Case) => exponence.CaseWithNumber,
+        (Tense or Aspect, Person) => exponence.TamWithAgreement,
+        (Aspect, Tense) => exponence.TenseWithAspect,
+        _ => false,
     };
 
-    public static Paradigm GenerateParadigm(Random rand, PartOfSpeech partOfSpeech, List<InflectionalCategory> categories, Morphology morphology, HeadDirectionality directionality, Phonology phonology, double dropoff)
+    public static Paradigm GenerateParadigm(Random rand, PartOfSpeech partOfSpeech, List<InflectionalCategory> categories, MorphologicalProfile morphology, HeadDirectionality directionality, Phonology phonology, double dropoff)
     {
-        var (fuseChance, particleChance) = Tendencies(morphology);
-        //head-final languages are overwhelmingly suffixing; head-initial ones prefix more often
-        var prefixChance = directionality == HeadDirectionality.Initial ? 0.3 : 0.1;
         var particlePosition = directionality == HeadDirectionality.Initial ? ExponentPosition.PrecedingParticle : ExponentPosition.FollowingParticle;
 
         var groups = new List<(List<InflectionalCategory> Categories, ExponentPosition Position)>();
         foreach (var category in categories)
         {
-            //person and number agreement is fused in nearly every language that has it (1SG, 3PL),
-            //whatever its morphological type
-            var agreesWithPerson = groups.Count > 0 && category.Values[0] is Number && groups[^1].Categories[^1].Values[0] is Person;
-            if (agreesWithPerson || (groups.Count > 0 && rand.NextDouble() < fuseChance))
+            if (groups.Count > 0 && FusesWithPrevious(groups[^1].Categories[^1], category, morphology.Exponence))
             {
                 groups[^1].Categories.Add(category);
             }
-            else if (rand.NextDouble() < particleChance)
+            else if (rand.NextDouble() < morphology.ParticleChance)
             {
                 groups.Add(([category], particlePosition));
             }
             else
             {
-                groups.Add(([category], rand.NextDouble() < prefixChance ? ExponentPosition.Prefix : ExponentPosition.Suffix));
+                groups.Add(([category], rand.NextDouble() < morphology.PrefixChance ? ExponentPosition.Prefix : ExponentPosition.Suffix));
             }
         }
 
@@ -360,17 +354,53 @@ public static class Generator
         };
     }
 
-    //these percentages are made up because I CAN'T FIND DATA
-    //WALS refuses to categorize languages in this way, hence,
-    //it seems, nobody else does, either
-    public static Morphology SelectMorphology(Random rand)
+    //WALS won't classify languages as fusional, agglutinative or analytic, but it does measure the
+    //properties underneath, each drawn here in proportion to WALS's language counts
+
+    // https://wals.info/chapter/20 (165 languages). Neither tone nor ablaut is modeled, so values
+    //pairing one with another strategy count as that strategy; the 3 exclusively tonal languages are left out
+    private static readonly (Fusion Value, int Languages)[] FusionCounts =
+    [
+        (Fusion.Concatenative, 125 + 5 + 2),
+        (Fusion.Mixed, 13),
+        (Fusion.Isolating, 16 + 1),
+    ];
+
+    // https://wals.info/chapter/26 (969 languages), leaving out the 141 with little or no affixation,
+    //since fusion already decides that
+    private static readonly (Affixation Value, int Languages)[] AffixationCounts =
+    [
+        (Affixation.StronglySuffixing, 406),
+        (Affixation.WeaklySuffixing, 123),
+        (Affixation.Equal, 147),
+        (Affixation.WeaklyPrefixing, 94),
+        (Affixation.StronglyPrefixing, 58),
+    ];
+
+    public static MorphologicalProfile SelectMorphologicalProfile(Random rand) => new(
+        Draw(rand, FusionCounts),
+        new Exponence(
+            // https://wals.info/chapter/21: 8 of the 87 languages with case mark it together with number
+            CaseWithNumber: rand.NextDouble() < 8 / 87.0,
+            //and 24 of the 156 with tense-aspect-mood inflection mark it together with agreement
+            TamWithAgreement: rand.NextDouble() < 24 / 156.0,
+            //a guess: WALS counts tense and aspect together as TAM, so it has no figure for this
+            TenseWithAspect: rand.NextDouble() < 0.3),
+        Draw(rand, AffixationCounts));
+
+    //a value, with probability proportional to how many languages have it
+    private static T Draw<T>(Random rand, (T Value, int Languages)[] counts)
     {
-        return rand.NextDouble() switch
+        var roll = rand.Next(counts.Sum(c => c.Languages));
+        foreach (var (value, languages) in counts)
         {
-            < 0.5 => Morphology.Fusional,
-            < 0.75 => Morphology.Agglutinative,
-            _ => Morphology.Analytic
-        };
+            if (roll < languages)
+            {
+                return value;
+            }
+            roll -= languages;
+        }
+        throw new System.Diagnostics.UnreachableException();
     }
 
     public static MorphosyntacticAlignment SelectAlignment(Random rand, double nominativeChance, double ergativeChance)

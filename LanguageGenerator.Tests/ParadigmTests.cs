@@ -100,21 +100,71 @@ public class ParadigmTests
         Assert.Throws<ArgumentException>(() => Nouns().Inflect(See, [Number.Plural, Case.Nominative]));
     }
 
-    [Fact]
-    public void GenerateParadigm_ByMorphologicalType_FusesAndUsesParticlesAsTheTypeTends()
-    {
-        var slots = GeneratedLanguages.Sample
-            .SelectMany(l => l.Paradigms.Values.SelectMany(p => p.Slots).Select(s => (l.Morphology, Slot: s)))
-            .GroupBy(x => x.Morphology)
-            .ToDictionary(g => g.Key, g => (
-                CategoriesPerSlot: g.Average(x => x.Slot.Categories.Count),
-                Particles: g.Average(x => x.Slot.Position is ExponentPosition.PrecedingParticle or ExponentPosition.FollowingParticle ? 1.0 : 0.0)));
+    private static bool IsParticle(ExponentSlot slot) => slot.Position is ExponentPosition.PrecedingParticle or ExponentPosition.FollowingParticle;
 
-        Assert.True(slots[Morphology.Fusional].CategoriesPerSlot > slots[Morphology.Analytic].CategoriesPerSlot);
-        Assert.True(slots[Morphology.Analytic].CategoriesPerSlot > slots[Morphology.Agglutinative].CategoriesPerSlot);
-        Assert.True(slots[Morphology.Analytic].Particles > 0.5);
-        Assert.True(slots[Morphology.Fusional].Particles < 0.15);
-        Assert.True(slots[Morphology.Agglutinative].Particles < 0.15);
+    private static ExponentSlot SlotWith(Paradigm paradigm, string category) => paradigm.Slots.Single(s => s.Categories.Any(c => c.Name == category));
+
+    [Theory]
+    [InlineData(Fusion.Isolating, true)]
+    [InlineData(Fusion.Concatenative, false)]
+    public void GenerateParadigm_ByFusion_UsesParticlesOnlyWhenIsolating(Fusion fusion, bool particles)
+    {
+        var slots = GeneratedLanguages.Sample.Where(l => l.MorphologicalProfile.Fusion == fusion)
+            .SelectMany(l => l.Paradigms.Values.SelectMany(p => p.Slots)).ToList();
+
+        Assert.NotEmpty(slots);
+        Assert.All(slots, s => Assert.Equal(particles, IsParticle(s)));
+    }
+
+    [Fact]
+    public void GenerateParadigm_MixedFusion_UsesBothParticlesAndAffixes()
+    {
+        var slots = GeneratedLanguages.Sample.Where(l => l.MorphologicalProfile.Fusion == Fusion.Mixed)
+            .SelectMany(l => l.Paradigms.Values.SelectMany(p => p.Slots)).ToList();
+
+        Assert.Contains(slots, IsParticle);
+        Assert.Contains(slots, s => !IsParticle(s));
+    }
+
+    [Fact]
+    public void GenerateParadigm_CaseWithNumber_DecidesWhetherTheyShareASlot()
+    {
+        var nouns = GeneratedLanguages.Sample.Select(l => (l.MorphologicalProfile.Exponence.CaseWithNumber, Paradigm: l.Paradigms[PartOfSpeech.Noun]))
+            .Where(x => x.Paradigm.Categories.Any(c => c.Name == "Case") && x.Paradigm.Categories.Any(c => c.Name == "Number"))
+            .ToList();
+
+        Assert.Contains(nouns, x => x.CaseWithNumber);
+        Assert.All(nouns, x => Assert.Equal(x.CaseWithNumber, SlotWith(x.Paradigm, "Case") == SlotWith(x.Paradigm, "Number")));
+    }
+
+    [Fact]
+    public void GenerateParadigm_TamWithAgreement_DecidesWhetherTheyShareASlot()
+    {
+        var verbs = GeneratedLanguages.Sample.Select(l => (l.MorphologicalProfile.Exponence.TamWithAgreement, Paradigm: l.Paradigms[PartOfSpeech.Verb]))
+            .Where(x => x.Paradigm.Categories.Any(c => c.Name == "Person") && x.Paradigm.Categories.Any(c => c.Name is "Tense" or "Aspect"))
+            .ToList();
+
+        Assert.Contains(verbs, x => x.TamWithAgreement);
+        Assert.All(verbs, x =>
+        {
+            //agreement fuses with whichever TAM category sits just inside it
+            var tam = x.Paradigm.Categories.Last(c => c.Name is "Tense" or "Aspect").Name;
+            Assert.Equal(x.TamWithAgreement, SlotWith(x.Paradigm, "Person") == SlotWith(x.Paradigm, tam));
+        });
+    }
+
+    [Fact]
+    public void Morphology_ReadsOffWhatTheParadigmsDo()
+    {
+        Assert.All(GeneratedLanguages.Sample, l =>
+        {
+            var multiCategory = l.Paradigms.Values.SelectMany(p => p.Slots)
+                .Any(s => s.Categories.Select(c => c.Name).Except(["Number"]).Count() + (s.Categories.Any(c => c.Name == "Number") && !s.Categories.Any(c => c.Name == "Person") ? 1 : 0) > 1);
+            var expected = l.MorphologicalProfile.Fusion == Fusion.Isolating ? Morphology.Analytic
+                : multiCategory ? Morphology.Fusional
+                : Morphology.Agglutinative;
+            Assert.Equal(expected, l.Morphology);
+        });
     }
 
     [Fact]

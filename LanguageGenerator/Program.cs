@@ -27,7 +27,7 @@ foreach (var lexeme in lang.Lexicon)
 }
 
 var order = lang.WordOrder;
-Console.WriteLine(lang.Morphology);
+Console.WriteLine($"{lang.Morphology} ({lang.MorphologicalProfile})");
 Console.WriteLine(order.ConstituentWordOrder);
 Console.WriteLine($"{order.HeadDirectionality}, {order.VerbPhraseDirectionality}, {order.NounPhraseDirectionality}, {order.AdjectivePhraseDirectionality}, {order.AdpositionalPhraseDirectionality}");
 Console.WriteLine(lang.HasArticles ? "Has articles" : "No articles");

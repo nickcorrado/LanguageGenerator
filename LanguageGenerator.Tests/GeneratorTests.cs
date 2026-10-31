@@ -47,6 +47,35 @@ public class GeneratorTests
     }
 
     [Fact]
+    public void SelectMorphologicalProfile_ManyDraws_MatchTheWalsCounts()
+    {
+        var rand = new Random(1);
+        var draws = Enumerable.Range(0, 100000).Select(_ => Generator.SelectMorphologicalProfile(rand)).ToList();
+
+        double Share(Func<MorphologicalProfile, bool> which) => draws.Count(which) / 100000.0;
+        //WALS 20A, out of the 162 languages kept
+        Assert.InRange(Share(p => p.Fusion == Fusion.Concatenative), 132 / 162.0 - 0.005, 132 / 162.0 + 0.005);
+        Assert.InRange(Share(p => p.Fusion == Fusion.Mixed), 13 / 162.0 - 0.005, 13 / 162.0 + 0.005);
+        Assert.InRange(Share(p => p.Fusion == Fusion.Isolating), 17 / 162.0 - 0.005, 17 / 162.0 + 0.005);
+        //WALS 21A and 21B
+        Assert.InRange(Share(p => p.Exponence.CaseWithNumber), 8 / 87.0 - 0.005, 8 / 87.0 + 0.005);
+        Assert.InRange(Share(p => p.Exponence.TamWithAgreement), 24 / 156.0 - 0.005, 24 / 156.0 + 0.005);
+        //WALS 26A, out of the 828 affixing languages
+        Assert.InRange(Share(p => p.Affixation == Affixation.StronglySuffixing), 406 / 828.0 - 0.005, 406 / 828.0 + 0.005);
+        Assert.InRange(Share(p => p.Affixation == Affixation.StronglyPrefixing), 58 / 828.0 - 0.005, 58 / 828.0 + 0.005);
+    }
+
+    [Fact]
+    public void GenerateParadigm_AffixSlots_AreAboutAThirdPrefixes()
+    {
+        //each 26A band's prefix share, weighted by its language count, comes to about 0.325
+        var affixes = GeneratedLanguages.Sample.SelectMany(l => l.Paradigms.Values.SelectMany(p => p.Slots))
+            .Where(s => s.Position is ExponentPosition.Prefix or ExponentPosition.Suffix).ToList();
+
+        Assert.InRange(affixes.Count(s => s.Position == ExponentPosition.Prefix) / (double)affixes.Count, 0.25, 0.40);
+    }
+
+    [Fact]
     public void SelectWordOrder_HeadDirectionality_VariesIndependentlyOfConstituentOrder()
     {
         var sov = GeneratedLanguages.Sample.Where(l => l.WordOrder.ConstituentWordOrder == ConstituentWordOrder.SOV);
