@@ -8,6 +8,12 @@ public class Phoneme
     //few others. When a symbol is picked, a transcription
     //should be picked from the list
     public string Transcription { get; set; }
+
+    protected Phoneme(string ipaSymbol, string transcription)
+    {
+        IpaSymbol = ipaSymbol;
+        Transcription = transcription;
+    }
 }
 
 //Strongly considering using this to define default categories, from which the
@@ -107,12 +113,11 @@ public class Vowel : Phoneme
     public bool Long { get; private set; }
 
     private Vowel(string ipaSymbol, string transcription, VowelHeight vowelHeight, VowelFrontness vowelBackness, bool rounded, bool @long)
+        : base(ipaSymbol, transcription)
     {
         Height = vowelHeight;
         Backness = vowelBackness;
         Rounded = rounded;
-        Transcription = transcription;
-        IpaSymbol = ipaSymbol;
         Long = @long;
     }
 }
@@ -146,12 +151,11 @@ public class Consonant : Phoneme
     public bool Voiced { get; private set; }
 
     private Consonant(string ipaSymbol, string transcription, ConsonantPlace consonantPlace, ConsonantManner consonantManner, bool voiced)
+        : base(ipaSymbol, transcription)
     {
         Place = consonantPlace;
         Manner = consonantManner;
         Voiced = voiced;
-        Transcription = transcription;
-        IpaSymbol = ipaSymbol;
     }
 }
 

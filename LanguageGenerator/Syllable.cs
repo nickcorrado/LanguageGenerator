@@ -5,7 +5,7 @@ namespace LanguageGenerator;
 //syllables can also carry tones, but there's no
 //way I'm including that, at least for now
 //apparently nuclei can be a syllabic consonant, but we're not doing that
-public record Syllable(ConsonantCluster Onset, Vowel Nucleus, Consonant Coda)
+public record Syllable(ConsonantCluster Onset, Vowel Nucleus, Consonant? Coda)
 {
     public string Transcription => string.Concat(Onset?.Transcription ?? "", Nucleus.Transcription, Coda?.Transcription ?? "");
 }
@@ -60,12 +60,9 @@ public class Category<T> : IEnumerable<T> where T : Phoneme
 
 public class SyllableRule
 {
-    //nullable
-    public SyllableCategory<Consonant> Onset1 { get; set; }
-    //nullable
-    public SyllableCategory<Consonant> Onset2 { get; set; }
-    //nullable
-    public SyllableCategory<Consonant> Onset3 { get; set; }
+    public SyllableCategory<Consonant>? Onset1 { get; set; }
+    public SyllableCategory<Consonant>? Onset2 { get; set; }
+    public SyllableCategory<Consonant>? Onset3 { get; set; }
     public SyllableCategory<Vowel> Nucleus { get; set; }
     public SyllableCategory<Consonant> Coda { get; set; }
 
@@ -121,7 +118,7 @@ public class SyllableRule
 
     public Vowel GetConcreteNucleus(double dropoff) => Nucleus[Utilities.PowerLaw(Nucleus.Count(), dropoff)];
 
-    public Consonant GetConcreteCoda(double dropoff, double codaChance)
+    public Consonant? GetConcreteCoda(double dropoff, double codaChance)
     {
         var rand = new Random();
         if (rand.NextDouble() < codaChance)
@@ -171,7 +168,7 @@ public class SyllableRule
 
 public class SyllableCategory<T> : IEnumerable<T> where T : Phoneme
 {
-    public string Name { get; set; }
+    public string? Name { get; set; }
     public SyllableCategory EnumeratedCategory { get; init; }
     public Category<T> Phonemes { get; set; }
 
@@ -208,12 +205,12 @@ public enum EnumeratedSyllableRule
 public class SyllableRuleManager
 {
     //how to initialize these??
-    public static SyllableRule CV { get; private set; }
-    public static SyllableRule CVF { get; private set; }
-    public static SyllableRule VF { get; private set; }
-    public static SyllableRule CLV { get; private set; }
-    public static SyllableRule CLVF { get; private set; }
-    public static SyllableRule SCV { get; private set; }
-    public static SyllableRule SCVF { get; private set; }
-    public static SyllableRule SCLVF { get; private set; }
+    public static SyllableRule? CV { get; private set; }
+    public static SyllableRule? CVF { get; private set; }
+    public static SyllableRule? VF { get; private set; }
+    public static SyllableRule? CLV { get; private set; }
+    public static SyllableRule? CLVF { get; private set; }
+    public static SyllableRule? SCV { get; private set; }
+    public static SyllableRule? SCVF { get; private set; }
+    public static SyllableRule? SCLVF { get; private set; }
 }

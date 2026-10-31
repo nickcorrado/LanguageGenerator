@@ -3,11 +3,11 @@
 //I figure this is the top-level object
 public class Language
 {
-    public string Name { get; set; }
-    public List<SyllableRule> SyllableRules { get; set; }
-    public List<Category<Vowel>> Vowels { get; set; }
-    public List<Category<Consonant>> Consonants { get; set; }
-    public List<Word> Words { get; set; }
+    public string? Name { get; set; }
+    public List<SyllableRule> SyllableRules { get; set; } = [];
+    public List<Category<Vowel>> Vowels { get; set; } = [];
+    public List<Category<Consonant>> Consonants { get; set; } = [];
+    public List<Word> Words { get; set; } = [];
     public WordOrder WordOrder { get; set; }
     public Morphology Morphology { get; set; }
     public bool HasArticles { get; set; }
