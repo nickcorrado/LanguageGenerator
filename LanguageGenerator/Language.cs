@@ -13,6 +13,7 @@ public class Language
     public bool HasArticles { get; set; }
     public MorphosyntacticAlignment MorphosyntacticAlignment { get; set; }
     public List<Case> Cases { get; set; }
+    public Dictionary<CaseUse, RoleMarker> RoleMarkers { get; set; }
 
     public Language()
     {
@@ -108,10 +109,16 @@ public class Language
 
         MorphosyntacticAlignment = SelectAlignment(0.5, 0.25);
         Cases = SelectCases(MorphosyntacticAlignment, 0.75, 0.6, 0.35, 0.65, 0.25, 0.2);
+        RoleMarkers = SelectRoleMarkers(MorphosyntacticAlignment, Cases, WordOrder);
 
         Console.WriteLine(MorphosyntacticAlignment);
         foreach(var @case in Cases) {
             Console.Write(@case);
+        }
+        Console.WriteLine();
+        foreach (var (use, marker) in RoleMarkers)
+        {
+            Console.WriteLine($"{use}: {marker}");
         }
     }
 
@@ -511,6 +518,47 @@ public class Language
         }
 
         return cases;
+    }
+
+    //a role gets its case if the language has one, and otherwise an adposition. The English
+    //glosses are placeholders until adpositions are real words in the lexicon
+    public static Dictionary<CaseUse, RoleMarker> SelectRoleMarkers(MorphosyntacticAlignment alignment, List<Case> cases, WordOrder wordOrder)
+    {
+        var type = wordOrder.AdpositionalPhraseDirectionality == HeadDirectionality.Initial ? AdpositionType.Preposition : AdpositionType.Postposition;
+        //a simplification: real languages often pick the governed case per adposition
+        Case? governs = alignment switch
+        {
+            MorphosyntacticAlignment.NominativeAccusative => Case.Accusative,
+            MorphosyntacticAlignment.ErgativeAbsolutive => Case.Absolutive,
+            _ => null,
+        };
+
+        RoleMarker Core(Case nominativeAccusative, Case ergativeAbsolutive) => alignment switch
+        {
+            MorphosyntacticAlignment.NominativeAccusative => nominativeAccusative,
+            MorphosyntacticAlignment.ErgativeAbsolutive => ergativeAbsolutive,
+            _ => new Unmarked(),
+        };
+        RoleMarker CaseOrAdposition(Case @case, string gloss) =>
+            cases.Contains(@case) ? @case : new Adposition(gloss, type, governs);
+
+        RoleMarker MarkerFor(CaseUse use) => use switch
+        {
+            CaseUse.IntransitiveSubject => Core(Case.Nominative, Case.Absolutive),
+            CaseUse.TransitiveSubject => Core(Case.Nominative, Case.Ergative),
+            CaseUse.DirectObject => Core(Case.Accusative, Case.Absolutive),
+            CaseUse.Possessive => CaseOrAdposition(Case.Genitive, "of"),
+            CaseUse.IndirectObject => CaseOrAdposition(Case.Dative, "to"),
+            CaseUse.Address => cases.Contains(Case.Vocative) ? Case.Vocative : new Unmarked(),
+            CaseUse.Location => CaseOrAdposition(Case.Locative, "at"),
+            CaseUse.MovementTo => new Adposition("to", type, governs),
+            CaseUse.MovementFrom => CaseOrAdposition(Case.Ablative, "from"),
+            CaseUse.Accompaniment => new Adposition("with", type, governs),
+            CaseUse.Instrument => CaseOrAdposition(Case.Instrumental, "with"),
+            _ => throw new ArgumentOutOfRangeException(nameof(use), use, "Every role needs a marker."),
+        };
+
+        return Enum.GetValues<CaseUse>().ToDictionary(use => use, MarkerFor);
     }
 }
 

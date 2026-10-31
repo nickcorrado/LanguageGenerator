@@ -79,11 +79,14 @@ public record Case(string Name, string Gloss) : GrammaticalCategory(Name, Gloss)
 
 //this is a list of case uses that cases in the language cover. direct and indirect
 //objects, direct address, etc.
-//n.b. adpositions may need to use these, too!
-//n.b. this needs to be adapted to cover ergative/absolutive alignment
+//each of these is marked by exactly one RoleMarker: a case, an adposition, or nothing
 public enum CaseUse
 {
-    Subject,
+    //the subject is split in two because alignments group the core roles differently:
+    //nominative/accusative marks both subjects alike, while ergative/absolutive marks
+    //the intransitive subject like the direct object
+    IntransitiveSubject,
+    TransitiveSubject,
     DirectObject,
     Possessive,
     IndirectObject,
