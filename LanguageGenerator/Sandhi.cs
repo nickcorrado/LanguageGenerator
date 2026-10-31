@@ -21,7 +21,7 @@ public static class Sandhi
             }
         }
 
-        var result = new Syllable(new ConsonantCluster(onset), syllable.Nucleus, syllable.Coda);
+        var result = new Syllable(new ConsonantCluster(onsetResult), syllable.Nucleus, syllable.Coda);
         return result;
     }
 
