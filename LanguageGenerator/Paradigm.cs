@@ -67,12 +67,24 @@ public class Paradigm
         }
 
         var morphemes = new List<Morpheme> { lexeme.Root };
+        var covert = new List<Tagmeme>();
         var before = new List<Word>();
         var after = new List<Word>();
         //each slot goes outside the ones before it
         foreach (var slot in Slots)
         {
             var exponent = slot.ExponentFor(features);
+            //a zero exponent adds nothing to say, only features to gloss
+            if (exponent.Form.Count == 0)
+            {
+                covert.AddRange(exponent switch
+                {
+                    Affix a => a.Tagmemes,
+                    Particle p => p.Tagmemes,
+                    Root => [],
+                });
+                continue;
+            }
             switch (slot.Position)
             {
                 case ExponentPosition.Prefix:
@@ -89,6 +101,6 @@ public class Paradigm
                     break;
             }
         }
-        return [.. before, new Word(morphemes), .. after];
+        return [.. before, new Word(morphemes, covert), .. after];
     }
 }

@@ -11,10 +11,11 @@ public class SyntaxTests
     private static Sentence PersonSeesDogs(Language l) =>
         Syntax.Realize(l, new(l.FindLexeme("see"), Tense.Present, Aspect.Imperfective, new(l.FindLexeme("person"), Number.Singular), new(l.FindLexeme("dog"), Number.Plural)), "the person sees the dogs");
 
-    private static HashSet<string> Glosses(Sentence sentence) => [.. sentence.Words.SelectMany(w => w.Gloss.Split('-', '.'))];
+    //every gloss label in the sentence, including covert ones in brackets
+    private static HashSet<string> Glosses(Sentence sentence) => [.. sentence.Words.SelectMany(w => w.Gloss.Split('-', '.', '[', ']'))];
 
     private static int Position(Sentence sentence, string meaning) =>
-        sentence.Words.ToList().FindIndex(w => w.Gloss.Split('-', '.').Contains(meaning));
+        sentence.Words.ToList().FindIndex(w => w.Gloss.Split('-', '.', '[', ']').Contains(meaning));
 
     private static bool HasCategory(Language l, PartOfSpeech partOfSpeech, string category) =>
         l.Paradigms[partOfSpeech].Categories.Any(c => c.Name == category);

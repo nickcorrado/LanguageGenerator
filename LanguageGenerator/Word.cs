@@ -2,8 +2,9 @@
 
 //a word is a sequence of morphemes, and everything else about it is derived from them.
 //its spellings here are of the underlying form, the morphemes simply run together;
-//Phonology.Realize gives the surface form, after sandhi and syllabification
-public record Word(IReadOnlyList<Morpheme> Morphemes)
+//Phonology.Realize gives the surface form, after sandhi and syllabification. Covert holds
+//features the word has but no morpheme expresses, like the singular of most nouns
+public record Word(IReadOnlyList<Morpheme> Morphemes, IReadOnlyList<Tagmeme>? Covert = null)
 {
     public string Spell(Orthography orthography) => string.Concat(Morphemes.Select(m => m.Spell(orthography)));
 
@@ -15,7 +16,9 @@ public record Word(IReadOnlyList<Morpheme> Morphemes)
     //Segmented and Gloss are the second and third lines of an interlinear gloss, and line up
     //morpheme for morpheme
     public string Segmented(Orthography orthography) => string.Join("-", Morphemes.Select(m => m.Spell(orthography)));
-    public string Gloss => string.Join("-", Morphemes.Select(m => m.Gloss));
+    //Leipzig rule 6: features with no form of their own go in brackets on the root, as in boy[NOM.SG]
+    public string Gloss => string.Join("-", Morphemes.Select(m =>
+        m.Value is Root && Covert is { Count: > 0 } covert ? $"{m.Gloss}[{Tagmeme.JoinGlosses(covert)}]" : m.Gloss));
 }
 
 //a dictionary entry: a root, and what it can be inflected as

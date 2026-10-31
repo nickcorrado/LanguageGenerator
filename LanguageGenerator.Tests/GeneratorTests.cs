@@ -59,6 +59,19 @@ public class GeneratorTests
         Assert.InRange(Share(p => p.Exponence.TamWithAgreement), 24 / 156.0 - 0.005, 24 / 156.0 + 0.005);
     }
 
+    [Fact]
+    public void SelectMorphologicalProfile_ManyDraws_MatchTheWalsThirdPersonZeroCounts()
+    {
+        var rand = new Random(1);
+        var draws = Enumerable.Range(0, 100000).Select(_ => Generator.SelectMorphologicalProfile(rand, ConstituentWordOrder.SOV).ZeroMarking.ThirdPerson).ToList();
+
+        //WALS 103A, out of the 262 languages kept
+        double Share(ThirdPersonZero value) => draws.Count(d => d == value) / 100000.0;
+        Assert.InRange(Share(ThirdPersonZero.None), 181 / 262.0 - 0.006, 181 / 262.0 + 0.006);
+        Assert.InRange(Share(ThirdPersonZero.Singular), 45 / 262.0 - 0.006, 45 / 262.0 + 0.006);
+        Assert.InRange(Share(ThirdPersonZero.All), 36 / 262.0 - 0.006, 36 / 262.0 + 0.006);
+    }
+
     //WALS 26A crossed with 83A: the affixing languages in each column, then the strongly suffixing
     //and strongly prefixing counts in it
     [Theory]

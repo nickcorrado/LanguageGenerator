@@ -222,21 +222,26 @@ public static class Generator
             {
                 Categories = slotCategories,
                 Position = position,
-                Exponents = GenerateExponents(rand, slotCategories, position, phonology, dropoff),
+                Exponents = GenerateExponents(rand, slotCategories, position, morphology.ZeroMarking, phonology, dropoff),
             });
         }
         return new Paradigm { PartOfSpeech = partOfSpeech, Categories = categories, Slots = slots };
     }
 
-    //one exponent per combination of values. Forms are kept distinct within a slot where possible;
-    //if the phonology keeps producing repeats, the syncretism is allowed
-    //TODO real paradigms often leave the commonest cell unmarked (SG, PRS, NOM), with no exponent at all
-    private static List<(IReadOnlyList<Tagmeme> Values, Morpheme Exponent)> GenerateExponents(Random rand, List<InflectionalCategory> categories, ExponentPosition position, Phonology phonology, double dropoff)
+    //one exponent per combination of values, with no form at all for combinations the language
+    //leaves unmarked. Other forms are kept distinct within a slot where possible; if the phonology
+    //keeps producing repeats, the syncretism is allowed
+    private static List<(IReadOnlyList<Tagmeme> Values, Morpheme Exponent)> GenerateExponents(Random rand, List<InflectionalCategory> categories, ExponentPosition position, ZeroMarking zeroMarking, Phonology phonology, double dropoff)
     {
         var exponents = new List<(IReadOnlyList<Tagmeme>, Morpheme)>();
         var usedForms = new HashSet<string>();
         foreach (var values in Paradigm.Combinations(categories))
         {
+            if (zeroMarking.IsZero(values))
+            {
+                exponents.Add((values, position is ExponentPosition.Prefix or ExponentPosition.Suffix ? new Affix([], values) : new Particle([], values)));
+                continue;
+            }
             //affixes are often a bare consonant (English -s, -t), which is what gives sandhi and cluster
             //repair work to do; particles are words of their own, so they're always a whole syllable
             var bare = position is ExponentPosition.Prefix or ExponentPosition.Suffix && rand.NextDouble() < 0.3;
@@ -443,7 +448,25 @@ public static class Generator
             TamWithAgreement: rand.NextDouble() < 24 / 156.0,
             //a guess: WALS counts tense and aspect together as TAM, so it has no figure for this
             TenseWithAspect: rand.NextDouble() < 0.3),
-        Draw(rand, WordOrder.ObjectPrecedesVerb(order) ? ObjectVerbAffixationCounts : VerbObjectAffixationCounts));
+        Draw(rand, WordOrder.ObjectPrecedesVerb(order) ? ObjectVerbAffixationCounts : VerbObjectAffixationCounts),
+        new ZeroMarking(
+            //guesses, but grounded in Greenberg's universals: the singular can be expressed only by
+            //zero while the plural never is (35), and the only case that can be zero is the one for
+            //the intransitive subject (38). WALS has no counts for either, or for the present tense
+            Singular: rand.NextDouble() < 0.9,
+            CoreCase: rand.NextDouble() < 0.8,
+            Present: rand.NextDouble() < 0.6,
+            ThirdPerson: Draw(rand, ThirdPersonZeroCounts)));
+
+    // https://wals.info/feature/103A, among the 284 languages with person marking on verbs. The 21
+    //with zero in only some third singular forms are left out, since a paradigm here has one form
+    //per cell, and so is the 1 with zero only in the third person nonsingular
+    private static readonly (ThirdPersonZero Value, int Languages)[] ThirdPersonZeroCounts =
+    [
+        (ThirdPersonZero.None, 181),
+        (ThirdPersonZero.Singular, 45),
+        (ThirdPersonZero.All, 36),
+    ];
 
     //a value, with probability proportional to how many languages have it
     private static T Draw<T>(Random rand, (T Value, int Languages)[] counts)
