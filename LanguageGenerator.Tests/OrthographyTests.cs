@@ -38,10 +38,89 @@ public class OrthographyTests
         Assert.Throws<ArgumentException>(() => orthography.Spell(Vowel.i));
     }
 
+    private static readonly List<Phoneme> FullInventory = [.. PhonemeManager.Vowels.Concat<Phoneme>(PhonemeManager.Consonants)];
+
+    private static IEnumerable<OrthographicStyle> EveryStyle() =>
+        from postalveolars in Enum.GetValues<PostalveolarSpelling>()
+        from longVowels in Enum.GetValues<LongVowelSpelling>()
+        from midVowels in Enum.GetValues<MidVowelSpelling>()
+        from schwa in OrthographicStyle.SchwaOptions
+        from nearOpenFront in OrthographicStyle.NearOpenFrontOptions
+        from velarStop in OrthographicStyle.VelarStopOptions
+        from palatalGlide in OrthographicStyle.PalatalGlideOptions
+        select new OrthographicStyle(postalveolars, longVowels, midVowels, schwa, nearOpenFront, velarStop, palatalGlide);
+
     [Fact]
-    public void Options_CoverEveryPhonemeInTheInventory()
+    public void Spell_EveryStyle_SpellsTheWholeInventory()
     {
-        Assert.All(PhonemeManager.Vowels.Concat<Phoneme>(PhonemeManager.Consonants), p => Assert.Contains(p, Orthography.Options.Keys));
+        Assert.All(EveryStyle(), style => Assert.Equal(FullInventory.Count, style.Spell(FullInventory).Count));
+    }
+
+    [Fact]
+    public void Spell_HacekMacronGrave_AppliesEachConventionToAllItsSounds()
+    {
+        var style = new OrthographicStyle(PostalveolarSpelling.Hacek, LongVowelSpelling.Macron, MidVowelSpelling.GraveOnOpen, "ë", "ä", "k", "y");
+
+        var spellings = style.Spell(FullInventory);
+
+        Assert.Equal(["š", "ž"], [spellings[Consonant.ʃ], spellings[Consonant.ʒ]]);
+        Assert.Equal(["ī", "ō"], [spellings[Vowel.iː], spellings[Vowel.oː]]);
+        Assert.Equal(["e", "è", "o", "ò"], [spellings[Vowel.e], spellings[Vowel.ɛ], spellings[Vowel.o], spellings[Vowel.ɔ]]);
+        Assert.Equal(["ë", "ä", "k", "y", "r"], [spellings[Vowel.ə], spellings[Vowel.æ], spellings[Consonant.k], spellings[Consonant.j], spellings[Consonant.ɹ]]);
+        Assert.True(Orthography.IsUnambiguous(spellings.Values));
+    }
+
+    [Theory]
+    [InlineData(MidVowelSpelling.GraveOnOpen)]
+    [InlineData(MidVowelSpelling.AcuteOnClose)]
+    [InlineData(MidVowelSpelling.CircumflexOnOpen)]
+    public void Spell_MidVowelWithoutItsPartner_NeedsNoMark(MidVowelSpelling midVowels)
+    {
+        var style = new OrthographicStyle(PostalveolarSpelling.Digraph, LongVowelSpelling.Macron, midVowels, "ë", "ä", "k", "y");
+
+        var spellings = style.Spell(FullInventory.Where(p => p != Vowel.e && p != Vowel.o).ToList());
+
+        Assert.Equal("e", spellings[Vowel.ɛ]);
+        Assert.Equal("o", spellings[Vowel.ɔ]);
+    }
+
+    [Fact]
+    public void Spell_ClashingConventions_AreAmbiguous()
+    {
+        //acute long vowels and acute close vowels both write oː and o as ó
+        var style = new OrthographicStyle(PostalveolarSpelling.Hacek, LongVowelSpelling.Acute, MidVowelSpelling.AcuteOnClose, "ë", "ä", "k", "y");
+
+        Assert.False(Orthography.IsUnambiguous(style.Spell(FullInventory).Values));
+    }
+
+    [Fact]
+    public void SelectOrthography_GeneratedLanguages_ApplyEachConventionConsistently()
+    {
+        Assert.All(GeneratedLanguages.Sample.Where(l => l.Orthography.Style is not null), l =>
+        {
+            var spellings = l.Orthography.Spellings;
+            //both postalveolars, when present, follow the same convention
+            if (spellings.TryGetValue(Consonant.ʃ, out var sh) && spellings.TryGetValue(Consonant.ʒ, out var zh))
+            {
+                Assert.Contains((sh, zh), new[] { ("š", "ž"), ("sh", "zh"), ("x", "j") });
+            }
+            //and so do both long vowels
+            if (spellings.TryGetValue(Vowel.iː, out var ii) && spellings.TryGetValue(Vowel.oː, out var oo))
+            {
+                Assert.Contains((ii, oo), new[] { ("ī", "ō"), ("í", "ó"), ("ii", "oo") });
+            }
+            Assert.Equal(l.Orthography.Style!.Spell([.. spellings.Keys]), spellings);
+        });
+    }
+
+    [Fact]
+    public void SelectOrthography_GeneratedLanguages_UseEveryPostalveolarAndSeveralLongVowelStyles()
+    {
+        var styles = GeneratedLanguages.Sample.Select(l => l.Orthography.Style).OfType<OrthographicStyle>().ToList();
+
+        Assert.Equal(Enum.GetValues<PostalveolarSpelling>().Length, styles.Select(s => s.Postalveolars).Distinct().Count());
+        Assert.True(styles.Select(s => s.LongVowels).Distinct().Count() >= 2);
+        Assert.Equal(Enum.GetValues<MidVowelSpelling>().Length, styles.Select(s => s.MidVowels).Distinct().Count());
     }
 
     [Fact]

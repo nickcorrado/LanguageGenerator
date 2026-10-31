@@ -76,17 +76,28 @@ public static class Generator
     public static Vowel SelectEpentheticVowel(List<Vowel> vowels) =>
         vowels.Contains(Vowel.ə) ? Vowel.ə : vowels.Contains(Vowel.i) ? Vowel.i : vowels[0];
 
-    //one spelling per phoneme in the inventory, picked from the options real orthographies use.
-    //a pick that turns out ambiguous is drawn again; IPA is the fallback, and always unambiguous
+    //a set of conventions, applied to the whole inventory. Conventions that clash for this
+    //inventory (acute long vowels beside acute close vowels both give ó, say) are drawn again as
+    //a set, so a language never ends up with a convention applied to only some of its sounds.
+    //IPA is the fallback, and always unambiguous
     public static Orthography SelectOrthography(Random rand, List<Vowel> vowels, List<Consonant> consonants)
     {
         var inventory = vowels.Concat<Phoneme>(consonants).ToList();
+        T Pick<T>(IReadOnlyList<T> options) => options[rand.Next(options.Count)];
         for (int attempt = 0; attempt < 50; attempt++)
         {
-            var spellings = inventory.ToDictionary(p => p, p => Orthography.Options[p][rand.Next(Orthography.Options[p].Length)]);
+            var style = new OrthographicStyle(
+                Pick(Enum.GetValues<PostalveolarSpelling>()),
+                Pick(Enum.GetValues<LongVowelSpelling>()),
+                Pick(Enum.GetValues<MidVowelSpelling>()),
+                Pick(OrthographicStyle.SchwaOptions),
+                Pick(OrthographicStyle.NearOpenFrontOptions),
+                Pick(OrthographicStyle.VelarStopOptions),
+                Pick(OrthographicStyle.PalatalGlideOptions));
+            var spellings = style.Spell(inventory);
             if (Orthography.IsUnambiguous(spellings.Values))
             {
-                return new Orthography(spellings);
+                return new Orthography(spellings, style);
             }
         }
         return new Orthography(inventory.ToDictionary(p => p, p => p.IpaSymbol));

@@ -7,14 +7,17 @@ public class Orthography
     private readonly Dictionary<Phoneme, string> spellings;
 
     public IReadOnlyDictionary<Phoneme, string> Spellings => spellings;
+    //the conventions the spellings come from, if they came from any
+    public OrthographicStyle? Style { get; }
 
-    public Orthography(IReadOnlyDictionary<Phoneme, string> spellings)
+    public Orthography(IReadOnlyDictionary<Phoneme, string> spellings, OrthographicStyle? style = null)
     {
         if (!IsUnambiguous(spellings.Values))
         {
             throw new ArgumentException($"These spellings are ambiguous: {string.Join(", ", spellings.Select(s => $"{s.Key.IpaSymbol}={s.Value}"))}", nameof(spellings));
         }
         this.spellings = new(spellings);
+        Style = style;
     }
 
     //IPA as an orthography, for debugging and for underlying forms
@@ -26,40 +29,6 @@ public class Orthography
         : throw new ArgumentException($"This orthography has no spelling for {phoneme.IpaSymbol}.", nameof(phoneme));
 
     public string Spell(IEnumerable<Phoneme> phonemes) => string.Concat(phonemes.Select(Spell));
-
-    //real orthographies' ways of writing each sound, from which each language picks one. The
-    //first is the plainest
-    public static IReadOnlyDictionary<Phoneme, string[]> Options { get; } = new Dictionary<Phoneme, string[]>
-    {
-        [Vowel.a] = ["a"],
-        [Vowel.e] = ["e", "é", "ei"],
-        [Vowel.i] = ["i"],
-        [Vowel.æ] = ["ä", "æ", "ae"],
-        [Vowel.ɛ] = ["e", "è", "ê"],
-        [Vowel.ə] = ["e", "ë", "ə", "y"],
-        [Vowel.ɔ] = ["o", "ò", "ô", "å"],
-        [Vowel.o] = ["o", "ó"],
-        [Vowel.iː] = ["ī", "ii", "í"],
-        [Vowel.oː] = ["ō", "oo", "ó"],
-        [Consonant.b] = ["b"],
-        [Consonant.d] = ["d"],
-        [Consonant.g] = ["g"],
-        [Consonant.k] = ["k", "c"],
-        [Consonant.m] = ["m"],
-        [Consonant.n] = ["n"],
-        [Consonant.p] = ["p"],
-        [Consonant.s] = ["s"],
-        [Consonant.t] = ["t"],
-        [Consonant.z] = ["z"],
-        [Consonant.ʃ] = ["sh", "š", "x", "c"],
-        [Consonant.ʒ] = ["zh", "ž", "j"],
-        [Consonant.f] = ["f"],
-        [Consonant.v] = ["v"],
-        [Consonant.ɹ] = ["r"],
-        [Consonant.l] = ["l"],
-        [Consonant.j] = ["y", "j"],
-        [Consonant.w] = ["w"],
-    };
 
     //the Sardinas–Patterson test: spellings are unambiguous unless some chain of "dangling
     //suffixes", left over when one spelling starts another, eventually spells a whole word

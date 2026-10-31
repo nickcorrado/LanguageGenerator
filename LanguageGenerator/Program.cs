@@ -23,7 +23,8 @@ var repair = phonology.ClusterRepair == ClusterRepair.Epenthesis ? $"epenthesis 
 Console.WriteLine($"Illegal clusters: {repair}");
 var orthography = lang.Orthography;
 var unusual = orthography.Spellings.Where(s => s.Value != s.Key.IpaSymbol).Select(s => $"{s.Key.IpaSymbol} = {s.Value}");
-Console.WriteLine($"Spelling: {string.Join(", ", unusual)}");
+Console.WriteLine($"Spelling: {orthography.Style?.ToString() ?? "IPA"}");
+Console.WriteLine($"  {string.Join(", ", unusual)}");
 //citation forms, spelled and then in IPA by syllable
 foreach (var lexeme in lang.Lexicon)
 {
