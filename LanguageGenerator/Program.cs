@@ -17,9 +17,9 @@ var rand = new Random(seed);
 var lang = Generator.Generate(rand);
 
 Console.WriteLine(lang.SyllableRule);
-foreach (var word in lang.Words)
+foreach (var lexeme in lang.Lexicon)
 {
-    Console.WriteLine(word.Transcription);
+    Console.WriteLine($"{lexeme.Root.Meaning} ({lexeme.PartOfSpeech}): {new Word([lexeme.Root]).Transcription}");
 }
 
 var order = lang.WordOrder;
@@ -33,6 +33,20 @@ Console.WriteLine($"Cases: {string.Join(", ", lang.Cases.Select(c => c.Gloss))}"
 foreach (var (use, marker) in lang.RoleMarkers)
 {
     Console.WriteLine($"{use}: {marker}");
+}
+
+//each paradigm, shown on the first lexeme that uses it
+foreach (var paradigm in lang.Paradigms.Values)
+{
+    Console.WriteLine();
+    var slots = paradigm.Slots.Count == 0 ? "no inflection" : string.Join(", ", paradigm.Slots);
+    Console.WriteLine($"{paradigm.PartOfSpeech} paradigm: {slots}");
+    var lexeme = lang.Lexicon.First(l => l.PartOfSpeech == paradigm.PartOfSpeech);
+    foreach (var cell in paradigm.Cells)
+    {
+        var words = paradigm.Inflect(lexeme, cell);
+        Console.WriteLine($"  {string.Join(" ", words.Select(w => w.Segmented)),-24} {string.Join(" ", words.Select(w => w.Gloss))}");
+    }
 }
 
 return 0;

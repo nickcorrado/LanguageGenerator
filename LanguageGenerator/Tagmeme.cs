@@ -28,6 +28,21 @@ public union Tagmeme(Tense, Aspect, Mood, Voice, Case, Person, Number, Gender, D
         (Person, Number) or (Number, Person) => "",
         _ => ".",
     };
+
+    //the gloss of one morpheme expressing all of these, e.g. 3SG.PST
+    public static string JoinGlosses(IReadOnlyList<Tagmeme> tagmemes)
+    {
+        var gloss = "";
+        for (int i = 0; i < tagmemes.Count; i++)
+        {
+            if (i > 0)
+            {
+                gloss += Separator(tagmemes[i - 1], tagmemes[i]);
+            }
+            gloss += tagmemes[i].Gloss;
+        }
+        return gloss;
+    }
 }
 
 public abstract record GrammaticalCategory(string Name, string Gloss);
@@ -75,6 +90,8 @@ public record Case(string Name, string Gloss) : GrammaticalCategory(Name, Gloss)
     public static Case Instrumental { get; } = new("Instrumental", "INS");
     public static Case Ergative { get; } = new("Ergative", "ERG");
     public static Case Absolutive { get; } = new("Absolutive", "ABS");
+    //the plain form in a language whose only cases are peripheral, covering everything they don't
+    public static Case Direct { get; } = new("Direct", "DIR");
 }
 
 //this is a list of case uses that cases in the language cover. direct and indirect

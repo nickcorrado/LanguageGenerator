@@ -9,7 +9,9 @@ public class Language
     public required List<Consonant> Consonants { get; init; }
     //only one rule now!
     public required SyllableRule SyllableRule { get; init; }
-    public required List<Word> Words { get; init; }
+    public required List<Lexeme> Lexicon { get; init; }
+    //how each part of speech inflects
+    public required Dictionary<PartOfSpeech, Paradigm> Paradigms { get; init; }
     public required Morphology Morphology { get; init; }
     public required WordOrder WordOrder { get; init; }
     public required bool HasArticles { get; init; }

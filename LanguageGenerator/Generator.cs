@@ -27,7 +27,6 @@ public static class Generator
         //    syllables.Add(GenerateSyllable(syllableRules, syllableDropoff));
         //}
 
-        var wordCount = 25;
         //var words = new List<Word>();
         //for (int i = 0; i < wordCount; i++)
         //{
@@ -42,11 +41,7 @@ public static class Generator
         var consonants = GenerateConsonants(rand, 0.15, 0.50);
         var syllableRule = SelectSyllableRule(rand, vowels, consonants);
 
-        var words = new List<Word>();
-        for (int i = 0; i < wordCount; i++)
-        {
-            words.Add(GenerateWord(rand, syllableRule, syllableDropoff));
-        }
+        var lexicon = GenerateLexicon(rand, syllableRule, syllableDropoff);
 
         //here's a different approach
         //these results are still trash. for some reason, the bias toward certain phonemes is super strong; probably
@@ -82,13 +77,15 @@ public static class Generator
 
         var alignment = SelectAlignment(rand, 0.5, 0.25);
         var cases = SelectCases(rand, alignment, 0.75, 0.6, 0.35, 0.65, 0.25, 0.2);
+        var paradigms = GenerateParadigms(rand, morphology, wordOrder, alignment, cases, syllableRule, syllableDropoff);
 
         return new Language
         {
             Vowels = vowels,
             Consonants = consonants,
             SyllableRule = syllableRule,
-            Words = words,
+            Lexicon = lexicon,
+            Paradigms = paradigms,
             Morphology = morphology,
             WordOrder = wordOrder,
             HasArticles = rand.NextDouble() < 0.7,
@@ -98,9 +95,27 @@ public static class Generator
         };
     }
 
-    public static Word GenerateWord(Random rand, SyllableRule rule, double dropoff)
+    //basic meanings to fill the lexicon with, glossed the way the Leipzig rules gloss roots
+    private static readonly string[] NounMeanings = ["person", "dog", "fish", "bird", "tree", "stone", "water", "fire", "sun", "house"];
+    private static readonly string[] VerbMeanings = ["see", "eat", "drink", "sleep", "walk", "give", "know", "hear"];
+
+    public static List<Lexeme> GenerateLexicon(Random rand, SyllableRule rule, double dropoff)
     {
-        var word = new Word();
+        var lexicon = new List<Lexeme>();
+        foreach (var meaning in NounMeanings)
+        {
+            lexicon.Add(new Lexeme(new Root(GenerateForm(rand, rule, dropoff), meaning), PartOfSpeech.Noun));
+        }
+        foreach (var meaning in VerbMeanings)
+        {
+            lexicon.Add(new Lexeme(new Root(GenerateForm(rand, rule, dropoff), meaning), PartOfSpeech.Verb));
+        }
+        return lexicon;
+    }
+
+    public static List<Phoneme> GenerateForm(Random rand, SyllableRule rule, double dropoff)
+    {
+        var form = new List<Phoneme>();
         int numberOfSyllables = 1;
 
         //20% chance of monosyllable
@@ -111,9 +126,129 @@ public static class Generator
 
         for (int i = 0; i < numberOfSyllables; i++)
         {
-            word.Syllables.Add(GenerateSyllable(rand, rule, dropoff));
+            form.AddRange(GenerateSyllable(rand, rule, dropoff).Phonemes);
         }
-        return word;
+        return form;
+    }
+
+    public static Dictionary<PartOfSpeech, Paradigm> GenerateParadigms(Random rand, Morphology morphology, WordOrder wordOrder, MorphosyntacticAlignment alignment, List<Case> cases, SyllableRule rule, double dropoff)
+    {
+        //case and number particles on nouns behave like adpositions, so they follow the same directionality
+        var nouns = GenerateParadigm(rand, PartOfSpeech.Noun, SelectNounCategories(rand, alignment, cases), morphology, wordOrder.AdpositionalPhraseDirectionality, rule, dropoff);
+        var verbs = GenerateParadigm(rand, PartOfSpeech.Verb, SelectVerbCategories(rand), morphology, wordOrder.VerbPhraseDirectionality, rule, dropoff);
+        return new() { [PartOfSpeech.Noun] = nouns, [PartOfSpeech.Verb] = verbs };
+    }
+
+    //innermost first: number sits closer to the root than case, as it overwhelmingly does.
+    //gender isn't here because a noun doesn't inflect for it; it has one, and adjectives and
+    //verbs agree with it
+    public static List<InflectionalCategory> SelectNounCategories(Random rand, MorphosyntacticAlignment alignment, List<Case> cases)
+    {
+        var categories = new List<InflectionalCategory>();
+        if (rand.NextDouble() < 0.85)
+        {
+            List<Tagmeme> numbers = rand.NextDouble() < 0.1 ? [Number.Singular, Number.Dual, Number.Plural] : [Number.Singular, Number.Plural];
+            categories.Add(new("Number", numbers));
+        }
+        //with no core cases, a noun still needs a plain form for everything the peripheral cases don't cover
+        if (cases.Count > 0)
+        {
+            categories.Add(alignment == MorphosyntacticAlignment.None ? new("Case", [Case.Direct, .. cases]) : new("Case", [.. cases]));
+        }
+        return categories;
+    }
+
+    //innermost first: aspect, then tense, then subject agreement, the usual order outward from the root
+    public static List<InflectionalCategory> SelectVerbCategories(Random rand)
+    {
+        var categories = new List<InflectionalCategory>();
+        if (rand.NextDouble() < 0.3)
+        {
+            categories.Add(new("Aspect", [Aspect.Imperfective, Aspect.Perfective]));
+        }
+        if (rand.NextDouble() < 0.8)
+        {
+            List<Tagmeme> tenses = rand.NextDouble() < 0.4 ? [Tense.Present, Tense.Past, Tense.Future] : [Tense.Present, Tense.Past];
+            categories.Add(new("Tense", tenses));
+        }
+        if (rand.NextDouble() < 0.6)
+        {
+            categories.Add(new("Person", [Person.First, Person.Second, Person.Third]));
+            categories.Add(new("Number", [Number.Singular, Number.Plural]));
+        }
+        return categories;
+    }
+
+    //this is the only place morphological type matters: the chance of fusing a category into the
+    //slot before it, and the chance of expressing a new slot with particles rather than affixes.
+    //they're tendencies, so any language can end up with some of each
+    private static (double Fuse, double Particle) Tendencies(Morphology morphology) => morphology switch
+    {
+        Morphology.Fusional => (0.75, 0.05),
+        Morphology.Agglutinative => (0.1, 0.05),
+        Morphology.Analytic => (0.3, 0.8),
+        _ => throw new ArgumentOutOfRangeException(nameof(morphology), morphology, null),
+    };
+
+    public static Paradigm GenerateParadigm(Random rand, PartOfSpeech partOfSpeech, List<InflectionalCategory> categories, Morphology morphology, HeadDirectionality directionality, SyllableRule rule, double dropoff)
+    {
+        var (fuseChance, particleChance) = Tendencies(morphology);
+        //head-final languages are overwhelmingly suffixing; head-initial ones prefix more often
+        var prefixChance = directionality == HeadDirectionality.Initial ? 0.3 : 0.1;
+        var particlePosition = directionality == HeadDirectionality.Initial ? ExponentPosition.PrecedingParticle : ExponentPosition.FollowingParticle;
+
+        var groups = new List<(List<InflectionalCategory> Categories, ExponentPosition Position)>();
+        foreach (var category in categories)
+        {
+            if (groups.Count > 0 && rand.NextDouble() < fuseChance)
+            {
+                groups[^1].Categories.Add(category);
+            }
+            else if (rand.NextDouble() < particleChance)
+            {
+                groups.Add(([category], particlePosition));
+            }
+            else
+            {
+                groups.Add(([category], rand.NextDouble() < prefixChance ? ExponentPosition.Prefix : ExponentPosition.Suffix));
+            }
+        }
+
+        var slots = new List<ExponentSlot>();
+        foreach (var (slotCategories, position) in groups)
+        {
+            slots.Add(new ExponentSlot
+            {
+                Categories = slotCategories,
+                Position = position,
+                Exponents = GenerateExponents(rand, slotCategories, position, rule, dropoff),
+            });
+        }
+        return new Paradigm { PartOfSpeech = partOfSpeech, Categories = categories, Slots = slots };
+    }
+
+    //one exponent per combination of values, each a single syllable. Forms are kept distinct within a
+    //slot where possible; if the phonology keeps producing repeats, the syncretism is allowed
+    //TODO real paradigms often leave the commonest cell unmarked (SG, PRS, NOM), with no exponent at all
+    private static List<(IReadOnlyList<Tagmeme> Values, Morpheme Exponent)> GenerateExponents(Random rand, List<InflectionalCategory> categories, ExponentPosition position, SyllableRule rule, double dropoff)
+    {
+        var exponents = new List<(IReadOnlyList<Tagmeme>, Morpheme)>();
+        var usedForms = new HashSet<string>();
+        foreach (var values in Paradigm.Combinations(categories))
+        {
+            var form = new List<Phoneme>();
+            for (int attempt = 0; attempt < 20; attempt++)
+            {
+                form = [.. GenerateSyllable(rand, rule, dropoff).Phonemes];
+                if (usedForms.Add(string.Concat(form.Select(p => p.Transcription))))
+                {
+                    break;
+                }
+            }
+            Morpheme exponent = position is ExponentPosition.Prefix or ExponentPosition.Suffix ? new Affix(form, values) : new Particle(form, values);
+            exponents.Add((values, exponent));
+        }
+        return exponents;
     }
 
     //public static Word GenerateWord(List<SyllableRule> syllableRules, double syllableDropoff)

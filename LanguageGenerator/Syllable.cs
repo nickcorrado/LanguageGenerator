@@ -8,6 +8,22 @@ namespace LanguageGenerator;
 public record Syllable(ConsonantCluster Onset, Vowel Nucleus, Consonant? Coda)
 {
     public string Transcription => string.Concat(Onset?.Transcription ?? "", Nucleus.Transcription, Coda?.Transcription ?? "");
+
+    public IEnumerable<Phoneme> Phonemes
+    {
+        get
+        {
+            foreach (var consonant in Onset)
+            {
+                yield return consonant;
+            }
+            yield return Nucleus;
+            if (Coda is not null)
+            {
+                yield return Coda;
+            }
+        }
+    }
 }
 
 //is this necessary? it can't be used in SyllableRule, which is annoying
