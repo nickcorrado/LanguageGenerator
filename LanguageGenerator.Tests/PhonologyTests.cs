@@ -1,0 +1,193 @@
+﻿namespace LanguageGenerator.Tests;
+
+public class PhonologyTests
+{
+    private static readonly Phoneme[] Kabak = [Consonant.k, Vowel.a, Consonant.b, Vowel.a, Consonant.k];
+    private static readonly Phoneme[] Kaba = [Consonant.k, Vowel.a, Consonant.b, Vowel.a];
+    private static readonly Phoneme[] S = [Consonant.s];
+
+    [Fact]
+    public void Realize_IllegalFinalClusterWithEpenthesis_BreaksItWithAVowel()
+    {
+        var surface = TestData.Phonology(SyllableTemplates.CVF, ClusterRepair.Epenthesis).Realize(TestData.Word(Kabak, S));
+
+        Assert.Equal("kabak-uhs", surface.Segmented);
+        Assert.Equal("ka.ba.kuhs", surface.Syllabified);
+    }
+
+    [Fact]
+    public void Realize_IllegalFinalClusterWithDeletion_DropsTheFirstConsonant()
+    {
+        var surface = TestData.Phonology(SyllableTemplates.CVF, ClusterRepair.Deletion).Realize(TestData.Word(Kabak, S));
+
+        Assert.Equal("kaba-s", surface.Segmented);
+        Assert.Equal("ka.bas", surface.Syllabified);
+    }
+
+    [Fact]
+    public void Realize_FinalConsonantInLanguageWithoutCodas_AddsAVowelAfterIt()
+    {
+        var surface = TestData.Phonology(SyllableTemplates.CV, ClusterRepair.Epenthesis).Realize(TestData.Word(Kaba, S));
+
+        Assert.Equal("kaba-suh", surface.Segmented);
+        Assert.Equal("ka.ba.suh", surface.Syllabified);
+    }
+
+    [Fact]
+    public void Realize_AffixDeletedEntirely_ShowsAsEmpty()
+    {
+        var surface = TestData.Phonology(SyllableTemplates.CV, ClusterRepair.Deletion).Realize(TestData.Word(Kaba, S));
+
+        Assert.Equal("kaba-∅", surface.Segmented);
+        Assert.Equal("dog-PL", surface.Gloss);
+    }
+
+    [Fact]
+    public void Realize_InitialConsonantInLanguageWithoutOnsets_AddsAVowelBeforeIt()
+    {
+        var surface = TestData.Phonology(SyllableTemplates.VF, ClusterRepair.Epenthesis).Realize(TestData.Word([Consonant.t, Vowel.a]));
+
+        Assert.Equal("uht.a", surface.Syllabified);
+    }
+
+    [Fact]
+    public void Realize_LegalCodaAndOnset_NeedsNoRepair()
+    {
+        var surface = TestData.Phonology(SyllableTemplates.CVF, ClusterRepair.Epenthesis).Realize(TestData.Word(Kabak, [Consonant.s, Vowel.a]));
+
+        Assert.Equal("kabak-sa", surface.Segmented);
+        Assert.Equal("ka.bak.sa", surface.Syllabified);
+    }
+
+    [Fact]
+    public void Realize_ConsonantsBetweenVowels_GiveTheOnsetAllItCanTake()
+    {
+        var surface = TestData.Phonology(SyllableTemplates.CLVF, ClusterRepair.Epenthesis).Realize(TestData.Word([Consonant.k, Vowel.a, Consonant.p, Consonant.l, Vowel.a]));
+
+        Assert.Equal("ka.pla", surface.Syllabified);
+    }
+
+    [Fact]
+    public void Realize_GeminateWithoutDegemination_IsRepaired()
+    {
+        var surface = TestData.Phonology(SyllableTemplates.CVF, ClusterRepair.Epenthesis).Realize(TestData.Word([Consonant.k, Vowel.a, Consonant.t], [Consonant.t]));
+
+        Assert.Equal("kat-uht", surface.Segmented);
+    }
+
+    [Fact]
+    public void Realize_GeminateWithDegemination_MergesIntoTheFirstMorpheme()
+    {
+        var surface = TestData.Phonology(SyllableTemplates.CVF, ClusterRepair.Epenthesis, new Degemination()).Realize(TestData.Word([Consonant.k, Vowel.a, Consonant.t], [Consonant.t]));
+
+        Assert.Equal("kat-∅", surface.Segmented);
+    }
+
+    [Fact]
+    public void Realize_NasalBeforeStopWithAssimilation_TakesTheStopsPlace()
+    {
+        var surface = TestData.Phonology(SyllableTemplates.CVF, ClusterRepair.Epenthesis, new NasalAssimilation()).Realize(TestData.Word([Consonant.k, Vowel.a, Consonant.n], [Consonant.p, Vowel.a]));
+
+        Assert.Equal("kam-pa", surface.Segmented);
+    }
+
+    [Fact]
+    public void Realize_UnvoicedBetweenVowelsAcrossABoundary_IsVoiced()
+    {
+        var surface = TestData.Phonology(SyllableTemplates.CV, ClusterRepair.Epenthesis, new IntervocalicVoicing()).Realize(TestData.Word(Kaba, [Consonant.t, Vowel.a]));
+
+        Assert.Equal("kaba-da", surface.Segmented);
+    }
+
+    [Fact]
+    public void Realize_VoicingWithNoVoicedCounterpartInInventory_LeavesTheConsonant()
+    {
+        var noD = TestData.Consonants.Where(c => c != Consonant.d).ToList();
+
+        var surface = TestData.Phonology(SyllableTemplates.CV, ClusterRepair.Epenthesis, noD, new IntervocalicVoicing()).Realize(TestData.Word(Kaba, [Consonant.t, Vowel.a]));
+
+        Assert.Equal("kaba-ta", surface.Segmented);
+    }
+
+    [Fact]
+    public void Realize_EpenthesisCreatingAVowelContext_DoesNotFeedVoicing()
+    {
+        var surface = TestData.Phonology(SyllableTemplates.CVF, ClusterRepair.Epenthesis, new IntervocalicVoicing()).Realize(TestData.Word([Consonant.k, Vowel.a, Consonant.b, Vowel.ə, Consonant.k], S));
+
+        //sandhi runs before repair, so the k wasn't between vowels yet when voicing applied
+        Assert.Equal("kabuhk-uhs", surface.Segmented);
+    }
+
+    [Fact]
+    public void ElideDuplicates_DoubledOnsetConsonant_Collapses()
+    {
+        var syllable = Sandhi.ElideDuplicates(new Syllable(new ConsonantCluster([Consonant.s, Consonant.s, Consonant.t]), Vowel.a, Consonant.k));
+
+        Assert.Equal("stak", syllable.Transcription);
+    }
+
+    [Fact]
+    public void ElideDuplicates_DistinctOnsetConsonants_AreKept()
+    {
+        var syllable = Sandhi.ElideDuplicates(new Syllable(new ConsonantCluster([Consonant.ʃ, Consonant.s]), Vowel.a, null));
+
+        Assert.Equal("shsa", syllable.Transcription);
+    }
+
+    [Fact]
+    public void Realize_GeneratedLanguages_ProducesOnlySyllablesTheirRulesAllow()
+    {
+        foreach (var language in GeneratedLanguages.Sample)
+        {
+            var rule = language.Phonology.SyllableRule;
+            foreach (var word in GeneratedLanguages.AllWords(language))
+            {
+                var surface = language.Phonology.Realize(word);
+                Assert.All(surface.Syllables, s =>
+                {
+                    Assert.True(rule.IsLegalOnset([.. s.Onset]), $"{surface.Syllabified} has an illegal onset under {rule}");
+                    Assert.True(rule.IsLegalCoda(s.Coda is null ? [] : [s.Coda]), $"{surface.Syllabified} has an illegal coda under {rule}");
+                });
+            }
+        }
+    }
+
+    [Fact]
+    public void Realize_GeneratedLanguages_SegmentsAndSyllablesRejoinToTheTranscription()
+    {
+        foreach (var language in GeneratedLanguages.Sample)
+        {
+            foreach (var surface in GeneratedLanguages.AllWords(language).Select(language.Phonology.Realize))
+            {
+                Assert.Equal(surface.Transcription, surface.Segmented.Replace("-", "").Replace("∅", ""));
+                Assert.Equal(surface.Transcription, string.Concat(surface.Syllables.Select(s => s.Transcription)));
+            }
+        }
+    }
+
+    [Fact]
+    public void Realize_RootsInLanguagesWithoutSandhi_AreUnchanged()
+    {
+        //roots are built from legal syllables, so only morpheme boundaries can need repair
+        foreach (var language in GeneratedLanguages.Sample.Where(l => l.Phonology.SandhiRules.Count == 0))
+        {
+            foreach (var lexeme in language.Lexicon)
+            {
+                var root = new Word([lexeme.Root]);
+                Assert.Equal(root.Transcription, language.Phonology.Realize(root).Transcription);
+            }
+        }
+    }
+
+    [Fact]
+    public void Realize_GeneratedLanguages_ChangesSomeWordsUnderEachRepairStrategy()
+    {
+        var changedBy = GeneratedLanguages.Sample
+            .SelectMany(l => GeneratedLanguages.AllWords(l).Select(w => (l.Phonology.ClusterRepair, Changed: l.Phonology.Realize(w).Transcription != w.Transcription)))
+            .Where(x => x.Changed)
+            .Select(x => x.ClusterRepair)
+            .Distinct();
+
+        Assert.Equal([ClusterRepair.Epenthesis, ClusterRepair.Deletion], changedBy.Order());
+    }
+}
