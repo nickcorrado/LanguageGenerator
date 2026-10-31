@@ -50,7 +50,7 @@ public class GeneratorTests
     public void SelectMorphologicalProfile_ManyDraws_MatchTheWalsCounts()
     {
         var rand = new Random(1);
-        var draws = Enumerable.Range(0, 100000).Select(_ => Generator.SelectMorphologicalProfile(rand)).ToList();
+        var draws = Enumerable.Range(0, 100000).Select(_ => Generator.SelectMorphologicalProfile(rand, ConstituentWordOrder.SOV)).ToList();
 
         double Share(Func<MorphologicalProfile, bool> which) => draws.Count(which) / 100000.0;
         //WALS 20A, out of the 162 languages kept
@@ -60,19 +60,50 @@ public class GeneratorTests
         //WALS 21A and 21B
         Assert.InRange(Share(p => p.Exponence.CaseWithNumber), 8 / 87.0 - 0.005, 8 / 87.0 + 0.005);
         Assert.InRange(Share(p => p.Exponence.TamWithAgreement), 24 / 156.0 - 0.005, 24 / 156.0 + 0.005);
-        //WALS 26A, out of the 828 affixing languages
-        Assert.InRange(Share(p => p.Affixation == Affixation.StronglySuffixing), 406 / 828.0 - 0.005, 406 / 828.0 + 0.005);
-        Assert.InRange(Share(p => p.Affixation == Affixation.StronglyPrefixing), 58 / 828.0 - 0.005, 58 / 828.0 + 0.005);
+    }
+
+    //WALS 26A crossed with 83A: the affixing languages in each column, then the strongly suffixing
+    //and strongly prefixing counts in it
+    [Theory]
+    [InlineData(ConstituentWordOrder.SOV, 417, 269, 6)]
+    [InlineData(ConstituentWordOrder.OSV, 417, 269, 6)]
+    [InlineData(ConstituentWordOrder.SVO, 326, 93, 51)]
+    [InlineData(ConstituentWordOrder.VSO, 326, 93, 51)]
+    public void SelectMorphologicalProfile_ManyDraws_MatchTheWalsCountsForTheirWordOrder(ConstituentWordOrder order, int languages, int stronglySuffixing, int stronglyPrefixing)
+    {
+        var rand = new Random(1);
+        var draws = Enumerable.Range(0, 100000).Select(_ => Generator.SelectMorphologicalProfile(rand, order).Affixation).ToList();
+
+        Assert.InRange(draws.Count(a => a == Affixation.StronglySuffixing) / 100000.0, stronglySuffixing / (double)languages - 0.006, stronglySuffixing / (double)languages + 0.006);
+        Assert.InRange(draws.Count(a => a == Affixation.StronglyPrefixing) / 100000.0, stronglyPrefixing / (double)languages - 0.006, stronglyPrefixing / (double)languages + 0.006);
     }
 
     [Fact]
-    public void GenerateParadigm_AffixSlots_AreAboutAThirdPrefixes()
+    public void GenerateParadigm_AffixSlots_PrefixLessInObjectVerbLanguages()
     {
-        //each 26A band's prefix share, weighted by its language count, comes to about 0.325
-        var affixes = GeneratedLanguages.Sample.SelectMany(l => l.Paradigms.Values.SelectMany(p => p.Slots))
-            .Where(s => s.Position is ExponentPosition.Prefix or ExponentPosition.Suffix).ToList();
+        //weighting each 26A band's prefix share by its count gives about 0.23 for OV and 0.46 for VO
+        double PrefixShare(bool objectFirst)
+        {
+            var affixes = GeneratedLanguages.Sample.Where(l => Generator.ObjectPrecedesVerb(l.WordOrder.ConstituentWordOrder) == objectFirst)
+                .SelectMany(l => l.Paradigms.Values.SelectMany(p => p.Slots))
+                .Where(s => s.Position is ExponentPosition.Prefix or ExponentPosition.Suffix).ToList();
+            return affixes.Count(s => s.Position == ExponentPosition.Prefix) / (double)affixes.Count;
+        }
 
-        Assert.InRange(affixes.Count(s => s.Position == ExponentPosition.Prefix) / (double)affixes.Count, 0.25, 0.40);
+        Assert.InRange(PrefixShare(objectFirst: true), 0.15, 0.31);
+        Assert.InRange(PrefixShare(objectFirst: false), 0.38, 0.54);
+    }
+
+    [Theory]
+    [InlineData(ConstituentWordOrder.SOV, true)]
+    [InlineData(ConstituentWordOrder.OSV, true)]
+    [InlineData(ConstituentWordOrder.OVS, true)]
+    [InlineData(ConstituentWordOrder.SVO, false)]
+    [InlineData(ConstituentWordOrder.VSO, false)]
+    [InlineData(ConstituentWordOrder.VOS, false)]
+    public void ObjectPrecedesVerb_ReadsTheConstituentOrder(ConstituentWordOrder order, bool expected)
+    {
+        Assert.Equal(expected, Generator.ObjectPrecedesVerb(order));
     }
 
     [Fact]

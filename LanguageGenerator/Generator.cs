@@ -24,8 +24,9 @@ public static class Generator
 
         var lexicon = GenerateLexicon(rand, syllableRule, syllableDropoff);
 
-        var morphology = SelectMorphologicalProfile(rand);
+        //word order comes first because how much a language prefixes depends on it
         var wordOrder = SelectWordOrder(rand);
+        var morphology = SelectMorphologicalProfile(rand, wordOrder.ConstituentWordOrder);
 
         var alignment = SelectAlignment(rand, 0.5, 0.25);
         var cases = SelectCases(rand, alignment, 0.75, 0.6, 0.35, 0.65, 0.25, 0.2);
@@ -366,18 +367,30 @@ public static class Generator
         (Fusion.Isolating, 16 + 1),
     ];
 
-    // https://wals.info/chapter/26 (969 languages), leaving out the 141 with little or no affixation,
-    //since fusion already decides that
-    private static readonly (Affixation Value, int Languages)[] AffixationCounts =
+    // https://wals.info/combinations/26A_83A: affixation by the order of object and verb, which makes
+    //a big difference, since OV languages strongly prefer suffixes. Languages with little or no
+    //affixation are left out, since fusion already decides that, and so are the 60 with no
+    //dominant order, since every generated language has one
+    private static readonly (Affixation Value, int Languages)[] ObjectVerbAffixationCounts =
     [
-        (Affixation.StronglySuffixing, 406),
-        (Affixation.WeaklySuffixing, 123),
-        (Affixation.Equal, 147),
-        (Affixation.WeaklyPrefixing, 94),
-        (Affixation.StronglyPrefixing, 58),
+        (Affixation.StronglySuffixing, 269),
+        (Affixation.WeaklySuffixing, 70),
+        (Affixation.Equal, 49),
+        (Affixation.WeaklyPrefixing, 23),
+        (Affixation.StronglyPrefixing, 6),
+    ];
+    private static readonly (Affixation Value, int Languages)[] VerbObjectAffixationCounts =
+    [
+        (Affixation.StronglySuffixing, 93),
+        (Affixation.WeaklySuffixing, 43),
+        (Affixation.Equal, 78),
+        (Affixation.WeaklyPrefixing, 61),
+        (Affixation.StronglyPrefixing, 51),
     ];
 
-    public static MorphologicalProfile SelectMorphologicalProfile(Random rand) => new(
+    public static bool ObjectPrecedesVerb(ConstituentWordOrder order) => order is ConstituentWordOrder.SOV or ConstituentWordOrder.OSV or ConstituentWordOrder.OVS;
+
+    public static MorphologicalProfile SelectMorphologicalProfile(Random rand, ConstituentWordOrder order) => new(
         Draw(rand, FusionCounts),
         new Exponence(
             // https://wals.info/chapter/21: 8 of the 87 languages with case mark it together with number
@@ -386,7 +399,7 @@ public static class Generator
             TamWithAgreement: rand.NextDouble() < 24 / 156.0,
             //a guess: WALS counts tense and aspect together as TAM, so it has no figure for this
             TenseWithAspect: rand.NextDouble() < 0.3),
-        Draw(rand, AffixationCounts));
+        Draw(rand, ObjectPrecedesVerb(order) ? ObjectVerbAffixationCounts : VerbObjectAffixationCounts));
 
     //a value, with probability proportional to how many languages have it
     private static T Draw<T>(Random rand, (T Value, int Languages)[] counts)

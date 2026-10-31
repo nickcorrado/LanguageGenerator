@@ -74,8 +74,6 @@ public record MorphologicalProfile(Fusion Fusion, Exponence Exponence, Affixatio
     };
 
     //the middle of each 26A band, which WALS defines by the share of affixes that are prefixes
-    //TODO Dryer's chapter says suffixing is commoner in OV languages, but the 26A counts alone
-    //don't say by how much; that needs WALS's dataset, cross-tabulated with word order
     public double PrefixChance => Affixation switch
     {
         Affixation.StronglySuffixing => 0.1,
