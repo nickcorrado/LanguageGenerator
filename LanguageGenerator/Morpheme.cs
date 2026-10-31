@@ -19,13 +19,13 @@ public class FusionalMorpheme : Morpheme
     public FusionalMorpheme(List<Tagmeme> tagmemes)
     {
         Tagmemes = tagmemes;
-        foreach (var tagmeme in Tagmemes)
+        for (int i = 0; i < Tagmemes.Count; i++)
         {
-            Gloss += tagmeme.Gloss;
-            if (tagmeme is not Person)
+            if (i > 0)
             {
-                Gloss += ".";
+                Gloss += Tagmeme.Separator(Tagmemes[i - 1], Tagmemes[i]);
             }
+            Gloss += Tagmemes[i].Gloss;
         }
     }
 }
