@@ -200,7 +200,10 @@ public static class Generator
         var groups = new List<(List<InflectionalCategory> Categories, ExponentPosition Position)>();
         foreach (var category in categories)
         {
-            if (groups.Count > 0 && rand.NextDouble() < fuseChance)
+            //person and number agreement is fused in nearly every language that has it (1SG, 3PL),
+            //whatever its morphological type
+            var agreesWithPerson = groups.Count > 0 && category.Values[0] is Number && groups[^1].Categories[^1].Values[0] is Person;
+            if (agreesWithPerson || (groups.Count > 0 && rand.NextDouble() < fuseChance))
             {
                 groups[^1].Categories.Add(category);
             }
