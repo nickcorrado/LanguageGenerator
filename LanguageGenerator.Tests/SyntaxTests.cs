@@ -119,9 +119,9 @@ public class SyntaxTests
         var column = 0;
         foreach (var word in sentence.Words)
         {
-            Assert.StartsWith(word.Segmented, lines[1][column..]);
+            Assert.StartsWith(word.Segmented(sentence.Orthography), lines[1][column..]);
             Assert.StartsWith(word.Gloss, lines[2][column..]);
-            column += Math.Max(word.Segmented.Length, word.Gloss.Length) + 2;
+            column += Math.Max(word.Segmented(sentence.Orthography).Length, word.Gloss.Length) + 2;
         }
     }
 }

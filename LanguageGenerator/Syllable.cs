@@ -7,7 +7,7 @@ namespace LanguageGenerator;
 //apparently nuclei can be a syllabic consonant, but we're not doing that
 public record Syllable(ConsonantCluster Onset, Vowel Nucleus, Consonant? Coda)
 {
-    public string Transcription => string.Concat(Onset?.Transcription ?? "", Nucleus.Transcription, Coda?.Transcription ?? "");
+    public string Spell(Orthography orthography) => orthography.Spell(Phonemes);
 
     public IEnumerable<Phoneme> Phonemes
     {
@@ -30,9 +30,6 @@ public record Syllable(ConsonantCluster Onset, Vowel Nucleus, Consonant? Coda)
 public class ConsonantCluster : IEnumerable<Consonant>
 {
     private List<Consonant> Consonants { get; init; }
-    //SO says Select() preserves original order
-    //https://stackoverflow.com/a/14380453/8429180
-    public string Transcription => string.Concat(Consonants.Select(c => c.Transcription));
 
     public ConsonantCluster(IEnumerable<Consonant> consonants)
     {
@@ -52,7 +49,7 @@ public class Category<T> : IEnumerable<T> where T : Phoneme
         var result = "[";
         foreach (var p in Phonemes)
         {
-            result += p.Transcription;
+            result += p.IpaSymbol;
         }
         result += "]";
         return result;

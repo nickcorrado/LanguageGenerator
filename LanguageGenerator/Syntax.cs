@@ -19,7 +19,7 @@ public static class Syntax
 
         //each constituent keeps its own particles with it
         var words = Order(language.WordOrder.ConstituentWordOrder, subject, verb, @object).SelectMany(c => c);
-        return new Sentence([.. words.Select(language.Phonology.Realize)], translation);
+        return new Sentence([.. words.Select(language.Phonology.Realize)], translation, language.Orthography);
     }
 
     private static IReadOnlyList<Word> Inflect(Language language, NounPhrase phrase, CaseUse role)
@@ -64,17 +64,17 @@ public static class Syntax
             });
 }
 
-public record Sentence(IReadOnlyList<SurfaceForm> Words, string Translation)
+public record Sentence(IReadOnlyList<SurfaceForm> Words, string Translation, Orthography Orthography)
 {
-    public string Text => string.Join(" ", Words.Select(w => w.Transcription));
+    public string Text => string.Join(" ", Words.Select(w => w.Spell(Orthography)));
 
     // https://www.eva.mpg.de/lingua/resources/glossing-rules.php
     //the sentence, then its morphemes and their glosses aligned word by word, then a free translation
     public string Interlinear()
     {
-        var widths = Words.Select(w => Math.Max(w.Segmented.Length, w.Gloss.Length)).ToList();
+        var widths = Words.Select(w => Math.Max(w.Segmented(Orthography).Length, w.Gloss.Length)).ToList();
         string Aligned(Func<SurfaceForm, string> line) =>
             string.Join("  ", Words.Select((w, i) => line(w).PadRight(widths[i]))).TrimEnd();
-        return string.Join(Environment.NewLine, Text, Aligned(w => w.Segmented), Aligned(w => w.Gloss), $"'{Translation}'");
+        return string.Join(Environment.NewLine, Text, Aligned(w => w.Segmented(Orthography)), Aligned(w => w.Gloss), $"'{Translation}'");
     }
 }

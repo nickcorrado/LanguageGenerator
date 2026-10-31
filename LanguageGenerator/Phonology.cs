@@ -48,7 +48,7 @@ public class Phonology
             //repair always terminates (see Repair); this only guards against a bug in that reasoning
             if (repairs > 100)
             {
-                throw new InvalidOperationException($"Couldn't repair {word.Transcription} into legal syllables.");
+                throw new InvalidOperationException($"Couldn't repair /{word.Segmented(Orthography.Ipa)}/ into legal syllables.");
             }
             segments = Repair(segments, badCluster);
         }
@@ -138,13 +138,15 @@ public class Phonology
 //a word as it's actually pronounced
 public record SurfaceForm(Word Word, IReadOnlyList<Segment> Segments, IReadOnlyList<Syllable> Syllables)
 {
-    public string Transcription => string.Concat(Segments.Select(s => s.Phoneme.Transcription));
-    public string Syllabified => string.Join(".", Syllables.Select(s => s.Transcription));
+    public IEnumerable<Phoneme> Phonemes => Segments.Select(s => s.Phoneme);
+
+    public string Spell(Orthography orthography) => orthography.Spell(Phonemes);
+    public string Syllabified(Orthography orthography) => string.Join(".", Syllables.Select(s => s.Spell(orthography)));
 
     //the surface form split back into its morphemes, lining up with Gloss. A morpheme that lost
     //all of its sounds to sandhi or cluster repair shows as ∅
-    public string Segmented => string.Join("-", Enumerable.Range(0, Word.Morphemes.Count).Select(i =>
-        Segments.Any(s => s.Morpheme == i) ? string.Concat(Segments.Where(s => s.Morpheme == i).Select(s => s.Phoneme.Transcription)) : "∅"));
+    public string Segmented(Orthography orthography) => string.Join("-", Enumerable.Range(0, Word.Morphemes.Count).Select(i =>
+        Segments.Any(s => s.Morpheme == i) ? orthography.Spell(Segments.Where(s => s.Morpheme == i).Select(s => s.Phoneme)) : "∅"));
 
     public string Gloss => Word.Gloss;
 }

@@ -7,7 +7,7 @@ public class ParadigmTests
     private static readonly InflectionalCategory NumberCategory = new("Number", [Number.Singular, Number.Plural]);
     private static readonly InflectionalCategory CaseCategory = new("Case", [Case.Nominative, Case.Accusative]);
 
-    //every slot's exponents are ti, noh, sei, muh in order, one per combination of its values
+    //every slot's exponents are ti, no, se, mə in order, one per combination of its values
     private static ExponentSlot Slot(ExponentPosition position, params InflectionalCategory[] categories)
     {
         var forms = new Queue<Phoneme[]>([[Consonant.t, Vowel.i], [Consonant.n, Vowel.o], [Consonant.s, Vowel.e], [Consonant.m, Vowel.ə]]);
@@ -25,14 +25,14 @@ public class ParadigmTests
         new() { PartOfSpeech = PartOfSpeech.Noun, Categories = [NumberCategory, CaseCategory], Slots = slots };
 
     private static (string Segmented, string Gloss) Show(IReadOnlyList<Word> words) =>
-        (string.Join(" ", words.Select(w => w.Segmented)), string.Join(" ", words.Select(w => w.Gloss)));
+        (string.Join(" ", words.Select(w => w.Segmented(Orthography.Ipa))), string.Join(" ", words.Select(w => w.Gloss)));
 
     [Fact]
     public void Inflect_FusedSlot_ExpressesBothCategoriesInOneAffix()
     {
         var paradigm = Nouns(Slot(ExponentPosition.Suffix, NumberCategory, CaseCategory));
 
-        Assert.Equal(("kaba-muh", "dog-PL.ACC"), Show(paradigm.Inflect(Dog, [Number.Plural, Case.Accusative])));
+        Assert.Equal(("kaba-mə", "dog-PL.ACC"), Show(paradigm.Inflect(Dog, [Number.Plural, Case.Accusative])));
     }
 
     [Fact]
@@ -40,7 +40,7 @@ public class ParadigmTests
     {
         var paradigm = Nouns(Slot(ExponentPosition.Suffix, NumberCategory), Slot(ExponentPosition.Suffix, CaseCategory));
 
-        Assert.Equal(("kaba-noh-ti", "dog-PL-NOM"), Show(paradigm.Inflect(Dog, [Number.Plural, Case.Nominative])));
+        Assert.Equal(("kaba-no-ti", "dog-PL-NOM"), Show(paradigm.Inflect(Dog, [Number.Plural, Case.Nominative])));
     }
 
     [Fact]
@@ -48,7 +48,7 @@ public class ParadigmTests
     {
         var paradigm = Nouns(Slot(ExponentPosition.Prefix, NumberCategory), Slot(ExponentPosition.Suffix, CaseCategory));
 
-        Assert.Equal(("noh-kaba-ti", "PL-dog-NOM"), Show(paradigm.Inflect(Dog, [Number.Plural, Case.Nominative])));
+        Assert.Equal(("no-kaba-ti", "PL-dog-NOM"), Show(paradigm.Inflect(Dog, [Number.Plural, Case.Nominative])));
     }
 
     [Fact]
@@ -56,7 +56,7 @@ public class ParadigmTests
     {
         var paradigm = Nouns(Slot(ExponentPosition.FollowingParticle, NumberCategory), Slot(ExponentPosition.FollowingParticle, CaseCategory));
 
-        Assert.Equal(("kaba ti noh", "dog SG ACC"), Show(paradigm.Inflect(Dog, [Number.Singular, Case.Accusative])));
+        Assert.Equal(("kaba ti no", "dog SG ACC"), Show(paradigm.Inflect(Dog, [Number.Singular, Case.Accusative])));
     }
 
     [Fact]
@@ -64,7 +64,7 @@ public class ParadigmTests
     {
         var paradigm = Nouns(Slot(ExponentPosition.PrecedingParticle, NumberCategory), Slot(ExponentPosition.PrecedingParticle, CaseCategory));
 
-        Assert.Equal(("noh ti kaba", "ACC SG dog"), Show(paradigm.Inflect(Dog, [Number.Singular, Case.Accusative])));
+        Assert.Equal(("no ti kaba", "ACC SG dog"), Show(paradigm.Inflect(Dog, [Number.Singular, Case.Accusative])));
     }
 
     [Fact]
@@ -195,7 +195,7 @@ public class ParadigmTests
         //syncretism is allowed when the phonology runs out of distinct forms, which happens in big
         //fused slots whose affixes are bare consonants, but it should stay rare
         var exponents = slots.Sum(s => s.Exponents.Count);
-        var repeats = slots.Sum(s => s.Exponents.Count - s.Exponents.Select(e => e.Exponent.Transcription).Distinct().Count());
+        var repeats = slots.Sum(s => s.Exponents.Count - s.Exponents.Select(e => string.Join(" ", e.Exponent.Form.Select(p => p.IpaSymbol))).Distinct().Count());
         Assert.True(repeats < exponents / 100.0, $"{repeats} of {exponents} exponents repeat a form in their slot");
     }
 

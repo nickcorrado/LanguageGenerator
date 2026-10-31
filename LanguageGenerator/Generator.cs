@@ -22,6 +22,7 @@ public static class Generator
             EpentheticVowel = SelectEpentheticVowel(vowels),
         };
 
+        var orthography = SelectOrthography(rand, vowels, consonants);
         var lexicon = GenerateLexicon(rand, syllableRule, syllableDropoff);
 
         //word order comes first because how isolating a language is, and how much it prefixes, depend on it
@@ -35,6 +36,7 @@ public static class Generator
         return new Language
         {
             Phonology = phonology,
+            Orthography = orthography,
             Lexicon = lexicon,
             Paradigms = paradigms,
             MorphologicalProfile = morphology,
@@ -73,6 +75,22 @@ public static class Generator
     //which is the first one since picks are biased toward the front
     public static Vowel SelectEpentheticVowel(List<Vowel> vowels) =>
         vowels.Contains(Vowel.ə) ? Vowel.ə : vowels.Contains(Vowel.i) ? Vowel.i : vowels[0];
+
+    //one spelling per phoneme in the inventory, picked from the options real orthographies use.
+    //a pick that turns out ambiguous is drawn again; IPA is the fallback, and always unambiguous
+    public static Orthography SelectOrthography(Random rand, List<Vowel> vowels, List<Consonant> consonants)
+    {
+        var inventory = vowels.Concat<Phoneme>(consonants).ToList();
+        for (int attempt = 0; attempt < 50; attempt++)
+        {
+            var spellings = inventory.ToDictionary(p => p, p => Orthography.Options[p][rand.Next(Orthography.Options[p].Length)]);
+            if (Orthography.IsUnambiguous(spellings.Values))
+            {
+                return new Orthography(spellings);
+            }
+        }
+        return new Orthography(inventory.ToDictionary(p => p, p => p.IpaSymbol));
+    }
 
     public static List<Lexeme> GenerateLexicon(Random rand, SyllableRule rule, double dropoff)
     {
@@ -217,7 +235,7 @@ public static class Generator
                 form = bare
                     ? [phonology.Consonants[Utilities.PowerLaw(rand, phonology.Consonants.Count, dropoff)]]
                     : [.. GenerateSyllable(rand, phonology.SyllableRule, dropoff).Phonemes];
-                if (usedForms.Add(string.Concat(form.Select(p => p.Transcription))))
+                if (usedForms.Add(string.Join(" ", form.Select(p => p.IpaSymbol))))
                 {
                     break;
                 }

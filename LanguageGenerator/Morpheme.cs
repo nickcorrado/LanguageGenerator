@@ -28,5 +28,5 @@ public union Morpheme(Root, Affix, Particle)
         Particle p => Tagmeme.JoinGlosses(p.Tagmemes),
     };
 
-    public string Transcription => string.Concat(Form.Select(p => p.Transcription));
+    public string Spell(Orthography orthography) => orthography.Spell(Form);
 }

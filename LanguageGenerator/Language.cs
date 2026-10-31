@@ -6,6 +6,7 @@ public class Language
 {
     public string? Name { get; init; }
     public required Phonology Phonology { get; init; }
+    public required Orthography Orthography { get; init; }
     public required List<Lexeme> Lexicon { get; init; }
     //how each part of speech inflects
     public required Dictionary<PartOfSpeech, Paradigm> Paradigms { get; init; }

@@ -1,11 +1,11 @@
 ﻿namespace LanguageGenerator;
 
 //a word is a sequence of morphemes, and everything else about it is derived from them.
-//Transcription and Segmented here are the underlying form, the morphemes simply run
-//together; Phonology.Realize gives the surface form, after sandhi and syllabification
+//its spellings here are of the underlying form, the morphemes simply run together;
+//Phonology.Realize gives the surface form, after sandhi and syllabification
 public record Word(IReadOnlyList<Morpheme> Morphemes)
 {
-    public string Transcription => string.Concat(Morphemes.Select(m => m.Transcription));
+    public string Spell(Orthography orthography) => string.Concat(Morphemes.Select(m => m.Spell(orthography)));
 
     // https://www.eva.mpg.de/lingua/resources/glossing-rules.php
     //I'm going to give every grammatical feature its own gloss. In-morpheme features are separated by
@@ -14,7 +14,7 @@ public record Word(IReadOnlyList<Morpheme> Morphemes)
     //periods
     //Segmented and Gloss are the second and third lines of an interlinear gloss, and line up
     //morpheme for morpheme
-    public string Segmented => string.Join("-", Morphemes.Select(m => m.Transcription));
+    public string Segmented(Orthography orthography) => string.Join("-", Morphemes.Select(m => m.Spell(orthography)));
     public string Gloss => string.Join("-", Morphemes.Select(m => m.Gloss));
 }
 
