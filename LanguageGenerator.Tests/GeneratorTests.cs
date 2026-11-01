@@ -209,6 +209,14 @@ public class GeneratorTests
         });
     }
 
+    [Fact]
+    public void Generate_AnyLanguage_HasRootsOfOneToMaxSyllables()
+    {
+        //every syllable has exactly one vowel, so a root has as many syllables as vowels
+        Assert.All(GeneratedLanguages.Sample.SelectMany(l => l.Lexicon), x =>
+            Assert.InRange(x.Root.Form.Count(p => p is Vowel), 1, Generator.MaxRootSyllables));
+    }
+
     [Theory]
     [InlineData(true, true, "ə")]
     [InlineData(false, true, "i")]

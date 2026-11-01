@@ -40,4 +40,31 @@ public static class Sampling
             }
         }
     }
+
+    //1 plus a Poisson count with mean lambda, redrawn until it's at most max. The usual model of
+    //word length in syllables: a small lambda is commonest at 1, like English, and a larger one
+    //peaks at 2 or 3, like Hawaiian or Japanese
+    public static int DisplacedPoisson(Random rand, double lambda, int max)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(max);
+        if (!(lambda >= 0 && double.IsFinite(lambda)))
+        {
+            throw new ArgumentOutOfRangeException(nameof(lambda), lambda, "The mean must be finite and not negative.");
+        }
+
+        while (true)
+        {
+            //Knuth's: count uniform draws until their product falls below e^-lambda
+            var limit = Math.Exp(-lambda);
+            var count = 0;
+            for (var product = rand.NextDouble(); product > limit; product *= rand.NextDouble())
+            {
+                count++;
+            }
+            if (1 + count <= max)
+            {
+                return 1 + count;
+            }
+        }
+    }
 }

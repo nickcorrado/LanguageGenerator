@@ -107,28 +107,37 @@ public static class Generator
 
     public static List<Lexeme> GenerateLexicon(Random rand, SyllableRule rule, double dropoff)
     {
+        var extraSyllables = SelectExtraSyllables(rand, rule);
         var lexicon = new List<Lexeme>();
         foreach (var meaning in NounMeanings)
         {
-            lexicon.Add(new Lexeme(new Root(GenerateForm(rand, rule, dropoff), meaning), PartOfSpeech.Noun));
+            lexicon.Add(new Lexeme(new Root(GenerateForm(rand, rule, dropoff, extraSyllables), meaning), PartOfSpeech.Noun));
         }
         foreach (var meaning in VerbMeanings)
         {
-            lexicon.Add(new Lexeme(new Root(GenerateForm(rand, rule, dropoff), meaning), PartOfSpeech.Verb));
+            lexicon.Add(new Lexeme(new Root(GenerateForm(rand, rule, dropoff, extraSyllables), meaning), PartOfSpeech.Verb));
         }
         return lexicon;
     }
 
-    public static List<Phoneme> GenerateForm(Random rand, SyllableRule rule, double dropoff)
+    public const int MaxRootSyllables = 5;
+
+    //how many syllables past the first a root has on average. Languages with few possible syllables
+    //need longer words to tell them apart, so Hawaiian's roots run longer than English's: about as
+    //many syllables as it takes to make RootsToDistinguish distinct forms. Tuned by eye; WALS has
+    //nothing on word length
+    public static double SelectExtraSyllables(Random rand, SyllableRule rule)
+    {
+        const double RootsToDistinguish = 100_000;
+        var needed = Math.Log(RootsToDistinguish) / Math.Log(Math.Max(rule.DistinctSyllables, 2));
+        var noise = 0.75 + 0.5 * rand.NextDouble();
+        return Math.Clamp((needed - 1) * noise, 0.2, 2.0);
+    }
+
+    public static List<Phoneme> GenerateForm(Random rand, SyllableRule rule, double dropoff, double extraSyllables)
     {
         var form = new List<Phoneme>();
-        int numberOfSyllables = 1;
-
-        //20% chance of monosyllable
-        if (rand.NextDouble() > 0.2)
-        {
-            numberOfSyllables += 1 + Sampling.TruncatedGeometric(rand, 3, 0.20);
-        }
+        var numberOfSyllables = Sampling.DisplacedPoisson(rand, extraSyllables, MaxRootSyllables);
 
         for (int i = 0; i < numberOfSyllables; i++)
         {

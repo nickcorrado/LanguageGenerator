@@ -45,6 +45,48 @@ public class SamplingTests
         Assert.All(Enumerable.Range(0, 100), _ => Assert.Equal(0, Sampling.TruncatedGeometric(rand, 5, 1)));
     }
 
+    [Fact]
+    public void DisplacedPoisson_ManyDraws_MatchOnePlusAPoissonCount()
+    {
+        var rand = new Random(1);
+        var counts = new int[21];
+        for (int i = 0; i < 30000; i++)
+        {
+            counts[Sampling.DisplacedPoisson(rand, 1, 20)]++;
+        }
+
+        //with a mean of 1, P(0) = P(1) = 1/e and P(2) = 1/2e
+        Assert.InRange(counts[1] / 30000.0, 0.353, 0.383);
+        Assert.InRange(counts[2] / 30000.0, 0.353, 0.383);
+        Assert.InRange(counts[3] / 30000.0, 0.169, 0.199);
+    }
+
+    [Fact]
+    public void DisplacedPoisson_MeanZero_AlwaysGivesOne()
+    {
+        var rand = new Random(1);
+
+        Assert.All(Enumerable.Range(0, 100), _ => Assert.Equal(1, Sampling.DisplacedPoisson(rand, 0, 5)));
+    }
+
+    [Fact]
+    public void DisplacedPoisson_LargeMean_NeverExceedsTheMax()
+    {
+        var rand = new Random(1);
+
+        Assert.All(Enumerable.Range(0, 1000), _ => Assert.InRange(Sampling.DisplacedPoisson(rand, 4, 3), 1, 3));
+    }
+
+    [Theory]
+    [InlineData(0, 1)]
+    [InlineData(3, -0.5)]
+    [InlineData(3, double.NaN)]
+    [InlineData(3, double.PositiveInfinity)]
+    public void DisplacedPoisson_OutOfRange_Throws(int max, double lambda)
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() => Sampling.DisplacedPoisson(new Random(1), lambda, max));
+    }
+
     [Theory]
     [InlineData(0, 0.5)]
     [InlineData(3, 0)]

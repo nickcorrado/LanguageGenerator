@@ -180,6 +180,37 @@ public class SyllableTests
         Assert.InRange(Share(CodaRestriction.SingleNasal), 0.08, 0.12);
     }
 
+    [Fact]
+    public void DistinctSyllables_CV_IsAnOptionalConsonantTimesAVowel()
+    {
+        var rule = new SyllableRule(SyllableTemplates.CV, TestData.Vowels, TestData.Consonants);
+
+        Assert.Equal((1 + TestData.Consonants.Count) * TestData.Vowels.Count, rule.DistinctSyllables);
+    }
+
+    [Fact]
+    public void DistinctSyllables_RestrictedCodas_CountOnlyTheirClass()
+    {
+        var rule = new SyllableRule(SyllableTemplates.CVF, TestData.Vowels, TestData.Consonants, CodaRestriction.SingleNasal);
+
+        Assert.Equal((1 + TestData.Consonants.Count) * TestData.Vowels.Count * 2, rule.DistinctSyllables);
+    }
+
+    [Fact]
+    public void SelectExtraSyllables_FewerPossibleSyllables_GiveLongerRoots()
+    {
+        var fewVowels = TestData.Vowels.Take(3).ToList();
+        var fewConsonants = TestData.Consonants.Take(8).ToList();
+        var simple = new SyllableRule(SyllableTemplates.CV, fewVowels, fewConsonants);
+        var complex = new SyllableRule(SyllableTemplates.SCLVF, TestData.Vowels, TestData.Consonants);
+        var rand = new Random(1);
+
+        var simpleMean = Enumerable.Range(0, 200).Average(_ => Generator.SelectExtraSyllables(rand, simple));
+        var complexMean = Enumerable.Range(0, 200).Average(_ => Generator.SelectExtraSyllables(rand, complex));
+
+        Assert.True(simpleMean > complexMean + 1, $"CV roots average {1 + simpleMean:F2} syllables and SCLVF roots {1 + complexMean:F2}");
+    }
+
     //single-letter IPA symbols only, which covers everything these tests need
     private static List<Consonant> Consonants(string ipa) =>
         [.. ipa.Select(symbol => TestData.Consonants.Single(c => c.IpaSymbol == symbol.ToString()))];
