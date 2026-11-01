@@ -17,6 +17,13 @@ public class ClauseFileTests
     }
 
     [Fact]
+    public void Parse_NegativeVerb_NegatesTheClause()
+    {
+        Assert.True(Single("the dog didn't sleep\n  sleep.PST.NEG subject:dog").Clause.Negative);
+        Assert.False(Single("the dog slept\n  sleep.PST subject:dog").Clause.Negative);
+    }
+
+    [Fact]
     public void Parse_FeaturesLeftOut_AreTheUnmarkedValues()
     {
         var entry = Single("the bird sleeps\n  sleep subject:bird");
@@ -50,7 +57,9 @@ public class ClauseFileTests
     [InlineData("x\n  give subject:dog recipient:cat", 2, "can't have a recipient yet")]
     [InlineData("x\n  sleep.PST.FUT subject:dog", 2, "more than one tense")]
     [InlineData("x\n  sleep.PL subject:dog", 2, "agrees with its subject")]
-    [InlineData("x\n  sleep.SBJV subject:dog", 2, "only tense and aspect")]
+    [InlineData("x\n  sleep.SBJV subject:dog", 2, "only tense, aspect and polarity")]
+    [InlineData("x\n  sleep.NEG.NEG subject:dog", 2, "more than one polarity")]
+    [InlineData("x\n  sleep subject:dog.NEG", 2, "the verb that's negated")]
     [InlineData("x\n  sleep subject:dog.ACC", 2, "case comes from its role")]
     [InlineData("x\n  sleep subject:dog.SG.PL", 2, "more than one number")]
     [InlineData("x\n  sleep subject:.PL", 2, "needs a word")]

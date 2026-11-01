@@ -87,6 +87,16 @@ Console.WriteLine($"Pronouns ({pronouns.FirstPersonPlural} 'we'{gender}{(pronoun
 Console.WriteLine("  " + string.Join(", ", pronouns.Forms.Values.Distinct().Select(p =>
     $"{p.Root.Meaning} {phonology.Realize(new Word([p.Root])).Spell(orthography)}")));
 
+//spelled as they're written, not realized: an affix can be a lone consonant, which isn't a word
+var negation = lang.Negation;
+var markers = negation.Markers.Select(m => m.Position switch
+{
+    ExponentPosition.Prefix => $"{m.Marker.Spell(orthography)}-",
+    ExponentPosition.Suffix => $"-{m.Marker.Spell(orthography)}",
+    _ => m.Marker.Spell(orthography),
+});
+Console.WriteLine($"Negation: {negation} ({string.Join(" ... ", markers)})");
+
 //each paradigm, shown on the first lexeme that uses it, and the pronouns' on 1SG. Spelled surface
 //forms come first, with the underlying form after them in IPA wherever sandhi or cluster repair
 //changed something
@@ -117,6 +127,7 @@ NounPhrase Phrase(string noun, Number number) => new(noun, number);
     (new("see", Tense.Present, Aspect.Imperfective, Phrase("person", Number.Singular), Phrase("dog", Number.Plural)), "the person sees the dogs"),
     (new("see", Tense.Present, Aspect.Imperfective, new Pronoun(Person.First, Number.Singular), new Pronoun(Person.Second, Number.Singular)), "I see you"),
     (new("sleep", Tense.Past, Aspect.Imperfective, new Pronoun(Person.First, Number.Plural)), "we were sleeping"),
+    (new("see", Tense.Past, Aspect.Perfective, Phrase("dog", Number.Singular), Phrase("cat", Number.Singular), Negative: true), "the dog didn't see the cat"),
 ];
 foreach (var (clause, translation) in examples)
 {

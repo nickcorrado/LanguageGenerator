@@ -143,6 +143,13 @@ public record Clusivity(string Name, string Gloss) : Tagmeme(Name, Gloss)
     public static Clusivity Exclusive { get; } = new("Exclusive", "EXCL");
 }
 
+//whether a clause is asserted or denied. Affirmative is never marked, so it never shows in a gloss
+public record Polarity(string Name, string Gloss) : Tagmeme(Name, Gloss)
+{
+    public static Polarity Affirmative { get; } = new("Affirmative", "AFF");
+    public static Polarity Negative { get; } = new("Negative", "NEG");
+}
+
 public record Definiteness(string Name, string Gloss) : Tagmeme(Name, Gloss)
 {
     public static Definiteness Definite { get; } = new("Definite", "DEF");

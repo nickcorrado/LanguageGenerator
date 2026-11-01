@@ -1,4 +1,4 @@
-namespace LanguageGenerator;
+﻿namespace LanguageGenerator;
 
 //I figure this is the top-level object
 //a plain description of a language: everything Generator chose, and nothing about how, except
@@ -18,6 +18,7 @@ public class Language
     public required List<Case> Cases { get; init; }
     public required Dictionary<CaseUse, RoleMarker> RoleMarkers { get; init; }
     public required PronounSystem Pronouns { get; init; }
+    public required Negation Negation { get; init; }
 
     //the classic three-way label, for display only, read off what the paradigms actually do:
     //analytic if markers stand alone, fusional if any marker expresses more than one category

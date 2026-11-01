@@ -6,8 +6,8 @@ namespace LanguageGenerator;
 //what it means in glosses:
 //
 //  # a comment
-//  the dog saw the cat
-//    see.PST.PFV  subject:dog  object:cat
+//  the dog didn't see the cat
+//    see.PST.PFV.NEG  subject:dog  object:cat
 //
 //The indented line is the verb, then its arguments in any order as role:noun, each word an English
 //meaning with Leipzig glosses joined by periods, as in a gloss line. A pronoun is its person and
@@ -73,6 +73,7 @@ public static class ClauseFile
 
         Tense? tense = null;
         Aspect? aspect = null;
+        Polarity? polarity = null;
         foreach (var feature in verbFeatures)
         {
             switch (feature)
@@ -83,12 +84,15 @@ public static class ClauseFile
                 case Aspect a when aspect is null:
                     aspect = a;
                     break;
-                case Tense or Aspect:
+                case Polarity p when polarity is null:
+                    polarity = p;
+                    break;
+                case Tense or Aspect or Polarity:
                     throw new ClauseFormatException($"'{verb}' has more than one {feature.GetType().Name.ToLowerInvariant()}.", number);
                 case Person or Number:
                     throw new ClauseFormatException($"'{verb}' can't take {feature.Gloss}: a verb agrees with its subject.", number);
                 default:
-                    throw new ClauseFormatException($"'{verb}' can't take {feature.Gloss} ({feature.Name}) yet: verbs have only tense and aspect.", number);
+                    throw new ClauseFormatException($"'{verb}' can't take {feature.Gloss} ({feature.Name}) yet: verbs have only tense, aspect and polarity.", number);
             }
         }
 
@@ -120,7 +124,8 @@ public static class ClauseFile
         {
             throw new ClauseFormatException("The clause needs a subject, as in subject:dog.", number);
         }
-        return new Clause(verb, tense ?? Tense.Present, aspect ?? Aspect.Imperfective, subject, arguments.TryGetValue("object", out var @object) ? @object : (Argument?)null);
+        return new Clause(verb, tense ?? Tense.Present, aspect ?? Aspect.Imperfective, subject, arguments.TryGetValue("object", out var @object) ? @object : (Argument?)null,
+            Negative: polarity == Polarity.Negative);
     }
 
     private static Argument ParseArgument(string token, int number)
@@ -142,6 +147,8 @@ public static class ClauseFile
                     throw new ClauseFormatException($"'{noun}' has more than one number.", number);
                 case Case:
                     throw new ClauseFormatException($"'{noun}' can't take {feature.Gloss}: a noun's case comes from its role.", number);
+                case Polarity:
+                    throw new ClauseFormatException($"'{noun}' can't take {feature.Gloss}: it's the verb that's negated.", number);
                 default:
                     throw new ClauseFormatException($"'{noun}' can't take {feature.Gloss} ({feature.Name}) yet: nouns have only number.", number);
             }

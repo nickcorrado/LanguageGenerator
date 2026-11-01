@@ -15,7 +15,7 @@ public union Argument(NounPhrase, Pronoun)
         Pronoun p => (p.Person, p.Number),
     };
 }
-public record Clause(string Verb, Tense Tense, Aspect Aspect, Argument Subject, Argument? Object = null);
+public record Clause(string Verb, Tense Tense, Aspect Aspect, Argument Subject, Argument? Object = null, bool Negative = false);
 
 public static class Syntax
 {
@@ -29,6 +29,10 @@ public static class Syntax
         var (person, number) = clause.Subject.Agreement;
         var verb = language.Paradigms[PartOfSpeech.Verb].Inflect(language.Lexicon.Verb(clause.Verb),
             Features(language.Paradigms[PartOfSpeech.Verb], [clause.Tense, clause.Aspect, person, number]));
+        if (clause.Negative)
+        {
+            verb = language.Negation.Apply(verb);
+        }
 
         //each constituent keeps its own particles with it
         var words = Order(language.WordOrder.ConstituentWordOrder, subject, verb, @object).SelectMany(c => c);
