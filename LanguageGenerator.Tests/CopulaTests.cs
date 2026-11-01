@@ -95,7 +95,59 @@ public class CopulaTests
         {
             Assert.Equal(!l.Predication.ZeroCopula, HasCopula(DogIsBig(l, Tense.Present)));
             Assert.True(HasCopula(DogIsBig(l, Tense.Past)));
-            Assert.Equal("big", DogIsBig(l, Tense.Past).Words[IndexOf(DogIsBig(l, Tense.Past), "big")].Gloss);
+        });
+    }
+
+    [Fact]
+    public void Realize_PredicateAdjectiveWhereAdjectivesDontAgree_IsBare()
+    {
+        Assert.All(GeneratedLanguages.Sample.Where(l => l.Predication.Adjectives == PredicativeAdjectives.Nonverbal && l.AdjectiveAgreement != AdjectiveAgreement.Agreement), l =>
+            Assert.Equal("big", DogIsBig(l, Tense.Past).Words[IndexOf(DogIsBig(l, Tense.Past), "big")].Gloss));
+    }
+
+    //a word's affixes, by gloss, leaving out gender markers
+    private static string Affixes(Word word) =>
+        string.Join("-", word.Morphemes.Where(m => m.Value is not Root and not Affix { Tagmemes: [Gender] }).Select(m => m.Gloss));
+
+    private static List<string> GenderGlosses(Word word) =>
+        [.. word.Morphemes.Where(m => m.Value is Affix { Tagmemes: [Gender] }).Select(m => m.Gloss)];
+
+    private static List<Language> Agreeing() =>
+        [.. GeneratedLanguages.Sample.Where(l => l.Predication.Adjectives == PredicativeAdjectives.Nonverbal && l.AdjectiveAgreement == AdjectiveAgreement.Agreement)];
+
+    [Fact]
+    public void Realize_AgreeingPredicateAdjective_TakesItsSubjectsNumberCaseAndGender()
+    {
+        Assert.NotEmpty(Agreeing());
+        Assert.All(Agreeing(), l =>
+        {
+            foreach (var (noun, number) in new[] { ("dog", Number.Plural), ("sun", Number.Singular), ("person", Number.Plural) })
+            {
+                var sentence = Syntax.Realize(l, new CopularClause(new Adjective("big"), Tense.Past, Aspect.Imperfective, new NounPhrase(noun, number)), "x");
+                var subject = sentence.Words[IndexOf(sentence, noun)].Word;
+                var big = sentence.Words[IndexOf(sentence, "big")].Word;
+                var gender = l.Genders.Of(l.Lexicon.Noun(noun));
+
+                Assert.Equal(Affixes(subject), Affixes(big));
+                Assert.Equal(gender is not null && l.Genders.Markers?[gender].Form.Count > 0 ? [gender.Gloss] : [], GenderGlosses(big));
+            }
+        });
+    }
+
+    [Fact]
+    public void Realize_PredicateAdjectiveWithAPronounSubject_AgreesInWhatThePronounSays()
+    {
+        Assert.All(Agreeing(), l =>
+        {
+            //number from the pronoun, and gender only if it gives one the language has
+            var feminine = l.Genders.Values.FirstOrDefault(g => g == Gender.Feminine);
+            var they = new Pronoun(Person.Third, Number.Plural, Gender: Gender.Feminine);
+            var sentence = Syntax.Realize(l, new CopularClause(new Adjective("old"), Tense.Past, Aspect.Imperfective, they), "they were old");
+            var plural = Syntax.Realize(l, new CopularClause(new Adjective("old"), Tense.Past, Aspect.Imperfective, new NounPhrase("stone", Number.Plural)), "x");
+            var old = sentence.Words[IndexOf(sentence, "old")].Word;
+
+            Assert.Equal(Affixes(plural.Words[IndexOf(plural, "old")].Word), Affixes(old));
+            Assert.Equal(feminine is not null && l.Genders.Markers?[feminine].Form.Count > 0 ? ["F"] : [], GenderGlosses(old));
         });
     }
 

@@ -69,11 +69,16 @@ public static class Syntax
             return Sentence(language, Order(language.WordOrder.ConstituentWordOrder, subject, predicate, null), translation);
         }
 
-        //a predicate noun takes the same case as an intransitive subject, and an adjective, which
-        //doesn't inflect yet, is just its root
+        //a predicate noun takes the same case as an intransitive subject. A predicate adjective, in a
+        //language whose adjectives agree, agrees with the subject in number, gender and that case,
+        //as in Latin canis magnus est 'the dog is big'; otherwise it's just its root
         IReadOnlyList<Word> complement = clause.Complement.Value switch
         {
             NounPhrase noun => Inflect(language, noun, CaseUse.IntransitiveSubject),
+            Adjective adjective when language.AdjectiveAgreement == AdjectiveAgreement.Agreement =>
+                [AgreeingAdjective(language, language.Lexicon.Adjective(adjective.Meaning),
+                    Features(language.Paradigms[PartOfSpeech.Noun], [clause.Subject.Agreement.Number, CaseFor(language, language.RoleMarkers[CaseUse.IntransitiveSubject])]),
+                    GenderOf(language, clause.Subject))],
             Adjective adjective => [new Word([language.Lexicon.Adjective(adjective.Meaning).Root])],
             _ => throw new ArgumentException("A copular clause needs a complement.", nameof(clause)),
         };
@@ -93,20 +98,33 @@ public static class Syntax
         var (person, number) = subject.Agreement;
         var paradigm = language.Paradigms[PartOfSpeech.Verb];
         var words = paradigm.Inflect(verb, Features(paradigm, [tense, aspect, person, number])).ToList();
-        //a verb that agrees in gender takes its noun subject's, or a pronoun's if the language has it
         var genders = language.Genders;
-        Gender? gender = !genders.VerbsAgree ? null : subject.Value switch
-        {
-            NounPhrase n => genders.Of(language.Lexicon.Noun(n.Noun)),
-            Pronoun { Gender: { } g } when genders.Values.Contains(g) => g,
-            _ => null,
-        };
+        var gender = genders.VerbsAgree ? GenderOf(language, subject) : null;
         if (gender is not null)
         {
             var main = words.FindIndex(w => w.Morphemes.Any(m => m.Value is Root));
             words[main] = genders.Agree(words[main], gender, nextToRoot: false);
         }
         return negative ? language.Negation.Apply(words) : words;
+    }
+
+    //the gender something agrees with: a noun's own, or a pronoun's, if the language has that gender.
+    //A pronoun with no gender given has none to agree with, since what it refers to isn't known
+    private static Gender? GenderOf(Language language, Argument argument) => argument.Value switch
+    {
+        NounPhrase n => language.Genders.Of(language.Lexicon.Noun(n.Noun)),
+        Pronoun { Gender: { } g } when language.Genders.Values.Contains(g) => g,
+        _ => null,
+    };
+
+    //an adjective agreeing with a noun: it takes the noun's markers for these features, but only its
+    //affixes, since a particle belongs to the phrase and is said once, and a marker for its gender.
+    //Its zero markers go unglossed, since the noun's gloss already shows them
+    private static Word AgreeingAdjective(Language language, Lexeme adjective, IReadOnlyList<Tagmeme> features, Gender? gender)
+    {
+        var inflected = language.Paradigms[PartOfSpeech.Noun].Inflect(adjective with { PartOfSpeech = PartOfSpeech.Noun }, features);
+        var word = inflected.First(w => w.Morphemes.Any(m => m.Value is Root)) with { Covert = null };
+        return gender is null ? word : language.Genders.Agree(word, gender, nextToRoot: true);
     }
 
     //each constituent keeps its own particles with it
@@ -143,17 +161,9 @@ public static class Syntax
         var adjectives = phrase.Adjectives.Select(a =>
         {
             var lexeme = language.Lexicon.Adjective(a.Meaning);
-            if (agreement != AdjectiveAgreement.Agreement)
-            {
-                return new Word([lexeme.Root]);
-            }
-            //an agreeing adjective takes the noun's own markers, but only its affixes: a particle
-            //belongs to the phrase, and is said once. Its zero markers go unglossed, since the noun's
-            //gloss already shows them
-            var inflected = language.Paradigms[PartOfSpeech.Noun].Inflect(lexeme with { PartOfSpeech = PartOfSpeech.Noun }, features);
-            var word = inflected.First(w => w.Morphemes.Any(m => m.Value is Root)) with { Covert = null };
-            //and agrees in the noun's gender too
-            return language.Genders.Of(nounLexeme) is { } gender ? language.Genders.Agree(word, gender, nextToRoot: true) : word;
+            return agreement == AdjectiveAgreement.Agreement
+                ? AgreeingAdjective(language, lexeme, features, language.Genders.Of(nounLexeme))
+                : new Word([lexeme.Root]);
         }).ToList();
 
         var headFirst = language.WordOrder.NounPhraseDirectionality == HeadDirectionality.Initial;
