@@ -1,25 +1,9 @@
 ﻿namespace LanguageGenerator;
 
-//the grammatical categories which morphemes might express. Adding a category here
-//means every switch over Tagmeme has to decide what to do with it
-public union Tagmeme(Tense, Aspect, Mood, Voice, Case, Person, Number, Gender, Definiteness)
+//a value of one of the grammatical categories which morphemes might express. It's closed, so a
+//switch that handles every category below needs no discard, and adding a category flags it
+public closed record Tagmeme(string Name, string Gloss)
 {
-    private GrammaticalCategory Category => this switch
-    {
-        Tense t => t,
-        Aspect a => a,
-        Mood m => m,
-        Voice v => v,
-        Case c => c,
-        Person p => p,
-        Number n => n,
-        Gender g => g,
-        Definiteness d => d,
-    };
-
-    public string Name => Category.Name;
-    public string Gloss => Category.Gloss;
-
     // https://www.eva.mpg.de/lingua/resources/glossing-rules.php
     //person and number labels run together (3SG); everything else is
     //separated by a period (3SG.PST)
@@ -45,30 +29,28 @@ public union Tagmeme(Tense, Aspect, Mood, Voice, Case, Person, Number, Gender, D
     }
 }
 
-public abstract record GrammaticalCategory(string Name, string Gloss);
-
-public record Tense(string Name, string Gloss) : GrammaticalCategory(Name, Gloss)
+public record Tense(string Name, string Gloss) : Tagmeme(Name, Gloss)
 {
     public static Tense Present { get; } = new("Present", "PRS");
     public static Tense Past { get; } = new("Past", "PST");
     public static Tense Future { get; } = new("Future", "FUT");
 }
 
-public record Aspect(string Name, string Gloss) : GrammaticalCategory(Name, Gloss)
+public record Aspect(string Name, string Gloss) : Tagmeme(Name, Gloss)
 {
     public static Aspect Imperfective { get; } = new("Imperfective", "IPFV");
     public static Aspect Perfective { get; } = new("Perfective", "PFV");
     public static Aspect Aorist { get; } = new("Aorist", "AOR");
 }
 
-public record Mood(string Name, string Gloss) : GrammaticalCategory(Name, Gloss)
+public record Mood(string Name, string Gloss) : Tagmeme(Name, Gloss)
 {
     public static Mood Indicative { get; } = new("Indicative", "IND");
     public static Mood Subjunctive { get; } = new("Subjunctive", "SBJV");
     public static Mood Imperative { get; } = new("Imperative", "IMP");
 }
 
-public record Voice(string Name, string Gloss) : GrammaticalCategory(Name, Gloss)
+public record Voice(string Name, string Gloss) : Tagmeme(Name, Gloss)
 {
     public static Voice Active { get; } = new("Active", "ACTV");
     public static Voice Passive { get; } = new("Passive", "PASS");
@@ -78,7 +60,7 @@ public record Voice(string Name, string Gloss) : GrammaticalCategory(Name, Gloss
 //is a must. After that, there's a chance of adding the genitive, the dative, etc.
 //The other option, of course, is an adposition. So maybe those should be generated
 //together?
-public record Case(string Name, string Gloss) : GrammaticalCategory(Name, Gloss)
+public record Case(string Name, string Gloss) : Tagmeme(Name, Gloss)
 {
     public static Case Nominative { get; } = new("Nominative", "NOM");
     public static Case Accusative { get; } = new("Accusative", "ACC");
@@ -124,14 +106,14 @@ public enum MorphosyntacticAlignment
     None //do we need this?
 }
 
-public record Person(string Name, string Gloss) : GrammaticalCategory(Name, Gloss)
+public record Person(string Name, string Gloss) : Tagmeme(Name, Gloss)
 {
     public static Person First { get; } = new("First", "1");
     public static Person Second { get; } = new("Second", "2");
     public static Person Third { get; } = new("Third", "3");
 }
 
-public record Number(string Name, string Gloss) : GrammaticalCategory(Name, Gloss)
+public record Number(string Name, string Gloss) : Tagmeme(Name, Gloss)
 {
     public static Number Singular { get; } = new("Singular", "SG");
     public static Number Dual { get; } = new("Dual", "DU");
@@ -144,7 +126,7 @@ public record Number(string Name, string Gloss) : GrammaticalCategory(Name, Glos
 //there's a more general form of gender found in languages
 //like Swahili, which has 20 noun classes. That will not
 //be supported. Also, animacy might want to be split off
-public record Gender(string Name, string Gloss) : GrammaticalCategory(Name, Gloss)
+public record Gender(string Name, string Gloss) : Tagmeme(Name, Gloss)
 {
     public static Gender Masculine { get; } = new("Masculine", "M");
     public static Gender Feminine { get; } = new("Feminine", "F");
@@ -153,7 +135,7 @@ public record Gender(string Name, string Gloss) : GrammaticalCategory(Name, Glos
     public static Gender Inanimate { get; } = new("Inanimate", "NANM");
 }
 
-public record Definiteness(string Name, string Gloss) : GrammaticalCategory(Name, Gloss)
+public record Definiteness(string Name, string Gloss) : Tagmeme(Name, Gloss)
 {
     public static Definiteness Definite { get; } = new("Definite", "DEF");
     public static Definiteness Indefinite { get; } = new("Indefinite", "NDF");
