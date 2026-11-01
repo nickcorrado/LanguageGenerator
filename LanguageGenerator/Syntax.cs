@@ -47,10 +47,27 @@ public static class Syntax
     }
 
     //each category the paradigm inflects for takes whichever wanted value it distinguishes. A value
-    //the language doesn't have (a future in a language with only present and past, say) falls back
-    //on the category's first value
+    //the language doesn't have falls back on the nearest one it does, and failing that on the
+    //category's first value
     private static List<Tagmeme> Features(Paradigm paradigm, IReadOnlyList<Tagmeme> wanted) =>
-        [.. paradigm.Categories.Select(category => wanted.FirstOrDefault(category.Values.Contains, category.Values[0]))];
+        [.. paradigm.Categories.Select(category =>
+            wanted.Where(w => w.GetType() == category.Values[0].GetType())
+                .SelectMany(w => (Tagmeme[])[w, .. Fallbacks.GetValueOrDefault(w, [])])
+                .FirstOrDefault(category.Values.Contains, category.Values[0]))];
+
+    //what a value turns into in a language that doesn't distinguish it, nearest first: a dual or a
+    //paucal is still more than one, a language without a future speaks of it in the present, as
+    //English often does, and an aorist is a perfective
+    private static readonly Dictionary<Tagmeme, Tagmeme[]> Fallbacks = new()
+    {
+        [Number.Dual] = [Number.Paucal, Number.Plural],
+        [Number.Paucal] = [Number.Plural],
+        [Number.Collective] = [Number.Plural],
+        [Tense.Future] = [Tense.Present],
+        [Aspect.Aorist] = [Aspect.Perfective],
+        [Mood.Subjunctive] = [Mood.Indicative],
+        [Mood.Imperative] = [Mood.Subjunctive, Mood.Indicative],
+    };
 
     //the order's own letters say where each constituent goes; an intransitive clause just has no O
     private static IEnumerable<IReadOnlyList<Word>> Order(ConstituentWordOrder order, IReadOnlyList<Word> subject, IReadOnlyList<Word> verb, IReadOnlyList<Word>? @object) =>

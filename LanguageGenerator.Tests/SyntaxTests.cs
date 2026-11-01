@@ -107,6 +107,19 @@ public class SyntaxTests
         Assert.Contains("PRS", Glosses(sentence));
     }
 
+    [Theory]
+    [InlineData(2, "PL")]
+    [InlineData(3, "DU")]
+    public void Realize_Dual_IsPluralUnlessTheLanguageHasADual(int numbers, string expected)
+    {
+        var language = GeneratedLanguages.Sample.First(l => l.Paradigms[PartOfSpeech.Noun].Categories.Any(c => c.Name == "Number" && c.Values.Count == numbers));
+
+        var sentence = Syntax.Realize(language, new(language.Lexicon.Verb("sleep"), Tense.Present, Aspect.Imperfective, new(language.Lexicon.Noun("bird"), Number.Dual)), "the two birds are sleeping");
+
+        Assert.Contains(expected, Glosses(sentence));
+        Assert.DoesNotContain("SG", Glosses(sentence));
+    }
+
     [Fact]
     public void Interlinear_SegmentedAndGlossLines_StartEachWordInTheSameColumn()
     {
