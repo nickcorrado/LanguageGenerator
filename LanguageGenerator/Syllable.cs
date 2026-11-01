@@ -252,7 +252,7 @@ public class SyllableRule
         {
             return null;
         }
-        return phonemes[Utilities.TruncatedGeometric(rand, phonemes.Count(), dropoff)];
+        return phonemes[Sampling.TruncatedGeometric(rand, phonemes.Count(), dropoff)];
     }
 
     public override string ToString() =>

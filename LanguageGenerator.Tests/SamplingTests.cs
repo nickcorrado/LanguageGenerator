@@ -1,6 +1,6 @@
 namespace LanguageGenerator.Tests;
 
-public class UtilitiesTests
+public class SamplingTests
 {
     [Fact]
     public void TruncatedGeometric_ManyDraws_DecayByAConstantRatio()
@@ -9,7 +9,7 @@ public class UtilitiesTests
         var counts = new int[3];
         for (int i = 0; i < 30000; i++)
         {
-            counts[Utilities.TruncatedGeometric(rand, 3, 0.2)]++;
+            counts[Sampling.TruncatedGeometric(rand, 3, 0.2)]++;
         }
 
         //each index is 0.8 times as likely as the one before, normalized over the three: 1, 0.8, 0.64
@@ -22,7 +22,7 @@ public class UtilitiesTests
     {
         var rand = new Random(1);
 
-        Assert.All(Enumerable.Range(0, 100), _ => Assert.Equal(0, Utilities.TruncatedGeometric(rand, 5, 1)));
+        Assert.All(Enumerable.Range(0, 100), _ => Assert.Equal(0, Sampling.TruncatedGeometric(rand, 5, 1)));
     }
 
     [Theory]
@@ -33,6 +33,6 @@ public class UtilitiesTests
     [InlineData(3, double.NaN)]
     public void TruncatedGeometric_OutOfRange_Throws(int max, double p)
     {
-        Assert.Throws<ArgumentOutOfRangeException>(() => Utilities.TruncatedGeometric(new Random(1), max, p));
+        Assert.Throws<ArgumentOutOfRangeException>(() => Sampling.TruncatedGeometric(new Random(1), max, p));
     }
 }

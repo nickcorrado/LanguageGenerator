@@ -1,6 +1,6 @@
 ﻿namespace LanguageGenerator;
 
-public static class Utilities
+public static class Sampling
 {
     //an index below max, where 0 is likeliest and each index after it is (1 - p) times as likely:
     //a geometric distribution truncated at max. Wrapping past max instead of starting over keeps
