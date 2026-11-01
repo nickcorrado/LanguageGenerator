@@ -65,12 +65,12 @@ foreach (var paradigm in lang.Paradigms.Values)
 }
 
 //a few sentences, glossed
-NounPhrase Phrase(string noun, Number number) => new(lang.Lexicon.Noun(noun), number);
+NounPhrase Phrase(string noun, Number number) => new(noun, number);
 (Clause Clause, string Translation)[] examples =
 [
-    (new(lang.Lexicon.Verb("see"), Tense.Past, Aspect.Perfective, Phrase("dog", Number.Singular), Phrase("cat", Number.Singular)), "the dog saw the cat"),
-    (new(lang.Lexicon.Verb("sleep"), Tense.Present, Aspect.Imperfective, Phrase("bird", Number.Plural)), "the birds are sleeping"),
-    (new(lang.Lexicon.Verb("see"), Tense.Present, Aspect.Imperfective, Phrase("person", Number.Singular), Phrase("dog", Number.Plural)), "the person sees the dogs"),
+    (new("see", Tense.Past, Aspect.Perfective, Phrase("dog", Number.Singular), Phrase("cat", Number.Singular)), "the dog saw the cat"),
+    (new("sleep", Tense.Present, Aspect.Imperfective, Phrase("bird", Number.Plural)), "the birds are sleeping"),
+    (new("see", Tense.Present, Aspect.Imperfective, Phrase("person", Number.Singular), Phrase("dog", Number.Plural)), "the person sees the dogs"),
 ];
 foreach (var (clause, translation) in examples)
 {

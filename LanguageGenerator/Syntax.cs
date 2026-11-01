@@ -1,10 +1,11 @@
 ﻿namespace LanguageGenerator;
 
-//what a sentence means, independent of any language. Realizing one in a language is where all
-//of that language's choices (word order, role markers, paradigms, phonology) come together
+//what a sentence means, independent of any language: words are meanings, like "dog", which each
+//language's lexicon turns into its own roots. Realizing one in a language is where all of that
+//language's choices (word order, role markers, paradigms, phonology) come together
 //TODO definiteness: there are no articles in the lexicon yet, so "the" only shows in translations
-public record NounPhrase(Lexeme Noun, Number Number);
-public record Clause(Lexeme Verb, Tense Tense, Aspect Aspect, NounPhrase Subject, NounPhrase? Object = null);
+public record NounPhrase(string Noun, Number Number);
+public record Clause(string Verb, Tense Tense, Aspect Aspect, NounPhrase Subject, NounPhrase? Object = null);
 
 public static class Syntax
 {
@@ -14,7 +15,7 @@ public static class Syntax
         var subject = Inflect(language, clause.Subject, subjectRole);
         var @object = clause.Object is { } o ? Inflect(language, o, CaseUse.DirectObject) : null;
         //the verb agrees with its subject. TODO many ergative languages agree with the absolutive instead
-        var verb = language.Paradigms[PartOfSpeech.Verb].Inflect(clause.Verb,
+        var verb = language.Paradigms[PartOfSpeech.Verb].Inflect(language.Lexicon.Verb(clause.Verb),
             Features(language.Paradigms[PartOfSpeech.Verb], [clause.Tense, clause.Aspect, Person.Third, clause.Subject.Number]));
 
         //each constituent keeps its own particles with it
@@ -25,7 +26,7 @@ public static class Syntax
     private static IReadOnlyList<Word> Inflect(Language language, NounPhrase phrase, CaseUse role)
     {
         var paradigm = language.Paradigms[PartOfSpeech.Noun];
-        return paradigm.Inflect(phrase.Noun, Features(paradigm, [phrase.Number, CaseFor(language, language.RoleMarkers[role])]));
+        return paradigm.Inflect(language.Lexicon.Noun(phrase.Noun), Features(paradigm, [phrase.Number, CaseFor(language, language.RoleMarkers[role])]));
     }
 
     //the case a noun takes for a role. Roles marked some other way still need a value for the
