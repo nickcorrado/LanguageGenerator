@@ -69,9 +69,11 @@ public class AdjectiveTests
         Assert.NotEmpty(agreeing);
         Assert.All(agreeing, l =>
         {
+            //besides any gender marker, which GenderTests checks
             var sentence = Sleep(l, BigOldDogs);
-            Assert.Equal(Affixes(WordOf(sentence, "dog")), Affixes(WordOf(sentence, "big")));
-            Assert.Equal(Affixes(WordOf(sentence, "dog")), Affixes(WordOf(sentence, "old")));
+            Word WithoutGender(Word w) => w with { Morphemes = [.. w.Morphemes.Where(m => m.Value is not Affix { Tagmemes: [Gender] })] };
+            Assert.Equal(Affixes(WordOf(sentence, "dog")), Affixes(WithoutGender(WordOf(sentence, "big"))));
+            Assert.Equal(Affixes(WordOf(sentence, "dog")), Affixes(WithoutGender(WordOf(sentence, "old"))));
         });
     }
 

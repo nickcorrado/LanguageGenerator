@@ -58,3 +58,9 @@ the old hunter saw the big gray wolves
 
 you are a good dog
   be  subject:2SG  noun:(dog good)
+
+the old queen slept in the big house
+  sleep.PST  subject:(queen old)
+
+the young king saw the old queen
+  see.PST.PFV  subject:(king young)  object:(queen old)

@@ -65,7 +65,8 @@ Console.WriteLine($"  {string.Join(", ", unusual)}");
 foreach (var lexeme in lang.Lexicon)
 {
     var form = phonology.Realize(new Word([lexeme.Root]));
-    Console.WriteLine($"{lexeme.Root.Meaning} ({lexeme.PartOfSpeech}): {form.Spell(orthography)} [{form.Syllabified(Orthography.Ipa)}]");
+    var nounGender = lexeme.PartOfSpeech == PartOfSpeech.Noun && lang.Genders.Of(lexeme) is { } g ? $", {g.Gloss}" : "";
+    Console.WriteLine($"{lexeme.Root.Meaning} ({lexeme.PartOfSpeech}{nounGender}): {form.Spell(orthography)} [{form.Syllabified(Orthography.Ipa)}]");
 }
 
 var order = lang.WordOrder;
@@ -98,6 +99,14 @@ var markers = negation.Markers.Select(m => m.Position switch
 Console.WriteLine($"Negation: {negation} ({string.Join(" ... ", markers)})");
 var predication = lang.Predication;
 var copula = phonology.Realize(new Word([predication.Copula.Root])).Spell(orthography);
+var genders = lang.Genders;
+if (genders.Genders != NounGenders.None)
+{
+    var markerSpellings = genders.Markers is null ? "no markers to agree with"
+        : string.Join(", ", genders.Values.Select(g => $"{g.Gloss} {(genders.Markers[g].Form.Count == 0 ? "∅" : ((Morpheme)genders.Markers[g]).Spell(orthography))}"));
+    var by = genders.Assignment == GenderAssignment.Semantic ? "by meaning" : "by meaning and form";
+    Console.WriteLine($"Genders: {string.Join("/", genders.Values.Select(g => g.Gloss))}, {by} ({markerSpellings}){(genders.VerbsAgree ? "; verbs agree" : "")}");
+}
 var adjectivePlace = lang.WordOrder.NounPhraseDirectionality == HeadDirectionality.Initial ? "after" : "before";
 Console.WriteLine(lang.AdjectiveAgreement switch
 {
@@ -139,6 +148,7 @@ NounPhrase Phrase(string noun, Number number) => new(noun, number);
     (new("sleep", Tense.Past, Aspect.Imperfective, new Pronoun(Person.First, Number.Plural)), "we were sleeping"),
     (new("see", Tense.Past, Aspect.Perfective, Phrase("dog", Number.Singular), Phrase("cat", Number.Singular), Negative: true), "the dog didn't see the cat"),
     (new("see", Tense.Past, Aspect.Perfective, new NounPhrase("dog", Number.Singular, [new("big")]), new NounPhrase("cat", Number.Plural, [new("small")])), "the big dog saw the small cats"),
+    (new("see", Tense.Past, Aspect.Perfective, new NounPhrase("woman", Number.Singular, [new("old")]), new NounPhrase("sun", Number.Singular, [new("big")])), "the old woman saw the big sun"),
 ];
 (CopularClause Clause, string Translation)[] copular =
 [

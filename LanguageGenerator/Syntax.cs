@@ -92,7 +92,20 @@ public static class Syntax
     {
         var (person, number) = subject.Agreement;
         var paradigm = language.Paradigms[PartOfSpeech.Verb];
-        var words = paradigm.Inflect(verb, Features(paradigm, [tense, aspect, person, number]));
+        var words = paradigm.Inflect(verb, Features(paradigm, [tense, aspect, person, number])).ToList();
+        //a verb that agrees in gender takes its noun subject's, or a pronoun's if the language has it
+        var genders = language.Genders;
+        Gender? gender = !genders.VerbsAgree ? null : subject.Value switch
+        {
+            NounPhrase n => genders.Of(language.Lexicon.Noun(n.Noun)),
+            Pronoun { Gender: { } g } when genders.Values.Contains(g) => g,
+            _ => null,
+        };
+        if (gender is not null)
+        {
+            var main = words.FindIndex(w => w.Morphemes.Any(m => m.Value is Root));
+            words[main] = genders.Agree(words[main], gender, nextToRoot: false);
+        }
         return negative ? language.Negation.Apply(words) : words;
     }
 
@@ -117,7 +130,8 @@ public static class Syntax
     //The noun's particles stay outside the whole phrase
     private static IReadOnlyList<Word> Modified(Language language, NounPhrase phrase, IReadOnlyList<Tagmeme> features)
     {
-        var noun = language.Paradigms[PartOfSpeech.Noun].Inflect(language.Lexicon.Noun(phrase.Noun), features);
+        var nounLexeme = language.Lexicon.Noun(phrase.Noun);
+        var noun = language.Paradigms[PartOfSpeech.Noun].Inflect(nounLexeme, features);
         if (phrase.Adjectives.Count == 0)
         {
             return noun;
@@ -137,7 +151,9 @@ public static class Syntax
             //belongs to the phrase, and is said once. Its zero markers go unglossed, since the noun's
             //gloss already shows them
             var inflected = language.Paradigms[PartOfSpeech.Noun].Inflect(lexeme with { PartOfSpeech = PartOfSpeech.Noun }, features);
-            return inflected.First(w => w.Morphemes.Any(m => m.Value is Root)) with { Covert = null };
+            var word = inflected.First(w => w.Morphemes.Any(m => m.Value is Root)) with { Covert = null };
+            //and agrees in the noun's gender too
+            return language.Genders.Of(nounLexeme) is { } gender ? language.Genders.Agree(word, gender, nextToRoot: true) : word;
         }).ToList();
 
         var headFirst = language.WordOrder.NounPhraseDirectionality == HeadDirectionality.Initial;
