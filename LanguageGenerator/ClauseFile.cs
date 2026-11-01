@@ -8,16 +8,18 @@ namespace LanguageGenerator;
 //  # a comment
 //  the dog didn't see the cat
 //    see.PST.PFV.NEG  subject:dog  object:cat
+//  the gate is locked
+//    be  subject:gate  adjective:locked
 //
 //The indented line is the verb, then its arguments in any order as role:noun, each word an English
 //meaning with Leipzig glosses joined by periods, as in a gloss line. A pronoun is its person and
-//number instead, as in subject:1SG, object:1PL.INCL or subject:3SG.F. Anything not given takes its
+//number instead, as in subject:1SG, object:1PL.INCL or subject:3SG.F. The verb be says what its
+//subject is, with noun:fool or adjective:locked in place of an object. Anything not given takes its
 //unmarked value: present, imperfective, singular, exclusive for 'we' and masculine for a gendered
-//pronoun. Whatever the generator can't express
-//yet is an error, never dropped
+//pronoun. Whatever the generator can't express yet is an error, never dropped
 public static class ClauseFile
 {
-    public record Entry(string Translation, Clause Clause, int Line);
+    public record Entry(string Translation, Statement Statement, int Line);
 
     public static IReadOnlyList<Entry> Parse(string text)
     {
@@ -58,11 +60,12 @@ public static class ClauseFile
         return entries;
     }
 
-    //the roles a clause can have now, and the rest of CaseUse's roles, which it can't yet
-    private static readonly string[] Roles = ["subject", "object"];
+    //the roles a clause can have now, and the rest of CaseUse's roles, which it can't yet. A noun or
+    //adjective is what be says its subject is
+    private static readonly string[] Roles = ["subject", "object", "noun", "adjective"];
     private static readonly string[] FutureRoles = ["recipient", "possessor", "location", "goal", "source", "companion", "instrument", "addressee"];
 
-    private static Clause ParseClause(string line, int number)
+    private static Statement ParseClause(string line, int number)
     {
         var tokens = line.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
         if (tokens[0].Contains(':'))
@@ -97,6 +100,7 @@ public static class ClauseFile
         }
 
         var arguments = new Dictionary<string, Argument>();
+        Complement? complement = null;
         foreach (var token in tokens.Skip(1))
         {
             var colon = token.IndexOf(':');
@@ -107,25 +111,66 @@ public static class ClauseFile
             var role = token[..colon];
             if (FutureRoles.Contains(role))
             {
-                throw new ClauseFormatException($"Clauses can't have a {role} yet, only {string.Join(" and ", Roles)}.", number);
+                throw new ClauseFormatException($"Clauses can't have a {role} yet, only {string.Join(", ", Roles)}.", number);
             }
             if (!Roles.Contains(role))
             {
-                throw new ClauseFormatException($"'{role}' isn't a role. The roles are {string.Join(" and ", Roles)}.", number);
+                throw new ClauseFormatException($"'{role}' isn't a role. The roles are {string.Join(", ", Roles)}.", number);
             }
-            if (arguments.ContainsKey(role))
+            if (arguments.ContainsKey(role) || role is "noun" or "adjective" && complement.HasValue)
             {
-                throw new ClauseFormatException($"The clause has more than one {role}.", number);
+                throw new ClauseFormatException(role is "noun" or "adjective" ? "The clause has more than one noun or adjective." : $"The clause has more than one {role}.", number);
             }
-            arguments[role] = ParseArgument(token[(colon + 1)..], number);
+            var value = token[(colon + 1)..];
+            switch (role)
+            {
+                case "noun":
+                    complement = ParseArgument(value, number).Value as NounPhrase
+                        ?? throw new ClauseFormatException($"be can't say its subject is {value} yet: the noun has to be a noun, not a pronoun.", number);
+                    break;
+                case "adjective":
+                    complement = ParseAdjective(value, number);
+                    break;
+                default:
+                    arguments[role] = ParseArgument(value, number);
+                    break;
+            }
         }
 
         if (!arguments.TryGetValue("subject", out var subject))
         {
             throw new ClauseFormatException("The clause needs a subject, as in subject:dog.", number);
         }
+        var negative = polarity == Polarity.Negative;
+        if (verb == "be")
+        {
+            if (arguments.ContainsKey("object"))
+            {
+                throw new ClauseFormatException("be has no object. Say what its subject is with noun: or adjective:, as in noun:fool.", number);
+            }
+            if (!complement.HasValue)
+            {
+                throw new ClauseFormatException("be needs a noun or adjective saying what its subject is, as in noun:fool or adjective:big.", number);
+            }
+            return new CopularClause(complement.GetValueOrDefault(), tense ?? Tense.Present, aspect ?? Aspect.Imperfective, subject, negative);
+        }
+        if (complement.HasValue)
+        {
+            throw new ClauseFormatException($"Only be takes a noun: or adjective:. '{verb}' takes an object:.", number);
+        }
         return new Clause(verb, tense ?? Tense.Present, aspect ?? Aspect.Imperfective, subject, arguments.TryGetValue("object", out var @object) ? @object : (Argument?)null,
-            Negative: polarity == Polarity.Negative);
+            Negative: negative);
+    }
+
+    //an adjective, which has no features of its own yet
+    private static Adjective ParseAdjective(string token, int number)
+    {
+        var (meaning, features) = ParseWord(token, number);
+        if (features.Count > 0)
+        {
+            throw new ClauseFormatException($"'{meaning}' can't take {features[0].Gloss}: adjectives have no features yet.", number);
+        }
+        return new Adjective(meaning);
     }
 
     private static Argument ParseArgument(string token, int number)

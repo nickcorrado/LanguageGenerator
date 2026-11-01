@@ -19,6 +19,7 @@ public class Language
     public required Dictionary<CaseUse, RoleMarker> RoleMarkers { get; init; }
     public required PronounSystem Pronouns { get; init; }
     public required Negation Negation { get; init; }
+    public required Predication Predication { get; init; }
 
     //the classic three-way label, for display only, read off what the paradigms actually do:
     //analytic if markers stand alone, fusional if any marker expresses more than one category

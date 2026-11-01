@@ -17,27 +17,78 @@ public union Argument(NounPhrase, Pronoun)
 }
 public record Clause(string Verb, Tense Tense, Aspect Aspect, Argument Subject, Argument? Object = null, bool Negative = false);
 
+//a property, like "big", said of something
+public record Adjective(string Meaning);
+//what a copular clause says its subject is: a noun phrase, as in 'you are a fool', or an adjective,
+//as in 'the gate is locked'
+public union Complement(NounPhrase, Adjective);
+public record CopularClause(Complement Complement, Tense Tense, Aspect Aspect, Argument Subject, bool Negative = false);
+
+//anything a sentence can say
+public union Statement(Clause, CopularClause);
+
 public static class Syntax
 {
+    public static Sentence Realize(Language language, Statement statement, string translation) => statement switch
+    {
+        Clause c => Realize(language, c, translation),
+        CopularClause c => Realize(language, c, translation),
+    };
+
     public static Sentence Realize(Language language, Clause clause, string translation)
     {
         var subjectRole = clause.Object is null ? CaseUse.IntransitiveSubject : CaseUse.TransitiveSubject;
-        //a language that drops subject pronouns leaves the verb's agreement, if any, to say who
-        var subject = clause.Subject.Value is Pronoun && language.Pronouns.DropsSubjects ? [] : Inflect(language, clause.Subject, subjectRole);
+        var subject = Subject(language, clause.Subject, subjectRole);
         var @object = clause.Object.HasValue ? Inflect(language, clause.Object.GetValueOrDefault(), CaseUse.DirectObject) : null;
-        //the verb agrees with its subject. TODO many ergative languages agree with the absolutive instead
-        var (person, number) = clause.Subject.Agreement;
-        var verb = language.Paradigms[PartOfSpeech.Verb].Inflect(language.Lexicon.Verb(clause.Verb),
-            Features(language.Paradigms[PartOfSpeech.Verb], [clause.Tense, clause.Aspect, person, number]));
-        if (clause.Negative)
+        var verb = Verb(language, language.Lexicon.Verb(clause.Verb), clause.Tense, clause.Aspect, clause.Subject, clause.Negative);
+        return Sentence(language, Order(language.WordOrder.ConstituentWordOrder, subject, verb, @object), translation);
+    }
+
+    //a copular clause's complement goes where an object would, so it precedes the copula in an OV
+    //language, as in Turkish and Japanese, and follows it in a VO one. Where adjectives are verbal,
+    //the adjective takes the verb's place instead, with no copula
+    public static Sentence Realize(Language language, CopularClause clause, string translation)
+    {
+        var predication = language.Predication;
+        var subject = Subject(language, clause.Subject, CaseUse.IntransitiveSubject);
+        if (clause.Complement.Value is Adjective verbal && predication.Adjectives == PredicativeAdjectives.Verbal)
         {
-            verb = language.Negation.Apply(verb);
+            //a property word inflects as a verb in a language whose adjectives are verbs
+            var adjective = language.Lexicon.Adjective(verbal.Meaning) with { PartOfSpeech = PartOfSpeech.Verb };
+            var predicate = Verb(language, adjective, clause.Tense, clause.Aspect, clause.Subject, clause.Negative);
+            return Sentence(language, Order(language.WordOrder.ConstituentWordOrder, subject, predicate, null), translation);
         }
 
-        //each constituent keeps its own particles with it
-        var words = Order(language.WordOrder.ConstituentWordOrder, subject, verb, @object).SelectMany(c => c);
-        return new Sentence([.. words.Select(language.Phonology.Realize)], translation, language.Orthography);
+        //a predicate noun takes the same case as an intransitive subject, and an adjective, which
+        //doesn't inflect yet, is just its root
+        IReadOnlyList<Word> complement = clause.Complement.Value switch
+        {
+            NounPhrase noun => Inflect(language, noun, CaseUse.IntransitiveSubject),
+            Adjective adjective => [new Word([language.Lexicon.Adjective(adjective.Meaning).Root])],
+            _ => throw new ArgumentException("A copular clause needs a complement.", nameof(clause)),
+        };
+        var copula = predication.Drops(clause.Tense, clause.Negative)
+            ? []
+            : Verb(language, predication.Copula, clause.Tense, clause.Aspect, clause.Subject, clause.Negative);
+        return Sentence(language, Order(language.WordOrder.ConstituentWordOrder, subject, copula, complement), translation);
     }
+
+    //a language that drops subject pronouns leaves the verb's agreement, if any, to say who
+    private static IReadOnlyList<Word> Subject(Language language, Argument subject, CaseUse role) =>
+        subject.Value is Pronoun && language.Pronouns.DropsSubjects ? [] : Inflect(language, subject, role);
+
+    //the verb agrees with its subject. TODO many ergative languages agree with the absolutive instead
+    private static IReadOnlyList<Word> Verb(Language language, Lexeme verb, Tense tense, Aspect aspect, Argument subject, bool negative)
+    {
+        var (person, number) = subject.Agreement;
+        var paradigm = language.Paradigms[PartOfSpeech.Verb];
+        var words = paradigm.Inflect(verb, Features(paradigm, [tense, aspect, person, number]));
+        return negative ? language.Negation.Apply(words) : words;
+    }
+
+    //each constituent keeps its own particles with it
+    private static Sentence Sentence(Language language, IEnumerable<IReadOnlyList<Word>> constituents, string translation) =>
+        new([.. constituents.SelectMany(c => c).Select(language.Phonology.Realize)], translation, language.Orthography);
 
     private static IReadOnlyList<Word> Inflect(Language language, Argument argument, CaseUse role)
     {

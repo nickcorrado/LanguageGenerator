@@ -47,7 +47,7 @@ if (translating)
     foreach (var entry in script)
     {
         Console.WriteLine();
-        Console.WriteLine(Syntax.Realize(lang, entry.Clause, entry.Translation).Interlinear());
+        Console.WriteLine(Syntax.Realize(lang, entry.Statement, entry.Translation).Interlinear());
     }
     return 0;
 }
@@ -96,6 +96,9 @@ var markers = negation.Markers.Select(m => m.Position switch
     _ => m.Marker.Spell(orthography),
 });
 Console.WriteLine($"Negation: {negation} ({string.Join(" ... ", markers)})");
+var predication = lang.Predication;
+var copula = phonology.Realize(new Word([predication.Copula.Root])).Spell(orthography);
+Console.WriteLine($"Copula: {copula}{(predication.ZeroCopula ? ", dropped in the present" : "")}; adjectives {(predication.Adjectives == PredicativeAdjectives.Verbal ? "are verbs" : "take the copula")}");
 
 //each paradigm, shown on the first lexeme that uses it, and the pronouns' on 1SG. Spelled surface
 //forms come first, with the underlying form after them in IPA wherever sandhi or cluster repair
@@ -129,7 +132,12 @@ NounPhrase Phrase(string noun, Number number) => new(noun, number);
     (new("sleep", Tense.Past, Aspect.Imperfective, new Pronoun(Person.First, Number.Plural)), "we were sleeping"),
     (new("see", Tense.Past, Aspect.Perfective, Phrase("dog", Number.Singular), Phrase("cat", Number.Singular), Negative: true), "the dog didn't see the cat"),
 ];
-foreach (var (clause, translation) in examples)
+(CopularClause Clause, string Translation)[] copular =
+[
+    (new(new Adjective("big"), Tense.Present, Aspect.Imperfective, Phrase("dog", Number.Singular)), "the dog is big"),
+    (new(Phrase("bird", Number.Singular), Tense.Present, Aspect.Imperfective, new Pronoun(Person.Second, Number.Singular)), "you are a bird"),
+];
+foreach (var (clause, translation) in examples.Select(e => ((Statement)e.Clause, e.Translation)).Concat(copular.Select(e => ((Statement)e.Clause, e.Translation))))
 {
     Console.WriteLine();
     Console.WriteLine(Syntax.Realize(lang, clause, translation).Interlinear());

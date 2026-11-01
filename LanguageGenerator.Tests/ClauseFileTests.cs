@@ -4,6 +4,9 @@ public class ClauseFileTests
 {
     private static ClauseFile.Entry Single(string text) => Assert.Single(ClauseFile.Parse(text));
 
+    //the clause an entry says, which most of these tests expect to be a verb's
+    private static Clause Verbal(ClauseFile.Entry entry) => Assert.IsType<Clause>(entry.Statement.Value);
+
     private static ClauseFormatException Error(string text) => Assert.Throws<ClauseFormatException>(() => ClauseFile.Parse(text));
 
     [Fact]
@@ -12,15 +15,36 @@ public class ClauseFileTests
         var entry = Single("the dog saw the cats\n  see.PST.PFV  subject:dog  object:cat.PL\n");
 
         Assert.Equal("the dog saw the cats", entry.Translation);
-        Assert.Equal(new Clause("see", Tense.Past, Aspect.Perfective, new NounPhrase("dog", Number.Singular), new NounPhrase("cat", Number.Plural)), entry.Clause);
+        Assert.Equal(new Clause("see", Tense.Past, Aspect.Perfective, new NounPhrase("dog", Number.Singular), new NounPhrase("cat", Number.Plural)), Verbal(entry));
         Assert.Equal(2, entry.Line);
     }
 
     [Fact]
     public void Parse_NegativeVerb_NegatesTheClause()
     {
-        Assert.True(Single("the dog didn't sleep\n  sleep.PST.NEG subject:dog").Clause.Negative);
-        Assert.False(Single("the dog slept\n  sleep.PST subject:dog").Clause.Negative);
+        Assert.True(Verbal(Single("the dog didn't sleep\n  sleep.PST.NEG subject:dog")).Negative);
+        Assert.False(Verbal(Single("the dog slept\n  sleep.PST subject:dog")).Negative);
+    }
+
+    [Fact]
+    public void Parse_Be_IsACopularClause()
+    {
+        Assert.Equal(new CopularClause(new Adjective("locked"), Tense.Past, Aspect.Imperfective, new NounPhrase("gate", Number.Singular)),
+            Single("the gate was locked\n  be.PST subject:gate adjective:locked").Statement.Value);
+        Assert.Equal(new CopularClause(new NounPhrase("fool", Number.Plural), Tense.Present, Aspect.Imperfective, new Pronoun(Person.Second, Number.Plural), Negative: true),
+            Single("you aren't fools\n  be.NEG subject:2PL noun:fool.PL").Statement.Value);
+    }
+
+    [Theory]
+    [InlineData("x\n  be subject:dog", "be needs a noun or adjective")]
+    [InlineData("x\n  be subject:dog object:cat", "be has no object")]
+    [InlineData("x\n  be subject:dog noun:cat adjective:big", "more than one noun or adjective")]
+    [InlineData("x\n  be subject:dog noun:1SG", "has to be a noun, not a pronoun")]
+    [InlineData("x\n  be subject:dog adjective:big.PL", "adjectives have no features yet")]
+    [InlineData("x\n  sleep subject:dog adjective:big", "Only be takes a noun: or adjective:")]
+    public void Parse_CopulaMistakes_SayWhat(string text, string message)
+    {
+        Assert.Contains(message, Error(text).Message);
     }
 
     [Fact]
@@ -28,13 +52,13 @@ public class ClauseFileTests
     {
         var entry = Single("the bird sleeps\n  sleep subject:bird");
 
-        Assert.Equal(new Clause("sleep", Tense.Present, Aspect.Imperfective, new NounPhrase("bird", Number.Singular)), entry.Clause);
+        Assert.Equal(new Clause("sleep", Tense.Present, Aspect.Imperfective, new NounPhrase("bird", Number.Singular)), Verbal(entry));
     }
 
     [Fact]
     public void Parse_RolesInAnyOrder_MeanTheSame()
     {
-        Assert.Equal(Single("x\n  see subject:dog object:cat").Clause, Single("x\n  see object:cat subject:dog").Clause);
+        Assert.Equal(Verbal(Single("x\n  see subject:dog object:cat")), Verbal(Single("x\n  see object:cat subject:dog")));
     }
 
     [Fact]
@@ -42,7 +66,7 @@ public class ClauseFileTests
     {
         var entries = ClauseFile.Parse("# a scene\r\n\r\nthe dog sleeps\r\n  # not this\r\n  sleep subject:dog\r\n\r\nthe cat sleeps\r\n\tsleep subject:cat\r\n");
 
-        Assert.Equal(["dog", "cat"], entries.Select(e => e.Clause.Subject.Value is NounPhrase n ? n.Noun : null));
+        Assert.Equal(["dog", "cat"], entries.Select(e => Verbal(e).Subject.Value is NounPhrase n ? n.Noun : null));
     }
 
     [Theory]
@@ -77,8 +101,8 @@ public class ClauseFileTests
     {
         var entry = Single("we see you\n  see subject:1PL.INCL object:2SG");
 
-        Assert.Equal(new Pronoun(Person.First, Number.Plural, Clusivity.Inclusive), entry.Clause.Subject.Value);
-        Assert.Equal(new Pronoun(Person.Second, Number.Singular), entry.Clause.Object!.Value.Value);
+        Assert.Equal(new Pronoun(Person.First, Number.Plural, Clusivity.Inclusive), Verbal(entry).Subject.Value);
+        Assert.Equal(new Pronoun(Person.Second, Number.Singular), Verbal(entry).Object!.Value.Value);
     }
 
     [Theory]
@@ -97,7 +121,7 @@ public class ClauseFileTests
     [Fact]
     public void Parse_GenderedPronoun_KeepsItsGender()
     {
-        Assert.Equal(new Pronoun(Person.Third, Number.Singular, Gender: Gender.Feminine), Single("she sleeps\n  sleep subject:3SG.F").Clause.Subject.Value);
+        Assert.Equal(new Pronoun(Person.Third, Number.Singular, Gender: Gender.Feminine), Verbal(Single("she sleeps\n  sleep subject:3SG.F")).Subject.Value);
     }
 
     [Theory]
@@ -121,7 +145,7 @@ public class ClauseFileTests
 
         Assert.All(values, value =>
         {
-            var clause = Single(value is Number ? $"x\n  sleep subject:dog.{value.Gloss}" : $"x\n  sleep.{value.Gloss} subject:dog").Clause;
+            var clause = Verbal(Single(value is Number ? $"x\n  sleep subject:dog.{value.Gloss}" : $"x\n  sleep.{value.Gloss} subject:dog"));
             Assert.Contains(value, (Tagmeme[])[clause.Tense, clause.Aspect, clause.Subject.Agreement.Number]);
         });
     }
@@ -136,7 +160,7 @@ public class ClauseFileTests
         foreach (var seed in Enumerable.Range(0, 20))
         {
             var language = Generator.Generate(new Random(seed));
-            Assert.All(entries, e => Assert.NotEmpty(Syntax.Realize(language, e.Clause, e.Translation).Text));
+            Assert.All(entries, e => Assert.NotEmpty(Syntax.Realize(language, e.Statement, e.Translation).Text));
         }
     }
 }

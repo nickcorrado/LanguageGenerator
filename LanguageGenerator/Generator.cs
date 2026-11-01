@@ -39,6 +39,7 @@ public static class Generator
         //last, so that adding these left everything before them as it was for each seed
         var pronouns = GeneratePronouns(rand, paradigms, morphology, wordOrder, phonology, syllableDropoff);
         var negation = GenerateNegation(rand, morphology, phonology, syllableDropoff);
+        var predication = GeneratePredication(rand, phonology, syllableDropoff);
 
         return new Language
         {
@@ -54,8 +55,19 @@ public static class Generator
             RoleMarkers = roleMarkers,
             Pronouns = pronouns,
             Negation = negation,
+            Predication = predication,
         };
     }
+
+    //WALS 118A and 120A, drawn independently. The copula is one syllable, as frequent words are
+    private static readonly (PredicativeAdjectives Value, int Languages)[] PredicativeAdjectiveCounts =
+        [(PredicativeAdjectives.Verbal, 151), (PredicativeAdjectives.Nonverbal, 132)];
+    private static readonly (bool Value, int Languages)[] ZeroCopulaCounts = [(false, 211), (true, 175)];
+
+    public static Predication GeneratePredication(Random rand, Phonology phonology, double dropoff) => new(
+        Sampling.Categorical(rand, PredicativeAdjectiveCounts),
+        Sampling.Categorical(rand, ZeroCopulaCounts),
+        new Lexeme(new Root(GenerateForm(rand, phonology.SyllableRule, dropoff, 0, maxSyllables: 1), "COP"), PartOfSpeech.Verb));
 
     //WALS 143A, leaving out its 87 languages where a second negative is optional and its 64 that use
     //two of these types in different constructions. A negative auxiliary verb counts as a word here
@@ -234,6 +246,7 @@ public static class Generator
     //basic meanings to fill the lexicon with, glossed the way the Leipzig rules gloss roots
     private static readonly string[] NounMeanings = ["person", "dog", "cat", "fish", "bird", "tree", "stone", "water", "fire", "sun", "house"];
     private static readonly string[] VerbMeanings = ["see", "eat", "drink", "sleep", "walk", "give", "know", "hear"];
+    private static readonly string[] AdjectiveMeanings = ["big", "small", "good", "old"];
 
     //each rule is independent of the others, and they apply in this order
     public static List<SandhiRule> SelectSandhiRules(Random rand)
@@ -302,6 +315,10 @@ public static class Generator
         foreach (var meaning in VerbMeanings)
         {
             lexicon.Verb(meaning);
+        }
+        foreach (var meaning in AdjectiveMeanings)
+        {
+            lexicon.Adjective(meaning);
         }
         return lexicon;
     }

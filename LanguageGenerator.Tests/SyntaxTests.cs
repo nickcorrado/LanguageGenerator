@@ -3,13 +3,13 @@
 public class SyntaxTests
 {
     private static Sentence DogSawCat(Language l) =>
-        Syntax.Realize(l, new("see", Tense.Past, Aspect.Perfective, new NounPhrase("dog", Number.Singular), new NounPhrase("cat", Number.Singular)), "the dog saw the cat");
+        Syntax.Realize(l, new Clause("see", Tense.Past, Aspect.Perfective, new NounPhrase("dog", Number.Singular), new NounPhrase("cat", Number.Singular)), "the dog saw the cat");
 
     private static Sentence BirdsSleep(Language l) =>
-        Syntax.Realize(l, new("sleep", Tense.Present, Aspect.Imperfective, new NounPhrase("bird", Number.Plural)), "the birds are sleeping");
+        Syntax.Realize(l, new Clause("sleep", Tense.Present, Aspect.Imperfective, new NounPhrase("bird", Number.Plural)), "the birds are sleeping");
 
     private static Sentence PersonSeesDogs(Language l) =>
-        Syntax.Realize(l, new("see", Tense.Present, Aspect.Imperfective, new NounPhrase("person", Number.Singular), new NounPhrase("dog", Number.Plural)), "the person sees the dogs");
+        Syntax.Realize(l, new Clause("see", Tense.Present, Aspect.Imperfective, new NounPhrase("person", Number.Singular), new NounPhrase("dog", Number.Plural)), "the person sees the dogs");
 
     //every gloss label in the sentence, including covert ones in brackets
     private static HashSet<string> Glosses(Sentence sentence) => [.. sentence.Words.SelectMany(w => w.Gloss.Split('-', '.', '[', ']'))];
@@ -102,7 +102,7 @@ public class SyntaxTests
     {
         var language = GeneratedLanguages.Sample.First(l => l.Paradigms[PartOfSpeech.Verb].Categories.Any(c => c.Name == "Tense" && c.Values.Count == 2));
 
-        var sentence = Syntax.Realize(language, new("eat", Tense.Future, Aspect.Perfective, new NounPhrase("dog", Number.Singular)), "the dog will eat");
+        var sentence = Syntax.Realize(language, new Clause("eat", Tense.Future, Aspect.Perfective, new NounPhrase("dog", Number.Singular)), "the dog will eat");
 
         Assert.Contains("PRS", Glosses(sentence));
     }
@@ -114,7 +114,7 @@ public class SyntaxTests
     {
         var language = GeneratedLanguages.Sample.First(l => l.Paradigms[PartOfSpeech.Noun].Categories.Any(c => c.Name == "Number" && c.Values.Count == numbers));
 
-        var sentence = Syntax.Realize(language, new("sleep", Tense.Present, Aspect.Imperfective, new NounPhrase("bird", Number.Dual)), "the two birds are sleeping");
+        var sentence = Syntax.Realize(language, new Clause("sleep", Tense.Present, Aspect.Imperfective, new NounPhrase("bird", Number.Dual)), "the two birds are sleeping");
 
         Assert.Contains(expected, Glosses(sentence));
         Assert.DoesNotContain("SG", Glosses(sentence));

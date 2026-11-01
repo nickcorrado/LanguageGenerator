@@ -1,6 +1,7 @@
 ﻿# A short scene, to translate with:
 #   dotnet run --project LanguageGenerator -- translate examples/scene.txt 11
 # Each clause is the English, then an indented line of what it means: the verb, then role:noun.
+# The verb be says what its subject is, with noun:fool or adjective:big in place of an object.
 # Words are English meanings with Leipzig glosses after them (PST, PFV, PL, DU, FUT, and NEG on a
 # verb to negate the clause), and pronouns are a person and number (1SG, 3PL, 1PL.INCL, 3SG.F).
 # Anything left out is present, imperfective and singular, 'we' is exclusive, and a gendered
@@ -41,3 +42,12 @@ but he didn't see her
 
 I don't know
   know.NEG  subject:1SG
+
+the wolves are big
+  be  subject:wolf.PL  adjective:big
+
+you are a fool
+  be  subject:2SG  noun:fool
+
+the hunter was not a fool
+  be.PST.NEG  subject:hunter  noun:fool

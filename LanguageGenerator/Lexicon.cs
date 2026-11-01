@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 
 namespace LanguageGenerator;
 
@@ -41,6 +41,7 @@ public class Lexicon : IEnumerable<Lexeme>
 
     public Lexeme Noun(string meaning) => this[meaning, PartOfSpeech.Noun];
     public Lexeme Verb(string meaning) => this[meaning, PartOfSpeech.Verb];
+    public Lexeme Adjective(string meaning) => this[meaning, PartOfSpeech.Adjective];
 
     public IEnumerator<Lexeme> GetEnumerator()
     {
