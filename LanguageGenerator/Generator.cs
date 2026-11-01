@@ -40,6 +40,7 @@ public static class Generator
         var pronouns = GeneratePronouns(rand, paradigms, morphology, wordOrder, phonology, syllableDropoff);
         var negation = GenerateNegation(rand, morphology, phonology, syllableDropoff);
         var predication = GeneratePredication(rand, phonology, syllableDropoff);
+        var adjectiveAgreement = SelectAdjectiveAgreement(rand, predication);
 
         return new Language
         {
@@ -56,8 +57,19 @@ public static class Generator
             Pronouns = pronouns,
             Negation = negation,
             Predication = predication,
+            AdjectiveAgreement = adjectiveAgreement,
         };
     }
+
+    //guesses, with no WALS chapter to go on. Languages whose adjectives are verbs, like Mandarin,
+    //Japanese and Korean, don't make them agree with nouns the way Latin or Russian do
+    private static readonly (AdjectiveAgreement Value, int Weight)[] AdjectiveAgreementWeights =
+        [(AdjectiveAgreement.None, 40), (AdjectiveAgreement.Agreement, 40), (AdjectiveAgreement.Phrasal, 20)];
+    private static readonly (AdjectiveAgreement Value, int Weight)[] VerbalAdjectiveAgreementWeights =
+        [(AdjectiveAgreement.None, 65), (AdjectiveAgreement.Phrasal, 35)];
+
+    public static AdjectiveAgreement SelectAdjectiveAgreement(Random rand, Predication predication) =>
+        Sampling.Categorical(rand, predication.Adjectives == PredicativeAdjectives.Verbal ? VerbalAdjectiveAgreementWeights : AdjectiveAgreementWeights);
 
     //WALS 118A and 120A, drawn independently. The copula is one syllable, as frequent words are
     private static readonly (PredicativeAdjectives Value, int Languages)[] PredicativeAdjectiveCounts =

@@ -13,7 +13,8 @@ namespace LanguageGenerator;
 //
 //The indented line is the verb, then its arguments in any order as role:noun, each word an English
 //meaning with Leipzig glosses joined by periods, as in a gloss line. A pronoun is its person and
-//number instead, as in subject:1SG, object:1PL.INCL or subject:3SG.F. The verb be says what its
+//number instead, as in subject:1SG, object:1PL.INCL or subject:3SG.F, and a noun with adjectives
+//is in parentheses, noun first, as in object:(dog.PL big old). The verb be says what its
 //subject is, with noun:fool or adjective:locked in place of an object. Anything not given takes its
 //unmarked value: present, imperfective, singular, exclusive for 'we' and masculine for a gendered
 //pronoun. Whatever the generator can't express yet is an error, never dropped
@@ -67,7 +68,7 @@ public static class ClauseFile
 
     private static Statement ParseClause(string line, int number)
     {
-        var tokens = line.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
+        var tokens = Tokenize(line, number);
         if (tokens[0].Contains(':'))
         {
             throw new ClauseFormatException($"A clause starts with its verb, not with '{tokens[0]}'.", number);
@@ -162,6 +163,30 @@ public static class ClauseFile
             Negative: negative);
     }
 
+    //a noun and its adjectives, in parentheses, as in (dog.PL big old)
+    private static NounPhrase ParseModifiedNounPhrase(string token, int number)
+    {
+        if (!token.EndsWith(')'))
+        {
+            throw new ClauseFormatException($"'{token}' has to end at its ), as in (dog big).", number);
+        }
+        var words = token[1..^1].Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
+        if (words.Length == 0)
+        {
+            throw new ClauseFormatException("A noun phrase in parentheses needs a noun.", number);
+        }
+        if (ParsePronoun(words[0], number) is not null)
+        {
+            throw new ClauseFormatException($"{words[0]} can't take adjectives: pronouns don't, here.", number);
+        }
+        foreach (var word in words.Skip(1).Where(w => w.Contains(':')))
+        {
+            throw new ClauseFormatException($"Noun phrases can't have a {word[..word.IndexOf(':')]} yet, only adjectives.", number);
+        }
+        var noun = (NounPhrase)ParseArgument(words[0], number).Value!;
+        return noun with { Modifiers = [.. words.Skip(1).Select(w => ParseAdjective(w, number))] };
+    }
+
     //an adjective, which has no features of its own yet
     private static Adjective ParseAdjective(string token, int number)
     {
@@ -173,8 +198,51 @@ public static class ClauseFile
         return new Adjective(meaning);
     }
 
+    //the words of a clause, split on spaces outside parentheses, so that object:(dog big) is one
+    private static List<string> Tokenize(string line, int number)
+    {
+        var tokens = new List<string>();
+        var token = new System.Text.StringBuilder();
+        var depth = 0;
+        foreach (var c in line)
+        {
+            if (char.IsWhiteSpace(c) && depth == 0)
+            {
+                if (token.Length > 0)
+                {
+                    tokens.Add(token.ToString());
+                    token.Clear();
+                }
+                continue;
+            }
+            depth += c switch { '(' => 1, ')' => -1, _ => 0 };
+            if (depth < 0)
+            {
+                throw new ClauseFormatException("There's a ) without a ( before it.", number);
+            }
+            if (depth > 1)
+            {
+                throw new ClauseFormatException("Noun phrases can't be nested yet.", number);
+            }
+            token.Append(c);
+        }
+        if (depth > 0)
+        {
+            throw new ClauseFormatException("There's a ( that isn't closed.", number);
+        }
+        if (token.Length > 0)
+        {
+            tokens.Add(token.ToString());
+        }
+        return tokens;
+    }
+
     private static Argument ParseArgument(string token, int number)
     {
+        if (token.StartsWith('('))
+        {
+            return ParseModifiedNounPhrase(token, number);
+        }
         if (ParsePronoun(token, number) is { } pronoun)
         {
             return pronoun;

@@ -98,6 +98,13 @@ var markers = negation.Markers.Select(m => m.Position switch
 Console.WriteLine($"Negation: {negation} ({string.Join(" ... ", markers)})");
 var predication = lang.Predication;
 var copula = phonology.Realize(new Word([predication.Copula.Root])).Spell(orthography);
+var adjectivePlace = lang.WordOrder.NounPhraseDirectionality == HeadDirectionality.Initial ? "after" : "before";
+Console.WriteLine(lang.AdjectiveAgreement switch
+{
+    AdjectiveAgreement.Agreement => $"Adjectives go {adjectivePlace} the noun and agree with it",
+    AdjectiveAgreement.Phrasal => $"Adjectives go {adjectivePlace} the noun, and the phrase is marked at its edges",
+    _ => $"Adjectives go {adjectivePlace} the noun, uninflected",
+});
 Console.WriteLine($"Copula: {copula}{(predication.ZeroCopula ? ", dropped in the present" : "")}; adjectives {(predication.Adjectives == PredicativeAdjectives.Verbal ? "are verbs" : "take the copula")}");
 
 //each paradigm, shown on the first lexeme that uses it, and the pronouns' on 1SG. Spelled surface
@@ -131,6 +138,7 @@ NounPhrase Phrase(string noun, Number number) => new(noun, number);
     (new("see", Tense.Present, Aspect.Imperfective, new Pronoun(Person.First, Number.Singular), new Pronoun(Person.Second, Number.Singular)), "I see you"),
     (new("sleep", Tense.Past, Aspect.Imperfective, new Pronoun(Person.First, Number.Plural)), "we were sleeping"),
     (new("see", Tense.Past, Aspect.Perfective, Phrase("dog", Number.Singular), Phrase("cat", Number.Singular), Negative: true), "the dog didn't see the cat"),
+    (new("see", Tense.Past, Aspect.Perfective, new NounPhrase("dog", Number.Singular, [new("big")]), new NounPhrase("cat", Number.Plural, [new("small")])), "the big dog saw the small cats"),
 ];
 (CopularClause Clause, string Translation)[] copular =
 [

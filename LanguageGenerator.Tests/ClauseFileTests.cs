@@ -48,6 +48,29 @@ public class ClauseFileTests
     }
 
     [Fact]
+    public void Parse_NounWithAdjectives_KeepsThemInOrder()
+    {
+        var clause = Verbal(Single("the big old dogs saw the cat\n  see.PST  subject:(dog.PL big old)  object:(cat)"));
+
+        Assert.Equal(new NounPhrase("dog", Number.Plural, [new("big"), new("old")]), clause.Subject.Value);
+        Assert.Equal(new NounPhrase("cat", Number.Singular), clause.Object!.Value.Value);
+    }
+
+    [Theory]
+    [InlineData("x\n  sleep subject:(dog big", "isn't closed")]
+    [InlineData("x\n  sleep subject:dog big)", "without a ( before it")]
+    [InlineData("x\n  sleep subject:(dog (big))", "can't be nested")]
+    [InlineData("x\n  sleep subject:()", "needs a noun")]
+    [InlineData("x\n  sleep subject:(1SG big)", "pronouns don't")]
+    [InlineData("x\n  sleep subject:(cat possessor:king)", "can't have a possessor yet")]
+    [InlineData("x\n  sleep subject:(dog big.PL)", "adjectives have no features yet")]
+    [InlineData("x\n  sleep subject:(dog.ACC big)", "case comes from its role")]
+    public void Parse_NounPhraseMistakes_SayWhat(string text, string message)
+    {
+        Assert.Contains(message, Error(text).Message);
+    }
+
+    [Fact]
     public void Parse_FeaturesLeftOut_AreTheUnmarkedValues()
     {
         var entry = Single("the bird sleeps\n  sleep subject:bird");

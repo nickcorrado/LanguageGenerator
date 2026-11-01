@@ -4,7 +4,17 @@
 //language's lexicon turns into its own roots. Realizing one in a language is where all of that
 //language's choices (word order, role markers, paradigms, phonology) come together
 //TODO definiteness: there are no articles in the lexicon yet, so "the" only shows in translations
-public record NounPhrase(string Noun, Number Number);
+//a noun, and any adjectives modifying it, in the order they're said in English
+public record NounPhrase(string Noun, Number Number, IReadOnlyList<Adjective>? Modifiers = null)
+{
+    public IReadOnlyList<Adjective> Adjectives => Modifiers ?? [];
+
+    //by value, adjectives and all, so that two phrases saying the same thing are equal
+    public virtual bool Equals(NounPhrase? other) =>
+        other is not null && Noun == other.Noun && Number == other.Number && Adjectives.SequenceEqual(other.Adjectives);
+
+    public override int GetHashCode() => Adjectives.Aggregate(HashCode.Combine(Noun, Number), HashCode.Combine);
+}
 //what fills a role: a noun phrase, or a pronoun
 public union Argument(NounPhrase, Pronoun)
 {
@@ -97,9 +107,53 @@ public static class Syntax
         var pronouns = language.Pronouns.Paradigm;
         return argument switch
         {
-            NounPhrase phrase => nouns.Inflect(language.Lexicon.Noun(phrase.Noun), Features(nouns, [phrase.Number, @case])),
+            NounPhrase phrase => Modified(language, phrase, Features(nouns, [phrase.Number, @case])),
             Pronoun pronoun => pronouns.Inflect(language.Pronouns.For(pronoun), Features(pronouns, [@case])),
         };
+    }
+
+    //the noun's words with its adjectives placed around it: after the noun in a language whose noun
+    //phrases are head-initial, before it in one whose are head-final, in the order given either way.
+    //The noun's particles stay outside the whole phrase
+    private static IReadOnlyList<Word> Modified(Language language, NounPhrase phrase, IReadOnlyList<Tagmeme> features)
+    {
+        var noun = language.Paradigms[PartOfSpeech.Noun].Inflect(language.Lexicon.Noun(phrase.Noun), features);
+        if (phrase.Adjectives.Count == 0)
+        {
+            return noun;
+        }
+        var main = noun.ToList().FindIndex(w => w.Morphemes.Any(m => m.Value is Root));
+        var head = noun[main];
+        var agreement = language.AdjectiveAgreement;
+
+        var adjectives = phrase.Adjectives.Select(a =>
+        {
+            var lexeme = language.Lexicon.Adjective(a.Meaning);
+            if (agreement != AdjectiveAgreement.Agreement)
+            {
+                return new Word([lexeme.Root]);
+            }
+            //an agreeing adjective takes the noun's own markers, but only its affixes: a particle
+            //belongs to the phrase, and is said once. Its zero markers go unglossed, since the noun's
+            //gloss already shows them
+            var inflected = language.Paradigms[PartOfSpeech.Noun].Inflect(lexeme with { PartOfSpeech = PartOfSpeech.Noun }, features);
+            return inflected.First(w => w.Morphemes.Any(m => m.Value is Root)) with { Covert = null };
+        }).ToList();
+
+        var headFirst = language.WordOrder.NounPhraseDirectionality == HeadDirectionality.Initial;
+        List<Word> words = headFirst ? [head, .. adjectives] : [.. adjectives, head];
+        if (agreement == AdjectiveAgreement.Phrasal)
+        {
+            //the noun's affixes move to the edges of the phrase
+            var root = head.Morphemes.ToList().FindIndex(m => m.Value is Root);
+            var prefixes = head.Morphemes.Take(root).ToList();
+            var suffixes = head.Morphemes.Skip(root + 1).ToList();
+            var at = headFirst ? 0 : words.Count - 1;
+            words[at] = head with { Morphemes = [head.Morphemes[root]] };
+            words[0] = words[0] with { Morphemes = [.. prefixes, .. words[0].Morphemes] };
+            words[^1] = words[^1] with { Morphemes = [.. words[^1].Morphemes, .. suffixes] };
+        }
+        return [.. noun.Take(main), .. words, .. noun.Skip(main + 1)];
     }
 
     //the case a noun takes for a role. Roles marked some other way still need a value for the
