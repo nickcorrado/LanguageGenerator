@@ -82,7 +82,8 @@ foreach (var (use, marker) in lang.RoleMarkers)
 }
 
 var pronouns = lang.Pronouns;
-Console.WriteLine($"Pronouns ({pronouns.FirstPersonPlural} 'we'{(pronouns.DropsSubjects ? ", subjects usually dropped" : "")}):");
+var gender = pronouns.GenderedPronouns == PronounGender.None ? "" : $", gender ({string.Join("/", pronouns.Genders.Select(g => g.Gloss))}) in {pronouns.GenderedPronouns}";
+Console.WriteLine($"Pronouns ({pronouns.FirstPersonPlural} 'we'{gender}{(pronouns.DropsSubjects ? ", subjects usually dropped" : "")}):");
 Console.WriteLine("  " + string.Join(", ", pronouns.Forms.Values.Distinct().Select(p =>
     $"{p.Root.Meaning} {phonology.Realize(new Word([p.Root])).Spell(orthography)}")));
 

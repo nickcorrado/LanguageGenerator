@@ -100,6 +100,79 @@ public class PronounTests
     }
 
     [Fact]
+    public void GeneratePronouns_ManyDraws_MatchTheWalsCountsForGender()
+    {
+        var systems = Draw(GeneratedLanguages.Sample[0], 4000);
+        double Share(PronounGender gender) => systems.Count(s => s.GenderedPronouns == gender) / 4000.0;
+
+        //WALS 44A: 254, 61, 42 and 18 of the 375 languages modeled
+        Assert.InRange(Share(PronounGender.None), 0.66, 0.70);
+        Assert.InRange(Share(PronounGender.ThirdSingular), 0.15, 0.18);
+        Assert.InRange(Share(PronounGender.Third), 0.10, 0.13);
+        Assert.InRange(Share(PronounGender.ThirdAndSecond), 0.04, 0.06);
+        Assert.All(systems, s => Assert.Equal(s.GenderedPronouns == PronounGender.None, s.Genders.Count == 0));
+    }
+
+    [Theory]
+    [InlineData(PronounGender.ThirdSingular, "3SG")]
+    [InlineData(PronounGender.Third, "3PL")]
+    [InlineData(PronounGender.ThirdAndSecond, "2SG")]
+    public void For_GenderedPronouns_HaveADistinctFormForEachGender(PronounGender gendered, string gloss)
+    {
+        var language = GeneratedLanguages.Sample.First(l => l.Pronouns.GenderedPronouns == gendered);
+        var pronoun = new Pronoun(gloss[0] == '2' ? Person.Second : Person.Third, gloss.EndsWith("PL") ? Number.Plural : Number.Singular);
+
+        //only the third person has a neuter
+        var genders = language.Pronouns.Genders.Where(g => g != Gender.Neuter || pronoun.Person == Person.Third).ToList();
+        var forms = genders.Select(g => language.Pronouns.For(pronoun with { Gender = g })).ToList();
+
+        Assert.Equal(forms.Count, forms.Select(f => string.Join(" ", f.Root.Form.Select(p => p.IpaSymbol))).Distinct().Count());
+        Assert.Equal(genders.Select(g => $"{gloss}.{g.Gloss}"), forms.Select(f => f.Root.Meaning));
+    }
+
+    [Fact]
+    public void For_GenderedPronoun_IsMasculineUnlessSaidOtherwise()
+    {
+        var pronouns = GeneratedLanguages.Sample.First(l => l.Pronouns.GenderedPronouns != PronounGender.None).Pronouns;
+        var he = new Pronoun(Person.Third, Number.Singular, Gender: Gender.Masculine);
+
+        Assert.Same(pronouns.For(he), pronouns.For(he with { Gender = null }));
+    }
+
+    [Fact]
+    public void For_NeuterWithoutANeuter_IsMasculine()
+    {
+        var pronouns = GeneratedLanguages.Sample.First(l => l.Pronouns.Genders is [_, _]).Pronouns;
+        var it = new Pronoun(Person.Third, Number.Singular, Gender: Gender.Neuter);
+
+        Assert.Same(pronouns.For(it with { Gender = Gender.Masculine }), pronouns.For(it));
+    }
+
+    [Fact]
+    public void Generate_SecondPerson_NeverHasANeuter()
+    {
+        var you = GeneratedLanguages.Sample.Where(l => l.Pronouns.GenderedPronouns == PronounGender.ThirdAndSecond && l.Pronouns.Genders.Contains(Gender.Neuter)).ToList();
+
+        Assert.NotEmpty(you);
+        Assert.All(you, l =>
+        {
+            Assert.DoesNotContain(l.Pronouns.Forms.Keys, p => p.Person == Person.Second && p.Gender == Gender.Neuter);
+            Assert.Same(l.Pronouns.For(new(Person.Second, Number.Singular, Gender: Gender.Masculine)), l.Pronouns.For(new(Person.Second, Number.Singular, Gender: Gender.Neuter)));
+        });
+    }
+
+    [Fact]
+    public void For_GenderWhereTheLanguageHasNone_IsIgnored()
+    {
+        var english = GeneratedLanguages.Sample.First(l => l.Pronouns.GenderedPronouns == PronounGender.ThirdSingular).Pronouns;
+        var none = GeneratedLanguages.Sample.First(l => l.Pronouns.GenderedPronouns == PronounGender.None).Pronouns;
+
+        //English-like languages have one 'they', whatever its gender, and some have no gender at all
+        Assert.Same(english.For(new(Person.Third, Number.Plural)), english.For(new(Person.Third, Number.Plural, Gender: Gender.Feminine)));
+        Assert.Same(none.For(new(Person.Third, Number.Singular)), none.For(new(Person.Third, Number.Singular, Gender: Gender.Feminine)));
+    }
+
+    [Fact]
     public void Generate_NounsWithACaseSlotOfTheirOwn_ShareItWithPronouns()
     {
         var sharing = GeneratedLanguages.Sample.Where(l => l.Paradigms[PartOfSpeech.Noun].Slots.Any(s => s.Categories is [{ Name: "Case" }])).ToList();

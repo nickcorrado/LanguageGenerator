@@ -2,8 +2,8 @@
 #   dotnet run --project LanguageGenerator -- translate examples/scene.txt 11
 # Each clause is the English, then an indented line of what it means: the verb, then role:noun.
 # Words are English meanings with Leipzig glosses after them (PST, PFV, PL, DU, FUT), and pronouns
-# are a person and number (1SG, 3PL, 1PL.INCL). Anything left out is present, imperfective and
-# singular, and 'we' is exclusive.
+# are a person and number (1SG, 3PL, 1PL.INCL, 3SG.F). Anything left out is present, imperfective
+# and singular, 'we' is exclusive, and a gendered pronoun is masculine.
 
 the hunter saw the wolves
   see.PST.PFV  subject:hunter  object:wolf.PL
@@ -31,3 +31,6 @@ we saw them, you and I
 
 they will hear us
   hear.FUT  subject:3PL  object:1PL
+
+she saw him
+  see.PST.PFV  subject:3SG.F  object:3SG.M

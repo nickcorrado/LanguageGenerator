@@ -36,7 +36,7 @@ So nothing should depend on hand-curating the vocabulary: the lexicon has to be 
 - **Word order:** constituent order and the head directionality of each phrase type.
 - **Morphology:** how fusional or isolating the language is, whether it prefixes or suffixes, which category values are zero-marked, and paradigms of exponents for nouns and verbs.
 - **Alignment and cases:** nominative–accusative or ergative–absolutive, which cases exist, and whether each semantic role is marked by a case, an adposition or nothing.
-- **Pronouns:** one short form per person and number, with inclusive and exclusive 'we' in some languages, and none at all in others; case markers shared with nouns where nouns have a case slot of their own; and whether subject pronouns are usually dropped, leaving the verb's agreement to say who.
+- **Pronouns:** one short form per person and number, with inclusive and exclusive 'we' in some languages, and none at all in others; masculine and feminine (and sometimes neuter) forms in the third person, or the second and third, in about a third of languages; case markers shared with nouns where nouns have a case slot of their own; and whether subject pronouns are usually dropped, leaving the verb's agreement to say who.
 
 `Syntax.Realize` then turns a clause into words, and `Phonology.Realize` turns each word into its surface form: sandhi, cluster repair and syllabification.
 

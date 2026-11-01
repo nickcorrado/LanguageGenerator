@@ -77,10 +77,18 @@ public class ClauseFileTests
     [InlineData("x\n  sleep subject:1SG.EXCL", "only 'we' includes or excludes")]
     [InlineData("x\n  sleep subject:1PL.INCL.EXCL", "more than one clusivity")]
     [InlineData("x\n  sleep subject:1SG.NOM", "a pronoun's case comes from its role")]
-    [InlineData("x\n  sleep subject:3SG.F", "pronouns have only person, number and clusivity")]
+    [InlineData("x\n  sleep subject:3SG.DEF", "pronouns have only person, number, clusivity and gender")]
+    [InlineData("x\n  sleep subject:3SG.ANM", "a pronoun's gender is masculine, feminine or neuter")]
+    [InlineData("x\n  sleep subject:3SG.M.F", "more than one gender")]
     public void Parse_PronounMistakes_SayWhat(string text, string message)
     {
         Assert.Contains(message, Error(text).Message);
+    }
+
+    [Fact]
+    public void Parse_GenderedPronoun_KeepsItsGender()
+    {
+        Assert.Equal(new Pronoun(Person.Third, Number.Singular, Gender: Gender.Feminine), Single("she sleeps\n  sleep subject:3SG.F").Clause.Subject.Value);
     }
 
     [Theory]

@@ -11,8 +11,9 @@ namespace LanguageGenerator;
 //
 //The indented line is the verb, then its arguments in any order as role:noun, each word an English
 //meaning with Leipzig glosses joined by periods, as in a gloss line. A pronoun is its person and
-//number instead, as in subject:1SG or object:1PL.INCL. Anything not given takes its unmarked value:
-//present, imperfective, singular and, for 'we', exclusive. Whatever the generator can't express
+//number instead, as in subject:1SG, object:1PL.INCL or subject:3SG.F. Anything not given takes its
+//unmarked value: present, imperfective, singular, exclusive for 'we' and masculine for a gendered
+//pronoun. Whatever the generator can't express
 //yet is an error, never dropped
 public static class ClauseFile
 {
@@ -159,6 +160,7 @@ public static class ClauseFile
         }
 
         Clusivity? clusivity = null;
+        Gender? gender = null;
         foreach (var gloss in parts.Skip(1))
         {
             var feature = Glosses.TryGetValue(gloss, out var tagmeme) ? tagmeme
@@ -172,13 +174,21 @@ public static class ClauseFile
                     break;
                 case Clusivity:
                     throw new ClauseFormatException($"{parts[0]} has more than one clusivity.", number);
+                //whether the language's pronouns have a gender for this person is up to the language
+                case Gender g when g != Gender.Masculine && g != Gender.Feminine && g != Gender.Neuter:
+                    throw new ClauseFormatException($"{parts[0]} can't take {g.Gloss}: a pronoun's gender is masculine, feminine or neuter.", number);
+                case Gender g when gender is null:
+                    gender = g;
+                    break;
+                case Gender:
+                    throw new ClauseFormatException($"{parts[0]} has more than one gender.", number);
                 case Case:
                     throw new ClauseFormatException($"{parts[0]} can't take {feature.Gloss}: a pronoun's case comes from its role.", number);
                 default:
-                    throw new ClauseFormatException($"{parts[0]} can't take {feature.Gloss} ({feature.Name}) yet: pronouns have only person, number and clusivity.", number);
+                    throw new ClauseFormatException($"{parts[0]} can't take {feature.Gloss} ({feature.Name}) yet: pronouns have only person, number, clusivity and gender.", number);
             }
         }
-        return new Pronoun(person, count, clusivity);
+        return new Pronoun(person, count, clusivity, gender);
     }
 
     //a meaning and the glosses after it, as in dog.PL

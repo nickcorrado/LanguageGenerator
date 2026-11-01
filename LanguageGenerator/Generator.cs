@@ -94,7 +94,7 @@ public static class Generator
 
         var forms = new Dictionary<Pronoun, Lexeme>();
         var usedForms = new HashSet<string>();
-        foreach (var meaning in meanings)
+        List<Phoneme> NewForm()
         {
             var form = new List<Phoneme>();
             for (int attempt = 0; attempt < 20; attempt++)
@@ -105,6 +105,11 @@ public static class Generator
                     break;
                 }
             }
+            return form;
+        }
+        foreach (var meaning in meanings)
+        {
+            var form = NewForm();
             //a pronoun's gloss is its person and number, as in 1SG, and one meaning both I and we is just 1
             var gloss = firstPersonPlural == FirstPersonPlural.SameAsSingular && meaning.Person == Person.First ? Person.First.Gloss : meaning.Gloss;
             forms[meaning] = new Lexeme(new Root(form, gloss), PartOfSpeech.Pronoun);
@@ -125,14 +130,52 @@ public static class Generator
             : GenerateParadigm(rand, PartOfSpeech.Pronoun, categories, morphology, wordOrder.AdpositionalPhraseDirectionality, phonology, dropoff);
 
         var agrees = paradigms[PartOfSpeech.Verb].Categories.Any(c => c.Name == "Person");
+        var dropsSubjects = Sampling.Categorical(rand, agrees ? AgreeingSubjectDropCounts : NonAgreeingSubjectDropCounts);
+
+        //gender comes last, so that adding it left every other pronoun as it was for each seed: an
+        //ungendered pronoun's form becomes the masculine, and the other genders get forms of their own
+        var gendered = Sampling.Categorical(rand, PronounGenderCounts);
+        List<Gender> genders = gendered == PronounGender.None ? []
+            : rand.NextDouble() < 0.6 ? [Gender.Masculine, Gender.Feminine]
+            : [Gender.Masculine, Gender.Feminine, Gender.Neuter];
+        var withGender = new Dictionary<Pronoun, Lexeme>();
+        foreach (var (meaning, lexeme) in forms)
+        {
+            if (!PronounSystem.Distinguishes(gendered, meaning.Person, meaning.Number))
+            {
+                withGender[meaning] = lexeme;
+                continue;
+            }
+            //a neuter is for things, which are spoken of but not to
+            foreach (var gender in genders.Where(g => g != Gender.Neuter || meaning.Person == Person.Third))
+            {
+                var form = gender == Gender.Masculine ? lexeme.Root.Form : NewForm();
+                var genderedMeaning = meaning with { Gender = gender };
+                withGender[genderedMeaning] = new Lexeme(new Root(form, genderedMeaning.Gloss), PartOfSpeech.Pronoun);
+            }
+        }
+
         return new PronounSystem
         {
             FirstPersonPlural = firstPersonPlural,
-            Forms = forms,
+            GenderedPronouns = gendered,
+            Genders = genders,
+            Forms = withGender,
             Paradigm = paradigm,
-            DropsSubjects = Sampling.Categorical(rand, agrees ? AgreeingSubjectDropCounts : NonAgreeingSubjectDropCounts),
+            DropsSubjects = dropsSubjects,
         };
     }
+
+    //WALS 44A, leaving out its 3 languages with gender only outside the third person singular and
+    //plural. Whether the gendered pronouns have a neuter, like English it, is a guess: WALS 30A
+    //counts the genders of nouns, not of pronouns
+    private static readonly (PronounGender Value, int Languages)[] PronounGenderCounts =
+    [
+        (PronounGender.None, 254),
+        (PronounGender.ThirdSingular, 61),
+        (PronounGender.Third, 42),
+        (PronounGender.ThirdAndSecond, 18),
+    ];
 
     //basic meanings to fill the lexicon with, glossed the way the Leipzig rules gloss roots
     private static readonly string[] NounMeanings = ["person", "dog", "cat", "fish", "bird", "tree", "stone", "water", "fire", "sun", "house"];
