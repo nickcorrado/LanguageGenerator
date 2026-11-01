@@ -156,4 +156,4 @@ public record Definiteness(string Name, string Gloss) : Tagmeme(Name, Gloss)
     public static Definiteness Indefinite { get; } = new("Indefinite", "NDF");
 }
 
-//politeness? clusivity?
+//politeness?
