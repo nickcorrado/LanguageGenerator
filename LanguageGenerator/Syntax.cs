@@ -5,28 +5,46 @@
 //language's choices (word order, role markers, paradigms, phonology) come together
 //TODO definiteness: there are no articles in the lexicon yet, so "the" only shows in translations
 public record NounPhrase(string Noun, Number Number);
-public record Clause(string Verb, Tense Tense, Aspect Aspect, NounPhrase Subject, NounPhrase? Object = null);
+//what fills a role: a noun phrase, or a pronoun
+public union Argument(NounPhrase, Pronoun)
+{
+    //what the verb agrees with: a noun is third person
+    public (Person Person, Number Number) Agreement => this switch
+    {
+        NounPhrase n => (Person.Third, n.Number),
+        Pronoun p => (p.Person, p.Number),
+    };
+}
+public record Clause(string Verb, Tense Tense, Aspect Aspect, Argument Subject, Argument? Object = null);
 
 public static class Syntax
 {
     public static Sentence Realize(Language language, Clause clause, string translation)
     {
         var subjectRole = clause.Object is null ? CaseUse.IntransitiveSubject : CaseUse.TransitiveSubject;
-        var subject = Inflect(language, clause.Subject, subjectRole);
-        var @object = clause.Object is { } o ? Inflect(language, o, CaseUse.DirectObject) : null;
+        //a language that drops subject pronouns leaves the verb's agreement, if any, to say who
+        var subject = clause.Subject.Value is Pronoun && language.Pronouns.DropsSubjects ? [] : Inflect(language, clause.Subject, subjectRole);
+        var @object = clause.Object.HasValue ? Inflect(language, clause.Object.GetValueOrDefault(), CaseUse.DirectObject) : null;
         //the verb agrees with its subject. TODO many ergative languages agree with the absolutive instead
+        var (person, number) = clause.Subject.Agreement;
         var verb = language.Paradigms[PartOfSpeech.Verb].Inflect(language.Lexicon.Verb(clause.Verb),
-            Features(language.Paradigms[PartOfSpeech.Verb], [clause.Tense, clause.Aspect, Person.Third, clause.Subject.Number]));
+            Features(language.Paradigms[PartOfSpeech.Verb], [clause.Tense, clause.Aspect, person, number]));
 
         //each constituent keeps its own particles with it
         var words = Order(language.WordOrder.ConstituentWordOrder, subject, verb, @object).SelectMany(c => c);
         return new Sentence([.. words.Select(language.Phonology.Realize)], translation, language.Orthography);
     }
 
-    private static IReadOnlyList<Word> Inflect(Language language, NounPhrase phrase, CaseUse role)
+    private static IReadOnlyList<Word> Inflect(Language language, Argument argument, CaseUse role)
     {
-        var paradigm = language.Paradigms[PartOfSpeech.Noun];
-        return paradigm.Inflect(language.Lexicon.Noun(phrase.Noun), Features(paradigm, [phrase.Number, CaseFor(language, language.RoleMarkers[role])]));
+        var @case = CaseFor(language, language.RoleMarkers[role]);
+        var nouns = language.Paradigms[PartOfSpeech.Noun];
+        var pronouns = language.Pronouns.Paradigm;
+        return argument switch
+        {
+            NounPhrase phrase => nouns.Inflect(language.Lexicon.Noun(phrase.Noun), Features(nouns, [phrase.Number, @case])),
+            Pronoun pronoun => pronouns.Inflect(language.Pronouns.For(pronoun), Features(pronouns, [@case])),
+        };
     }
 
     //the case a noun takes for a role. Roles marked some other way still need a value for the
@@ -53,8 +71,12 @@ public static class Syntax
     private static List<Tagmeme> Features(Paradigm paradigm, IReadOnlyList<Tagmeme> wanted) =>
         [.. paradigm.Categories.Select(category =>
             wanted.Where(w => w.GetType() == category.Values[0].GetType())
-                .SelectMany(w => (Tagmeme[])[w, .. Fallbacks.GetValueOrDefault(w, [])])
-                .FirstOrDefault(category.Values.Contains, category.Values[0]))];
+                .Select(w => Nearest(w, category.Values))
+                .FirstOrDefault(v => v is not null) ?? category.Values[0])];
+
+    //the value itself if it's available, or else the nearest available one it falls back on
+    public static Tagmeme? Nearest(Tagmeme wanted, IReadOnlyCollection<Tagmeme> available) =>
+        ((Tagmeme[])[wanted, .. Fallbacks.GetValueOrDefault(wanted, [])]).FirstOrDefault(available.Contains);
 
     //what a value turns into in a language that doesn't distinguish it, nearest first: a dual or a
     //paucal is still more than one, a language without a future speaks of it in the present, as

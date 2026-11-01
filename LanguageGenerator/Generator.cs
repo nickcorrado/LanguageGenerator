@@ -34,6 +34,10 @@ public static class Generator
         var alignment = SelectAlignment(rand, 0.5, 0.25);
         var cases = SelectCases(rand, alignment, 0.75, 0.6, 0.35, 0.65, 0.25, 0.2);
         var paradigms = GenerateParadigms(rand, morphology, wordOrder, alignment, cases, phonology, syllableDropoff);
+        var hasArticles = rand.NextDouble() < 0.7;
+        var roleMarkers = SelectRoleMarkers(alignment, cases, wordOrder);
+        //last, so that adding pronouns left everything before them as it was for each seed
+        var pronouns = GeneratePronouns(rand, paradigms, morphology, wordOrder, phonology, syllableDropoff);
 
         return new Language
         {
@@ -43,10 +47,90 @@ public static class Generator
             Paradigms = paradigms,
             MorphologicalProfile = morphology,
             WordOrder = wordOrder,
-            HasArticles = rand.NextDouble() < 0.7,
+            HasArticles = hasArticles,
             MorphosyntacticAlignment = alignment,
             Cases = cases,
-            RoleMarkers = SelectRoleMarkers(alignment, cases, wordOrder),
+            RoleMarkers = roleMarkers,
+            Pronouns = pronouns,
+        };
+    }
+
+    //WALS 39A, leaving out its 2 languages with no 'we' at all and 5 whose only distinction is a
+    //separate inclusive
+    private static readonly (FirstPersonPlural Value, int Languages)[] FirstPersonPluralCounts =
+    [
+        (FirstPersonPlural.Plain, 120),
+        (FirstPersonPlural.SameAsSingular, 10),
+        (FirstPersonPlural.InclusiveExclusive, 63),
+    ];
+
+    //WALS 101A, read as whether subject pronouns are usually left out: they are with subject affixes
+    //on the verb (437 languages) or optional pronouns (61), and aren't where they're obligatory (82).
+    //Optional pronouns are the only kind of dropping open to a language whose verbs don't agree. The
+    //rest of its languages put subject markers somewhere this doesn't model (clitics, a different
+    //position, mixed)
+    private static readonly (bool Value, int Languages)[] AgreeingSubjectDropCounts = [(true, 437 + 61), (false, 82)];
+    private static readonly (bool Value, int Languages)[] NonAgreeingSubjectDropCounts = [(true, 61), (false, 82)];
+
+    //one short root per person and number, kept distinct from each other where the phonology allows,
+    //since a pronoun is never helped by context the way a noun is. Pronouns are among a language's
+    //most frequent words, so they're short, by the law of abbreviation: mostly one syllable, never
+    //more than two
+    public static PronounSystem GeneratePronouns(Random rand, Dictionary<PartOfSpeech, Paradigm> paradigms, MorphologicalProfile morphology, WordOrder wordOrder, Phonology phonology, double dropoff)
+    {
+        var firstPersonPlural = Sampling.Categorical(rand, FirstPersonPluralCounts);
+        List<Pronoun> meanings =
+        [
+            new(Person.First, Number.Singular), new(Person.Second, Number.Singular), new(Person.Third, Number.Singular),
+            .. firstPersonPlural switch
+            {
+                FirstPersonPlural.Plain => (Pronoun[])[new(Person.First, Number.Plural)],
+                FirstPersonPlural.InclusiveExclusive => [new(Person.First, Number.Plural, Clusivity.Inclusive), new(Person.First, Number.Plural, Clusivity.Exclusive)],
+                FirstPersonPlural.SameAsSingular => [],
+                _ => throw new ArgumentOutOfRangeException(nameof(firstPersonPlural), firstPersonPlural, null),
+            },
+            new(Person.Second, Number.Plural), new(Person.Third, Number.Plural),
+        ];
+
+        var forms = new Dictionary<Pronoun, Lexeme>();
+        var usedForms = new HashSet<string>();
+        foreach (var meaning in meanings)
+        {
+            var form = new List<Phoneme>();
+            for (int attempt = 0; attempt < 20; attempt++)
+            {
+                form = GenerateForm(rand, phonology.SyllableRule, dropoff, 0.15, maxSyllables: 2);
+                if (usedForms.Add(string.Join(" ", form.Select(p => p.IpaSymbol))))
+                {
+                    break;
+                }
+            }
+            //a pronoun's gloss is its person and number, as in 1SG, and one meaning both I and we is just 1
+            var gloss = firstPersonPlural == FirstPersonPlural.SameAsSingular && meaning.Person == Person.First ? Person.First.Gloss : meaning.Gloss;
+            forms[meaning] = new Lexeme(new Root(form, gloss), PartOfSpeech.Pronoun);
+        }
+        if (firstPersonPlural == FirstPersonPlural.SameAsSingular)
+        {
+            forms[new(Person.First, Number.Plural)] = forms[new(Person.First, Number.Singular)];
+        }
+
+        //pronouns take the nouns' case markers where nouns mark case in a slot of its own, as in
+        //Turkish ben-i 'me', like ev-i 'the house'. Where case is fused with number, pronouns get
+        //case markers of their own, since a pronoun's number is already part of it
+        var nouns = paradigms[PartOfSpeech.Noun];
+        var caseCategory = nouns.Categories.FirstOrDefault(c => c.Name == "Case");
+        List<InflectionalCategory> categories = caseCategory is null ? [] : [caseCategory];
+        var paradigm = nouns.Slots.FirstOrDefault(s => s.Categories is [{ Name: "Case" }]) is { } caseSlot
+            ? new Paradigm { PartOfSpeech = PartOfSpeech.Pronoun, Categories = categories, Slots = [caseSlot] }
+            : GenerateParadigm(rand, PartOfSpeech.Pronoun, categories, morphology, wordOrder.AdpositionalPhraseDirectionality, phonology, dropoff);
+
+        var agrees = paradigms[PartOfSpeech.Verb].Categories.Any(c => c.Name == "Person");
+        return new PronounSystem
+        {
+            FirstPersonPlural = firstPersonPlural,
+            Forms = forms,
+            Paradigm = paradigm,
+            DropsSubjects = Sampling.Categorical(rand, agrees ? AgreeingSubjectDropCounts : NonAgreeingSubjectDropCounts),
         };
     }
 
@@ -139,10 +223,10 @@ public static class Generator
         return Math.Clamp((needed - 1) * noise, 0.2, 2.0);
     }
 
-    public static List<Phoneme> GenerateForm(Random rand, SyllableRule rule, double dropoff, double extraSyllables)
+    public static List<Phoneme> GenerateForm(Random rand, SyllableRule rule, double dropoff, double extraSyllables, int maxSyllables = MaxRootSyllables)
     {
         var form = new List<Phoneme>();
-        var numberOfSyllables = Sampling.DisplacedPoisson(rand, extraSyllables, MaxRootSyllables);
+        var numberOfSyllables = Sampling.DisplacedPoisson(rand, extraSyllables, maxSyllables);
 
         for (int i = 0; i < numberOfSyllables; i++)
         {

@@ -17,6 +17,7 @@ public class Language
     public required MorphosyntacticAlignment MorphosyntacticAlignment { get; init; }
     public required List<Case> Cases { get; init; }
     public required Dictionary<CaseUse, RoleMarker> RoleMarkers { get; init; }
+    public required PronounSystem Pronouns { get; init; }
 
     //the classic three-way label, for display only, read off what the paradigms actually do:
     //analytic if markers stand alone, fusional if any marker expresses more than one category

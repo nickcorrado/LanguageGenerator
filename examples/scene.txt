@@ -1,8 +1,9 @@
 # A short scene, to translate with:
 #   dotnet run --project LanguageGenerator -- translate examples/scene.txt 11
 # Each clause is the English, then an indented line of what it means: the verb, then role:noun.
-# Words are English meanings with Leipzig glosses after them (PST, PFV, PL, DU, FUT); anything
-# left out is present, imperfective and singular.
+# Words are English meanings with Leipzig glosses after them (PST, PFV, PL, DU, FUT), and pronouns
+# are a person and number (1SG, 3PL, 1PL.INCL). Anything left out is present, imperfective and
+# singular, and 'we' is exclusive.
 
 the hunter saw the wolves
   see.PST.PFV  subject:hunter  object:wolf.PL
@@ -21,3 +22,12 @@ the hunter will eat the fish
 
 the dog knows the hunter
   know  subject:dog  object:hunter
+
+I see you
+  see  subject:1SG  object:2SG
+
+we saw them, you and I
+  see.PST.PFV  subject:1PL.INCL  object:3PL
+
+they will hear us
+  hear.FUT  subject:3PL  object:1PL

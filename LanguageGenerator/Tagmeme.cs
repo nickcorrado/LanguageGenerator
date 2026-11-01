@@ -135,6 +135,14 @@ public record Gender(string Name, string Gloss) : Tagmeme(Name, Gloss)
     public static Gender Inanimate { get; } = new("Inanimate", "NANM");
 }
 
+//whether a first person plural includes the person spoken to: 'we, you among us' or 'we, but
+//not you'. Only pronouns distinguish it here
+public record Clusivity(string Name, string Gloss) : Tagmeme(Name, Gloss)
+{
+    public static Clusivity Inclusive { get; } = new("Inclusive", "INCL");
+    public static Clusivity Exclusive { get; } = new("Exclusive", "EXCL");
+}
+
 public record Definiteness(string Name, string Gloss) : Tagmeme(Name, Gloss)
 {
     public static Definiteness Definite { get; } = new("Definite", "DEF");

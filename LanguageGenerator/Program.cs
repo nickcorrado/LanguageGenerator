@@ -81,14 +81,21 @@ foreach (var (use, marker) in lang.RoleMarkers)
     Console.WriteLine($"{use}: {marker}");
 }
 
-//each paradigm, shown on the first lexeme that uses it. Spelled surface forms come first, with the
-//underlying form after them in IPA wherever sandhi or cluster repair changed something
-foreach (var paradigm in lang.Paradigms.Values)
+var pronouns = lang.Pronouns;
+Console.WriteLine($"Pronouns ({pronouns.FirstPersonPlural} 'we'{(pronouns.DropsSubjects ? ", subjects usually dropped" : "")}):");
+Console.WriteLine("  " + string.Join(", ", pronouns.Forms.Values.Distinct().Select(p =>
+    $"{p.Root.Meaning} {phonology.Realize(new Word([p.Root])).Spell(orthography)}")));
+
+//each paradigm, shown on the first lexeme that uses it, and the pronouns' on 1SG. Spelled surface
+//forms come first, with the underlying form after them in IPA wherever sandhi or cluster repair
+//changed something
+var shown = lang.Paradigms.Values.Select(p => (Paradigm: p, Lexeme: lang.Lexicon.First(l => l.PartOfSpeech == p.PartOfSpeech)))
+    .Append((pronouns.Paradigm, pronouns.For(new(Person.First, Number.Singular))));
+foreach (var (paradigm, lexeme) in shown)
 {
     Console.WriteLine();
     var slots = paradigm.Slots.Count == 0 ? "no inflection" : string.Join(", ", paradigm.Slots);
     Console.WriteLine($"{paradigm.PartOfSpeech} paradigm: {slots}");
-    var lexeme = lang.Lexicon.First(l => l.PartOfSpeech == paradigm.PartOfSpeech);
     foreach (var cell in paradigm.Cells)
     {
         var forms = paradigm.Inflect(lexeme, cell).Select(phonology.Realize).ToList();
@@ -107,6 +114,8 @@ NounPhrase Phrase(string noun, Number number) => new(noun, number);
     (new("see", Tense.Past, Aspect.Perfective, Phrase("dog", Number.Singular), Phrase("cat", Number.Singular)), "the dog saw the cat"),
     (new("sleep", Tense.Present, Aspect.Imperfective, Phrase("bird", Number.Plural)), "the birds are sleeping"),
     (new("see", Tense.Present, Aspect.Imperfective, Phrase("person", Number.Singular), Phrase("dog", Number.Plural)), "the person sees the dogs"),
+    (new("see", Tense.Present, Aspect.Imperfective, new Pronoun(Person.First, Number.Singular), new Pronoun(Person.Second, Number.Singular)), "I see you"),
+    (new("sleep", Tense.Past, Aspect.Imperfective, new Pronoun(Person.First, Number.Plural)), "we were sleeping"),
 ];
 foreach (var (clause, translation) in examples)
 {

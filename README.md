@@ -36,6 +36,7 @@ So nothing should depend on hand-curating the vocabulary: the lexicon has to be 
 - **Word order:** constituent order and the head directionality of each phrase type.
 - **Morphology:** how fusional or isolating the language is, whether it prefixes or suffixes, which category values are zero-marked, and paradigms of exponents for nouns and verbs.
 - **Alignment and cases:** nominative–accusative or ergative–absolutive, which cases exist, and whether each semantic role is marked by a case, an adposition or nothing.
+- **Pronouns:** one short form per person and number, with inclusive and exclusive 'we' in some languages, and none at all in others; case markers shared with nouns where nouns have a case slot of their own; and whether subject pronouns are usually dropped, leaving the verb's agreement to say who.
 
 `Syntax.Realize` then turns a clause into words, and `Phonology.Realize` turns each word into its surface form: sandhi, cluster repair and syllabification.
 
@@ -70,7 +71,7 @@ the hunter saw the wolves
   see.PST.PFV  subject:hunter  object:wolf.PL
 ```
 
-The verb comes first, then its arguments as `role:noun`. Words are English meanings, which the language coins roots for as needed. Features left out take their unmarked values (present, imperfective, singular), and a value the language doesn't distinguish falls back on the nearest one it does, so a dual becomes a plural in a language without one. Anything the generator can't express yet, like a recipient or a mood, is an error naming the line, never silently dropped. See [examples/scene.txt](examples/scene.txt) and `ClauseFile`.
+The verb comes first, then its arguments as `role:noun`. Words are English meanings, which the language coins roots for as needed, and pronouns are a person and number, as in `subject:1SG` or `object:1PL.INCL`. Features left out take their unmarked values (present, imperfective, singular, and exclusive for 'we'), and a value the language doesn't distinguish falls back on the nearest one it does, so a dual becomes a plural in a language without one. Anything the generator can't express yet, like a recipient or a mood, is an error naming the line, never silently dropped. See [examples/scene.txt](examples/scene.txt) and `ClauseFile`.
 
 ```bash
 dotnet test

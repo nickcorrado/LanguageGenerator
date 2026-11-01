@@ -1,4 +1,4 @@
-namespace LanguageGenerator.Tests;
+﻿namespace LanguageGenerator.Tests;
 
 public class ClauseFileTests
 {
@@ -12,7 +12,7 @@ public class ClauseFileTests
         var entry = Single("the dog saw the cats\n  see.PST.PFV  subject:dog  object:cat.PL\n");
 
         Assert.Equal("the dog saw the cats", entry.Translation);
-        Assert.Equal(new Clause("see", Tense.Past, Aspect.Perfective, new("dog", Number.Singular), new("cat", Number.Plural)), entry.Clause);
+        Assert.Equal(new Clause("see", Tense.Past, Aspect.Perfective, new NounPhrase("dog", Number.Singular), new NounPhrase("cat", Number.Plural)), entry.Clause);
         Assert.Equal(2, entry.Line);
     }
 
@@ -21,7 +21,7 @@ public class ClauseFileTests
     {
         var entry = Single("the bird sleeps\n  sleep subject:bird");
 
-        Assert.Equal(new Clause("sleep", Tense.Present, Aspect.Imperfective, new("bird", Number.Singular)), entry.Clause);
+        Assert.Equal(new Clause("sleep", Tense.Present, Aspect.Imperfective, new NounPhrase("bird", Number.Singular)), entry.Clause);
     }
 
     [Fact]
@@ -35,7 +35,7 @@ public class ClauseFileTests
     {
         var entries = ClauseFile.Parse("# a scene\r\n\r\nthe dog sleeps\r\n  # not this\r\n  sleep subject:dog\r\n\r\nthe cat sleeps\r\n\tsleep subject:cat\r\n");
 
-        Assert.Equal(["dog", "cat"], entries.Select(e => e.Clause.Subject.Noun));
+        Assert.Equal(["dog", "cat"], entries.Select(e => e.Clause.Subject.Value is NounPhrase n ? n.Noun : null));
     }
 
     [Theory]
@@ -63,6 +63,26 @@ public class ClauseFileTests
         Assert.StartsWith($"Line {line}:", error.Message);
     }
 
+    [Fact]
+    public void Parse_Pronouns_ArePersonAndNumber()
+    {
+        var entry = Single("we see you\n  see subject:1PL.INCL object:2SG");
+
+        Assert.Equal(new Pronoun(Person.First, Number.Plural, Clusivity.Inclusive), entry.Clause.Subject.Value);
+        Assert.Equal(new Pronoun(Person.Second, Number.Singular), entry.Clause.Object!.Value.Value);
+    }
+
+    [Theory]
+    [InlineData("x\n  sleep subject:3PL.INCL", "only 'we' includes or excludes")]
+    [InlineData("x\n  sleep subject:1SG.EXCL", "only 'we' includes or excludes")]
+    [InlineData("x\n  sleep subject:1PL.INCL.EXCL", "more than one clusivity")]
+    [InlineData("x\n  sleep subject:1SG.NOM", "a pronoun's case comes from its role")]
+    [InlineData("x\n  sleep subject:3SG.F", "pronouns have only person, number and clusivity")]
+    public void Parse_PronounMistakes_SayWhat(string text, string message)
+    {
+        Assert.Contains(message, Error(text).Message);
+    }
+
     [Theory]
     [InlineData("PAST", "PST")]
     [InlineData("pst", "PST")]
@@ -85,7 +105,7 @@ public class ClauseFileTests
         Assert.All(values, value =>
         {
             var clause = Single(value is Number ? $"x\n  sleep subject:dog.{value.Gloss}" : $"x\n  sleep.{value.Gloss} subject:dog").Clause;
-            Assert.Contains(value, (Tagmeme[])[clause.Tense, clause.Aspect, clause.Subject.Number]);
+            Assert.Contains(value, (Tagmeme[])[clause.Tense, clause.Aspect, clause.Subject.Agreement.Number]);
         });
     }
 

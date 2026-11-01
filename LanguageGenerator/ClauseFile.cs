@@ -1,4 +1,4 @@
-using System.Reflection;
+﻿using System.Reflection;
 
 namespace LanguageGenerator;
 
@@ -10,9 +10,10 @@ namespace LanguageGenerator;
 //    see.PST.PFV  subject:dog  object:cat
 //
 //The indented line is the verb, then its arguments in any order as role:noun, each word an English
-//meaning with Leipzig glosses joined by periods, as in a gloss line. Anything not given takes its
-//unmarked value: present, imperfective and singular. Whatever the generator can't express yet is
-//an error, never dropped
+//meaning with Leipzig glosses joined by periods, as in a gloss line. A pronoun is its person and
+//number instead, as in subject:1SG or object:1PL.INCL. Anything not given takes its unmarked value:
+//present, imperfective, singular and, for 'we', exclusive. Whatever the generator can't express
+//yet is an error, never dropped
 public static class ClauseFile
 {
     public record Entry(string Translation, Clause Clause, int Line);
@@ -90,7 +91,7 @@ public static class ClauseFile
             }
         }
 
-        var arguments = new Dictionary<string, NounPhrase>();
+        var arguments = new Dictionary<string, Argument>();
         foreach (var token in tokens.Skip(1))
         {
             var colon = token.IndexOf(':');
@@ -111,18 +112,22 @@ public static class ClauseFile
             {
                 throw new ClauseFormatException($"The clause has more than one {role}.", number);
             }
-            arguments[role] = ParseNounPhrase(token[(colon + 1)..], number);
+            arguments[role] = ParseArgument(token[(colon + 1)..], number);
         }
 
         if (!arguments.TryGetValue("subject", out var subject))
         {
             throw new ClauseFormatException("The clause needs a subject, as in subject:dog.", number);
         }
-        return new Clause(verb, tense ?? Tense.Present, aspect ?? Aspect.Imperfective, subject, arguments.GetValueOrDefault("object"));
+        return new Clause(verb, tense ?? Tense.Present, aspect ?? Aspect.Imperfective, subject, arguments.TryGetValue("object", out var @object) ? @object : (Argument?)null);
     }
 
-    private static NounPhrase ParseNounPhrase(string token, int number)
+    private static Argument ParseArgument(string token, int number)
     {
+        if (ParsePronoun(token, number) is { } pronoun)
+        {
+            return pronoun;
+        }
         var (noun, features) = ParseWord(token, number);
         Number? count = null;
         foreach (var feature in features)
@@ -141,6 +146,39 @@ public static class ClauseFile
             }
         }
         return new NounPhrase(noun, count ?? Number.Singular);
+    }
+
+    //a person and number, as in 3PL, and maybe a clusivity after them. Null if it isn't a pronoun
+    private static Pronoun? ParsePronoun(string token, int number)
+    {
+        var parts = token.Split('.');
+        if (parts[0].Length < 2 || !Glosses.TryGetValue(parts[0][..1], out var p) || p is not Person person
+            || !Glosses.TryGetValue(parts[0][1..], out var n) || n is not Number count)
+        {
+            return null;
+        }
+
+        Clusivity? clusivity = null;
+        foreach (var gloss in parts.Skip(1))
+        {
+            var feature = Glosses.TryGetValue(gloss, out var tagmeme) ? tagmeme
+                : throw new ClauseFormatException($"'{gloss}' isn't a gloss.{Suggestion(gloss)}", number);
+            switch (feature)
+            {
+                case Clusivity when person != Person.First || count == Number.Singular:
+                    throw new ClauseFormatException($"{parts[0]} can't take {feature.Gloss}: only 'we' includes or excludes the hearer.", number);
+                case Clusivity c when clusivity is null:
+                    clusivity = c;
+                    break;
+                case Clusivity:
+                    throw new ClauseFormatException($"{parts[0]} has more than one clusivity.", number);
+                case Case:
+                    throw new ClauseFormatException($"{parts[0]} can't take {feature.Gloss}: a pronoun's case comes from its role.", number);
+                default:
+                    throw new ClauseFormatException($"{parts[0]} can't take {feature.Gloss} ({feature.Name}) yet: pronouns have only person, number and clusivity.", number);
+            }
+        }
+        return new Pronoun(person, count, clusivity);
     }
 
     //a meaning and the glosses after it, as in dog.PL

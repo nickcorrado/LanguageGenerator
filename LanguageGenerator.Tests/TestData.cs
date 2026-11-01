@@ -33,16 +33,18 @@ internal static class GeneratedLanguages
 
     public static IReadOnlyList<Language> Sample => sample.Value;
 
-    //every lexeme's citation form, and every cell of every paradigm for every lexeme it applies to
+    //every lexeme's and pronoun's citation form, and every cell of every paradigm for every lexeme or
+    //pronoun it applies to
     public static IEnumerable<Word> AllWords(Language language)
     {
-        foreach (var lexeme in language.Lexicon)
+        var lexemes = language.Lexicon.Concat(language.Pronouns.Forms.Values.Distinct()).ToList();
+        foreach (var lexeme in lexemes)
         {
             yield return new Word([lexeme.Root]);
         }
-        foreach (var paradigm in language.Paradigms.Values)
+        foreach (var paradigm in language.Paradigms.Values.Append(language.Pronouns.Paradigm))
         {
-            foreach (var lexeme in language.Lexicon.Where(l => l.PartOfSpeech == paradigm.PartOfSpeech))
+            foreach (var lexeme in lexemes.Where(l => l.PartOfSpeech == paradigm.PartOfSpeech))
             {
                 foreach (var cell in paradigm.Cells)
                 {
