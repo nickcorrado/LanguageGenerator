@@ -57,6 +57,21 @@ dotnet run --project LanguageGenerator -- 11
 
 prints the language generated from seed 11: its phonology, spelling, lexicon, word order, paradigms and some example sentences. Leave out the seed to get a random one, which is printed first.
 
+### Translating your own text
+
+```bash
+dotnet run --project LanguageGenerator -- translate examples/scene.txt 11
+```
+
+translates a file of clauses into seed 11's language, glossing each one. Each clause is the English it means, then an indented line saying what it means in Leipzig glosses:
+
+```
+the hunter saw the wolves
+  see.PST.PFV  subject:hunter  object:wolf.PL
+```
+
+The verb comes first, then its arguments as `role:noun`. Words are English meanings, which the language coins roots for as needed. Features left out take their unmarked values (present, imperfective, singular), and a value the language doesn't distinguish falls back on the nearest one it does, so a dual becomes a plural in a language without one. Anything the generator can't express yet, like a recipient or a mood, is an error naming the line, never silently dropped. See [examples/scene.txt](examples/scene.txt) and `ClauseFile`.
+
 ```bash
 dotnet test
 ```
@@ -65,8 +80,8 @@ runs the xUnit tests. Besides unit tests, they generate a sample of 300 language
 
 ## What's next
 
-- **A text format for clauses.** A hand-writable form of `Clause` and a command that translates a file of them, so the generator half of the pipeline runs before any NLP exists.
-- **An English front end.** A UD parser (spaCy or Stanza) with a mapper from its output to clauses, or an LLM that writes clauses directly.
+- **An English front end.** A UD parser (spaCy or Stanza) with a mapper from its output to clause files, or an LLM that writes them directly.
+- **More of the clause.** Oblique roles (recipient, location, goal and the rest of `CaseUse`), mood and voice, and noun phrases with modifiers, written in parentheses as in `object:(cat possessor:king)`.
 - **Word frequency.** A bundled lemma frequency table (with English length as the fallback for words it lacks), so frequent words come out shorter, per Zipf's law of abbreviation.
 - **Derivation and compounding,** for words like *teacher* or *sunflower*. Checks against accidental homophones are harder than they sound: avoiding one would make a root depend on the words coined before it.
 - **Broader grammar.** Definiteness and articles, oblique roles with real adposition words, absolutive agreement, and more verb categories.

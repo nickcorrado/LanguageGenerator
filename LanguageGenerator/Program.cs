@@ -1,20 +1,56 @@
 ﻿using LanguageGenerator;
 
-//pass a seed to regenerate the same language; without one, a fresh seed is picked and printed
+//pass a seed to regenerate the same language; without one, a fresh seed is picked and printed.
+//"translate <file> [seed]" translates a file of clauses (see ClauseFile) instead of describing
+//the language
+const string Usage = "Usage: LanguageGenerator [seed], or LanguageGenerator translate <file> [seed], where the seed is an integer.";
+var translating = args.Length > 0 && args[0] == "translate";
+if (translating && args.Length < 2)
+{
+    Console.Error.WriteLine(Usage);
+    return 1;
+}
+var seedArgument = translating ? args.ElementAtOrDefault(2) : args.ElementAtOrDefault(0);
 int seed;
-if (args.Length == 0)
+if (seedArgument is null)
 {
     seed = Random.Shared.Next();
 }
-else if (!int.TryParse(args[0], out seed))
+else if (!int.TryParse(seedArgument, out seed))
 {
-    Console.Error.WriteLine($"Usage: LanguageGenerator [seed], where the seed is an integer. Got '{args[0]}'.");
+    Console.Error.WriteLine($"{Usage} Got '{seedArgument}'.");
     return 1;
 }
+
+IReadOnlyList<ClauseFile.Entry> script = [];
+if (translating)
+{
+    var path = args[1];
+    try
+    {
+        script = ClauseFile.Parse(File.ReadAllText(path));
+    }
+    catch (Exception e) when (e is IOException or UnauthorizedAccessException or ClauseFormatException)
+    {
+        Console.Error.WriteLine($"{path}: {e.Message}");
+        return 1;
+    }
+}
+
 Console.WriteLine($"Seed: {seed}");
 var rand = new Random(seed);
 
 var lang = Generator.Generate(rand);
+
+if (translating)
+{
+    foreach (var entry in script)
+    {
+        Console.WriteLine();
+        Console.WriteLine(Syntax.Realize(lang, entry.Clause, entry.Translation).Interlinear());
+    }
+    return 0;
+}
 
 var phonology = lang.Phonology;
 Console.WriteLine(phonology.SyllableRule);

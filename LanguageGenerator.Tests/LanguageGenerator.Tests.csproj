@@ -23,4 +23,9 @@
     <ProjectReference Include="..\LanguageGenerator\LanguageGenerator.csproj" />
   </ItemGroup>
 
+  <!-- so a test can check that the example parses -->
+  <ItemGroup>
+    <None Include="..\examples\scene.txt" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>
