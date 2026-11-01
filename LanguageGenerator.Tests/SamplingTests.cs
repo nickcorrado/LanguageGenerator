@@ -3,6 +3,26 @@ namespace LanguageGenerator.Tests;
 public class SamplingTests
 {
     [Fact]
+    public void Categorical_ManyDraws_FollowTheWeights()
+    {
+        var rand = new Random(1);
+        (string Value, int Weight)[] weights = [("a", 3), ("b", 1)];
+
+        var share = Enumerable.Range(0, 20000).Count(_ => Sampling.Categorical(rand, weights) == "a") / 20000.0;
+
+        Assert.InRange(share, 0.735, 0.765);
+    }
+
+    [Fact]
+    public void Categorical_ZeroWeight_IsNeverDrawn()
+    {
+        var rand = new Random(1);
+        (string Value, int Weight)[] weights = [("a", 1), ("never", 0), ("b", 1)];
+
+        Assert.DoesNotContain("never", Enumerable.Range(0, 2000).Select(_ => Sampling.Categorical(rand, weights)));
+    }
+
+    [Fact]
     public void TruncatedGeometric_ManyDraws_DecayByAConstantRatio()
     {
         var rand = new Random(1);

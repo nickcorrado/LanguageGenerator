@@ -280,7 +280,7 @@ public static class Generator
         //onset too: in VF every consonant is a coda, so restricting codas would restrict the whole
         //inventory to nasals, say
         var restrictable = template.Slots.Any(s => s is FinalSlot) && template.Slots[0] is not VowelSlot;
-        var codas = restrictable ? Draw(rand, CodaRestrictionWeights) : CodaRestriction.Any;
+        var codas = restrictable ? Sampling.Categorical(rand, CodaRestrictionWeights) : CodaRestriction.Any;
         return new SyllableRule(template, vowels, consonants, codas);
     }
 
@@ -385,9 +385,9 @@ public static class Generator
         return new WordOrder
         {
             ConstituentWordOrder = order,
-            AdpositionalPhraseDirectionality = Draw(rand, objectFirst ? ObjectVerbAdpositionCounts : VerbObjectAdpositionCounts),
-            NounPhraseDirectionality = Draw(rand, objectFirst ? ObjectVerbNounPhraseCounts : VerbObjectNounPhraseCounts),
-            AdjectivePhraseDirectionality = Draw(rand, objectFirst ? ObjectVerbAdjectivePhraseCounts : VerbObjectAdjectivePhraseCounts),
+            AdpositionalPhraseDirectionality = Sampling.Categorical(rand, objectFirst ? ObjectVerbAdpositionCounts : VerbObjectAdpositionCounts),
+            NounPhraseDirectionality = Sampling.Categorical(rand, objectFirst ? ObjectVerbNounPhraseCounts : VerbObjectNounPhraseCounts),
+            AdjectivePhraseDirectionality = Sampling.Categorical(rand, objectFirst ? ObjectVerbAdjectivePhraseCounts : VerbObjectAdjectivePhraseCounts),
         };
     }
 
@@ -458,7 +458,7 @@ public static class Generator
     ];
 
     public static MorphologicalProfile SelectMorphologicalProfile(Random rand, ConstituentWordOrder order) => new(
-        Draw(rand, WordOrder.ObjectPrecedesVerb(order) ? ObjectVerbFusionCounts : VerbObjectFusionCounts),
+        Sampling.Categorical(rand, WordOrder.ObjectPrecedesVerb(order) ? ObjectVerbFusionCounts : VerbObjectFusionCounts),
         new Exponence(
             // https://wals.info/chapter/21: 8 of the 87 languages with case mark it together with number
             CaseWithNumber: rand.NextDouble() < 8 / 87.0,
@@ -466,7 +466,7 @@ public static class Generator
             TamWithAgreement: rand.NextDouble() < 24 / 156.0,
             //a guess: WALS counts tense and aspect together as TAM, so it has no figure for this
             TenseWithAspect: rand.NextDouble() < 0.3),
-        Draw(rand, WordOrder.ObjectPrecedesVerb(order) ? ObjectVerbAffixationCounts : VerbObjectAffixationCounts),
+        Sampling.Categorical(rand, WordOrder.ObjectPrecedesVerb(order) ? ObjectVerbAffixationCounts : VerbObjectAffixationCounts),
         new ZeroMarking(
             //guesses, but grounded in Greenberg's universals: the singular can be expressed only by
             //zero while the plural never is (35), and the only case that can be zero is the one for
@@ -474,7 +474,7 @@ public static class Generator
             Singular: rand.NextDouble() < 0.9,
             CoreCase: rand.NextDouble() < 0.8,
             Present: rand.NextDouble() < 0.6,
-            ThirdPerson: Draw(rand, ThirdPersonZeroCounts)));
+            ThirdPerson: Sampling.Categorical(rand, ThirdPersonZeroCounts)));
 
     // https://wals.info/feature/103A, among the 284 languages with person marking on verbs. The 21
     //with zero in only some third singular forms are left out, since a paradigm here has one form
@@ -485,21 +485,6 @@ public static class Generator
         (ThirdPersonZero.Singular, 45),
         (ThirdPersonZero.All, 36),
     ];
-
-    //a value, with probability proportional to how many languages have it
-    private static T Draw<T>(Random rand, (T Value, int Languages)[] counts)
-    {
-        var roll = rand.Next(counts.Sum(c => c.Languages));
-        foreach (var (value, languages) in counts)
-        {
-            if (roll < languages)
-            {
-                return value;
-            }
-            roll -= languages;
-        }
-        throw new System.Diagnostics.UnreachableException();
-    }
 
     public static MorphosyntacticAlignment SelectAlignment(Random rand, double nominativeChance, double ergativeChance)
     {
