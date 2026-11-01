@@ -127,7 +127,7 @@ public static class Generator
         //20% chance of monosyllable
         if (rand.NextDouble() > 0.2)
         {
-            numberOfSyllables += 1 + Utilities.PowerLaw(rand, 3, 0.20);
+            numberOfSyllables += 1 + Utilities.TruncatedGeometric(rand, 3, 0.20);
         }
 
         for (int i = 0; i < numberOfSyllables; i++)
@@ -251,7 +251,7 @@ public static class Generator
             for (int attempt = 0; attempt < 20; attempt++)
             {
                 form = bare
-                    ? [phonology.Consonants[Utilities.PowerLaw(rand, phonology.Consonants.Count, dropoff)]]
+                    ? [phonology.Consonants[Utilities.TruncatedGeometric(rand, phonology.Consonants.Count, dropoff)]]
                     : [.. GenerateSyllable(rand, phonology.SyllableRule, dropoff).Phonemes];
                 if (usedForms.Add(string.Join(" ", form.Select(p => p.IpaSymbol))))
                 {
