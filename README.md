@@ -3,9 +3,9 @@
 A procedural generator for naturalistic languages. It picks a phonology, phonological rules, an orthography, morphology and syntax, then produces text in the language with a full morphological markup: each word is segmented into morphemes and glossed by the [Leipzig rules](https://www.eva.mpg.de/lingua/resources/glossing-rules.php).
 
 ```
-ash iw shliwiä
-a-sh         iw           shliw-i-ä
-dog[SG]-ERG  cat[SG.ABS]  see-PST-3SG
+siv swozhgè sroshle
+siv       swozh-gè  sro-shle
+dog[NOM]  ACC-cat   see-PST
 'the dog saw the cat'
 ```
 
@@ -32,7 +32,7 @@ So nothing should depend on hand-curating the vocabulary: the lexicon has to be 
 
 - **Phonology:** vowel and consonant inventories, a syllable template (CV, CVF, SCLVF, ...) with an optional restriction on codas, sandhi rules at morpheme boundaries, and a strategy for repairing illegal clusters (epenthesis or deletion).
 - **Orthography:** a spelling for each phoneme, from one consistent style per language (háček or digraph postalveolars, macron or acute long vowels, ...), checked to be unambiguous with the Sardinas–Patterson test.
-- **Lexicon:** roots built from legal syllables. Root length follows a displaced Poisson whose mean depends on how many distinct syllables the phonology allows, so languages with simple syllables have longer words.
+- **Lexicon:** roots built from legal syllables. Root length follows a displaced Poisson whose mean depends on how many distinct syllables the phonology allows, so languages with simple syllables have longer words. The lexicon is open: asking for a meaning it doesn't have coins a root, seeded from the language and the meaning alone, so a word comes out the same however much other text has been translated.
 - **Word order:** constituent order and the head directionality of each phrase type.
 - **Morphology:** how fusional or isolating the language is, whether it prefixes or suffixes, which category values are zero-marked, and paradigms of exponents for nouns and verbs.
 - **Alignment and cases:** nominative–accusative or ergative–absolutive, which cases exist, and whether each semantic role is marked by a case, an adposition or nothing.
@@ -65,8 +65,9 @@ runs the xUnit tests. Besides unit tests, they generate a sample of 300 language
 
 ## What's next
 
-- **Stable roots per word.** Each root should be seeded from the language's seed and its lemma, via a stable hash, so translating more text never changes words already generated.
+- **A text format for clauses.** A hand-writable form of `Clause` and a command that translates a file of them, so the generator half of the pipeline runs before any NLP exists.
+- **An English front end.** A UD parser (spaCy or Stanza) with a mapper from its output to clauses, or an LLM that writes clauses directly.
 - **Word frequency.** A bundled lemma frequency table (with English length as the fallback for words it lacks), so frequent words come out shorter, per Zipf's law of abbreviation.
-- **Open vocabulary.** Roots coined on demand, with checks against accidental homophones, and eventually derivation and compounding for words like *teacher* or *sunflower*.
+- **Derivation and compounding,** for words like *teacher* or *sunflower*. Checks against accidental homophones are harder than they sound: avoiding one would make a root depend on the words coined before it.
 - **Broader grammar.** Definiteness and articles, oblique roles with real adposition words, absolutive agreement, and more verb categories.
 - **Phonetic detail.** Contextual voicing, and identical-vowel hiatus.

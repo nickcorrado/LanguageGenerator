@@ -105,17 +105,22 @@ public static class Generator
         return new Orthography(inventory.ToDictionary(p => p, p => p.IpaSymbol));
     }
 
-    public static List<Lexeme> GenerateLexicon(Random rand, SyllableRule rule, double dropoff)
+    //a lexicon that coins each root from its own Random, seeded by the language and the meaning,
+    //so that a root never depends on which other words were coined, or in what order. The basic
+    //meanings are coined up front so that there are words to show
+    public static Lexicon GenerateLexicon(Random rand, SyllableRule rule, double dropoff)
     {
+        var seed = rand.Next();
         var extraSyllables = SelectExtraSyllables(rand, rule);
-        var lexicon = new List<Lexeme>();
+        var lexicon = new Lexicon((meaning, partOfSpeech) =>
+            new Root(GenerateForm(Sampling.For(seed, $"{partOfSpeech}:{meaning}"), rule, dropoff, extraSyllables), meaning));
         foreach (var meaning in NounMeanings)
         {
-            lexicon.Add(new Lexeme(new Root(GenerateForm(rand, rule, dropoff, extraSyllables), meaning), PartOfSpeech.Noun));
+            lexicon.Noun(meaning);
         }
         foreach (var meaning in VerbMeanings)
         {
-            lexicon.Add(new Lexeme(new Root(GenerateForm(rand, rule, dropoff, extraSyllables), meaning), PartOfSpeech.Verb));
+            lexicon.Verb(meaning);
         }
         return lexicon;
     }

@@ -1,8 +1,24 @@
-﻿namespace LanguageGenerator;
+﻿using System.Text;
+
+namespace LanguageGenerator;
 
 //the distributions the generator draws from, each used where it fits the feature
 public static class Sampling
 {
+    //a Random for one key, like a word, that depends only on the seed and the key, so drawing for
+    //one key never shifts what's drawn for another. It hashes with FNV-1a because .NET randomizes
+    //string.GetHashCode per process, and these have to come out the same on every run
+    public static Random For(int seed, string key)
+    {
+        const ulong Offset = 14695981039346656037, Prime = 1099511628211;
+        var hash = Offset;
+        foreach (var b in Encoding.UTF8.GetBytes($"{seed}:{key}"))
+        {
+            hash = (hash ^ b) * Prime;
+        }
+        return new Random((int)(hash ^ (hash >> 32)));
+    }
+
     //a value, with probability proportional to its weight: usually how many languages in a WALS
     //sample have it
     public static T Categorical<T>(Random rand, (T Value, int Weight)[] weights)

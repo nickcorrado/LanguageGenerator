@@ -1,13 +1,14 @@
 namespace LanguageGenerator;
 
 //I figure this is the top-level object
-//a plain description of a language: everything Generator chose, and nothing about how
+//a plain description of a language: everything Generator chose, and nothing about how, except
+//that the lexicon can coin roots for new meanings the way Generator would have
 public class Language
 {
     public string? Name { get; init; }
     public required Phonology Phonology { get; init; }
     public required Orthography Orthography { get; init; }
-    public required List<Lexeme> Lexicon { get; init; }
+    public required Lexicon Lexicon { get; init; }
     //how each part of speech inflects
     public required Dictionary<PartOfSpeech, Paradigm> Paradigms { get; init; }
     public required MorphologicalProfile MorphologicalProfile { get; init; }
@@ -24,9 +25,6 @@ public class Language
         MorphologicalProfile.Fusion == Fusion.Isolating ? Morphology.Analytic
         : Paradigms.Values.SelectMany(p => p.Slots).Any(s => s.Categories.Count(c => !(c.Name == "Number" && s.Categories.Any(x => x.Name == "Person"))) > 1) ? Morphology.Fusional
         : Morphology.Agglutinative;
-
-    //the lexeme with this meaning, like "dog"
-    public Lexeme FindLexeme(string meaning) => Lexicon.Single(l => l.Root.Meaning == meaning);
 }
 
 //WALS doesn't use these labels, because they lump together properties that vary independently;

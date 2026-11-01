@@ -3,13 +3,13 @@
 public class SyntaxTests
 {
     private static Sentence DogSawCat(Language l) =>
-        Syntax.Realize(l, new(l.FindLexeme("see"), Tense.Past, Aspect.Perfective, new(l.FindLexeme("dog"), Number.Singular), new(l.FindLexeme("cat"), Number.Singular)), "the dog saw the cat");
+        Syntax.Realize(l, new(l.Lexicon.Verb("see"), Tense.Past, Aspect.Perfective, new(l.Lexicon.Noun("dog"), Number.Singular), new(l.Lexicon.Noun("cat"), Number.Singular)), "the dog saw the cat");
 
     private static Sentence BirdsSleep(Language l) =>
-        Syntax.Realize(l, new(l.FindLexeme("sleep"), Tense.Present, Aspect.Imperfective, new(l.FindLexeme("bird"), Number.Plural)), "the birds are sleeping");
+        Syntax.Realize(l, new(l.Lexicon.Verb("sleep"), Tense.Present, Aspect.Imperfective, new(l.Lexicon.Noun("bird"), Number.Plural)), "the birds are sleeping");
 
     private static Sentence PersonSeesDogs(Language l) =>
-        Syntax.Realize(l, new(l.FindLexeme("see"), Tense.Present, Aspect.Imperfective, new(l.FindLexeme("person"), Number.Singular), new(l.FindLexeme("dog"), Number.Plural)), "the person sees the dogs");
+        Syntax.Realize(l, new(l.Lexicon.Verb("see"), Tense.Present, Aspect.Imperfective, new(l.Lexicon.Noun("person"), Number.Singular), new(l.Lexicon.Noun("dog"), Number.Plural)), "the person sees the dogs");
 
     //every gloss label in the sentence, including covert ones in brackets
     private static HashSet<string> Glosses(Sentence sentence) => [.. sentence.Words.SelectMany(w => w.Gloss.Split('-', '.', '[', ']'))];
@@ -102,7 +102,7 @@ public class SyntaxTests
     {
         var language = GeneratedLanguages.Sample.First(l => l.Paradigms[PartOfSpeech.Verb].Categories.Any(c => c.Name == "Tense" && c.Values.Count == 2));
 
-        var sentence = Syntax.Realize(language, new(language.FindLexeme("eat"), Tense.Future, Aspect.Perfective, new(language.FindLexeme("dog"), Number.Singular)), "the dog will eat");
+        var sentence = Syntax.Realize(language, new(language.Lexicon.Verb("eat"), Tense.Future, Aspect.Perfective, new(language.Lexicon.Noun("dog"), Number.Singular)), "the dog will eat");
 
         Assert.Contains("PRS", Glosses(sentence));
     }
