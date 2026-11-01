@@ -1,4 +1,6 @@
-﻿namespace LanguageGenerator;
+﻿using System.Runtime.InteropServices;
+
+namespace LanguageGenerator;
 
 //chooses everything about a language. The result is a plain Language, which
 //knows nothing about how it was chosen
@@ -312,7 +314,8 @@ public static class Generator
             vowels.RemoveAll(v => v.Long);
         }
 
-        vowels = Utilities.Shuffle(rand, vowels).ToList();
+        //the order is a frequency ranking: Pick draws earlier phonemes more often
+        rand.Shuffle(CollectionsMarshal.AsSpan(vowels));
 
         return vowels;
     }
@@ -344,7 +347,7 @@ public static class Generator
             consonants.RemoveAll(c => c.Place == ConsonantPlace.Retroflex);
         }
 
-        consonants = Utilities.Shuffle(rand, consonants).ToList();
+        rand.Shuffle(CollectionsMarshal.AsSpan(consonants));
 
         return consonants;
     }
