@@ -2,7 +2,8 @@
 
 //a phoneme is only its sound. How it's written depends on the language, so spelling lives in
 //each language's Orthography; IpaSymbol is for debugging and for writing underlying forms
-public class Phoneme
+//closed: every phoneme is a Vowel or a Consonant, so a switch over the two is exhaustive
+public closed class Phoneme
 {
     public string IpaSymbol { get; }
 
