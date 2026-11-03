@@ -6,6 +6,8 @@ namespace LanguageGenerator;
 //it. Each root depends only on the language and the meaning, so asking for words in any order, or
 //for any number of other words first, gives the same roots. That means accidental homophones are
 //possible, as they are in real languages; avoiding them would make each root depend on the others.
+//Generator does keep roots from sounding like closed-class words in the same slot, which are all
+//known before any root is coined.
 //Enumerating gives the words coined so far, in the order they were first asked for
 public class Lexicon : IEnumerable<Lexeme>
 {

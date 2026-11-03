@@ -22,6 +22,35 @@ public class LexiconTests
         }
     }
 
+    private static string Surface(Language l, Root root) => string.Concat(l.Phonology.Realize(new Word([root])).Phonemes.Select(p => p.IpaSymbol));
+
+    //nouns don't sound like pronouns, adjectives like numerals, or verbs like copulas, whether
+    //they're basic words or coined later
+    [Fact]
+    public void Coin_AnyRoot_DoesntSoundLikeAClosedClassWordInItsSlot()
+    {
+        foreach (var seed in Enumerable.Range(0, 100))
+        {
+            var language = Fresh(seed);
+            foreach (var i in Enumerable.Range(0, 30))
+            {
+                language.Lexicon.Noun($"thing{i}");
+                language.Lexicon.Adjective($"quality{i}");
+                language.Lexicon.Verb($"doing{i}");
+            }
+            var numerals = language.Numerals.Words.Values.Append(language.Numerals.Many).OfType<Lexeme>();
+            var copulas = new[] { language.Predication.Copula, language.Predication.LocationalCopula }.OfType<Lexeme>();
+            (PartOfSpeech PartOfSpeech, IEnumerable<Lexeme> Avoided)[] slots =
+                [(PartOfSpeech.Noun, language.Pronouns.Forms.Values), (PartOfSpeech.Adjective, numerals), (PartOfSpeech.Verb, copulas)];
+
+            foreach (var (partOfSpeech, avoided) in slots)
+            {
+                var taken = avoided.Select(l => Surface(language, l.Root)).ToHashSet();
+                Assert.All(language.Lexicon.Where(l => l.PartOfSpeech == partOfSpeech), l => Assert.DoesNotContain(Surface(language, l.Root), taken));
+            }
+        }
+    }
+
     [Fact]
     public void Coin_NewWords_LeaveTheBasicWordsAlone()
     {

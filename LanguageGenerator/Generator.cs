@@ -25,7 +25,9 @@ public static class Generator
         };
 
         var orthography = SelectOrthography(rand, vowels, consonants);
-        var lexicon = GenerateLexicon(rand, syllableRule, syllableDropoff);
+        //the lexicon's seed and root length are drawn here, so that the draws after them stay where
+        //they were; the lexicon itself is built last, once there are closed classes for it to avoid
+        var (lexiconSeed, extraSyllables) = (rand.Next(), SelectExtraSyllables(rand, syllableRule));
 
         //word order comes first because how isolating a language is, and how much it prefixes, depend on it
         var wordOrder = SelectWordOrder(rand);
@@ -47,6 +49,12 @@ public static class Generator
         predication = GenerateLocationalPredication(rand, predication, phonology, syllableDropoff);
         var numerals = GenerateNumerals(rand, phonology, syllableDropoff);
         var possession = GeneratePossession(rand, morphology, wordOrder, phonology, syllableDropoff);
+        var lexicon = GenerateLexicon(lexiconSeed, extraSyllables, phonology, syllableDropoff, new Dictionary<PartOfSpeech, IEnumerable<Lexeme>>
+        {
+            [PartOfSpeech.Noun] = pronouns.Forms.Values,
+            [PartOfSpeech.Adjective] = [.. numerals.Words.Values, .. numerals.Many is { } many ? [many] : Array.Empty<Lexeme>()],
+            [PartOfSpeech.Verb] = [predication.Copula, .. predication.LocationalCopula is { } locational ? [locational] : Array.Empty<Lexeme>()],
+        });
 
         return new Language
         {
@@ -491,14 +499,27 @@ public static class Generator
     }
 
     //a lexicon that coins each root from its own Random, seeded by the language and the meaning,
-    //so that a root never depends on which other words were coined, or in what order. The basic
-    //meanings are coined up front so that there are words to show
-    public static Lexicon GenerateLexicon(Random rand, SyllableRule rule, double dropoff)
+    //so that a root never depends on which other words were coined, or in what order. A root is
+    //redrawn from that same Random, a few times at most, if it sounds like a closed-class word that
+    //fills the same slot, as a pronoun does a noun's, a numeral an adjective's and a copula a verb's:
+    //'the person saw' and 'you saw' shouldn't sound alike. Homophones in different slots, like
+    //English there and their, are left alone, as languages leave them. The basic meanings are
+    //coined up front so that there are words to show
+    public static Lexicon GenerateLexicon(int seed, double extraSyllables, Phonology phonology, double dropoff, IReadOnlyDictionary<PartOfSpeech, IEnumerable<Lexeme>> closedClasses)
     {
-        var seed = rand.Next();
-        var extraSyllables = SelectExtraSyllables(rand, rule);
+        string Surface(Root root) => string.Concat(phonology.Realize(new Word([root])).Phonemes.Select(p => p.IpaSymbol));
+        var taken = closedClasses.ToDictionary(c => c.Key, c => c.Value.Select(l => Surface(l.Root)).ToHashSet());
+        var rule = phonology.SyllableRule;
         var lexicon = new Lexicon((meaning, partOfSpeech) =>
-            new Root(GenerateForm(Sampling.For(seed, $"{partOfSpeech}:{meaning}"), rule, dropoff, extraSyllables), meaning));
+        {
+            var rand = Sampling.For(seed, $"{partOfSpeech}:{meaning}");
+            var root = new Root(GenerateForm(rand, rule, dropoff, extraSyllables), meaning);
+            for (int attempt = 0; attempt < 10 && taken.TryGetValue(partOfSpeech, out var forms) && forms.Contains(Surface(root)); attempt++)
+            {
+                root = new Root(GenerateForm(rand, rule, dropoff, extraSyllables), meaning);
+            }
+            return root;
+        });
         foreach (var meaning in NounMeanings)
         {
             lexicon.Noun(meaning);
