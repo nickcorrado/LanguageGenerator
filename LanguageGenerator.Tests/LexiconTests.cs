@@ -1,4 +1,4 @@
-namespace LanguageGenerator.Tests;
+﻿namespace LanguageGenerator.Tests;
 
 //these generate their own languages rather than use GeneratedLanguages.Sample, since coining
 //words adds to a lexicon, and the sample is shared
@@ -49,6 +49,17 @@ public class LexiconTests
                 Assert.All(language.Lexicon.Where(l => l.PartOfSpeech == partOfSpeech), l => Assert.DoesNotContain(Surface(language, l.Root), taken));
             }
         }
+    }
+
+    [Fact]
+    public void Coin_InAFrozenLexicon_Throws_ButKnownWordsAreStillThere()
+    {
+        var lexicon = Fresh(3).Lexicon;
+        var dog = lexicon.Noun("dog");
+        lexicon.Freeze();
+
+        Assert.Same(dog, lexicon.Noun("dog"));
+        Assert.Contains("frozen", Assert.Throws<InvalidOperationException>(() => lexicon.Noun("dragon")).Message);
     }
 
     [Fact]

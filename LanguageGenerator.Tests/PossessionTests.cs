@@ -1,4 +1,6 @@
-﻿namespace LanguageGenerator.Tests;
+﻿using static LanguageGenerator.Tests.Sentences;
+
+namespace LanguageGenerator.Tests;
 
 public class PossessionTests
 {
@@ -8,12 +10,6 @@ public class PossessionTests
 
     private static readonly NounPhrase ThePerson = new("person", Number.Singular);
     private static readonly Pronoun Me = new(Person.First, Number.Singular);
-
-    private static int IndexOf(Sentence sentence, Root root) =>
-        sentence.Words.ToList().FindIndex(w => w.Word.Root == root);
-
-    private static int IndexOf(Sentence sentence, string meaning) =>
-        sentence.Words.ToList().FindIndex(w => w.Word.Root?.Meaning == meaning);
 
     private static IEnumerable<string> Glosses(Sentence sentence) => sentence.Words.SelectMany(w => w.Gloss.Split('-', '.', '[', ']'));
 

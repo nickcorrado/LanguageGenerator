@@ -24,18 +24,31 @@ internal static class TestData
         new([.. morphemes.Select((form, i) => i == 0 ? (Morpheme)new Root(form, "dog") : new Affix(form, [Number.Plural]))]);
 }
 
-//generated languages, shared between tests since generating them is the slow part. Seeds are
-//fixed, so tests over them are deterministic
 //a template with no onsets, which no generated language has, for testing what happens at the edges
 internal static class Templates
 {
     public static SyllableTemplate Onsetless { get; } = new(new VowelSlot(), new FinalSlot(0.5));
 }
 
+//finding words in a realized sentence, by meaning or by root
+internal static class Sentences
+{
+    public static int IndexOf(Sentence sentence, string meaning) => sentence.Words.ToList().FindIndex(w => w.Word.Root?.Meaning == meaning);
+    public static int IndexOf(Sentence sentence, Root root) => sentence.Words.ToList().FindIndex(w => w.Word.Root == root);
+}
+
+//generated languages, shared between tests since generating them is the slow part. Seeds are
+//fixed, so tests over them are deterministic. Their lexicons are frozen, since a test that coined
+//a word into one would change what every other test sees; a test that needs new words generates
+//a language of its own
 internal static class GeneratedLanguages
 {
-    private static readonly Lazy<IReadOnlyList<Language>> sample =
-        new(() => [.. Enumerable.Range(0, 300).Select(seed => Generator.Generate(new Random(seed)))]);
+    private static readonly Lazy<IReadOnlyList<Language>> sample = new(() => [.. Enumerable.Range(0, 300).Select(seed =>
+    {
+        var language = Generator.Generate(new Random(seed));
+        language.Lexicon.Freeze();
+        return language;
+    })]);
 
     public static IReadOnlyList<Language> Sample => sample.Value;
 

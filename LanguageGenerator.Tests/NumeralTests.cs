@@ -1,4 +1,6 @@
-﻿namespace LanguageGenerator.Tests;
+﻿using static LanguageGenerator.Tests.Sentences;
+
+namespace LanguageGenerator.Tests;
 
 public class NumeralTests
 {
@@ -85,9 +87,6 @@ public class NumeralTests
     //only the basic meanings, since coining new ones would add to the shared sample's lexicons
     private static Sentence ThreeBigDogsSlept(Language l) =>
         Syntax.Realize(l, new Clause("sleep", Tense.Past, Aspect.Perfective, new NounPhrase("dog", Number.Paucal, [new("big")], Count: 3)), "x");
-
-    private static int IndexOf(Sentence sentence, string meaning) =>
-        sentence.Words.ToList().FindIndex(w => w.Word.Root?.Meaning == meaning);
 
     [Fact]
     public void Realize_Numeral_GoesOutsideTheAdjectivesOnItsSide()

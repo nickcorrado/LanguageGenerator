@@ -1,4 +1,6 @@
-﻿namespace LanguageGenerator.Tests;
+﻿using static LanguageGenerator.Tests.Sentences;
+
+namespace LanguageGenerator.Tests;
 
 public class AdjectiveTests
 {
@@ -7,9 +9,6 @@ public class AdjectiveTests
     //only the basic meanings, since coining new ones would add to the shared sample's lexicons
     private static Sentence Sleep(Language l, NounPhrase subject) =>
         Syntax.Realize(l, new Clause("sleep", Tense.Present, Aspect.Imperfective, subject), "the big old dogs are sleeping");
-
-    private static int IndexOf(Sentence sentence, string meaning) =>
-        sentence.Words.ToList().FindIndex(w => w.Word.Root?.Meaning == meaning);
 
     private static Word WordOf(Sentence sentence, string meaning) => sentence.Words[IndexOf(sentence, meaning)].Word;
 

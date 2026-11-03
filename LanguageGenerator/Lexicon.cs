@@ -16,6 +16,7 @@ public class Lexicon : IEnumerable<Lexeme>
     private readonly List<Lexeme> inOrder = [];
     //languages are shared between threads, as in the tests, and asking for a word can add one
     private readonly Lock gate = new();
+    private bool frozen;
 
     public Lexicon(Func<string, PartOfSpeech, Root> coin)
     {
@@ -32,12 +33,26 @@ public class Lexicon : IEnumerable<Lexeme>
             {
                 if (!lexemes.TryGetValue((meaning, partOfSpeech), out var lexeme))
                 {
+                    if (frozen)
+                    {
+                        throw new InvalidOperationException($"The lexicon is frozen, so it can't coin '{meaning}' ({partOfSpeech}).");
+                    }
                     lexeme = new Lexeme(coin(meaning, partOfSpeech), partOfSpeech);
                     lexemes.Add((meaning, partOfSpeech), lexeme);
                     inOrder.Add(lexeme);
                 }
                 return lexeme;
             }
+        }
+    }
+
+    //from now on, asking for a meaning it doesn't have throws instead of coining it, for a lexicon
+    //that's shared and mustn't grow, like the tests' sample of languages
+    public void Freeze()
+    {
+        lock (gate)
+        {
+            frozen = true;
         }
     }
 

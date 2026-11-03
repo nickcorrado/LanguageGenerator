@@ -1,4 +1,6 @@
-﻿namespace LanguageGenerator.Tests;
+﻿using static LanguageGenerator.Tests.Sentences;
+
+namespace LanguageGenerator.Tests;
 
 public class CopulaTests
 {
@@ -8,9 +10,6 @@ public class CopulaTests
 
     private static Sentence DogIsBig(Language l, Tense tense, bool negative = false) =>
         Syntax.Realize(l, new CopularClause(new Adjective("big"), tense, Aspect.Imperfective, new NounPhrase("dog", Number.Singular), negative), "the dog is big");
-
-    private static int IndexOf(Sentence sentence, string meaning) =>
-        sentence.Words.ToList().FindIndex(w => w.Word.Root?.Meaning == meaning);
 
     private static bool HasCopula(Sentence sentence) => IndexOf(sentence, "COP") >= 0;
 

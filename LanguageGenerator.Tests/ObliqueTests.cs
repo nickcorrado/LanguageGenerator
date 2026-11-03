@@ -1,10 +1,10 @@
-﻿namespace LanguageGenerator.Tests;
+﻿using static LanguageGenerator.Tests.Sentences;
+
+namespace LanguageGenerator.Tests;
 
 public class ObliqueTests
 {
     //only the basic meanings, since coining new ones would add to the shared sample's lexicons
-    private static int IndexOf(Sentence sentence, string meaning) =>
-        sentence.Words.ToList().FindIndex(w => w.Word.Root?.Meaning == meaning);
 
     private static Sentence Walk(Language language, params Oblique[] obliques) =>
         Syntax.Realize(language, new Clause("walk", Tense.Past, Aspect.Perfective, new NounPhrase("dog", Number.Singular), Obliques: [.. obliques]), "x");
