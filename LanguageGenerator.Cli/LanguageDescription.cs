@@ -14,6 +14,7 @@ public static class LanguageDescription
 
     private static void WriteFeatures(Language lang, TextWriter output)
     {
+        output.WriteLine($"{lang.Name}, 'the people' ({lang.Endonym.Gloss})");
         var phonology = lang.Phonology;
         output.WriteLine(phonology.SyllableRule);
         output.WriteLine($"Sandhi: {(phonology.SandhiRules.Count == 0 ? "none" : string.Join(", ", phonology.SandhiRules))}");

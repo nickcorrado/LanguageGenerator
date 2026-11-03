@@ -176,6 +176,9 @@ public static class Syntax
     private static IReadOnlyList<Word> Inflect(Language language, Argument argument, CaseUse role) =>
         Inflect(language, argument, CaseFor(language, language.RoleMarkers[role]));
 
+    //a noun phrase on its own, in the case a noun is cited in, as in a dictionary or a name
+    public static IReadOnlyList<Word> Cited(Language language, NounPhrase phrase) => Inflect(language, phrase, Citation(language));
+
     private static IReadOnlyList<Word> Inflect(Language language, Argument argument, Case @case)
     {
         var nouns = language.Paradigms[PartOfSpeech.Noun];

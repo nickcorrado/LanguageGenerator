@@ -4,7 +4,6 @@
 //that the lexicon can coin roots for new meanings the way Generator would have
 public class Language
 {
-    public string? Name { get; init; }
     public required Phonology Phonology { get; init; }
     public required Orthography Orthography { get; init; }
     public required Lexicon Lexicon { get; init; }
@@ -23,6 +22,17 @@ public class Language
     public required GenderSystem Genders { get; init; }
     public required NumeralSystem Numerals { get; init; }
     public required Possession Possession { get; init; }
+
+    //what the language calls itself: its word for 'people', the plural of 'person', as Bantu is the
+    //plural of -ntu 'person' and Inuit of inuk. A language that doesn't mark the plural calls itself
+    //just 'person', as many do. It's read off the lexicon, so it's always the word the language
+    //itself would say, spelled its own way and capitalized like a name
+    public string Name => Capitalized(Endonym.Spell(Orthography));
+
+    //the word Name spells, for its gloss
+    public SurfaceForm Endonym => Phonology.Realize(Syntax.Cited(this, new NounPhrase("person", Number.Plural)).First(w => w.Root is not null));
+
+    private static string Capitalized(string spelling) => spelling.Length == 0 ? spelling : char.ToUpperInvariant(spelling[0]) + spelling[1..];
 
     //the classic three-way label, for display only, read off what the paradigms actually do:
     //analytic if markers stand alone, fusional if any marker expresses more than one category
