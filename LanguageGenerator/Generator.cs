@@ -106,22 +106,12 @@ public static class Generator
 
         var position = rand.NextDouble() < morphology.PrefixChance ? ExponentPosition.Prefix : ExponentPosition.Suffix;
         var affixes = new Dictionary<(Person, Number), Affix>();
-        var used = new HashSet<string>();
+        var forms = new DistinctForms();
         foreach (var person in new[] { Person.First, Person.Second, Person.Third })
         {
             foreach (var number in new[] { Number.Singular, Number.Plural })
             {
-                var form = new List<Phoneme>();
-                for (int attempt = 0; attempt < 20; attempt++)
-                {
-                    form = rand.NextDouble() < 0.3
-                        ? [phonology.Vowels[Sampling.TruncatedGeometric(rand, phonology.Vowels.Count, dropoff)]]
-                        : [.. GenerateSyllable(rand, phonology.SyllableRule, dropoff).Phonemes];
-                    if (used.Add(string.Join(" ", form.Select(p => p.IpaSymbol))))
-                    {
-                        break;
-                    }
-                }
+                var form = forms.Draw(() => VowelOrSyllable(rand, phonology, dropoff));
                 affixes[(person, number)] = new Affix(form, [person, number, Possessive.Possessed]);
             }
         }
@@ -147,20 +137,9 @@ public static class Generator
         var largestFirst = rand.NextDouble() < 0.8;
         var limit = numeralBase == NumeralBase.Restricted ? rand.Next(3, 6) : NumeralSystem.Largest;
 
-        var used = new HashSet<string>();
-        Lexeme Word(string meaning)
-        {
-            var form = new List<Phoneme>();
-            for (int attempt = 0; attempt < 20; attempt++)
-            {
-                form = GenerateForm(rand, phonology.SyllableRule, dropoff, 0.15, maxSyllables: 2);
-                if (used.Add(string.Join(" ", form.Select(p => p.IpaSymbol))))
-                {
-                    break;
-                }
-            }
-            return new Lexeme(new Root(form, meaning), PartOfSpeech.Numeral);
-        }
+        var forms = new DistinctForms();
+        Lexeme Word(string meaning) =>
+            new(new Root(forms.Draw(() => GenerateForm(rand, phonology.SyllableRule, dropoff, 0.15, maxSyllables: 2)), meaning), PartOfSpeech.Numeral);
 
         var numbers = numeralBase switch
         {
@@ -210,21 +189,10 @@ public static class Generator
         }
 
         var markers = new Dictionary<Gender, Affix>();
-        var used = new HashSet<string>();
+        var forms = new DistinctForms();
         foreach (var (gender, i) in system.Values.Select((g, i) => (g, i)))
         {
-            var form = new List<Phoneme>();
-            for (int attempt = 0; i > 0 && attempt < 20; attempt++)
-            {
-                form = rand.NextDouble() < 0.3
-                    ? [phonology.Vowels[Sampling.TruncatedGeometric(rand, phonology.Vowels.Count, dropoff)]]
-                    : [.. GenerateSyllable(rand, phonology.SyllableRule, dropoff).Phonemes];
-                if (used.Add(string.Join(" ", form.Select(p => p.IpaSymbol))))
-                {
-                    break;
-                }
-            }
-            markers[gender] = new Affix(form, [gender]);
+            markers[gender] = new Affix(i == 0 ? [] : forms.Draw(() => VowelOrSyllable(rand, phonology, dropoff)), [gender]);
         }
         return new GenderSystem { Genders = kind, Assignment = assignment, Markers = markers, MarkerPosition = position, VerbsAgree = verbsAgree };
     }
@@ -260,11 +228,9 @@ public static class Generator
         {
             return predication;
         }
-        var form = GenerateForm(rand, phonology.SyllableRule, dropoff, 0, maxSyllables: 1);
-        for (int attempt = 0; attempt < 10 && form.SequenceEqual(predication.Copula.Root.Form); attempt++)
-        {
-            form = GenerateForm(rand, phonology.SyllableRule, dropoff, 0, maxSyllables: 1);
-        }
+        var forms = new DistinctForms(draws: 11);
+        forms.Take(predication.Copula.Root.Form);
+        var form = forms.Draw(() => GenerateForm(rand, phonology.SyllableRule, dropoff, 0, maxSyllables: 1));
         return predication with { LocationalCopula = new Lexeme(new Root(form, "be.at"), PartOfSpeech.Verb) };
     }
 
@@ -358,20 +324,8 @@ public static class Generator
         ];
 
         var forms = new Dictionary<Pronoun, Lexeme>();
-        var usedForms = new HashSet<string>();
-        List<Phoneme> NewForm()
-        {
-            var form = new List<Phoneme>();
-            for (int attempt = 0; attempt < 20; attempt++)
-            {
-                form = GenerateForm(rand, phonology.SyllableRule, dropoff, 0.15, maxSyllables: 2);
-                if (usedForms.Add(string.Join(" ", form.Select(p => p.IpaSymbol))))
-                {
-                    break;
-                }
-            }
-            return form;
-        }
+        var distinct = new DistinctForms();
+        List<Phoneme> NewForm() => distinct.Draw(() => GenerateForm(rand, phonology.SyllableRule, dropoff, 0.15, maxSyllables: 2));
         foreach (var meaning in meanings)
         {
             var form = NewForm();
@@ -660,7 +614,7 @@ public static class Generator
     private static List<(IReadOnlyList<Tagmeme> Values, Morpheme Exponent)> GenerateExponents(Random rand, List<InflectionalCategory> categories, ExponentPosition position, ZeroMarking zeroMarking, Phonology phonology, double dropoff)
     {
         var exponents = new List<(IReadOnlyList<Tagmeme>, Morpheme)>();
-        var usedForms = new HashSet<string>();
+        var forms = new DistinctForms();
         foreach (var values in Paradigm.Combinations(categories))
         {
             if (zeroMarking.IsZero(values))
@@ -671,22 +625,45 @@ public static class Generator
             //affixes are often a bare consonant (English -s, -t), which is what gives sandhi and cluster
             //repair work to do; particles are words of their own, so they're always a whole syllable
             var bare = position is ExponentPosition.Prefix or ExponentPosition.Suffix && rand.NextDouble() < 0.3;
-            var form = new List<Phoneme>();
-            for (int attempt = 0; attempt < 20; attempt++)
-            {
-                form = bare
-                    ? [phonology.Consonants[Sampling.TruncatedGeometric(rand, phonology.Consonants.Count, dropoff)]]
-                    : [.. GenerateSyllable(rand, phonology.SyllableRule, dropoff).Phonemes];
-                if (usedForms.Add(string.Join(" ", form.Select(p => p.IpaSymbol))))
-                {
-                    break;
-                }
-            }
+            var form = forms.Draw(() => bare
+                ? [phonology.Consonants[Sampling.TruncatedGeometric(rand, phonology.Consonants.Count, dropoff)]]
+                : [.. GenerateSyllable(rand, phonology.SyllableRule, dropoff).Phonemes]);
             Morpheme exponent = position is ExponentPosition.Prefix or ExponentPosition.Suffix ? new Affix(form, values) : new Particle(form, values);
             exponents.Add((values, exponent));
         }
         return exponents;
     }
+
+    //short forms for a closed class of words or affixes, kept distinct from each other where the
+    //phonology allows: each is drawn up to the given number of times until it's one not yet taken,
+    //and if every draw repeats one, the last is kept, as real languages keep some syncretism
+    private sealed class DistinctForms(int draws = 20)
+    {
+        private readonly HashSet<string> taken = [];
+
+        public void Take(IEnumerable<Phoneme> form) => taken.Add(Key(form));
+
+        public List<Phoneme> Draw(Func<List<Phoneme>> draw)
+        {
+            var form = new List<Phoneme>();
+            for (int attempt = 0; attempt < draws; attempt++)
+            {
+                form = draw();
+                if (taken.Add(Key(form)))
+                {
+                    break;
+                }
+            }
+            return form;
+        }
+
+        private static string Key(IEnumerable<Phoneme> form) => string.Join(" ", form.Select(p => p.IpaSymbol));
+    }
+
+    //a short affix: a lone vowel 30% of the time, and otherwise a syllable
+    private static List<Phoneme> VowelOrSyllable(Random rand, Phonology phonology, double dropoff) => rand.NextDouble() < 0.3
+        ? [phonology.Vowels[Sampling.TruncatedGeometric(rand, phonology.Vowels.Count, dropoff)]]
+        : [.. GenerateSyllable(rand, phonology.SyllableRule, dropoff).Phonemes];
 
     public static Syllable GenerateSyllable(Random rand, SyllableRule rule, double dropoff)
     {
@@ -996,15 +973,12 @@ public static class Generator
     {
         var instrumentalIsComitative = Sampling.Categorical(rand, ComitativeIsInstrumentalCounts);
         var words = new Dictionary<string, Lexeme>();
+        var forms = new DistinctForms(draws: 11);
         Lexeme Word(string meaning)
         {
             if (!words.TryGetValue(meaning, out var lexeme))
             {
-                var form = GenerateForm(rand, phonology.SyllableRule, dropoff, 0, maxSyllables: 1);
-                for (int attempt = 0; attempt < 10 && words.Values.Any(w => w.Root.Form.SequenceEqual(form)); attempt++)
-                {
-                    form = GenerateForm(rand, phonology.SyllableRule, dropoff, 0, maxSyllables: 1);
-                }
+                var form = forms.Draw(() => GenerateForm(rand, phonology.SyllableRule, dropoff, 0, maxSyllables: 1));
                 lexeme = words[meaning] = new Lexeme(new Root(form, meaning), PartOfSpeech.Adposition);
             }
             return lexeme;
