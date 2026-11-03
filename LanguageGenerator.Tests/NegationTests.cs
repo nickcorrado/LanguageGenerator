@@ -1,4 +1,4 @@
-namespace LanguageGenerator.Tests;
+﻿namespace LanguageGenerator.Tests;
 
 public class NegationTests
 {
@@ -6,7 +6,7 @@ public class NegationTests
         Syntax.Realize(l, new Clause("see", Tense.Past, Aspect.Perfective, new NounPhrase("dog", Number.Singular), new NounPhrase("cat", Number.Singular), negative), "the dog didn't see the cat");
 
     //which word is the verb itself, rather than a particle or an argument
-    private static int VerbIndex(Sentence sentence) => sentence.Words.ToList().FindIndex(w => w.Word.Morphemes.Any(m => m.Value is Root { Meaning: "see" }));
+    private static int VerbIndex(Sentence sentence) => sentence.Words.ToList().FindIndex(w => w.Word.Root?.Meaning == "see");
 
     [Fact]
     public void GenerateNegation_ManyDraws_MatchTheWalsCounts()

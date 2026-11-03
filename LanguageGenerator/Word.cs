@@ -6,6 +6,9 @@
 //features the word has but no morpheme expresses, like the singular of most nouns
 public record Word(IReadOnlyList<Morpheme> Morphemes, IReadOnlyList<Tagmeme>? Covert = null)
 {
+    //the word's root, if it has one: a particle's word doesn't
+    public Root? Root => Morphemes.Select(m => m.Value).OfType<Root>().FirstOrDefault();
+
     public string Spell(Orthography orthography) => string.Concat(Morphemes.Select(m => m.Spell(orthography)));
 
     // https://www.eva.mpg.de/lingua/resources/glossing-rules.php

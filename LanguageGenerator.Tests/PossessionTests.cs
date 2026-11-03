@@ -10,10 +10,10 @@ public class PossessionTests
     private static readonly Pronoun Me = new(Person.First, Number.Singular);
 
     private static int IndexOf(Sentence sentence, Root root) =>
-        sentence.Words.ToList().FindIndex(w => w.Word.Morphemes.Any(m => m.Value is Root r && r == root));
+        sentence.Words.ToList().FindIndex(w => w.Word.Root == root);
 
     private static int IndexOf(Sentence sentence, string meaning) =>
-        sentence.Words.ToList().FindIndex(w => w.Word.Morphemes.Any(m => m.Value is Root r && r.Meaning == meaning));
+        sentence.Words.ToList().FindIndex(w => w.Word.Root?.Meaning == meaning);
 
     private static IEnumerable<string> Glosses(Sentence sentence) => sentence.Words.SelectMany(w => w.Gloss.Split('-', '.', '[', ']'));
 
@@ -96,7 +96,7 @@ public class PossessionTests
     {
         Assert.All(GeneratedLanguages.Sample.Where(l => l.Possession.MarksPossessed), l =>
         {
-            var word = Slept(l, Me, Number.Plural).Words.Select(w => w.Word).First(w => w.Morphemes.Any(m => m.Value is Root { Meaning: "dog" }));
+            var word = Slept(l, Me, Number.Plural).Words.Select(w => w.Word).First(w => w.Root?.Meaning == "dog");
             var morphemes = word.Morphemes.ToList();
             var root = morphemes.FindIndex(m => m.Value is Root);
             var possessive = morphemes.FindIndex(m => m.Value is Affix { Tagmemes: [Person, Number, Possessive] });

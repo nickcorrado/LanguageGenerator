@@ -131,7 +131,7 @@ public static class Syntax
         var gender = genders.VerbsAgree ? GenderOf(language, subject) : null;
         if (gender is not null)
         {
-            var main = words.FindIndex(w => w.Morphemes.Any(m => m.Value is Root));
+            var main = words.FindIndex(w => w.Root is not null);
             words[main] = genders.Agree(words[main], gender, nextToRoot: false);
         }
         return negative ? language.Negation.Apply(words) : words;
@@ -144,7 +144,7 @@ public static class Syntax
 
     //what a verb or adjective agrees with: a noun is third person, in the number of its word, so
     //that a verb is singular with 'three wolf' too, as in Hungarian
-    private static (Person Person, Number Number) AgreementOf(Language language, Argument argument) => argument.Value switch
+    private static (Person Person, Number Number) AgreementOf(Language language, Argument argument) => argument switch
     {
         NounPhrase n => (Person.Third, NumberOf(language, n)),
         Pronoun p => (p.Person, p.Number),
@@ -165,7 +165,7 @@ public static class Syntax
     private static Word AgreeingAdjective(Language language, Lexeme adjective, IReadOnlyList<Tagmeme> features, Gender? gender)
     {
         var inflected = language.Paradigms[PartOfSpeech.Noun].Inflect(adjective with { PartOfSpeech = PartOfSpeech.Noun }, features);
-        var word = inflected.First(w => w.Morphemes.Any(m => m.Value is Root)) with { Covert = null };
+        var word = inflected.First(w => w.Root is not null) with { Covert = null };
         return gender is null ? word : language.Genders.Agree(word, gender, nextToRoot: true);
     }
 
@@ -204,7 +204,7 @@ public static class Syntax
         if (possession.MarksPossessed)
         {
             var root = language.Lexicon.Noun(phrase.Noun).Root;
-            var at = possessed.FindIndex(w => w.Morphemes.Any(m => m.Value is Root r && r == root));
+            var at = possessed.FindIndex(w => w.Root == root);
             var (person, number) = AgreementOf(language, possessor);
             possessed[at] = possession.Agree(possessed[at], person, number);
         }
@@ -228,7 +228,7 @@ public static class Syntax
         {
             return noun;
         }
-        var main = noun.ToList().FindIndex(w => w.Morphemes.Any(m => m.Value is Root));
+        var main = noun.ToList().FindIndex(w => w.Root is not null);
         var head = noun[main];
         var agreement = language.AdjectiveAgreement;
 

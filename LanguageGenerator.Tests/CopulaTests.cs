@@ -10,7 +10,7 @@ public class CopulaTests
         Syntax.Realize(l, new CopularClause(new Adjective("big"), tense, Aspect.Imperfective, new NounPhrase("dog", Number.Singular), negative), "the dog is big");
 
     private static int IndexOf(Sentence sentence, string meaning) =>
-        sentence.Words.ToList().FindIndex(w => w.Word.Morphemes.Any(m => m.Value is Root r && r.Meaning == meaning));
+        sentence.Words.ToList().FindIndex(w => w.Word.Root?.Meaning == meaning);
 
     private static bool HasCopula(Sentence sentence) => IndexOf(sentence, "COP") >= 0;
 
@@ -187,7 +187,7 @@ public class CopulaTests
             switch (language.RoleMarkers[CaseUse.Location].Value)
             {
                 case Adposition a:
-                    Assert.Contains(sentence.Words, w => w.Word.Morphemes.Any(m => m.Value is Root r && r == a.Lexeme.Root));
+                    Assert.Contains(sentence.Words, w => w.Word.Root == a.Lexeme.Root);
                     break;
                 case Case c:
                     Assert.Contains(sentence.Words, w => w.Gloss.Split('-', '.', '[', ']').Contains(c.Gloss));
@@ -240,7 +240,7 @@ public class CopulaTests
 
             //agreement may be on the copula or a particle of its own, but never on the pronoun's word
             var pronoun = language.Pronouns.For(we).Root;
-            Assert.Contains(sentence.Words, w => !w.Word.Morphemes.Any(m => m.Value is Root r && r == pronoun) && w.Gloss.Contains("1PL"));
+            Assert.Contains(sentence.Words, w => w.Word.Root != pronoun && w.Gloss.Contains("1PL"));
         }
     }
 }

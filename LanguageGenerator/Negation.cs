@@ -1,4 +1,4 @@
-namespace LanguageGenerator;
+﻿namespace LanguageGenerator;
 
 //WALS 143A: how a language negates a clause, by what kind of marker and where it goes
 public enum NegationStrategy
@@ -24,7 +24,7 @@ public record Negation(NegationStrategy Strategy, IReadOnlyList<(ExponentPositio
     {
         var words = verb.ToList();
         //the verb itself, as opposed to its particles
-        var main = words.FindIndex(w => w.Morphemes.Any(m => m.Value is Root));
+        var main = words.FindIndex(w => w.Root is not null);
         foreach (var (position, marker) in Markers)
         {
             switch (position)

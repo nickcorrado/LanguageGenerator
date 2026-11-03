@@ -9,7 +9,7 @@ public class AdjectiveTests
         Syntax.Realize(l, new Clause("sleep", Tense.Present, Aspect.Imperfective, subject), "the big old dogs are sleeping");
 
     private static int IndexOf(Sentence sentence, string meaning) =>
-        sentence.Words.ToList().FindIndex(w => w.Word.Morphemes.Any(m => m.Value is Root r && r.Meaning == meaning));
+        sentence.Words.ToList().FindIndex(w => w.Word.Root?.Meaning == meaning);
 
     private static Word WordOf(Sentence sentence, string meaning) => sentence.Words[IndexOf(sentence, meaning)].Word;
 

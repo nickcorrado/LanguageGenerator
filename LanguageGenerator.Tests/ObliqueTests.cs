@@ -1,10 +1,10 @@
-namespace LanguageGenerator.Tests;
+﻿namespace LanguageGenerator.Tests;
 
 public class ObliqueTests
 {
     //only the basic meanings, since coining new ones would add to the shared sample's lexicons
     private static int IndexOf(Sentence sentence, string meaning) =>
-        sentence.Words.ToList().FindIndex(w => w.Word.Morphemes.Any(m => m.Value is Root r && r.Meaning == meaning));
+        sentence.Words.ToList().FindIndex(w => w.Word.Root?.Meaning == meaning);
 
     private static Sentence Walk(Language language, params Oblique[] obliques) =>
         Syntax.Realize(language, new Clause("walk", Tense.Past, Aspect.Perfective, new NounPhrase("dog", Number.Singular), Obliques: [.. obliques]), "x");
@@ -79,11 +79,11 @@ public class ObliqueTests
                         break;
                     case Adposition a:
                         //the adposition is at the phrase's edge, with nothing of the clause's between it and the noun
-                        var at = sentence.Words.ToList().FindIndex(w => w.Word.Morphemes.Any(m => m.Value is Root r && r == a.Lexeme.Root));
+                        var at = sentence.Words.ToList().FindIndex(w => w.Word.Root == a.Lexeme.Root);
                         Assert.Equal(a.Gloss, sentence.Words[at].Gloss);
                         Assert.True(a.Type == AdpositionType.Preposition ? at < stone : at > stone);
                         var between = sentence.Words.Skip(Math.Min(at, stone) + 1).Take(Math.Abs(at - stone) - 1);
-                        Assert.DoesNotContain(between, w => w.Word.Morphemes.Any(m => m.Value is Root));
+                        Assert.DoesNotContain(between, w => w.Word.Root is not null);
                         break;
                     default:
                         Assert.Fail($"{role} has no marker.");
@@ -147,7 +147,7 @@ public class ObliqueTests
         Assert.All(dropping, l =>
         {
             var root = l.Pronouns.For(you).Root;
-            Assert.Contains(Walk(l, new Oblique(CaseUse.Accompaniment, you)).Words, w => w.Word.Morphemes.Any(m => m.Value is Root r && r == root));
+            Assert.Contains(Walk(l, new Oblique(CaseUse.Accompaniment, you)).Words, w => w.Word.Root == root);
         });
     }
 

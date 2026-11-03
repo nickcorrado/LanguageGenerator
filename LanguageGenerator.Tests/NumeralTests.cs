@@ -1,4 +1,4 @@
-namespace LanguageGenerator.Tests;
+﻿namespace LanguageGenerator.Tests;
 
 public class NumeralTests
 {
@@ -87,7 +87,7 @@ public class NumeralTests
         Syntax.Realize(l, new Clause("sleep", Tense.Past, Aspect.Perfective, new NounPhrase("dog", Number.Paucal, [new("big")], Count: 3)), "x");
 
     private static int IndexOf(Sentence sentence, string meaning) =>
-        sentence.Words.ToList().FindIndex(w => w.Word.Morphemes.Any(m => m.Value is Root r && r.Meaning == meaning));
+        sentence.Words.ToList().FindIndex(w => w.Word.Root?.Meaning == meaning);
 
     [Fact]
     public void Realize_Numeral_GoesOutsideTheAdjectivesOnItsSide()

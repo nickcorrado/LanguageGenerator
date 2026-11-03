@@ -118,7 +118,7 @@ public class GenderTests
             {
                 var gender = language.Genders.Of(language.Lexicon.Noun(noun))!;
                 var sentence = Syntax.Realize(language, new Clause("sleep", Tense.Present, Aspect.Imperfective, new NounPhrase(noun, Number.Singular, [new("big")])), "x");
-                var big = sentence.Words.Single(w => w.Word.Morphemes.Any(m => m.Value is Root { Meaning: "big" })).Word;
+                var big = sentence.Words.Single(w => w.Word.Root?.Meaning == "big").Word;
 
                 Assert.Equal(language.Genders.Markers![gender].Form.Count == 0 ? [] : [gender.Gloss], GenderGlosses(big));
             }
@@ -133,7 +133,7 @@ public class GenderTests
             var sentence = Syntax.Realize(language, new Clause("sleep", Tense.Present, Aspect.Imperfective, new NounPhrase("sun", Number.Singular, [new("big")])), "x");
 
             //the verb may agree in gender, but the adjective doesn't
-            var big = sentence.Words.Single(w => w.Word.Morphemes.Any(m => m.Value is Root { Meaning: "big" })).Word;
+            var big = sentence.Words.Single(w => w.Word.Root?.Meaning == "big").Word;
             Assert.Empty(GenderGlosses(big));
         }
     }
@@ -150,7 +150,7 @@ public class GenderTests
             {
                 var gender = subject.Value is NounPhrase n ? l.Genders.Of(l.Lexicon.Noun(n.Noun))! : l.Genders.Values[^1];
                 var sentence = Syntax.Realize(l, new Clause("sleep", Tense.Present, Aspect.Imperfective, subject), "x");
-                var sleep = sentence.Words.Single(w => w.Word.Morphemes.Any(m => m.Value is Root { Meaning: "sleep" })).Word;
+                var sleep = sentence.Words.Single(w => w.Word.Root?.Meaning == "sleep").Word;
 
                 Assert.Equal(l.Genders.Markers![gender].Form.Count == 0 ? [] : [gender.Gloss], GenderGlosses(sleep));
             }

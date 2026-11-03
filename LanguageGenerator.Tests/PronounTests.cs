@@ -196,7 +196,7 @@ public class PronounTests
             if (Agrees(language))
             {
                 var pronoun = language.Pronouns.For(I).Root;
-                Assert.Contains(sentence.Words, w => !w.Word.Morphemes.Any(m => m.Value is Root r && r == pronoun) && w.Gloss.Contains("1SG"));
+                Assert.Contains(sentence.Words, w => w.Word.Root != pronoun && w.Gloss.Contains("1SG"));
             }
         }
     }
