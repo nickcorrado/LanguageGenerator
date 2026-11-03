@@ -7,7 +7,6 @@ public static partial class Generator
 {
     public static Language Generate(Random rand)
     {
-        //all percentage chances in this program should bubble up somehow, so that they can be easily tweaked in one place
         var syllableDropoff = 0.15;
 
         var vowels = GenerateVowels(rand, 0.15, 0.30);

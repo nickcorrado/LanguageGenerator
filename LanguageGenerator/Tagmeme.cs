@@ -56,10 +56,6 @@ public record Voice(string Name, string Gloss) : Tagmeme(Name, Gloss)
     public static Voice Passive { get; } = new("Passive", "PASS");
 }
 
-//If there are any cases at all, then nominative/accusative or ergative/absolutive
-//is a must. After that, there's a chance of adding the genitive, the dative, etc.
-//The other option, of course, is an adposition. So maybe those should be generated
-//together?
 public record Case(string Name, string Gloss) : Tagmeme(Name, Gloss)
 {
     public static Case Nominative { get; } = new("Nominative", "NOM");
@@ -102,8 +98,9 @@ public enum MorphosyntacticAlignment
 {
     NominativeAccusative,
     ErgativeAbsolutive,
-    //split ergative? ugh, sounds like too much trouble
-    None //do we need this?
+    //TODO split ergativity, where a language is ergative in some tenses, aspects or persons and
+    //accusative in the rest, as Hindi is ergative only in the perfective
+    None
 }
 
 public record Person(string Name, string Gloss) : Tagmeme(Name, Gloss)

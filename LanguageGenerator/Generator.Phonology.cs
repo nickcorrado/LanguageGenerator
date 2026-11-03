@@ -64,7 +64,6 @@ public static partial class Generator
         return syllable;
     }
 
-    //only one rule now!
     public static SyllableRule SelectSyllableRule(Random rand, List<Vowel> vowels, List<Consonant> consonants)
     {
         var template = SyllableTemplates.All[rand.Next(SyllableTemplates.All.Count)];

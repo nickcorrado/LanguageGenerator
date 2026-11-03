@@ -100,6 +100,15 @@ dotnet test
 
 runs the xUnit tests. Besides unit tests, they generate a sample of 300 languages and check properties every one must have, like every surface syllable being legal under its language's rules.
 
+## What it leaves out
+
+Some of what real languages do is out of scope, by design:
+
+- **Tone.** Syllables carry no tone or pitch accent.
+- **Syllabic consonants.** Every syllable's nucleus is a vowel, so there's no Czech *vlk* 'wolf'.
+- **Rarer consonants.** Inventories are drawn from common places and manners of articulation, with no clicks, ejectives or implosives.
+- **Polysynthesis.** Morphology runs from analytic through agglutinative to fusional; no language builds whole clauses into one word, as polysynthetic languages do, and none is oligosynthetic, a type whose existence is doubted anyway.
+
 ## What's next
 
 - **Running real text through the front end,** to see which grammar it most often can't express yet.

@@ -1,6 +1,5 @@
 ﻿namespace LanguageGenerator;
 
-//I figure this is the top-level object
 //a plain description of a language: everything Generator chose, and nothing about how, except
 //that the lexicon can coin roots for new meanings the way Generator would have
 public class Language
@@ -41,7 +40,6 @@ public enum Morphology
     Analytic,
     Fusional,
     Agglutinative,
-    //planning to leave out polysynthetic or the dubious oligosynthetic
 }
 
 //WALS 20A: whether grammatical markers are bound to words or stand alone. Not to be confused

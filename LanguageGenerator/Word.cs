@@ -28,8 +28,6 @@ public record Word(IReadOnlyList<Morpheme> Morphemes, IReadOnlyList<Tagmeme>? Co
 public record Lexeme(Root Root, PartOfSpeech PartOfSpeech);
 
 //n.b. not every language has all these. A language might not have articles!
-//I'm thinking I make a closed class of conjunctions, and probably adpositions,
-//corresponding to what's found in English
 public enum PartOfSpeech
 {
     Noun,

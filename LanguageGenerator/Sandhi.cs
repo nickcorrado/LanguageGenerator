@@ -1,9 +1,5 @@
 ﻿namespace LanguageGenerator;
 
-//this class, I think, should have a method or methods that take in
-//words or maybe syllables and modifies them according to some hard-
-//coded rules about how sounds meet.
-//all of this will be internal sandhi
 public static class Sandhi
 {
     //if a word has doubled phonemes in the onset, like ppa or nokks,

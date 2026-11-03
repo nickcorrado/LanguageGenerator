@@ -18,7 +18,6 @@ public class Phonology
 {
     public required List<Vowel> Vowels { get; init; }
     public required List<Consonant> Consonants { get; init; }
-    //only one rule now!
     public required SyllableRule SyllableRule { get; init; }
     //applied in order across the whole word, before clusters are repaired
     public required List<SandhiRule> SandhiRules { get; init; }

@@ -2,9 +2,6 @@
 
 namespace LanguageGenerator;
 
-//syllables can also carry tones, but there's no
-//way I'm including that, at least for now
-//apparently nuclei can be a syllabic consonant, but we're not doing that
 public record Syllable(ConsonantCluster Onset, Vowel Nucleus, Consonant? Coda)
 {
     public string Spell(Orthography orthography) => orthography.Spell(Phonemes);

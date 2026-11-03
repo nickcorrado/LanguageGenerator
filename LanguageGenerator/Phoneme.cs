@@ -93,7 +93,6 @@ public enum VowelFrontness
     Front, Central, Back
 }
 
-//TODO add more exotic stuff like clicks
 public enum ConsonantPlace
 {
     Labial, LabioDental, Dental, //more denti-alveolar

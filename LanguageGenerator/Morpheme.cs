@@ -1,7 +1,6 @@
 ﻿namespace LanguageGenerator;
 
 //forms are underlying: the phonemes before sandhi applies at morpheme boundaries
-//n.b. when this collides with other sounds, weird things happen!
 
 //a free morpheme with its own meaning, glossed by that meaning
 public record Root(IReadOnlyList<Phoneme> Form, string Meaning);
