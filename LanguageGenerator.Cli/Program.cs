@@ -124,6 +124,13 @@ Console.WriteLine($"Copula: {copula}{(predication.ZeroCopula ? ", dropped in the
 Console.WriteLine(predication.LocationalCopula is { } locational
     ? $"Locational copula: {phonology.Realize(new Word([locational.Root])).Spell(orthography)}"
     : "Locations take the copula too");
+var numerals = lang.Numerals;
+string Say(int n) => string.Join(" ", numerals.Say(n).Select(w => phonology.Realize(new Word([w.Root])).Spell(orthography)));
+var counting = numerals.Base == NumeralBase.Restricted
+    ? $"up to {numerals.Limit}, then 'many'"
+    : $"{numerals.Base.ToString().ToLowerInvariant()}, {(numerals.LargestFirst ? "largest" : "units")} first";
+Console.WriteLine($"Numerals ({counting}; {(numerals.BeforeNoun ? "before" : "after")} the noun{(numerals.NounStaysSingular ? ", which stays singular" : "")}):");
+Console.WriteLine("  " + string.Join(", ", ((int[])[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 20, 37, 100]).Select(n => $"{n} {Say(n)}")));
 
 //each paradigm, shown on the first lexeme that uses it, and the pronouns' on 1SG. Spelled surface
 //forms come first, with the underlying form after them in IPA wherever sandhi or cluster repair
@@ -161,6 +168,7 @@ NounPhrase Phrase(string noun, Number number) => new(noun, number);
     (new("sleep", Tense.Past, Aspect.Imperfective, Phrase("dog", Number.Singular), Obliques: [new(CaseUse.Location, new NounPhrase("house", Number.Singular, [new("big")]))]), "the dog was sleeping in the big house"),
     (new("give", Tense.Past, Aspect.Perfective, Phrase("person", Number.Singular), Phrase("fish", Number.Singular), Obliques: [new(CaseUse.IndirectObject, Phrase("cat", Number.Plural))]), "the person gave the fish to the cats"),
     (new("walk", Tense.Past, Aspect.Perfective, new Pronoun(Person.First, Number.Singular), Obliques: [new(CaseUse.MovementFrom, Phrase("tree", Number.Singular)), new(CaseUse.MovementTo, Phrase("water", Number.Singular)), new(CaseUse.Accompaniment, new Pronoun(Person.Second, Number.Singular))]), "I walked from the tree to the water with you"),
+    (new("see", Tense.Past, Aspect.Perfective, Phrase("person", Number.Singular), new NounPhrase("dog", ClauseFile.NumberFor(3), [new("big")], Count: 3)), "the person saw three big dogs"),
 ];
 (CopularClause Clause, string Translation)[] copular =
 [

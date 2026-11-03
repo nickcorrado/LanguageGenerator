@@ -4,16 +4,17 @@
 //language's lexicon turns into its own roots. Realizing one in a language is where all of that
 //language's choices (word order, role markers, paradigms, phonology) come together
 //TODO definiteness: there are no articles in the lexicon yet, so "the" only shows in translations
-//a noun, and any adjectives modifying it, in the order they're said in English
-public record NounPhrase(string Noun, Number Number, IReadOnlyList<Adjective>? Modifiers = null)
+//a noun, and any adjectives modifying it, in the order they're said in English, and how many of it
+//there are, if a numeral says, as in 'three wolves'
+public record NounPhrase(string Noun, Number Number, IReadOnlyList<Adjective>? Modifiers = null, int? Count = null)
 {
     public IReadOnlyList<Adjective> Adjectives => Modifiers ?? [];
 
     //by value, adjectives and all, so that two phrases saying the same thing are equal
     public virtual bool Equals(NounPhrase? other) =>
-        other is not null && Noun == other.Noun && Number == other.Number && Adjectives.SequenceEqual(other.Adjectives);
+        other is not null && Noun == other.Noun && Number == other.Number && Count == other.Count && Adjectives.SequenceEqual(other.Adjectives);
 
-    public override int GetHashCode() => Adjectives.Aggregate(HashCode.Combine(Noun, Number), HashCode.Combine);
+    public override int GetHashCode() => Adjectives.Aggregate(HashCode.Combine(Noun, Number, Count), HashCode.Combine);
 }
 //what fills a role: a noun phrase, or a pronoun
 public union Argument(NounPhrase, Pronoun)
@@ -125,7 +126,7 @@ public static class Syntax
             NounPhrase noun => Inflect(language, noun, CaseUse.IntransitiveSubject),
             Adjective adjective when language.AdjectiveAgreement == AdjectiveAgreement.Agreement =>
                 [AgreeingAdjective(language, language.Lexicon.Adjective(adjective.Meaning),
-                    Features(language.Paradigms[PartOfSpeech.Noun], [clause.Subject.Agreement.Number, CaseFor(language, language.RoleMarkers[CaseUse.IntransitiveSubject])]),
+                    Features(language.Paradigms[PartOfSpeech.Noun], [AgreementOf(language, clause.Subject).Number, CaseFor(language, language.RoleMarkers[CaseUse.IntransitiveSubject])]),
                     GenderOf(language, clause.Subject))],
             Adjective adjective => [new Word([language.Lexicon.Adjective(adjective.Meaning).Root])],
             _ => throw new ArgumentException("A copular clause needs a complement.", nameof(clause)),
@@ -143,7 +144,7 @@ public static class Syntax
     //the verb agrees with its subject. TODO many ergative languages agree with the absolutive instead
     private static IReadOnlyList<Word> Verb(Language language, Lexeme verb, Tense tense, Aspect aspect, Argument subject, bool negative)
     {
-        var (person, number) = subject.Agreement;
+        var (person, number) = AgreementOf(language, subject);
         var paradigm = language.Paradigms[PartOfSpeech.Verb];
         var words = paradigm.Inflect(verb, Features(paradigm, [tense, aspect, person, number])).ToList();
         var genders = language.Genders;
@@ -155,6 +156,19 @@ public static class Syntax
         }
         return negative ? language.Negation.Apply(words) : words;
     }
+
+    //the number a noun takes: its own, unless a numeral leaves it singular, as in Turkish üç kurt
+    //'three wolf'
+    private static Number NumberOf(Language language, NounPhrase phrase) =>
+        phrase.Count is not null && language.Numerals.NounStaysSingular ? Number.Singular : phrase.Number;
+
+    //what a verb or adjective agrees with: the person and number of the subject's word, so that a
+    //verb is singular with 'three wolf' too, as in Hungarian
+    private static (Person Person, Number Number) AgreementOf(Language language, Argument argument) => argument.Value switch
+    {
+        NounPhrase n => (Person.Third, NumberOf(language, n)),
+        _ => argument.Agreement,
+    };
 
     //the gender something agrees with: a noun's own, or a pronoun's, if the language has that gender.
     //A pronoun with no gender given has none to agree with, since what it refers to isn't known
@@ -186,19 +200,20 @@ public static class Syntax
         var pronouns = language.Pronouns.Paradigm;
         return argument switch
         {
-            NounPhrase phrase => Modified(language, phrase, Features(nouns, [phrase.Number, @case])),
+            NounPhrase phrase => Modified(language, phrase, Features(nouns, [NumberOf(language, phrase), @case])),
             Pronoun pronoun => pronouns.Inflect(language.Pronouns.For(pronoun), Features(pronouns, [@case])),
         };
     }
 
     //the noun's words with its adjectives placed around it: after the noun in a language whose noun
     //phrases are head-initial, before it in one whose are head-final, in the order given either way.
-    //The noun's particles stay outside the whole phrase
+    //A numeral goes outside them, before or after, as the language puts numerals, so that 'three big
+    //wolves' is either three big wolf or wolf big three. The noun's particles stay outside it all
     private static IReadOnlyList<Word> Modified(Language language, NounPhrase phrase, IReadOnlyList<Tagmeme> features)
     {
         var nounLexeme = language.Lexicon.Noun(phrase.Noun);
         var noun = language.Paradigms[PartOfSpeech.Noun].Inflect(nounLexeme, features);
-        if (phrase.Adjectives.Count == 0)
+        if (phrase.Adjectives.Count == 0 && phrase.Count is null)
         {
             return noun;
         }
@@ -216,13 +231,20 @@ public static class Syntax
 
         var headFirst = language.WordOrder.NounPhraseDirectionality == HeadDirectionality.Initial;
         List<Word> words = headFirst ? [head, .. adjectives] : [.. adjectives, head];
+        var at = headFirst ? 0 : words.Count - 1;
+        if (phrase.Count is { } count)
+        {
+            var numerals = language.Numerals;
+            List<Word> numeral = [.. numerals.Say(count).Select(n => new Word([n.Root]))];
+            words = numerals.BeforeNoun ? [.. numeral, .. words] : [.. words, .. numeral];
+            at += numerals.BeforeNoun ? numeral.Count : 0;
+        }
         if (agreement == AdjectiveAgreement.Phrasal)
         {
             //the noun's affixes move to the edges of the phrase
             var root = head.Morphemes.ToList().FindIndex(m => m.Value is Root);
             var prefixes = head.Morphemes.Take(root).ToList();
             var suffixes = head.Morphemes.Skip(root + 1).ToList();
-            var at = headFirst ? 0 : words.Count - 1;
             words[at] = head with { Morphemes = [head.Morphemes[root]] };
             words[0] = words[0] with { Morphemes = [.. prefixes, .. words[0].Morphemes] };
             words[^1] = words[^1] with { Morphemes = [.. words[^1].Morphemes, .. suffixes] };

@@ -45,6 +45,30 @@ public class ClauseFileTests
         Assert.Equal(use, Assert.Single(Verbal(Single($"x\n  see subject:dog object:cat {role}:stone")).Adjuncts).Role);
     }
 
+    [Theory]
+    [InlineData("(wolf 1)", 1, "Singular")]
+    [InlineData("(wolf 2)", 2, "Dual")]
+    [InlineData("(wolf 3 gray)", 3, "Paucal")]
+    [InlineData("(wolf big 12)", 12, "Plural")]
+    [InlineData("(wolf.PL 2)", 2, "Plural")]
+    public void Parse_Number_CountsTheNounAndGivesItANumber(string phrase, int count, string number)
+    {
+        var subject = Assert.IsType<NounPhrase>(Verbal(Single($"x\n  sleep subject:{phrase}")).Subject.Value);
+
+        Assert.Equal(count, subject.Count);
+        Assert.Equal(number, subject.Number.Name);
+    }
+
+    [Theory]
+    [InlineData("x\n  sleep subject:(wolf three)", "Write numbers in digits")]
+    [InlineData("x\n  sleep subject:(wolf 2 3)", "more than one number")]
+    [InlineData("x\n  sleep subject:(wolf 0)", "from 1 to 999")]
+    [InlineData("x\n  sleep subject:(wolf 1000)", "from 1 to 999")]
+    public void Parse_BadNumbers_SayWhy(string text, string message)
+    {
+        Assert.Contains(message, Error(text).Message);
+    }
+
     [Fact]
     public void Parse_NegativeVerb_NegatesTheClause()
     {

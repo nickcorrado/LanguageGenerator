@@ -22,6 +22,7 @@ public class Language
     public required Predication Predication { get; init; }
     public required AdjectiveAgreement AdjectiveAgreement { get; init; }
     public required GenderSystem Genders { get; init; }
+    public required NumeralSystem Numerals { get; init; }
 
     //the classic three-way label, for display only, read off what the paradigms actually do:
     //analytic if markers stand alone, fusional if any marker expresses more than one category

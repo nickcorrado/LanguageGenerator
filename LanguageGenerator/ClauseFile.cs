@@ -14,11 +14,12 @@ namespace LanguageGenerator;
 //The indented line is the verb, then its arguments in any order as role:noun, each word an English
 //meaning with Leipzig glosses joined by periods, as in a gloss line. A pronoun is its person and
 //number instead, as in subject:1SG, object:1PL.INCL or subject:3SG.F, and a noun with adjectives
-//is in parentheses, noun first, as in object:(dog.PL big old). The verb be says what its
-//subject is, with noun:fool or adjective:locked in place of an object, or where it is, with
-//location:house. Obliques say where, to where,
-//from where, to whom, with whom and with what, as location:house, goal:river, source:(village old),
-//recipient:dog, companion:1PL and instrument:knife, in the order they're said. Anything not given takes its
+//or a number is in parentheses, noun first, as in object:(dog.PL big old) or subject:(wolf 3 gray).
+//A number is in digits, and gives the noun its number when the noun doesn't: two is dual and a few
+//paucal. The verb be says what its subject is, with noun:fool or adjective:locked in place of an
+//object, or where it is, with location:house. Obliques say where, to where, from where, to whom,
+//with whom and with what, as location:house, goal:river, source:(village old), recipient:dog,
+//companion:1PL and instrument:knife, in the order they're said. Anything not given takes its
 //unmarked value: present, imperfective, singular, exclusive for 'we' and masculine for a gendered
 //pronoun. Whatever the generator can't express yet is an error, never dropped
 public static class ClauseFile
@@ -216,11 +217,61 @@ public static class ClauseFile
         }
         foreach (var word in words.Skip(1).Where(w => w.Contains(':')))
         {
-            throw new ClauseFormatException($"Noun phrases can't have {A(word[..word.IndexOf(':')])} yet, only adjectives.", number);
+            throw new ClauseFormatException($"Noun phrases can't have {A(word[..word.IndexOf(':')])} yet, only adjectives and a number.", number);
         }
         var noun = (NounPhrase)ParseArgument(words[0], number).Value!;
-        return noun with { Modifiers = [.. words.Skip(1).Select(w => ParseAdjective(w, number))] };
+
+        int? count = null;
+        var adjectives = new List<Adjective>();
+        foreach (var word in words.Skip(1))
+        {
+            if (word.All(char.IsAsciiDigit))
+            {
+                if (count is not null)
+                {
+                    throw new ClauseFormatException($"'{words[0]}' has more than one number.", number);
+                }
+                count = int.Parse(word);
+                if (count is < 1 or > NumeralSystem.Largest)
+                {
+                    throw new ClauseFormatException($"Numbers go from 1 to {NumeralSystem.Largest} for now, not {word}.", number);
+                }
+            }
+            else if (NumberWords.Contains(word.Split('.')[0]))
+            {
+                throw new ClauseFormatException($"Write numbers in digits, as in ({words[0]} 3), not '{word}'.", number);
+            }
+            else
+            {
+                adjectives.Add(ParseAdjective(word, number));
+            }
+        }
+        //a number gives the noun its number unless the noun has one already
+        var given = ParseWord(words[0], number).Features.OfType<Number>().Any();
+        return noun with
+        {
+            Modifiers = adjectives,
+            Count = count,
+            Number = given || count is not { } n ? noun.Number : NumberFor(n),
+        };
     }
+
+    //one is singular, two dual, a few paucal and more plural, each falling back as the language needs
+    public static Number NumberFor(int count) => count switch
+    {
+        1 => Number.Singular,
+        2 => Number.Dual,
+        <= 5 => Number.Paucal,
+        _ => Number.Plural,
+    };
+
+    //English number words, which a numeral should be written in digits instead of
+    private static readonly HashSet<string> NumberWords =
+    [
+        "zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve",
+        "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen", "twenty", "thirty",
+        "forty", "fifty", "sixty", "seventy", "eighty", "ninety", "hundred", "thousand", "dozen",
+    ];
 
     //an adjective, which has no features of its own yet
     private static Adjective ParseAdjective(string token, int number)

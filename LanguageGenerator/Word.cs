@@ -35,6 +35,7 @@ public enum PartOfSpeech
     Adverb,
     Pronoun,
     Adposition,
+    Numeral,
     Conjunction,
     Interjection,
     Article,

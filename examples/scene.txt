@@ -5,7 +5,8 @@
 # where it is, with location:house.
 # Obliques say where (location:), to where (goal:), from where (source:), to whom (recipient:), with
 # whom (companion:) and with what (instrument:), as in location:(house big).
-# A noun with adjectives goes in parentheses, noun first: object:(wolf.PL big gray).
+# A noun with adjectives goes in parentheses, noun first: object:(wolf.PL big gray). So does a
+# number, in digits, which gives the noun its number: subject:(wolf 3).
 # Words are English meanings with Leipzig glosses after them (PST, PFV, PL, DU, FUT, and NEG on a
 # verb to negate the clause), and pronouns are a person and number (1SG, 3PL, 1PL.INCL, 3SG.F).
 # Anything left out is present, imperfective and singular, 'we' is exclusive, and a gendered
@@ -30,7 +31,13 @@ she cut the rope with a knife
   cut.PST.PFV  subject:3SG.F  object:rope  instrument:knife
 
 the two birds drank the water
-  drink.PST.PFV  subject:bird.DU  object:water
+  drink.PST.PFV  subject:(bird 2)  object:water
+
+the hunter saw three gray wolves
+  see.PST.PFV  subject:hunter  object:(wolf 3 gray)
+
+he had killed twenty-seven deer
+  kill.PST.PFV  subject:3SG.M  object:(deer 27)
 
 the hunter will eat the fish
   eat.FUT.PFV  subject:hunter  object:fish

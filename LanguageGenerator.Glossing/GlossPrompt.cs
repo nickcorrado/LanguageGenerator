@@ -1,4 +1,4 @@
-namespace LanguageGenerator.Glossing;
+﻿namespace LanguageGenerator.Glossing;
 
 //what a model is told about the clause format. The roles and glosses come from ClauseFile's own
 //tables, so the prompt keeps up as the format grows; the system prompt is the same for every
@@ -39,7 +39,8 @@ public static class GlossPrompt
             Roles: {string.Join(", ", roles)}. A recipient is who something is given or said to, a
             goal where something goes, a source where it comes from, a companion who it's done with,
             and an instrument what it's done with. A noun with adjectives goes in parentheses, noun
-            first, as in object:(wolf.PL big gray). Roles not supported yet: {string.Join(", ", ClauseFile.UnsupportedRoleNames)}.
+            first, as in object:(wolf.PL big gray). So does a number, in digits from 1 to {NumeralSystem.Largest}, as in
+            subject:(wolf 3 gray); it gives the noun its number, so leave that out. Roles not supported yet: {string.Join(", ", ClauseFile.UnsupportedRoleNames)}.
 
             The verb be says what its subject is, with noun: or adjective: in place of an object, or
             where it is, with location:, and nothing else:
@@ -64,8 +65,8 @@ public static class GlossPrompt
             Reply with each numbered sentence's lines after its number in brackets, and nothing else:
 
               [1]
-              the dogs slept in the old house
-                sleep.PST  subject:dog.PL  location:(house old)
+              the two dogs slept in the old house
+                sleep.PST  subject:(dog 2)  location:(house old)
               [2]
               {CantExpress} (question): Where did they go?
             """;
