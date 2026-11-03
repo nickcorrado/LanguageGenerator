@@ -78,6 +78,11 @@ public static class ClauseFile
     private static readonly string[] Roles = ["subject", "object", "noun", "adjective", .. ObliqueRoles.Keys];
     private static readonly string[] FutureRoles = ["possessor", "addressee"];
 
+    //what the format can say, for describing it elsewhere, as the glosser's prompt does
+    public static IReadOnlyList<string> RoleNames => Roles;
+    public static IReadOnlyList<string> UnsupportedRoleNames => FutureRoles;
+    public static IReadOnlyList<T> ValuesOf<T>() where T : Tagmeme => [.. Glosses.Values.OfType<T>()];
+
     private static Statement ParseClause(string line, int number)
     {
         var tokens = Tokenize(line, number);

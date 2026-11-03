@@ -2,8 +2,12 @@
 
 //pass a seed to regenerate the same language; without one, a fresh seed is picked and printed.
 //"translate <file> [seed]" translates a file of clauses (see ClauseFile) instead of describing
-//the language
-const string Usage = "Usage: LanguageGenerator [seed], or LanguageGenerator translate <file> [seed], where the seed is an integer.";
+//the language, and "gloss <english.txt>" writes such a file from English (see Glosser)
+if (args is ["gloss", .. var glossArguments])
+{
+    return await LanguageGenerator.Glossing.GlossCommand.Run(glossArguments);
+}
+const string Usage = "Usage: LanguageGenerator [seed], or LanguageGenerator translate <file> [seed], where the seed is an integer, or LanguageGenerator gloss <english.txt>.";
 var translating = args.Length > 0 && args[0] == "translate";
 if (translating && args.Length < 2)
 {

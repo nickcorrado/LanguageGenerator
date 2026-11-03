@@ -77,6 +77,20 @@ the hunter saw the wolves
 
 The verb comes first, then its arguments as `role:noun`. Words are English meanings, which the language coins roots for as needed, and pronouns are a person and number, as in `subject:1SG` or `object:1PL.INCL`. A noun with adjectives goes in parentheses, noun first, as in `object:(wolf.PL big gray)`. Features left out take their unmarked values (present, imperfective, singular, and exclusive for 'we'), and a value the language doesn't distinguish falls back on the nearest one it does, so a dual becomes a plural in a language without one. A verb with `NEG`, as in `see.PST.NEG`, negates the clause, and the verb `be` says what its subject is, with `noun:fool` or `adjective:big` in place of an object, or where it is, with `location:house`. Obliques say where (`location:house`), to where (`goal:`), from where (`source:`), to whom (`recipient:`), with whom (`companion:`) and with what (`instrument:`). Anything the generator can't express yet, like a possessor or a mood, is an error naming the line, never silently dropped. See [examples/scene.txt](examples/scene.txt) and `ClauseFile`.
 
+### Glossing English
+
+Writing clause files by hand gets old fast, so a language model can write them from plain English:
+
+```bash
+dotnet run --project LanguageGenerator -- gloss examples/story.txt
+```
+
+writes `examples/story.clauses.txt`, ready for `translate`. Any model will do: Claude by default (with `ANTHROPIC_API_KEY` or an `ant auth login` profile), or anything with an OpenAI-style endpoint, like OpenAI itself or a local model, with `--provider openai --model <name>` and, for a local server, `--base-url http://localhost:11434/v1`. Each provider is a small adapter behind `IChatModel`.
+
+Every gloss is checked by `ClauseFile`'s parser, and one that doesn't parse goes back to the model with the parser's error, a couple of times at most. A sentence the format can't say, like a question, comes back as a `# can't express yet (question): ...` comment, so the output doubles as a list of what grammar real text needs next. The prompt is built from the parser's own tables of roles and glosses, so it keeps up as the format grows.
+
+Tokens go only where they're needed. Sentences go in batches of 20, sharing one copy of the instructions (about 700 tokens); a rerun keeps every sentence already glossed in the output file, so editing the text sends only what changed, and hand edits to the glosses survive; and a run that fails partway saves what it finished. Once a text is glossed, translating it is deterministic, free and offline.
+
 ```bash
 dotnet test
 ```
@@ -85,7 +99,7 @@ runs the xUnit tests. Besides unit tests, they generate a sample of 300 language
 
 ## What's next
 
-- **An English front end.** A UD parser (spaCy or Stanza) with a mapper from its output to clause files, or an LLM that writes them directly.
+- **Running real text through the front end,** to see which grammar it most often can't express yet.
 - **More of the clause.** Existentials ('there is a dog in the house', which many languages say unlike 'the dog is in the house'), mood and voice, and possessors inside noun phrases, as in `object:(cat possessor:king)`.
 - **Word frequency.** A bundled lemma frequency table (with English length as the fallback for words it lacks), so frequent words come out shorter, per Zipf's law of abbreviation.
 - **Derivation and compounding,** for words like *teacher* or *sunflower*. Checks against accidental homophones are harder than they sound: avoiding one would make a root depend on the words coined before it.
