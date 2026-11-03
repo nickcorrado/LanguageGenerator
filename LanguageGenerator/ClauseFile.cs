@@ -15,7 +15,8 @@ namespace LanguageGenerator;
 //meaning with Leipzig glosses joined by periods, as in a gloss line. A pronoun is its person and
 //number instead, as in subject:1SG, object:1PL.INCL or subject:3SG.F, and a noun with adjectives
 //is in parentheses, noun first, as in object:(dog.PL big old). The verb be says what its
-//subject is, with noun:fool or adjective:locked in place of an object. Obliques say where, to where,
+//subject is, with noun:fool or adjective:locked in place of an object, or where it is, with
+//location:house. Obliques say where, to where,
 //from where, to whom, with whom and with what, as location:house, goal:river, source:(village old),
 //recipient:dog, companion:1PL and instrument:knife, in the order they're said. Anything not given takes its
 //unmarked value: present, imperfective, singular, exclusive for 'we' and masculine for a gendered
@@ -134,6 +135,10 @@ public static class ClauseFile
             {
                 throw new ClauseFormatException(role is "noun" or "adjective" ? "The clause has more than one noun or adjective." : $"The clause has more than one {role}.", number);
             }
+            if (verb == "be" && role is "noun" or "adjective" or "location" && (complement.HasValue || obliques.Any(o => o.Role == "location")))
+            {
+                throw new ClauseFormatException("be says one thing of its subject: a noun:, an adjective: or a location:.", number);
+            }
             var value = token[(colon + 1)..];
             switch (role)
             {
@@ -164,13 +169,19 @@ public static class ClauseFile
             {
                 throw new ClauseFormatException("be has no object. Say what its subject is with noun: or adjective:, as in noun:fool.", number);
             }
+            //where its subject is, as in location:house
+            if (obliques.Find(o => o.Role == "location") is { Oblique: { } location })
+            {
+                obliques.RemoveAll(o => o.Role == "location");
+                complement = location;
+            }
             if (obliques.Count > 0)
             {
-                throw new ClauseFormatException($"be can't take {A(obliques[0].Role)} yet, only a noun: or adjective: saying what its subject is.", number);
+                throw new ClauseFormatException($"be can't take {A(obliques[0].Role)} yet, only a noun:, adjective: or location: saying what or where its subject is.", number);
             }
             if (!complement.HasValue)
             {
-                throw new ClauseFormatException("be needs a noun or adjective saying what its subject is, as in noun:fool or adjective:big.", number);
+                throw new ClauseFormatException("be needs a noun, adjective or location saying what or where its subject is, as in noun:fool, adjective:big or location:house.", number);
             }
             return new CopularClause(complement.GetValueOrDefault(), tense ?? Tense.Present, aspect ?? Aspect.Imperfective, subject, negative);
         }

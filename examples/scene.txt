@@ -1,7 +1,8 @@
 ﻿# A short scene, to translate with:
 #   dotnet run --project LanguageGenerator -- translate examples/scene.txt 11
 # Each clause is the English, then an indented line of what it means: the verb, then role:noun.
-# The verb be says what its subject is, with noun:fool or adjective:big in place of an object.
+# The verb be says what its subject is, with noun:fool or adjective:big in place of an object, or
+# where it is, with location:house.
 # Obliques say where (location:), to where (goal:), from where (source:), to whom (recipient:), with
 # whom (companion:) and with what (instrument:), as in location:(house big).
 # A noun with adjectives goes in parentheses, noun first: object:(wolf.PL big gray).
@@ -75,3 +76,9 @@ the old queen slept in the big house
 
 the young king saw the old queen
   see.PST.PFV  subject:(king young)  object:(queen old)
+
+the queen is in the house
+  be  subject:queen  location:house
+
+the wolves weren't in the village
+  be.PST.NEG  subject:wolf.PL  location:village

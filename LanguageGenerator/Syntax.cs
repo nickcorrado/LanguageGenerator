@@ -48,8 +48,8 @@ public record Clause(string Verb, Tense Tense, Aspect Aspect, Argument Subject, 
 //a property, like "big", said of something
 public record Adjective(string Meaning);
 //what a copular clause says its subject is: a noun phrase, as in 'you are a fool', or an adjective,
-//as in 'the gate is locked'
-public union Complement(NounPhrase, Adjective);
+//as in 'the gate is locked', or where it is, as in 'the dog is in the house', with a Location
+public union Complement(NounPhrase, Adjective, Oblique);
 public record CopularClause(Complement Complement, Tense Tense, Aspect Aspect, Argument Subject, bool Negative = false);
 
 //anything a sentence can say
@@ -102,6 +102,19 @@ public static class Syntax
             var adjective = language.Lexicon.Adjective(verbal.Meaning) with { PartOfSpeech = PartOfSpeech.Verb };
             var predicate = Verb(language, adjective, clause.Tense, clause.Aspect, clause.Subject, clause.Negative);
             return Sentence(language, Order(language.WordOrder, subject, predicate, null, []), translation);
+        }
+
+        //a location is an oblique, and goes where obliques go, with the language's locational copula
+        if (clause.Complement.Value is Oblique location)
+        {
+            if (location.Role != CaseUse.Location)
+            {
+                throw new ArgumentException($"A copular clause can say where its subject is, but not its {location.Role}.", nameof(clause));
+            }
+            var be = predication.Drops(clause.Tense, clause.Negative, locational: true)
+                ? []
+                : Verb(language, predication.CopulaFor(locational: true), clause.Tense, clause.Aspect, clause.Subject, clause.Negative);
+            return Sentence(language, Order(language.WordOrder, subject, be, null, Oblique(language, location)), translation);
         }
 
         //a predicate noun takes the same case as an intransitive subject. A predicate adjective, in a

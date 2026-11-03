@@ -44,6 +44,7 @@ public static class Generator
         var adpositions = GenerateAdpositions(rand, phonology, syllableDropoff);
         wordOrder = wordOrder with { ObliquePosition = SelectObliquePosition(rand, wordOrder.ConstituentWordOrder) };
         var roleMarkers = SelectRoleMarkers(alignment, cases, wordOrder, adpositions);
+        predication = GenerateLocationalPredication(rand, predication, phonology, syllableDropoff);
 
         return new Language
         {
@@ -133,6 +134,25 @@ public static class Generator
         Sampling.Categorical(rand, PredicativeAdjectiveCounts),
         Sampling.Categorical(rand, ZeroCopulaCounts),
         new Lexeme(new Root(GenerateForm(rand, phonology.SyllableRule, dropoff, 0, maxSyllables: 1), "COP"), PartOfSpeech.Verb));
+
+    //WALS 119A
+    private static readonly (bool Value, int Languages)[] LocationalCopulaCounts = [(true, 269), (false, 117)];
+
+    //a one-syllable locational copula of its own, redrawn a few times to keep it from sounding like
+    //the copula, in WALS's share of languages
+    public static Predication GenerateLocationalPredication(Random rand, Predication predication, Phonology phonology, double dropoff)
+    {
+        if (!Sampling.Categorical(rand, LocationalCopulaCounts))
+        {
+            return predication;
+        }
+        var form = GenerateForm(rand, phonology.SyllableRule, dropoff, 0, maxSyllables: 1);
+        for (int attempt = 0; attempt < 10 && form.SequenceEqual(predication.Copula.Root.Form); attempt++)
+        {
+            form = GenerateForm(rand, phonology.SyllableRule, dropoff, 0, maxSyllables: 1);
+        }
+        return predication with { LocationalCopula = new Lexeme(new Root(form, "be.at"), PartOfSpeech.Verb) };
+    }
 
     //WALS 143A, leaving out its 87 languages where a second negative is optional and its 64 that use
     //two of these types in different constructions. A negative auxiliary verb counts as a word here

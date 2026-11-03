@@ -151,6 +151,85 @@ public class CopulaTests
         });
     }
 
+    private static Sentence DogIsInTheHouse(Language l, Tense tense, bool negative = false) =>
+        Syntax.Realize(l, new CopularClause(new Oblique(CaseUse.Location, new NounPhrase("house", Number.Singular)), tense, Aspect.Imperfective, new NounPhrase("dog", Number.Singular), negative), "the dog is in the house");
+
+    [Fact]
+    public void GenerateLocationalPredication_ManyDraws_MatchTheWalsCounts()
+    {
+        var phonology = GeneratedLanguages.Sample[0].Phonology;
+        var rand = new Random(1);
+        var predication = Generator.GeneratePredication(rand, phonology, 0.15);
+
+        var drawn = Enumerable.Range(0, 5000).Select(_ => Generator.GenerateLocationalPredication(rand, predication, phonology, 0.15)).ToList();
+
+        //WALS 119A: 269 of 386 languages say where something is unlike what it is
+        Assert.InRange(drawn.Count(p => p.LocationalCopula is not null) / 5000.0, 0.67, 0.72);
+        Assert.All(drawn.Select(p => p.LocationalCopula).OfType<Lexeme>(), l =>
+        {
+            Assert.Equal("be.at", l.Root.Meaning);
+            Assert.Equal(1, l.Root.Form.Count(x => x is Vowel));
+        });
+        //the rest of the predication is as it was
+        Assert.All(drawn, p => Assert.Equal(predication, p with { LocationalCopula = null }));
+    }
+
+    [Fact]
+    public void Realize_Location_TakesTheLocationalCopulaAndTheLocationsMarker()
+    {
+        foreach (var language in GeneratedLanguages.Sample)
+        {
+            var sentence = DogIsInTheHouse(language, Tense.Past);
+            var locational = language.Predication.LocationalCopula;
+
+            Assert.Equal(locational is null, HasCopula(sentence));
+            Assert.Equal(locational is not null, IndexOf(sentence, "be.at") >= 0);
+            switch (language.RoleMarkers[CaseUse.Location].Value)
+            {
+                case Adposition a:
+                    Assert.Contains(sentence.Words, w => w.Word.Morphemes.Any(m => m.Value is Root r && r == a.Lexeme.Root));
+                    break;
+                case Case c:
+                    Assert.Contains(sentence.Words, w => w.Gloss.Split('-', '.', '[', ']').Contains(c.Gloss));
+                    break;
+            }
+        }
+    }
+
+    [Fact]
+    public void Realize_Location_DropsOnlyTheCopulaAndNeverALocationalVerb()
+    {
+        foreach (var language in GeneratedLanguages.Sample)
+        {
+            var predication = language.Predication;
+            var present = DogIsInTheHouse(language, Tense.Present);
+            var be = IndexOf(present, predication.LocationalCopula is null ? "COP" : "be.at");
+
+            Assert.Equal(!predication.ZeroCopula || predication.LocationalCopula is not null, be >= 0);
+            Assert.True(IndexOf(DogIsInTheHouse(language, Tense.Present, negative: true), predication.CopulaFor(locational: true).Root.Meaning) >= 0);
+        }
+    }
+
+    [Fact]
+    public void Realize_Location_GoesWhereObliquesGo()
+    {
+        foreach (var language in GeneratedLanguages.Sample)
+        {
+            var sentence = DogIsInTheHouse(language, Tense.Past);
+            var be = IndexOf(sentence, language.Predication.CopulaFor(locational: true).Root.Meaning);
+
+            Assert.Equal(language.WordOrder.ObliquePosition == ObliquePosition.AfterVerbAndObject, IndexOf(sentence, "house") > be);
+        }
+    }
+
+    [Fact]
+    public void Realize_CopularClauseWithAnotherOblique_Throws()
+    {
+        var clause = new CopularClause(new Oblique(CaseUse.MovementTo, new NounPhrase("house", Number.Singular)), Tense.Past, Aspect.Imperfective, new NounPhrase("dog", Number.Singular));
+
+        Assert.Throws<ArgumentException>(() => Syntax.Realize(GeneratedLanguages.Sample[0], clause, "x"));
+    }
+
     [Fact]
     public void Realize_Copula_AgreesWithItsSubject()
     {

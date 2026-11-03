@@ -61,8 +61,17 @@ public class ClauseFileTests
             Single("you aren't fools\n  be.NEG subject:2PL noun:fool.PL").Statement.Value);
     }
 
+    [Fact]
+    public void Parse_BeWithALocation_SaysWhereItsSubjectIs()
+    {
+        Assert.Equal(new CopularClause(new Oblique(CaseUse.Location, new NounPhrase("house", Number.Singular, [new("big")])), Tense.Past, Aspect.Imperfective, new NounPhrase("dog", Number.Singular), Negative: true),
+            Single("the dog wasn't in the big house\n  be.PST.NEG location:(house big) subject:dog").Statement.Value);
+    }
+
     [Theory]
-    [InlineData("x\n  be subject:dog", "be needs a noun or adjective")]
+    [InlineData("x\n  be subject:dog","be needs a noun, adjective or location")]
+    [InlineData("x\n  be subject:dog noun:cat location:house", "be says one thing of its subject")]
+    [InlineData("x\n  be subject:dog location:house adjective:big", "be says one thing of its subject")]
     [InlineData("x\n  be subject:dog object:cat", "be has no object")]
     [InlineData("x\n  be subject:dog noun:cat adjective:big", "more than one noun or adjective")]
     [InlineData("x\n  be subject:dog noun:1SG", "has to be a noun, not a pronoun")]
@@ -129,7 +138,7 @@ public class ClauseFileTests
     [InlineData("x\n  sleep agent:dog", 2, "'agent' isn't a role")]
     [InlineData("x\n  sleep subject:dog addressee:cat", 2, "can't have an addressee yet")]
     [InlineData("x\n  walk subject:dog goal:house goal:tree", 2, "more than one goal")]
-    [InlineData("x\n  be subject:dog location:house", 2, "be can't take a location yet")]
+    [InlineData("x\n  be subject:dog goal:house", 2, "be can't take a goal yet")]
     [InlineData("x\n  sleep subject:dog location:house.ACC", 2, "case comes from its role")]
     [InlineData("x\n  sleep.PST.FUT subject:dog", 2, "more than one tense")]
     [InlineData("x\n  sleep.PL subject:dog", 2, "agrees with its subject")]
