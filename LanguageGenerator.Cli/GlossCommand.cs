@@ -4,12 +4,14 @@ using LanguageGenerator.Glossing;
 namespace LanguageGenerator.Cli;
 
 //gloss <english.txt> [output] [options]: writes a clause file for translate. The output defaults to
-//the input's name with .clauses.txt, and if it's already there, the sentences it glosses are kept
+//the input's name with .clauses.txt, and if it's already there, the sentences it glosses are kept,
+//unless --again says to gloss them all afresh, as after the format learns something new
 public static class GlossCommand
 {
     public const string Usage = """
         Usage: LanguageGenerator.Cli gloss <english.txt> [output] [--provider anthropic|openai] [--model name]
-                 [--base-url url] [--effort low|medium|high|max] [--batch sentences]
+                 [--base-url url] [--effort low|medium|high|max] [--batch sentences] [--again]
+          Sentences already glossed in the output are kept; --again glosses them all afresh.
           anthropic (the default) uses Claude, with ANTHROPIC_API_KEY or an ant auth login profile.
           openai is any OpenAI-compatible server: OpenAI with OPENAI_API_KEY, or a local one like
           Ollama with --base-url http://localhost:11434/v1. It needs --model.
@@ -21,9 +23,14 @@ public static class GlossCommand
     {
         var positional = new List<string>();
         var options = new Dictionary<string, string>();
+        var again = false;
         for (int i = 0; i < args.Count; i++)
         {
-            if (args[i].StartsWith("--"))
+            if (args[i] == "--again")
+            {
+                again = true;
+            }
+            else if (args[i].StartsWith("--"))
             {
                 if (i + 1 >= args.Count)
                 {
@@ -81,7 +88,7 @@ public static class GlossCommand
         try
         {
             english = await File.ReadAllTextAsync(input);
-            previous = File.Exists(output) ? await File.ReadAllTextAsync(output) : null;
+            previous = !again && File.Exists(output) ? await File.ReadAllTextAsync(output) : null;
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
         {

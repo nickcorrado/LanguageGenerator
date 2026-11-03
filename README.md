@@ -92,7 +92,7 @@ writes `examples/story.clauses.txt`, ready for `translate`. Any model will do: C
 
 Every gloss is checked by `ClauseFile`'s parser, and one that doesn't parse goes back to the model with the parser's error, a couple of times at most. A sentence the format can't say, like a question, comes back as a `# can't express yet (question): ...` comment, so the output doubles as a list of what grammar real text needs next. The prompt is built from the parser's own tables of roles and glosses, so it keeps up as the format grows.
 
-Tokens go only where they're needed. Sentences go in batches of 20, sharing one copy of the instructions (about 700 tokens); a rerun keeps every sentence already glossed in the output file, so editing the text sends only what changed, and hand edits to the glosses survive; and a run that fails partway saves what it finished. Once a text is glossed, translating it is deterministic, free and offline.
+Tokens go only where they're needed. Sentences go in batches of 20, sharing one copy of the instructions (about 700 tokens); a rerun keeps every sentence already glossed in the output file, so editing the text sends only what changed, and hand edits to the glosses survive (`--again` glosses everything afresh, as after the format learns something new); and a run that fails partway saves what it finished. Once a text is glossed, translating it is deterministic, free and offline.
 
 ```bash
 dotnet test

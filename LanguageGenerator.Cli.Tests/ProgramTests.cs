@@ -8,17 +8,30 @@ public class ProgramTests
     private static (int ExitCode, string Output) Run(params string[] args)
     {
         var entryPoint = typeof(GlossCommand).Assembly.EntryPoint!;
-        var original = Console.Out;
+        var (originalOut, originalError) = (Console.Out, Console.Error);
         var output = new StringWriter();
         Console.SetOut(output);
+        Console.SetError(output);
         try
         {
             return ((int)entryPoint.Invoke(null, [args])!, output.ToString());
         }
         finally
         {
-            Console.SetOut(original);
+            Console.SetOut(originalOut);
+            Console.SetError(originalError);
         }
+    }
+
+    //--again takes no value, so the option after it is read as an option, and the run stops at the
+    //bad provider, before it would read any file or call any model
+    [Fact]
+    public void Gloss_Again_IsAFlag()
+    {
+        var (exitCode, output) = Run("gloss", "missing.txt", "--again", "--provider", "nobody");
+
+        Assert.Equal(1, exitCode);
+        Assert.Contains("'nobody' isn't a provider", output);
     }
 
     [Fact]
