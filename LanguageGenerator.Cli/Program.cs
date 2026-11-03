@@ -131,6 +131,16 @@ var counting = numerals.Base == NumeralBase.Restricted
     : $"{numerals.Base.ToString().ToLowerInvariant()}, {(numerals.LargestFirst ? "largest" : "units")} first";
 Console.WriteLine($"Numerals ({counting}; {(numerals.BeforeNoun ? "before" : "after")} the noun{(numerals.NounStaysSingular ? ", which stays singular" : "")}):");
 Console.WriteLine("  " + string.Join(", ", ((int[])[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 20, 37, 100]).Select(n => $"{n} {Say(n)}")));
+var possession = lang.Possession;
+var possessedMarkers = possession.Affixes is null ? ""
+    : $" ({string.Join(", ", possession.Affixes.Select(a => $"{Tagmeme.JoinGlosses(a.Value.Tagmemes)} {(possession.AffixPosition == ExponentPosition.Prefix ? $"{((Morpheme)a.Value).Spell(orthography)}-" : $"-{((Morpheme)a.Value).Spell(orthography)}")}"))})";
+Console.WriteLine($"Possessors go {(possession.PossessorFirst ? "before" : "after")} the noun, " + possession.Marking switch
+{
+    PossessiveMarking.Dependent => $"marked {lang.RoleMarkers[CaseUse.Possessive]}",
+    PossessiveMarking.Head => $"and the noun agrees with them{possessedMarkers}",
+    PossessiveMarking.Double => $"marked {lang.RoleMarkers[CaseUse.Possessive]}, and the noun agrees with them{possessedMarkers}",
+    _ => "unmarked",
+});
 
 //each paradigm, shown on the first lexeme that uses it, and the pronouns' on 1SG. Spelled surface
 //forms come first, with the underlying form after them in IPA wherever sandhi or cluster repair
@@ -169,6 +179,7 @@ NounPhrase Phrase(string noun, Number number) => new(noun, number);
     (new("give", Tense.Past, Aspect.Perfective, Phrase("person", Number.Singular), Phrase("fish", Number.Singular), Obliques: [new(CaseUse.IndirectObject, Phrase("cat", Number.Plural))]), "the person gave the fish to the cats"),
     (new("walk", Tense.Past, Aspect.Perfective, new Pronoun(Person.First, Number.Singular), Obliques: [new(CaseUse.MovementFrom, Phrase("tree", Number.Singular)), new(CaseUse.MovementTo, Phrase("water", Number.Singular)), new(CaseUse.Accompaniment, new Pronoun(Person.Second, Number.Singular))]), "I walked from the tree to the water with you"),
     (new("see", Tense.Past, Aspect.Perfective, Phrase("person", Number.Singular), new NounPhrase("dog", ClauseFile.NumberFor(3), [new("big")], Count: 3)), "the person saw three big dogs"),
+    (new("see", Tense.Past, Aspect.Perfective, new NounPhrase("dog", Number.Singular, Possessor: Phrase("person", Number.Singular)), new NounPhrase("cat", Number.Plural, Possessor: new Pronoun(Person.First, Number.Singular))), "the person's dog saw my cats"),
 ];
 (CopularClause Clause, string Translation)[] copular =
 [

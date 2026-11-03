@@ -16,7 +16,8 @@ namespace LanguageGenerator;
 //number instead, as in subject:1SG, object:1PL.INCL or subject:3SG.F, and a noun with adjectives
 //or a number is in parentheses, noun first, as in object:(dog.PL big old) or subject:(wolf 3 gray).
 //A number is in digits, and gives the noun its number when the noun doesn't: two is dual and a few
-//paucal. The verb be says what its subject is, with noun:fool or adjective:locked in place of an
+//paucal. A possessor goes in the parentheses too, as possessor:king or possessor:3SG.F, for 'the
+//king's' or 'her'. The verb be says what its subject is, with noun:fool or adjective:locked in place of an
 //object, or where it is, with location:house. Obliques say where, to where, from where, to whom,
 //with whom and with what, as location:house, goal:river, source:(village old), recipient:dog,
 //companion:1PL and instrument:knife, in the order they're said. Anything not given takes its
@@ -77,7 +78,7 @@ public static class ClauseFile
         ["instrument"] = CaseUse.Instrument,
     };
     private static readonly string[] Roles = ["subject", "object", "noun", "adjective", .. ObliqueRoles.Keys];
-    private static readonly string[] FutureRoles = ["possessor", "addressee"];
+    private static readonly string[] FutureRoles = ["addressee"];
 
     //what the format can say, for describing it elsewhere, as the glosser's prompt does
     public static IReadOnlyList<string> RoleNames => Roles;
@@ -129,6 +130,10 @@ public static class ClauseFile
                 throw new ClauseFormatException($"'{token}' needs a role, as in subject:{token}.", number);
             }
             var role = token[..colon];
+            if (role == "possessor")
+            {
+                throw new ClauseFormatException($"A possessor goes inside its noun's parentheses, as in object:(house possessor:{token[(colon + 1)..]}).", number);
+            }
             if (FutureRoles.Contains(role))
             {
                 throw new ClauseFormatException($"Clauses can't have {A(role)} yet, only {string.Join(", ", Roles)}.", number);
@@ -215,17 +220,26 @@ public static class ClauseFile
         {
             throw new ClauseFormatException($"{words[0]} can't take adjectives: pronouns don't, here.", number);
         }
-        foreach (var word in words.Skip(1).Where(w => w.Contains(':')))
+        foreach (var word in words.Skip(1).Where(w => w.Contains(':') && !w.StartsWith("possessor:")))
         {
-            throw new ClauseFormatException($"Noun phrases can't have {A(word[..word.IndexOf(':')])} yet, only adjectives and a number.", number);
+            throw new ClauseFormatException($"Noun phrases can't have {A(word[..word.IndexOf(':')])} yet, only adjectives, a number and a possessor.", number);
         }
         var noun = (NounPhrase)ParseArgument(words[0], number).Value!;
 
         int? count = null;
+        Argument? possessor = null;
         var adjectives = new List<Adjective>();
         foreach (var word in words.Skip(1))
         {
-            if (word.All(char.IsAsciiDigit))
+            if (word.StartsWith("possessor:"))
+            {
+                if (possessor.HasValue)
+                {
+                    throw new ClauseFormatException($"'{words[0]}' has more than one possessor.", number);
+                }
+                possessor = ParseArgument(word["possessor:".Length..], number);
+            }
+            else if (word.All(char.IsAsciiDigit))
             {
                 if (count is not null)
                 {
@@ -252,6 +266,7 @@ public static class ClauseFile
         {
             Modifiers = adjectives,
             Count = count,
+            Possessor = possessor,
             Number = given || count is not { } n ? noun.Number : NumberFor(n),
         };
     }

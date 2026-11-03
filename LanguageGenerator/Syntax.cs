@@ -4,17 +4,18 @@
 //language's lexicon turns into its own roots. Realizing one in a language is where all of that
 //language's choices (word order, role markers, paradigms, phonology) come together
 //TODO definiteness: there are no articles in the lexicon yet, so "the" only shows in translations
-//a noun, and any adjectives modifying it, in the order they're said in English, and how many of it
-//there are, if a numeral says, as in 'three wolves'
-public record NounPhrase(string Noun, Number Number, IReadOnlyList<Adjective>? Modifiers = null, int? Count = null)
+//a noun, and any adjectives modifying it, in the order they're said in English, how many of it
+//there are, if a numeral says, as in 'three wolves', and whose it is, as in 'the king's house'
+public record NounPhrase(string Noun, Number Number, IReadOnlyList<Adjective>? Modifiers = null, int? Count = null, Argument? Possessor = null)
 {
     public IReadOnlyList<Adjective> Adjectives => Modifiers ?? [];
 
     //by value, adjectives and all, so that two phrases saying the same thing are equal
     public virtual bool Equals(NounPhrase? other) =>
-        other is not null && Noun == other.Noun && Number == other.Number && Count == other.Count && Adjectives.SequenceEqual(other.Adjectives);
+        other is not null && Noun == other.Noun && Number == other.Number && Count == other.Count && Possessor.Equals(other.Possessor)
+        && Adjectives.SequenceEqual(other.Adjectives);
 
-    public override int GetHashCode() => Adjectives.Aggregate(HashCode.Combine(Noun, Number, Count), HashCode.Combine);
+    public override int GetHashCode() => Adjectives.Aggregate(HashCode.Combine(Noun, Number, Count, Possessor), HashCode.Combine);
 }
 //what fills a role: a noun phrase, or a pronoun
 public union Argument(NounPhrase, Pronoun)
@@ -81,8 +82,14 @@ public static class Syntax
         {
             throw new ArgumentException($"{oblique.Role} isn't an oblique role.", nameof(oblique));
         }
-        var phrase = Inflect(language, oblique.Argument, oblique.Role);
-        return language.RoleMarkers[oblique.Role] switch
+        return Marked(language, oblique.Argument, oblique.Role);
+    }
+
+    //a phrase marked for a role: its case, and its adposition, if the role has one, before or after it
+    private static IReadOnlyList<Word> Marked(Language language, Argument argument, CaseUse role)
+    {
+        var phrase = Inflect(language, argument, role);
+        return language.RoleMarkers[role] switch
         {
             Adposition { Type: AdpositionType.Preposition } a => [new Word([a.Lexeme.Root]), .. phrase],
             Adposition a => [.. phrase, new Word([a.Lexeme.Root])],
@@ -193,16 +200,47 @@ public static class Syntax
     private static Sentence Sentence(Language language, IEnumerable<IReadOnlyList<Word>> constituents, string translation) =>
         new([.. constituents.SelectMany(c => c).Select(language.Phonology.Realize)], translation, language.Orthography);
 
-    private static IReadOnlyList<Word> Inflect(Language language, Argument argument, CaseUse role)
+    private static IReadOnlyList<Word> Inflect(Language language, Argument argument, CaseUse role) =>
+        Inflect(language, argument, CaseFor(language, language.RoleMarkers[role]));
+
+    private static IReadOnlyList<Word> Inflect(Language language, Argument argument, Case @case)
     {
-        var @case = CaseFor(language, language.RoleMarkers[role]);
         var nouns = language.Paradigms[PartOfSpeech.Noun];
         var pronouns = language.Pronouns.Paradigm;
         return argument switch
         {
-            NounPhrase phrase => Modified(language, phrase, Features(nouns, [NumberOf(language, phrase), @case])),
+            NounPhrase phrase => Possessed(language, phrase, Modified(language, phrase, Features(nouns, [NumberOf(language, phrase), @case]))),
             Pronoun pronoun => pronouns.Inflect(language.Pronouns.For(pronoun), Features(pronouns, [@case])),
         };
+    }
+
+    //a phrase with its possessor, if it has one, before or after it all, as the language puts them.
+    //The possessor takes the possessive role's case or adposition where the language marks it, and
+    //is plain otherwise. Where the language marks the possessed noun, the noun takes an affix
+    //agreeing with the possessor, and where it marks only that, the affix is all a pronoun possessor
+    //needs, as in Hungarian ház-am 'my house'
+    private static IReadOnlyList<Word> Possessed(Language language, NounPhrase phrase, IReadOnlyList<Word> words)
+    {
+        if (!phrase.Possessor.HasValue)
+        {
+            return words;
+        }
+        var possessor = phrase.Possessor.GetValueOrDefault();
+        var possession = language.Possession;
+        List<Word> possessed = [.. words];
+        if (possession.MarksPossessed)
+        {
+            var root = language.Lexicon.Noun(phrase.Noun).Root;
+            var at = possessed.FindIndex(w => w.Morphemes.Any(m => m.Value is Root r && r == root));
+            var (person, number) = AgreementOf(language, possessor);
+            possessed[at] = possession.Agree(possessed[at], person, number);
+        }
+        if (possession.Marking == PossessiveMarking.Head && possessor.Value is Pronoun)
+        {
+            return possessed;
+        }
+        var owner = possession.MarksPossessor ? Marked(language, possessor, CaseUse.Possessive) : Inflect(language, possessor, Citation(language));
+        return possession.PossessorFirst ? [.. owner, .. possessed] : [.. possessed, .. owner];
     }
 
     //the noun's words with its adjectives placed around it: after the noun in a language whose noun
@@ -254,21 +292,20 @@ public static class Syntax
 
     //the case a noun takes for a role. Roles marked some other way still need a value for the
     //Case category: an adposition's governed case, or the plain citation case
-    private static Case CaseFor(Language language, RoleMarker marker)
+    private static Case CaseFor(Language language, RoleMarker marker) => marker switch
     {
-        var citation = language.MorphosyntacticAlignment switch
-        {
-            MorphosyntacticAlignment.NominativeAccusative => Case.Nominative,
-            MorphosyntacticAlignment.ErgativeAbsolutive => Case.Absolutive,
-            _ => Case.Direct,
-        };
-        return marker switch
-        {
-            Case c => c,
-            Adposition a => a.Governs ?? citation,
-            Unmarked => citation,
-        };
-    }
+        Case c => c,
+        Adposition a => a.Governs ?? Citation(language),
+        Unmarked => Citation(language),
+    };
+
+    //the plain case a noun is cited in
+    private static Case Citation(Language language) => language.MorphosyntacticAlignment switch
+    {
+        MorphosyntacticAlignment.NominativeAccusative => Case.Nominative,
+        MorphosyntacticAlignment.ErgativeAbsolutive => Case.Absolutive,
+        _ => Case.Direct,
+    };
 
     //each category the paradigm inflects for takes whichever wanted value it distinguishes. A value
     //the language doesn't have falls back on the nearest one it does, and failing that on the

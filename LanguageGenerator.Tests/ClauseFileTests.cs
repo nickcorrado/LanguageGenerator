@@ -45,6 +45,16 @@ public class ClauseFileTests
         Assert.Equal(use, Assert.Single(Verbal(Single($"x\n  see subject:dog object:cat {role}:stone")).Adjuncts).Role);
     }
 
+    [Fact]
+    public void Parse_Possessor_IsANounOrPronounInsideThePhrase()
+    {
+        var clause = Verbal(Single("the king's old dogs saw her cat\n  see.PST  subject:(dog.PL old possessor:king)  object:(cat possessor:3SG.F)"));
+
+        Assert.Equal(new NounPhrase("dog", Number.Plural, [new("old")], Possessor: new NounPhrase("king", Number.Singular)), clause.Subject.Value);
+        Assert.Equal(new NounPhrase("cat", Number.Singular, [], Possessor: new Pronoun(Person.Third, Number.Singular, Gender: Gender.Feminine)), clause.Object.GetValueOrDefault().Value);
+        Assert.NotEqual(new NounPhrase("cat", Number.Singular, [], Possessor: new NounPhrase("king", Number.Singular)), clause.Object.GetValueOrDefault().Value);
+    }
+
     [Theory]
     [InlineData("(wolf 1)", 1, "Singular")]
     [InlineData("(wolf 2)", 2, "Dual")]
@@ -121,7 +131,10 @@ public class ClauseFileTests
     [InlineData("x\n  sleep subject:(dog (big))", "can't be nested")]
     [InlineData("x\n  sleep subject:()", "needs a noun")]
     [InlineData("x\n  sleep subject:(1SG big)", "pronouns don't")]
-    [InlineData("x\n  sleep subject:(cat possessor:king)", "can't have a possessor yet")]
+    [InlineData("x\n  sleep subject:(cat owner:king)", "can't have an owner yet")]
+    [InlineData("x\n  sleep subject:(cat possessor:king possessor:queen)", "more than one possessor")]
+    [InlineData("x\n  sleep subject:(cat possessor:(king old))", "can't be nested yet")]
+    [InlineData("x\n  sleep subject:cat possessor:king", "goes inside its noun's parentheses")]
     [InlineData("x\n  sleep subject:(dog big.PL)", "adjectives have no features yet")]
     [InlineData("x\n  sleep subject:(dog.ACC big)", "case comes from its role")]
     public void Parse_NounPhraseMistakes_SayWhat(string text, string message)

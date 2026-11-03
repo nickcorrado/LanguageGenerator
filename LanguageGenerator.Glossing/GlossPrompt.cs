@@ -40,7 +40,9 @@ public static class GlossPrompt
             goal where something goes, a source where it comes from, a companion who it's done with,
             and an instrument what it's done with. A noun with adjectives goes in parentheses, noun
             first, as in object:(wolf.PL big gray). So does a number, in digits from 1 to {NumeralSystem.Largest}, as in
-            subject:(wolf 3 gray); it gives the noun its number, so leave that out. Roles not supported yet: {string.Join(", ", ClauseFile.UnsupportedRoleNames)}.
+            subject:(wolf 3 gray); it gives the noun its number, so leave that out. So does a
+            possessor, a noun or pronoun, as in object:(house possessor:king) for 'the king's house' or
+            companion:(dog.PL possessor:3SG.M) for 'his dogs'. Roles not supported yet: {string.Join(", ", ClauseFile.UnsupportedRoleNames)}.
 
             The verb be says what its subject is, with noun: or adjective: in place of an object, or
             where it is, with location:, and nothing else:
@@ -53,7 +55,7 @@ public static class GlossPrompt
             Rules:
             - One clause per verb. Split a sentence with several verbs into several clauses, each with
               its own English line, as in 'the hunter saw the wolves' and 'he ran'.
-            - Articles, demonstratives, adverbs, conjunctions and possessives have no gloss: leave them
+            - Articles, demonstratives, adverbs and conjunctions have no gloss: leave them
               out of the gloss line when the meaning mostly survives. The English line is natural
               English saying what the gloss does, so 'the' stays, but a dropped adverb goes.
             - Paraphrase into what the format can say when that keeps the meaning, as with 'went' for
