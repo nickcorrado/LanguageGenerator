@@ -26,6 +26,12 @@ internal static class TestData
 
 //generated languages, shared between tests since generating them is the slow part. Seeds are
 //fixed, so tests over them are deterministic
+//a template with no onsets, which no generated language has, for testing what happens at the edges
+internal static class Templates
+{
+    public static SyllableTemplate Onsetless { get; } = new(new VowelSlot(), new FinalSlot(0.5));
+}
+
 internal static class GeneratedLanguages
 {
     private static readonly Lazy<IReadOnlyList<Language>> sample =

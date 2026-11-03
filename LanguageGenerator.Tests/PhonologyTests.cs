@@ -59,7 +59,7 @@ public class PhonologyTests
         {
             Vowels = TestData.Vowels,
             Consonants = TestData.Consonants,
-            SyllableRule = new SyllableRule(SyllableTemplates.VF, TestData.Vowels, TestData.Consonants, CodaRestriction.Nasals),
+            SyllableRule = new SyllableRule(Templates.Onsetless, TestData.Vowels, TestData.Consonants, CodaRestriction.Nasals),
             SandhiRules = [],
             ClusterRepair = ClusterRepair.Epenthesis,
             EpentheticVowel = Vowel.ə,
@@ -80,7 +80,7 @@ public class PhonologyTests
     [Fact]
     public void Realize_InitialConsonantInLanguageWithoutOnsets_AddsAVowelBeforeIt()
     {
-        var surface = TestData.Phonology(SyllableTemplates.VF, ClusterRepair.Epenthesis).Realize(TestData.Word([Consonant.t, Vowel.a]));
+        var surface = TestData.Phonology(Templates.Onsetless, ClusterRepair.Epenthesis).Realize(TestData.Word([Consonant.t, Vowel.a]));
 
         Assert.Equal("ət.a", surface.Syllabified(Orthography.Ipa));
     }

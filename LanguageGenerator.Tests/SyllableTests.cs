@@ -2,7 +2,7 @@
 
 public class SyllableTests
 {
-    private static SyllableTemplate Template(string name) => SyllableTemplates.All.Single(t => t.Name == name);
+    private static SyllableTemplate Template(string name) => name == "VF" ? Templates.Onsetless : SyllableTemplates.All.Single(t => t.Name == name);
 
     private static List<Syllable> Generate(SyllableTemplate template, List<Consonant> consonants, int count)
     {
@@ -14,7 +14,8 @@ public class SyllableTests
     [Fact]
     public void Name_OfEachTemplate_ComesFromItsSlots()
     {
-        Assert.Equal(["CV", "CVF", "VF", "CLV", "CLVF", "SCV", "SCVF", "SCLVF"], SyllableTemplates.All.Select(t => t.Name));
+        Assert.Equal(["CV", "CVF", "CLV", "CLVF", "SCV", "SCVF", "SCLVF"], SyllableTemplates.All.Select(t => t.Name));
+        Assert.Equal("VF", Templates.Onsetless.Name);
     }
 
     [Fact]
@@ -70,8 +71,15 @@ public class SyllableTests
         var twoConsonants = Generate(SyllableTemplates.CLV, TestData.Consonants, 20000).Where(s => s.Onset.Count() == 2).ToList();
 
         Assert.All(twoConsonants, s => Assert.True(s.Onset.Last().Manner is ConsonantManner.Approximant or ConsonantManner.LateralApproximant));
-        //C fills half the time and L 30% of the time
-        Assert.InRange(twoConsonants.Count / 20000.0, 0.13, 0.17);
+        //C fills 85% of the time and L 30% of the time
+        Assert.InRange(twoConsonants.Count / 20000.0, 0.24, 0.27);
+    }
+
+    [Fact]
+    public void GenerateSyllable_AnyTemplate_UsuallyHasAnOnset()
+    {
+        Assert.All(SyllableTemplates.All, t =>
+            Assert.InRange(Generate(t, TestData.Consonants, 5000).Count(s => s.Onset.Any()) / 5000.0, 0.82, 0.92));
     }
 
     [Fact]
@@ -168,11 +176,11 @@ public class SyllableTests
     {
         var rand = new Random(1);
         var rules = Enumerable.Range(0, 40000).Select(_ => Generator.SelectSyllableRule(rand, TestData.Vowels, TestData.Consonants)).ToList();
-        //only templates with both an onset and a coda get a restriction; in VF every consonant is a coda
-        var withCodas = rules.Where(r => r.Template.Slots.Any(s => s is FinalSlot) && r.Template.Slots[0] is not VowelSlot).ToList();
+        //only templates with a coda get a restriction, and every template has an onset
+        var withCodas = rules.Where(r => r.Template.Slots.Any(s => s is FinalSlot)).ToList();
 
         Assert.All(rules.Except(withCodas), r => Assert.Equal(CodaRestriction.Any, r.Codas));
-        Assert.Contains(rules, r => r.Template == SyllableTemplates.VF);
+        Assert.All(rules, r => Assert.IsNotType<VowelSlot>(r.Template.Slots[0].Value));
         double Share(CodaRestriction codas) => withCodas.Count(r => r.Codas == codas) / (double)withCodas.Count;
         Assert.InRange(Share(CodaRestriction.Any), 0.48, 0.52);
         Assert.InRange(Share(CodaRestriction.Sonorants), 0.23, 0.27);

@@ -120,19 +120,21 @@ public class SyllableTemplate
 }
 
 //templates don't depend on the inventory, so unlike rules they can be defined up front.
-//the chances are carried over from when every rule shared one set of positional chances
+//Every language has syllables with onsets, and most syllables have one: onsets are filled 85% of
+//the time, or about that in templates with two consonants that can start one. A guess, but
+//onsetless syllables are dispreferred everywhere, and at the even odds these once had, a quarter
+//of all syllables were a bare vowel, which made homophones of most of the short words
 public static class SyllableTemplates
 {
-    public static SyllableTemplate CV { get; } = new(new ConsonantSlot(0.5), new VowelSlot());
-    public static SyllableTemplate CVF { get; } = new(new ConsonantSlot(0.5), new VowelSlot(), new FinalSlot(0.5));
-    public static SyllableTemplate VF { get; } = new(new VowelSlot(), new FinalSlot(0.5));
-    public static SyllableTemplate CLV { get; } = new(new ConsonantSlot(0.5), new LiquidSlot(0.3), new VowelSlot());
-    public static SyllableTemplate CLVF { get; } = new(new ConsonantSlot(0.5), new LiquidSlot(0.3), new VowelSlot(), new FinalSlot(0.5));
-    public static SyllableTemplate SCV { get; } = new(new SibilantSlot(0.5), new ConsonantSlot(0.3), new VowelSlot());
-    public static SyllableTemplate SCVF { get; } = new(new SibilantSlot(0.5), new ConsonantSlot(0.3), new VowelSlot(), new FinalSlot(0.5));
-    public static SyllableTemplate SCLVF { get; } = new(new SibilantSlot(0.5), new ConsonantSlot(0.3), new LiquidSlot(0.2), new VowelSlot(), new FinalSlot(0.5));
+    public static SyllableTemplate CV { get; } = new(new ConsonantSlot(0.85), new VowelSlot());
+    public static SyllableTemplate CVF { get; } = new(new ConsonantSlot(0.85), new VowelSlot(), new FinalSlot(0.5));
+    public static SyllableTemplate CLV { get; } = new(new ConsonantSlot(0.85), new LiquidSlot(0.3), new VowelSlot());
+    public static SyllableTemplate CLVF { get; } = new(new ConsonantSlot(0.85), new LiquidSlot(0.3), new VowelSlot(), new FinalSlot(0.5));
+    public static SyllableTemplate SCV { get; } = new(new SibilantSlot(0.5), new ConsonantSlot(0.7), new VowelSlot());
+    public static SyllableTemplate SCVF { get; } = new(new SibilantSlot(0.5), new ConsonantSlot(0.7), new VowelSlot(), new FinalSlot(0.5));
+    public static SyllableTemplate SCLVF { get; } = new(new SibilantSlot(0.5), new ConsonantSlot(0.7), new LiquidSlot(0.2), new VowelSlot(), new FinalSlot(0.5));
 
-    public static IReadOnlyList<SyllableTemplate> All { get; } = [CV, CVF, VF, CLV, CLVF, SCV, SCVF, SCLVF];
+    public static IReadOnlyList<SyllableTemplate> All { get; } = [CV, CVF, CLV, CLVF, SCV, SCVF, SCLVF];
 }
 
 //which consonants may close a syllable. Many languages allow only some: Mandarin allows only
