@@ -44,7 +44,7 @@ public class CopulaTests
     [Fact]
     public void Realize_PredicateNoun_TakesTheIntransitiveSubjectsCase()
     {
-        foreach (var language in GeneratedLanguages.Sample.Where(l => l.Paradigms[PartOfSpeech.Noun].Categories.Any(c => c.Name == "Case")))
+        foreach (var language in GeneratedLanguages.Sample.Where(l => l.Paradigms[PartOfSpeech.Noun].Categories.Has<Case>()))
         {
             var sentence = DogIsPerson(language, Tense.Past);
             string Cases(int word) => string.Join(" ", sentence.Words[word].Gloss.Split('-', '.', '[', ']').Where(g => language.Cases.Any(c => c.Gloss == g) || g == "DIR"));
@@ -77,7 +77,7 @@ public class CopulaTests
             var sentence = DogIsBig(l, Tense.Past);
             Assert.False(HasCopula(sentence));
             //it carries the verb's tense, wherever the language marks tense
-            if (l.Paradigms[PartOfSpeech.Verb].Categories.Any(c => c.Name == "Tense"))
+            if (l.Paradigms[PartOfSpeech.Verb].Categories.Has<Tense>())
             {
                 Assert.Contains(sentence.Words, w => w.Gloss.Contains("PST"));
             }
@@ -233,7 +233,7 @@ public class CopulaTests
     [Fact]
     public void Realize_Copula_AgreesWithItsSubject()
     {
-        foreach (var language in GeneratedLanguages.Sample.Where(l => l.Paradigms[PartOfSpeech.Verb].Categories.Any(c => c.Name == "Person")))
+        foreach (var language in GeneratedLanguages.Sample.Where(l => l.Paradigms[PartOfSpeech.Verb].Categories.Has<Person>()))
         {
             var we = new Pronoun(Person.First, Number.Plural);
             var sentence = Syntax.Realize(language, new CopularClause(new NounPhrase("person", Number.Plural), Tense.Past, Aspect.Imperfective, we), "we were people");

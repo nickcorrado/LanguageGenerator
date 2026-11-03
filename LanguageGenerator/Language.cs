@@ -30,7 +30,7 @@ public class Language
     //(person and number together don't count, since nearly every language fuses those)
     public Morphology Morphology =>
         MorphologicalProfile.Fusion == Fusion.Isolating ? Morphology.Analytic
-        : Paradigms.Values.SelectMany(p => p.Slots).Any(s => s.Categories.Count(c => !(c.Name == "Number" && s.Categories.Any(x => x.Name == "Person"))) > 1) ? Morphology.Fusional
+        : Paradigms.Values.SelectMany(p => p.Slots).Any(s => s.Categories.Count(c => !(c.Is<Number>() && s.Categories.Has<Person>())) > 1) ? Morphology.Fusional
         : Morphology.Agglutinative;
 }
 

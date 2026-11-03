@@ -100,7 +100,7 @@ public class SyntaxTests
     [Fact]
     public void Realize_TenseTheLanguageLacks_FallsBackOnTheFirstTense()
     {
-        var language = GeneratedLanguages.Sample.First(l => l.Paradigms[PartOfSpeech.Verb].Categories.Any(c => c.Name == "Tense" && c.Values.Count == 2));
+        var language = GeneratedLanguages.Sample.First(l => l.Paradigms[PartOfSpeech.Verb].Categories.Any(c => c.Is<Tense>() && c.Values.Count == 2));
 
         var sentence = Syntax.Realize(language, new Clause("eat", Tense.Future, Aspect.Perfective, new NounPhrase("dog", Number.Singular)), "the dog will eat");
 
@@ -112,7 +112,7 @@ public class SyntaxTests
     [InlineData(3, "DU")]
     public void Realize_Dual_IsPluralUnlessTheLanguageHasADual(int numbers, string expected)
     {
-        var language = GeneratedLanguages.Sample.First(l => l.Paradigms[PartOfSpeech.Noun].Categories.Any(c => c.Name == "Number" && c.Values.Count == numbers));
+        var language = GeneratedLanguages.Sample.First(l => l.Paradigms[PartOfSpeech.Noun].Categories.Any(c => c.Is<Number>() && c.Values.Count == numbers));
 
         var sentence = Syntax.Realize(language, new Clause("sleep", Tense.Present, Aspect.Imperfective, new NounPhrase("bird", Number.Dual)), "the two birds are sleeping");
 

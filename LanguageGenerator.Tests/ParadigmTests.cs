@@ -203,7 +203,7 @@ public class ParadigmTests
     public void GenerateParadigm_CaseWithNumber_DecidesWhetherTheyShareASlot()
     {
         var nouns = GeneratedLanguages.Sample.Select(l => (l.MorphologicalProfile.Exponence.CaseWithNumber, Paradigm: l.Paradigms[PartOfSpeech.Noun]))
-            .Where(x => x.Paradigm.Categories.Any(c => c.Name == "Case") && x.Paradigm.Categories.Any(c => c.Name == "Number"))
+            .Where(x => x.Paradigm.Categories.Has<Case>() && x.Paradigm.Categories.Has<Number>())
             .ToList();
 
         Assert.Contains(nouns, x => x.CaseWithNumber);
@@ -214,14 +214,14 @@ public class ParadigmTests
     public void GenerateParadigm_TamWithAgreement_DecidesWhetherTheyShareASlot()
     {
         var verbs = GeneratedLanguages.Sample.Select(l => (l.MorphologicalProfile.Exponence.TamWithAgreement, Paradigm: l.Paradigms[PartOfSpeech.Verb]))
-            .Where(x => x.Paradigm.Categories.Any(c => c.Name == "Person") && x.Paradigm.Categories.Any(c => c.Name is "Tense" or "Aspect"))
+            .Where(x => x.Paradigm.Categories.Has<Person>() && x.Paradigm.Categories.Any(c => c.Is<Tense>() || c.Is<Aspect>()))
             .ToList();
 
         Assert.Contains(verbs, x => x.TamWithAgreement);
         Assert.All(verbs, x =>
         {
             //agreement fuses with whichever TAM category sits just inside it
-            var tam = x.Paradigm.Categories.Last(c => c.Name is "Tense" or "Aspect").Name;
+            var tam = x.Paradigm.Categories.Last(c => c.Is<Tense>() || c.Is<Aspect>()).Name;
             Assert.Equal(x.TamWithAgreement, SlotWith(x.Paradigm, "Person") == SlotWith(x.Paradigm, tam));
         });
     }
@@ -232,7 +232,7 @@ public class ParadigmTests
         Assert.All(GeneratedLanguages.Sample, l =>
         {
             var multiCategory = l.Paradigms.Values.SelectMany(p => p.Slots)
-                .Any(s => s.Categories.Select(c => c.Name).Except(["Number"]).Count() + (s.Categories.Any(c => c.Name == "Number") && !s.Categories.Any(c => c.Name == "Person") ? 1 : 0) > 1);
+                .Any(s => s.Categories.Count(c => !c.Is<Number>()) + (s.Categories.Has<Number>() && !s.Categories.Has<Person>() ? 1 : 0) > 1);
             var expected = l.MorphologicalProfile.Fusion == Fusion.Isolating ? Morphology.Analytic
                 : multiCategory ? Morphology.Fusional
                 : Morphology.Agglutinative;
@@ -245,11 +245,11 @@ public class ParadigmTests
     {
         var agreementSlots = GeneratedLanguages.Sample
             .SelectMany(l => l.Paradigms[PartOfSpeech.Verb].Slots)
-            .Where(s => s.Categories.Any(c => c.Name == "Person"))
+            .Where(s => s.Categories.Has<Person>())
             .ToList();
 
         Assert.NotEmpty(agreementSlots);
-        Assert.All(agreementSlots, s => Assert.Contains(s.Categories, c => c.Name == "Number"));
+        Assert.All(agreementSlots, s => Assert.Contains(s.Categories, c => c.Is<Number>()));
     }
 
     [Fact]
@@ -279,6 +279,6 @@ public class ParadigmTests
     {
         var categories = Generator.SelectNounCategories(new Random(0), MorphosyntacticAlignment.None, [Case.Dative]);
 
-        Assert.Equal(["DIR", "DAT"], categories.Single(c => c.Name == "Case").Values.Select(v => v.Gloss));
+        Assert.Equal(["DIR", "DAT"], categories.Single(c => c.Is<Case>()).Values.Select(v => v.Gloss));
     }
 }

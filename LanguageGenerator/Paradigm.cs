@@ -2,7 +2,17 @@
 
 //a category a part of speech inflects for, with the values this language distinguishes,
 //e.g. Number with SG, DU and PL
-public record InflectionalCategory(string Name, IReadOnlyList<Tagmeme> Values);
+//Name is for display; Is says which category it is, by its values' type
+public record InflectionalCategory(string Name, IReadOnlyList<Tagmeme> Values)
+{
+    public bool Is<T>() where T : Tagmeme => Values is [T, ..];
+}
+
+public static class InflectionalCategories
+{
+    //whether any of these is the category whose values are T, as in paradigm.Categories.Has<Person>()
+    public static bool Has<T>(this IEnumerable<InflectionalCategory> categories) where T : Tagmeme => categories.Any(c => c.Is<T>());
+}
 
 public enum ExponentPosition
 {

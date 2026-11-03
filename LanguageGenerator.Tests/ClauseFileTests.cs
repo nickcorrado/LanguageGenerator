@@ -239,7 +239,7 @@ public class ClauseFileTests
     {
         //the input vocabulary is the output's: any tense, aspect or number a paradigm uses reads back
         var values = GeneratedLanguages.Sample.SelectMany(l => l.Paradigms.Values).SelectMany(p => p.Categories)
-            .Where(c => c.Name is "Tense" or "Aspect" or "Number").SelectMany(c => c.Values).Distinct();
+            .Where(c => c.Is<Tense>() || c.Is<Aspect>() || c.Is<Number>()).SelectMany(c => c.Values).Distinct();
 
         Assert.All(values, value =>
         {

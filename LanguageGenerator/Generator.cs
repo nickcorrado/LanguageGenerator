@@ -202,7 +202,7 @@ public static class Generator
         var kind = Sampling.Categorical(rand, NounGenderCounts);
         var assignment = Sampling.Categorical(rand, GenderAssignmentCounts);
         var position = rand.NextDouble() < morphology.PrefixChance ? ExponentPosition.Prefix : ExponentPosition.Suffix;
-        var verbsAgree = rand.NextDouble() < 0.5 && paradigms[PartOfSpeech.Verb].Categories.Any(c => c.Name == "Person");
+        var verbsAgree = rand.NextDouble() < 0.5 && paradigms[PartOfSpeech.Verb].Categories.Has<Person>();
         var system = new GenderSystem { Genders = kind, Assignment = assignment, Markers = null, MarkerPosition = position, VerbsAgree = false };
         if (kind == NounGenders.None || morphology.Fusion == Fusion.Isolating)
         {
@@ -388,13 +388,13 @@ public static class Generator
         //Turkish ben-i 'me', like ev-i 'the house'. Where case is fused with number, pronouns get
         //case markers of their own, since a pronoun's number is already part of it
         var nouns = paradigms[PartOfSpeech.Noun];
-        var caseCategory = nouns.Categories.FirstOrDefault(c => c.Name == "Case");
+        var caseCategory = nouns.Categories.FirstOrDefault(c => c.Is<Case>());
         List<InflectionalCategory> categories = caseCategory is null ? [] : [caseCategory];
-        var paradigm = nouns.Slots.FirstOrDefault(s => s.Categories is [{ Name: "Case" }]) is { } caseSlot
+        var paradigm = nouns.Slots.FirstOrDefault(s => s.Categories is [var only] && only.Is<Case>()) is { } caseSlot
             ? new Paradigm { PartOfSpeech = PartOfSpeech.Pronoun, Categories = categories, Slots = [caseSlot] }
             : GenerateParadigm(rand, PartOfSpeech.Pronoun, categories, morphology, wordOrder.AdpositionalPhraseDirectionality, phonology, dropoff);
 
-        var agrees = paradigms[PartOfSpeech.Verb].Categories.Any(c => c.Name == "Person");
+        var agrees = paradigms[PartOfSpeech.Verb].Categories.Has<Person>();
         var dropsSubjects = Sampling.Categorical(rand, agrees ? AgreeingSubjectDropCounts : NonAgreeingSubjectDropCounts);
 
         //gender comes last, so that adding it left every other pronoun as it was for each seed: an
