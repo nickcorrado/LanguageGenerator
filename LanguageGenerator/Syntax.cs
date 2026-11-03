@@ -7,16 +7,9 @@
 //a noun, and any adjectives modifying it, in the order they're said in English, how many of it
 //there are, if a numeral says, as in 'three wolves', and whose it is, as in 'the king's house'
 public record NounPhrase(string Noun, Number Number, ValueList<Adjective> Adjectives = default, int? Count = null, Argument? Possessor = null);
-//what fills a role: a noun phrase, or a pronoun
-public union Argument(NounPhrase, Pronoun)
-{
-    //what the verb agrees with: a noun is third person
-    public (Person Person, Number Number) Agreement => this switch
-    {
-        NounPhrase n => (Person.Third, n.Number),
-        Pronoun p => (p.Person, p.Number),
-    };
-}
+//what fills a role: a noun phrase, or a pronoun. What agrees with one depends on the language, so
+//that's Syntax.AgreementOf's to say
+public union Argument(NounPhrase, Pronoun);
 //a phrase saying where, to where, from where, to whom, with whom or with what something happened
 public record Oblique(CaseUse Role, Argument Argument)
 {
@@ -149,12 +142,12 @@ public static class Syntax
     private static Number NumberOf(Language language, NounPhrase phrase) =>
         phrase.Count is not null && language.Numerals.NounStaysSingular ? Number.Singular : phrase.Number;
 
-    //what a verb or adjective agrees with: the person and number of the subject's word, so that a
-    //verb is singular with 'three wolf' too, as in Hungarian
+    //what a verb or adjective agrees with: a noun is third person, in the number of its word, so
+    //that a verb is singular with 'three wolf' too, as in Hungarian
     private static (Person Person, Number Number) AgreementOf(Language language, Argument argument) => argument.Value switch
     {
         NounPhrase n => (Person.Third, NumberOf(language, n)),
-        _ => argument.Agreement,
+        Pronoun p => (p.Person, p.Number),
     };
 
     //the gender something agrees with: a noun's own, or a pronoun's, if the language has that gender.
