@@ -35,13 +35,15 @@ public static class Generator
         var cases = SelectCases(rand, alignment, 0.75, 0.6, 0.35, 0.65, 0.25, 0.2);
         var paradigms = GenerateParadigms(rand, morphology, wordOrder, alignment, cases, phonology, syllableDropoff);
         var hasArticles = rand.NextDouble() < 0.7;
-        var roleMarkers = SelectRoleMarkers(alignment, cases, wordOrder);
         //last, so that adding these left everything before them as it was for each seed
         var pronouns = GeneratePronouns(rand, paradigms, morphology, wordOrder, phonology, syllableDropoff);
         var negation = GenerateNegation(rand, morphology, phonology, syllableDropoff);
         var predication = GeneratePredication(rand, phonology, syllableDropoff);
         var adjectiveAgreement = SelectAdjectiveAgreement(rand, predication);
         var genders = GenerateGenders(rand, morphology, paradigms, phonology, syllableDropoff);
+        var adpositions = GenerateAdpositions(rand, phonology, syllableDropoff);
+        wordOrder = wordOrder with { ObliquePosition = SelectObliquePosition(rand, wordOrder.ConstituentWordOrder) };
+        var roleMarkers = SelectRoleMarkers(alignment, cases, wordOrder, adpositions);
 
         return new Language
         {
@@ -823,9 +825,61 @@ public static class Generator
         return cases;
     }
 
-    //a role gets its case if the language has one, and otherwise an adposition. The English
-    //glosses are placeholders until adpositions are real words in the lexicon
-    public static Dictionary<CaseUse, RoleMarker> SelectRoleMarkers(MorphosyntacticAlignment alignment, List<Case> cases, WordOrder wordOrder)
+    //WALS 52A, leaving out its 33 languages that mark the two alike only in part: whether 'with a
+    //friend' and 'with a knife' share a word, as in English, or each has its own
+    private static readonly (bool Value, int Languages)[] ComitativeIsInstrumentalCounts = [(true, 76), (false, 213)];
+
+    //WALS 84A, leaving out its 189 languages with no dominant order
+    private static readonly (ObliquePosition Value, int Languages)[] ObjectVerbObliqueCounts =
+    [
+        (ObliquePosition.BeforeVerbAndObject, 48),
+        (ObliquePosition.BetweenObjectAndVerb, 45),
+        (ObliquePosition.AfterVerbAndObject, 27),
+    ];
+    private static readonly (ObliquePosition Value, int Languages)[] VerbObjectObliqueCounts =
+        [(ObliquePosition.BeforeVerbAndObject, 3), (ObliquePosition.AfterVerbAndObject, 210)];
+
+    //obliques nearly always follow the verb and its object where the object follows the verb, while
+    //languages with the object first split three ways
+    public static ObliquePosition SelectObliquePosition(Random rand, ConstituentWordOrder order) =>
+        Sampling.Categorical(rand, WordOrder.ObjectPrecedesVerb(order) ? ObjectVerbObliqueCounts : VerbObjectObliqueCounts);
+
+    //a one-syllable word for each role an adposition could mark, glossed in English. 'To' marks
+    //both a recipient and a goal, as in English, and the comitative marks instruments too in about
+    //a quarter of languages. Each new word is redrawn a few times to keep it from sounding like
+    //one before it; a small inventory may still make homophones, as real languages have
+    public static Dictionary<CaseUse, Lexeme> GenerateAdpositions(Random rand, Phonology phonology, double dropoff)
+    {
+        var instrumentalIsComitative = Sampling.Categorical(rand, ComitativeIsInstrumentalCounts);
+        var words = new Dictionary<string, Lexeme>();
+        Lexeme Word(string meaning)
+        {
+            if (!words.TryGetValue(meaning, out var lexeme))
+            {
+                var form = GenerateForm(rand, phonology.SyllableRule, dropoff, 0, maxSyllables: 1);
+                for (int attempt = 0; attempt < 10 && words.Values.Any(w => w.Root.Form.SequenceEqual(form)); attempt++)
+                {
+                    form = GenerateForm(rand, phonology.SyllableRule, dropoff, 0, maxSyllables: 1);
+                }
+                lexeme = words[meaning] = new Lexeme(new Root(form, meaning), PartOfSpeech.Adposition);
+            }
+            return lexeme;
+        }
+
+        return new()
+        {
+            [CaseUse.Possessive] = Word("of"),
+            [CaseUse.IndirectObject] = Word("to"),
+            [CaseUse.Location] = Word("at"),
+            [CaseUse.MovementTo] = Word("to"),
+            [CaseUse.MovementFrom] = Word("from"),
+            [CaseUse.Accompaniment] = Word("with"),
+            [CaseUse.Instrument] = Word(instrumentalIsComitative ? "with" : "using"),
+        };
+    }
+
+    //a role gets its case if the language has one, and otherwise its adposition
+    public static Dictionary<CaseUse, RoleMarker> SelectRoleMarkers(MorphosyntacticAlignment alignment, List<Case> cases, WordOrder wordOrder, IReadOnlyDictionary<CaseUse, Lexeme> adpositions)
     {
         var type = wordOrder.AdpositionalPhraseDirectionality == HeadDirectionality.Initial ? AdpositionType.Preposition : AdpositionType.Postposition;
         //a simplification: real languages often pick the governed case per adposition
@@ -842,22 +896,22 @@ public static class Generator
             MorphosyntacticAlignment.ErgativeAbsolutive => ergativeAbsolutive,
             _ => new Unmarked(),
         };
-        RoleMarker CaseOrAdposition(Case @case, string gloss) =>
-            cases.Contains(@case) ? @case : new Adposition(gloss, type, governs);
+        RoleMarker Adposition(CaseUse use) => new Adposition(adpositions[use], type, governs);
+        RoleMarker CaseOrAdposition(Case @case, CaseUse use) => cases.Contains(@case) ? @case : Adposition(use);
 
         RoleMarker MarkerFor(CaseUse use) => use switch
         {
             CaseUse.IntransitiveSubject => Core(Case.Nominative, Case.Absolutive),
             CaseUse.TransitiveSubject => Core(Case.Nominative, Case.Ergative),
             CaseUse.DirectObject => Core(Case.Accusative, Case.Absolutive),
-            CaseUse.Possessive => CaseOrAdposition(Case.Genitive, "of"),
-            CaseUse.IndirectObject => CaseOrAdposition(Case.Dative, "to"),
+            CaseUse.Possessive => CaseOrAdposition(Case.Genitive, use),
+            CaseUse.IndirectObject => CaseOrAdposition(Case.Dative, use),
             CaseUse.Address => cases.Contains(Case.Vocative) ? Case.Vocative : new Unmarked(),
-            CaseUse.Location => CaseOrAdposition(Case.Locative, "at"),
-            CaseUse.MovementTo => new Adposition("to", type, governs),
-            CaseUse.MovementFrom => CaseOrAdposition(Case.Ablative, "from"),
-            CaseUse.Accompaniment => new Adposition("with", type, governs),
-            CaseUse.Instrument => CaseOrAdposition(Case.Instrumental, "with"),
+            CaseUse.Location => CaseOrAdposition(Case.Locative, use),
+            CaseUse.MovementTo => Adposition(use),
+            CaseUse.MovementFrom => CaseOrAdposition(Case.Ablative, use),
+            CaseUse.Accompaniment => Adposition(use),
+            CaseUse.Instrument => CaseOrAdposition(Case.Instrumental, use),
             _ => throw new ArgumentOutOfRangeException(nameof(use), use, "Every role needs a marker."),
         };
 

@@ -1,8 +1,11 @@
 ﻿namespace LanguageGenerator;
 
-//Gloss is the adposition's meaning, as it would appear in an interlinear gloss.
-//if the language has cases, the adposition governs one of them
-public record Adposition(string Gloss, AdpositionType Type, Case? Governs);
+//a word before or after a noun phrase saying its role, glossed by its English meaning, as in an
+//interlinear gloss. If the language has cases, the adposition governs one of them
+public record Adposition(Lexeme Lexeme, AdpositionType Type, Case? Governs)
+{
+    public string Gloss => Lexeme.Root.Meaning;
+}
 
 //no case and no adposition: the role is recovered from word order (core
 //arguments in English) or from context (English vocatives)

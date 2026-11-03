@@ -79,8 +79,10 @@ Console.WriteLine(lang.MorphosyntacticAlignment);
 Console.WriteLine($"Cases: {string.Join(", ", lang.Cases.Select(c => c.Gloss))}");
 foreach (var (use, marker) in lang.RoleMarkers)
 {
-    Console.WriteLine($"{use}: {marker}");
+    var spelled = marker.Value is Adposition a ? $" ({phonology.Realize(new Word([a.Lexeme.Root])).Spell(orthography)})" : "";
+    Console.WriteLine($"{use}: {marker}{spelled}");
 }
+Console.WriteLine($"Obliques: {lang.WordOrder.ObliquePosition}");
 
 var pronouns = lang.Pronouns;
 var gender = pronouns.GenderedPronouns == PronounGender.None ? "" : $", gender ({string.Join("/", pronouns.Genders.Select(g => g.Gloss))}) in {pronouns.GenderedPronouns}";
@@ -149,6 +151,9 @@ NounPhrase Phrase(string noun, Number number) => new(noun, number);
     (new("see", Tense.Past, Aspect.Perfective, Phrase("dog", Number.Singular), Phrase("cat", Number.Singular), Negative: true), "the dog didn't see the cat"),
     (new("see", Tense.Past, Aspect.Perfective, new NounPhrase("dog", Number.Singular, [new("big")]), new NounPhrase("cat", Number.Plural, [new("small")])), "the big dog saw the small cats"),
     (new("see", Tense.Past, Aspect.Perfective, new NounPhrase("woman", Number.Singular, [new("old")]), new NounPhrase("sun", Number.Singular, [new("big")])), "the old woman saw the big sun"),
+    (new("sleep", Tense.Past, Aspect.Imperfective, Phrase("dog", Number.Singular), Obliques: [new(CaseUse.Location, new NounPhrase("house", Number.Singular, [new("big")]))]), "the dog was sleeping in the big house"),
+    (new("give", Tense.Past, Aspect.Perfective, Phrase("person", Number.Singular), Phrase("fish", Number.Singular), Obliques: [new(CaseUse.IndirectObject, Phrase("cat", Number.Plural))]), "the person gave the fish to the cats"),
+    (new("walk", Tense.Past, Aspect.Perfective, new Pronoun(Person.First, Number.Singular), Obliques: [new(CaseUse.MovementFrom, Phrase("tree", Number.Singular)), new(CaseUse.MovementTo, Phrase("water", Number.Singular)), new(CaseUse.Accompaniment, new Pronoun(Person.Second, Number.Singular))]), "I walked from the tree to the water with you"),
 ];
 (CopularClause Clause, string Translation)[] copular =
 [

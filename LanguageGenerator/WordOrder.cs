@@ -3,12 +3,14 @@
 //with head-initial, verb would come before objects. with head-final, verb comes after.
 //so the verb phrase follows from constituent order, and the other phrases are drawn
 //depending on it, since each tends to share the verb phrase's direction to some degree
-public class WordOrder
+public record WordOrder
 {
     public required ConstituentWordOrder ConstituentWordOrder { get; init; }
     public required HeadDirectionality NounPhraseDirectionality { get; init; }
     public required HeadDirectionality AdjectivePhraseDirectionality { get; init; }
     public required HeadDirectionality AdpositionalPhraseDirectionality { get; init; }
+    //drawn after the rest, so it isn't required; a language with no say in it puts obliques last
+    public ObliquePosition ObliquePosition { get; init; } = ObliquePosition.AfterVerbAndObject;
     //we don't necessarily have this as a part of speech, so it's out for now
     //public HeadDirectionality DeterminerPhraseDirectionality { get; init; }
 
@@ -41,6 +43,15 @@ public enum ConstituentWordOrder
     SOV,
     OSV,
     OVS
+}
+
+//where obliques, like 'in the house', go: WALS 84A's XOV and XVO, OXV, and OVX and VOX. Between
+//is drawn only where the object precedes the verb, and puts them just before the verb
+public enum ObliquePosition
+{
+    BeforeVerbAndObject,
+    BetweenObjectAndVerb,
+    AfterVerbAndObject,
 }
 
 public enum HeadDirectionality

@@ -33,9 +33,9 @@ So nothing should depend on hand-curating the vocabulary: the lexicon has to be 
 - **Phonology:** vowel and consonant inventories, a syllable template (CV, CVF, SCLVF, ...) with an optional restriction on codas, sandhi rules at morpheme boundaries, and a strategy for repairing illegal clusters (epenthesis or deletion).
 - **Orthography:** a spelling for each phoneme, from one consistent style per language (háček or digraph postalveolars, macron or acute long vowels, ...), checked to be unambiguous with the Sardinas–Patterson test.
 - **Lexicon:** roots built from legal syllables. Root length follows a displaced Poisson whose mean depends on how many distinct syllables the phonology allows, so languages with simple syllables have longer words. The lexicon is open: asking for a meaning it doesn't have coins a root, seeded from the language and the meaning alone, so a word comes out the same however much other text has been translated.
-- **Word order:** constituent order and the head directionality of each phrase type.
+- **Word order:** constituent order, the head directionality of each phrase type, and where obliques go: almost always after the verb and object in VO languages, and before them, between them or after them in OV ones, in WALS's proportions.
 - **Morphology:** how fusional or isolating the language is, whether it prefixes or suffixes, which category values are zero-marked, and paradigms of exponents for nouns and verbs.
-- **Alignment and cases:** nominative–accusative or ergative–absolutive, which cases exist, and whether each semantic role is marked by a case, an adposition or nothing.
+- **Alignment and cases:** nominative–accusative or ergative–absolutive, which cases exist, and whether each semantic role is marked by a case, an adposition or nothing. Adpositions are short words of their own, prepositions or postpositions as the language's adpositional phrases go, with 'to' marking recipients and goals alike and, in about a quarter of languages, one word for both 'with a friend' and 'with a knife'.
 - **Negation:** a word before or after the verb, a prefix or suffix on it, or a word on each side, like French *ne … pas*, in WALS's proportions, with isolating languages using words where others would use affixes.
 - **Noun gender:** none, masculine and feminine, those and a neuter, or animate and inanimate, in WALS's proportions, assigned by meaning (people by sex) and, in about half the languages with gender, by the root's last sound too. Agreeing adjectives, and in some languages verbs, take a marker for their noun's gender.
 - **Adjectives:** before or after the noun, as each language's noun phrases go, and either bare, agreeing with the noun in number and case, or with the whole phrase marked once at its edges.
@@ -75,7 +75,7 @@ the hunter saw the wolves
   see.PST.PFV  subject:hunter  object:wolf.PL
 ```
 
-The verb comes first, then its arguments as `role:noun`. Words are English meanings, which the language coins roots for as needed, and pronouns are a person and number, as in `subject:1SG` or `object:1PL.INCL`. A noun with adjectives goes in parentheses, noun first, as in `object:(wolf.PL big gray)`. Features left out take their unmarked values (present, imperfective, singular, and exclusive for 'we'), and a value the language doesn't distinguish falls back on the nearest one it does, so a dual becomes a plural in a language without one. A verb with `NEG`, as in `see.PST.NEG`, negates the clause, and the verb `be` says what its subject is, with `noun:fool` or `adjective:big` in place of an object. Anything the generator can't express yet, like a recipient or a mood, is an error naming the line, never silently dropped. See [examples/scene.txt](examples/scene.txt) and `ClauseFile`.
+The verb comes first, then its arguments as `role:noun`. Words are English meanings, which the language coins roots for as needed, and pronouns are a person and number, as in `subject:1SG` or `object:1PL.INCL`. A noun with adjectives goes in parentheses, noun first, as in `object:(wolf.PL big gray)`. Features left out take their unmarked values (present, imperfective, singular, and exclusive for 'we'), and a value the language doesn't distinguish falls back on the nearest one it does, so a dual becomes a plural in a language without one. A verb with `NEG`, as in `see.PST.NEG`, negates the clause, and the verb `be` says what its subject is, with `noun:fool` or `adjective:big` in place of an object. Obliques say where (`location:house`), to where (`goal:`), from where (`source:`), to whom (`recipient:`), with whom (`companion:`) and with what (`instrument:`). Anything the generator can't express yet, like a possessor or a mood, is an error naming the line, never silently dropped. See [examples/scene.txt](examples/scene.txt) and `ClauseFile`.
 
 ```bash
 dotnet test
@@ -86,8 +86,8 @@ runs the xUnit tests. Besides unit tests, they generate a sample of 300 language
 ## What's next
 
 - **An English front end.** A UD parser (spaCy or Stanza) with a mapper from its output to clause files, or an LLM that writes them directly.
-- **More of the clause.** Oblique roles (recipient, location, goal and the rest of `CaseUse`), mood and voice, and possessors inside noun phrases, as in `object:(cat possessor:king)`.
+- **More of the clause.** Locational predication ('the dog is in the house', which many languages say with a copula of its own), mood and voice, and possessors inside noun phrases, as in `object:(cat possessor:king)`.
 - **Word frequency.** A bundled lemma frequency table (with English length as the fallback for words it lacks), so frequent words come out shorter, per Zipf's law of abbreviation.
 - **Derivation and compounding,** for words like *teacher* or *sunflower*. Checks against accidental homophones are harder than they sound: avoiding one would make a root depend on the words coined before it.
-- **Broader grammar.** Definiteness and articles, oblique roles with real adposition words, absolutive agreement, and more verb categories.
+- **Broader grammar.** Definiteness and articles, spatial adpositions like 'under' and 'behind' (often nouns, as in 'at the house's underside'), absolutive agreement, and more verb categories.
 - **Phonetic detail.** Contextual voicing, and identical-vowel hiatus.

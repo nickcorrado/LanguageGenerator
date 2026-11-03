@@ -25,7 +25,25 @@ public union Argument(NounPhrase, Pronoun)
         Pronoun p => (p.Person, p.Number),
     };
 }
-public record Clause(string Verb, Tense Tense, Aspect Aspect, Argument Subject, Argument? Object = null, bool Negative = false);
+//a phrase saying where, to where, from where, to whom, with whom or with what something happened
+public record Oblique(CaseUse Role, Argument Argument)
+{
+    public static IReadOnlyList<CaseUse> Roles { get; } =
+        [CaseUse.IndirectObject, CaseUse.Location, CaseUse.MovementTo, CaseUse.MovementFrom, CaseUse.Accompaniment, CaseUse.Instrument];
+}
+
+//obliques are in the order they're said in English
+public record Clause(string Verb, Tense Tense, Aspect Aspect, Argument Subject, Argument? Object = null, bool Negative = false, IReadOnlyList<Oblique>? Obliques = null)
+{
+    public IReadOnlyList<Oblique> Adjuncts => Obliques ?? [];
+
+    //by value, obliques and all, like NounPhrase
+    public virtual bool Equals(Clause? other) =>
+        other is not null && Verb == other.Verb && Tense == other.Tense && Aspect == other.Aspect && Subject.Equals(other.Subject)
+        && Object.Equals(other.Object) && Negative == other.Negative && Adjuncts.SequenceEqual(other.Adjuncts);
+
+    public override int GetHashCode() => Adjuncts.Aggregate(HashCode.Combine(Verb, Tense, Aspect, Subject, Object, Negative), HashCode.Combine);
+}
 
 //a property, like "big", said of something
 public record Adjective(string Meaning);
@@ -51,7 +69,24 @@ public static class Syntax
         var subject = Subject(language, clause.Subject, subjectRole);
         var @object = clause.Object.HasValue ? Inflect(language, clause.Object.GetValueOrDefault(), CaseUse.DirectObject) : null;
         var verb = Verb(language, language.Lexicon.Verb(clause.Verb), clause.Tense, clause.Aspect, clause.Subject, clause.Negative);
-        return Sentence(language, Order(language.WordOrder.ConstituentWordOrder, subject, verb, @object), translation);
+        var obliques = clause.Adjuncts.SelectMany(o => Oblique(language, o)).ToList();
+        return Sentence(language, Order(language.WordOrder, subject, verb, @object, obliques), translation);
+    }
+
+    //an oblique takes its role's case, and its adposition, if the role has one, before or after it
+    private static IReadOnlyList<Word> Oblique(Language language, Oblique oblique)
+    {
+        if (!LanguageGenerator.Oblique.Roles.Contains(oblique.Role))
+        {
+            throw new ArgumentException($"{oblique.Role} isn't an oblique role.", nameof(oblique));
+        }
+        var phrase = Inflect(language, oblique.Argument, oblique.Role);
+        return language.RoleMarkers[oblique.Role] switch
+        {
+            Adposition { Type: AdpositionType.Preposition } a => [new Word([a.Lexeme.Root]), .. phrase],
+            Adposition a => [.. phrase, new Word([a.Lexeme.Root])],
+            _ => phrase,
+        };
     }
 
     //a copular clause's complement goes where an object would, so it precedes the copula in an OV
@@ -66,7 +101,7 @@ public static class Syntax
             //a property word inflects as a verb in a language whose adjectives are verbs
             var adjective = language.Lexicon.Adjective(verbal.Meaning) with { PartOfSpeech = PartOfSpeech.Verb };
             var predicate = Verb(language, adjective, clause.Tense, clause.Aspect, clause.Subject, clause.Negative);
-            return Sentence(language, Order(language.WordOrder.ConstituentWordOrder, subject, predicate, null), translation);
+            return Sentence(language, Order(language.WordOrder, subject, predicate, null, []), translation);
         }
 
         //a predicate noun takes the same case as an intransitive subject. A predicate adjective, in a
@@ -85,7 +120,7 @@ public static class Syntax
         var copula = predication.Drops(clause.Tense, clause.Negative)
             ? []
             : Verb(language, predication.Copula, clause.Tense, clause.Aspect, clause.Subject, clause.Negative);
-        return Sentence(language, Order(language.WordOrder.ConstituentWordOrder, subject, copula, complement), translation);
+        return Sentence(language, Order(language.WordOrder, subject, copula, complement, []), translation);
     }
 
     //a language that drops subject pronouns leaves the verb's agreement, if any, to say who
@@ -227,16 +262,29 @@ public static class Syntax
         [Mood.Imperative] = [Mood.Subjunctive, Mood.Indicative],
     };
 
-    //the order's own letters say where each constituent goes; an intransitive clause just has no O
-    private static IEnumerable<IReadOnlyList<Word>> Order(ConstituentWordOrder order, IReadOnlyList<Word> subject, IReadOnlyList<Word> verb, IReadOnlyList<Word>? @object) =>
-        order.ToString()
-            .Where(letter => letter != 'O' || @object is not null)
-            .Select(letter => letter switch
+    //the order's own letters say where each constituent goes; an intransitive clause just has no O.
+    //Obliques go together, as X, before or after the verb and object, or just before the verb
+    private static IEnumerable<IReadOnlyList<Word>> Order(WordOrder order, IReadOnlyList<Word> subject, IReadOnlyList<Word> verb, IReadOnlyList<Word>? @object, IReadOnlyList<Word> obliques)
+    {
+        var letters = order.ConstituentWordOrder.ToString().Where(letter => letter != 'O' || @object is not null).ToList();
+        if (obliques.Count > 0)
+        {
+            var verbAndObject = letters.Select((letter, i) => (letter, i)).Where(p => p.letter != 'S').Select(p => p.i).ToList();
+            letters.Insert(order.ObliquePosition switch
             {
-                'S' => subject,
-                'V' => verb,
-                _ => @object!,
-            });
+                ObliquePosition.BeforeVerbAndObject => verbAndObject.Min(),
+                ObliquePosition.BetweenObjectAndVerb => letters.IndexOf('V'),
+                _ => verbAndObject.Max() + 1,
+            }, 'X');
+        }
+        return letters.Select(letter => letter switch
+        {
+            'S' => subject,
+            'V' => verb,
+            'X' => obliques,
+            _ => @object!,
+        });
+    }
 }
 
 public record Sentence(IReadOnlyList<SurfaceForm> Words, string Translation, Orthography Orthography)

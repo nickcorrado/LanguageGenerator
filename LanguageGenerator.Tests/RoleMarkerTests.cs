@@ -10,8 +10,22 @@ public class RoleMarkerTests
         AdpositionalPhraseDirectionality = HeadDirectionality.Final,
     };
 
+    //formless words glossed with their role's English
+    private static readonly Dictionary<CaseUse, Lexeme> Adpositions = new()
+    {
+        [CaseUse.Possessive] = Word("of"),
+        [CaseUse.IndirectObject] = Word("to"),
+        [CaseUse.Location] = Word("at"),
+        [CaseUse.MovementTo] = Word("to"),
+        [CaseUse.MovementFrom] = Word("from"),
+        [CaseUse.Accompaniment] = Word("with"),
+        [CaseUse.Instrument] = Word("with"),
+    };
+
+    private static Lexeme Word(string meaning) => new(new Root([], meaning), PartOfSpeech.Adposition);
+
     private static Dictionary<CaseUse, string> Markers(MorphosyntacticAlignment alignment, List<Case> cases) =>
-        Generator.SelectRoleMarkers(alignment, cases, Postpositional).ToDictionary(kv => kv.Key, kv => kv.Value.ToString());
+        Generator.SelectRoleMarkers(alignment, cases, Postpositional, Adpositions).ToDictionary(kv => kv.Key, kv => kv.Value.ToString());
 
     [Fact]
     public void SelectRoleMarkers_NominativeAccusative_MarksBothSubjectsAlike()

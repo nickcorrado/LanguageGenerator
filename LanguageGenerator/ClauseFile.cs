@@ -15,7 +15,9 @@ namespace LanguageGenerator;
 //meaning with Leipzig glosses joined by periods, as in a gloss line. A pronoun is its person and
 //number instead, as in subject:1SG, object:1PL.INCL or subject:3SG.F, and a noun with adjectives
 //is in parentheses, noun first, as in object:(dog.PL big old). The verb be says what its
-//subject is, with noun:fool or adjective:locked in place of an object. Anything not given takes its
+//subject is, with noun:fool or adjective:locked in place of an object. Obliques say where, to where,
+//from where, to whom, with whom and with what, as location:house, goal:river, source:(village old),
+//recipient:dog, companion:1PL and instrument:knife, in the order they're said. Anything not given takes its
 //unmarked value: present, imperfective, singular, exclusive for 'we' and masculine for a gendered
 //pronoun. Whatever the generator can't express yet is an error, never dropped
 public static class ClauseFile
@@ -63,8 +65,17 @@ public static class ClauseFile
 
     //the roles a clause can have now, and the rest of CaseUse's roles, which it can't yet. A noun or
     //adjective is what be says its subject is
-    private static readonly string[] Roles = ["subject", "object", "noun", "adjective"];
-    private static readonly string[] FutureRoles = ["recipient", "possessor", "location", "goal", "source", "companion", "instrument", "addressee"];
+    private static readonly Dictionary<string, CaseUse> ObliqueRoles = new()
+    {
+        ["recipient"] = CaseUse.IndirectObject,
+        ["location"] = CaseUse.Location,
+        ["goal"] = CaseUse.MovementTo,
+        ["source"] = CaseUse.MovementFrom,
+        ["companion"] = CaseUse.Accompaniment,
+        ["instrument"] = CaseUse.Instrument,
+    };
+    private static readonly string[] Roles = ["subject", "object", "noun", "adjective", .. ObliqueRoles.Keys];
+    private static readonly string[] FutureRoles = ["possessor", "addressee"];
 
     private static Statement ParseClause(string line, int number)
     {
@@ -101,6 +112,7 @@ public static class ClauseFile
         }
 
         var arguments = new Dictionary<string, Argument>();
+        var obliques = new List<(string Role, Oblique Oblique)>();
         Complement? complement = null;
         foreach (var token in tokens.Skip(1))
         {
@@ -112,13 +124,13 @@ public static class ClauseFile
             var role = token[..colon];
             if (FutureRoles.Contains(role))
             {
-                throw new ClauseFormatException($"Clauses can't have a {role} yet, only {string.Join(", ", Roles)}.", number);
+                throw new ClauseFormatException($"Clauses can't have {A(role)} yet, only {string.Join(", ", Roles)}.", number);
             }
             if (!Roles.Contains(role))
             {
                 throw new ClauseFormatException($"'{role}' isn't a role. The roles are {string.Join(", ", Roles)}.", number);
             }
-            if (arguments.ContainsKey(role) || role is "noun" or "adjective" && complement.HasValue)
+            if (arguments.ContainsKey(role) || obliques.Any(o => o.Role == role) || role is "noun" or "adjective" && complement.HasValue)
             {
                 throw new ClauseFormatException(role is "noun" or "adjective" ? "The clause has more than one noun or adjective." : $"The clause has more than one {role}.", number);
             }
@@ -131,6 +143,9 @@ public static class ClauseFile
                     break;
                 case "adjective":
                     complement = ParseAdjective(value, number);
+                    break;
+                case var oblique when ObliqueRoles.TryGetValue(oblique, out var use):
+                    obliques.Add((role, new Oblique(use, ParseArgument(value, number))));
                     break;
                 default:
                     arguments[role] = ParseArgument(value, number);
@@ -149,6 +164,10 @@ public static class ClauseFile
             {
                 throw new ClauseFormatException("be has no object. Say what its subject is with noun: or adjective:, as in noun:fool.", number);
             }
+            if (obliques.Count > 0)
+            {
+                throw new ClauseFormatException($"be can't take {A(obliques[0].Role)} yet, only a noun: or adjective: saying what its subject is.", number);
+            }
             if (!complement.HasValue)
             {
                 throw new ClauseFormatException("be needs a noun or adjective saying what its subject is, as in noun:fool or adjective:big.", number);
@@ -160,7 +179,7 @@ public static class ClauseFile
             throw new ClauseFormatException($"Only be takes a noun: or adjective:. '{verb}' takes an object:.", number);
         }
         return new Clause(verb, tense ?? Tense.Present, aspect ?? Aspect.Imperfective, subject, arguments.TryGetValue("object", out var @object) ? @object : (Argument?)null,
-            Negative: negative);
+            Negative: negative, Obliques: obliques.Count > 0 ? [.. obliques.Select(o => o.Oblique)] : null);
     }
 
     //a noun and its adjectives, in parentheses, as in (dog.PL big old)
@@ -181,7 +200,7 @@ public static class ClauseFile
         }
         foreach (var word in words.Skip(1).Where(w => w.Contains(':')))
         {
-            throw new ClauseFormatException($"Noun phrases can't have a {word[..word.IndexOf(':')]} yet, only adjectives.", number);
+            throw new ClauseFormatException($"Noun phrases can't have {A(word[..word.IndexOf(':')])} yet, only adjectives.", number);
         }
         var noun = (NounPhrase)ParseArgument(words[0], number).Value!;
         return noun with { Modifiers = [.. words.Skip(1).Select(w => ParseAdjective(w, number))] };
@@ -310,6 +329,9 @@ public static class ClauseFile
         }
         return new Pronoun(person, count, clusivity, gender);
     }
+
+    //a role with its article, as in 'an instrument'
+    private static string A(string role) => ("aeiou".Contains(role[0]) ? "an " : "a ") + role;
 
     //a meaning and the glosses after it, as in dog.PL
     private static (string Meaning, List<Tagmeme> Features) ParseWord(string token, int number)

@@ -20,6 +20,32 @@ public class ClauseFileTests
     }
 
     [Fact]
+    public void Parse_Obliques_KeepTheirRolesInTheOrderGiven()
+    {
+        var clause = Verbal(Single("we went from the village to the river with you\n  walk.PST  source:village  subject:1PL  goal:(river big)  companion:2SG"));
+
+        Assert.Equal(new Clause("walk", Tense.Past, Aspect.Imperfective, new Pronoun(Person.First, Number.Plural), Obliques:
+        [
+            new(CaseUse.MovementFrom, new NounPhrase("village", Number.Singular)),
+            new(CaseUse.MovementTo, new NounPhrase("river", Number.Singular, [new("big")])),
+            new(CaseUse.Accompaniment, new Pronoun(Person.Second, Number.Singular)),
+        ]), clause);
+        Assert.NotEqual(clause with { Obliques = [.. clause.Adjuncts.Reverse()] }, clause);
+    }
+
+    [Theory]
+    [InlineData("recipient", CaseUse.IndirectObject)]
+    [InlineData("location", CaseUse.Location)]
+    [InlineData("goal", CaseUse.MovementTo)]
+    [InlineData("source", CaseUse.MovementFrom)]
+    [InlineData("companion", CaseUse.Accompaniment)]
+    [InlineData("instrument", CaseUse.Instrument)]
+    public void Parse_ObliqueRole_IsItsCaseUse(string role, CaseUse use)
+    {
+        Assert.Equal(use, Assert.Single(Verbal(Single($"x\n  see subject:dog object:cat {role}:stone")).Adjuncts).Role);
+    }
+
+    [Fact]
     public void Parse_NegativeVerb_NegatesTheClause()
     {
         Assert.True(Verbal(Single("the dog didn't sleep\n  sleep.PST.NEG subject:dog")).Negative);
@@ -101,7 +127,10 @@ public class ClauseFileTests
     [InlineData("x\n  sleep dog", 2, "needs a role")]
     [InlineData("x\n  sleep subject:dog subject:cat", 2, "more than one subject")]
     [InlineData("x\n  sleep agent:dog", 2, "'agent' isn't a role")]
-    [InlineData("x\n  give subject:dog recipient:cat", 2, "can't have a recipient yet")]
+    [InlineData("x\n  sleep subject:dog addressee:cat", 2, "can't have an addressee yet")]
+    [InlineData("x\n  walk subject:dog goal:house goal:tree", 2, "more than one goal")]
+    [InlineData("x\n  be subject:dog location:house", 2, "be can't take a location yet")]
+    [InlineData("x\n  sleep subject:dog location:house.ACC", 2, "case comes from its role")]
     [InlineData("x\n  sleep.PST.FUT subject:dog", 2, "more than one tense")]
     [InlineData("x\n  sleep.PL subject:dog", 2, "agrees with its subject")]
     [InlineData("x\n  sleep.SBJV subject:dog", 2, "only tense, aspect and polarity")]
