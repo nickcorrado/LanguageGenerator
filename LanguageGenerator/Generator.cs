@@ -114,7 +114,7 @@ public static class Generator
                         break;
                     }
                 }
-                affixes[(person, number)] = new Affix(form, [person, number]);
+                affixes[(person, number)] = new Affix(form, [person, number, Possessive.Possessed]);
             }
         }
         return new Possession(marking, possessorFirst, affixes, position);

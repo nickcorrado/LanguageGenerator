@@ -21,6 +21,12 @@ public class TagmemeTests
     }
 
     [Fact]
+    public void JoinGlosses_PossessorAgreement_IsPersonAndNumberThenPOSS()
+    {
+        Assert.Equal("1SG.POSS", Tagmeme.JoinGlosses([Person.First, Number.Singular, Possessive.Possessed]));
+    }
+
+    [Fact]
     public void JoinGlosses_NoTagmemes_IsEmpty()
     {
         Assert.Equal("", Tagmeme.JoinGlosses([]));

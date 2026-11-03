@@ -150,6 +150,13 @@ public record Polarity(string Name, string Gloss) : Tagmeme(Name, Gloss)
     public static Polarity Negative { get; } = new("Negative", "NEG");
 }
 
+//what an affix agreeing with a possessor adds to its person and number, so that ház-am
+//'house-1SG.POSS' isn't read as a verb's agreement
+public record Possessive(string Name, string Gloss) : Tagmeme(Name, Gloss)
+{
+    public static Possessive Possessed { get; } = new("Possessed", "POSS");
+}
+
 public record Definiteness(string Name, string Gloss) : Tagmeme(Name, Gloss)
 {
     public static Definiteness Definite { get; } = new("Definite", "DEF");

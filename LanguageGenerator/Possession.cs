@@ -1,4 +1,4 @@
-namespace LanguageGenerator;
+﻿namespace LanguageGenerator;
 
 //WALS 24A: which noun in a possessive phrase like 'the king's house' shows the possession
 public enum PossessiveMarking
@@ -16,7 +16,7 @@ public enum PossessiveMarking
 
 //how a language says whose something is. The possessor goes before the possessed noun or after it,
 //outside any adjectives and numerals, and Affixes, where the possessed noun is marked, agree with
-//the possessor's person and number, next to the root
+//the possessor's person and number, glossed as possessive, as in 3SG.POSS
 public record Possession(PossessiveMarking Marking, bool PossessorFirst, IReadOnlyDictionary<(Person, Number), Affix>? Affixes, ExponentPosition AffixPosition)
 {
     private static readonly Number[] Numbers = [Number.Singular, Number.Plural];

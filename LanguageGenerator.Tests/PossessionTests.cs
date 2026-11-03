@@ -1,4 +1,4 @@
-namespace LanguageGenerator.Tests;
+﻿namespace LanguageGenerator.Tests;
 
 public class PossessionTests
 {
@@ -53,7 +53,7 @@ public class PossessionTests
             var (person, dog) = (IndexOf(sentence, "person"), IndexOf(sentence, "dog"));
 
             Assert.Equal(possession.PossessorFirst, person < dog);
-            Assert.Equal(possession.MarksPossessed, sentence.Words[dog].Gloss.Split('-', '.', '[', ']').Contains("3SG"));
+            Assert.Equal(possession.MarksPossessed, sentence.Words[dog].Gloss.Contains("-3SG.POSS") || sentence.Words[dog].Gloss.StartsWith("3SG.POSS-"));
             var marker = language.RoleMarkers[CaseUse.Possessive].Value;
             var marked = marker switch
             {
@@ -99,7 +99,7 @@ public class PossessionTests
             var word = Slept(l, Me, Number.Plural).Words.Select(w => w.Word).First(w => w.Morphemes.Any(m => m.Value is Root { Meaning: "dog" }));
             var morphemes = word.Morphemes.ToList();
             var root = morphemes.FindIndex(m => m.Value is Root);
-            var possessive = morphemes.FindIndex(m => m.Value is Affix { Tagmemes: [Person, Number] });
+            var possessive = morphemes.FindIndex(m => m.Value is Affix { Tagmemes: [Person, Number, Possessive] });
             var plural = morphemes.FindIndex(m => m.Value is Affix { Tagmemes: [Number] });
 
             if (plural >= 0 && (plural < root) == (possessive < root))
