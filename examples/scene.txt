@@ -1,5 +1,5 @@
 ﻿# A short scene, to translate with:
-#   dotnet run --project LanguageGenerator -- translate examples/scene.txt 11
+#   dotnet run --project LanguageGenerator.Cli -- translate examples/scene.txt 11
 # Each clause is the English, then an indented line of what it means: the verb, then role:noun.
 # The verb be says what its subject is, with noun:fool or adjective:big in place of an object, or
 # where it is, with location:house.

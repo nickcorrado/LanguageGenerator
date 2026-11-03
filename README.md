@@ -51,13 +51,14 @@ So nothing should depend on hand-curating the vocabulary: the lexicon has to be 
 - **Description is separate from generation.** A `Language` is plain data that knows nothing about how it was chosen; everything random lives in `Generator`.
 - **Deterministic from a seed.** All randomness flows from one `Random` passed in explicitly, so a seed always reproduces the same language.
 - **Closed sets in the type system.** Category values, morphemes, syllable slots, sandhi rules and role markers are C# 15 unions or closed hierarchies, so a switch over them is checked for exhaustiveness.
+- **The pipeline's stages are separate projects.** `LanguageGenerator` is the generator, and has no dependencies, so a game can embed it; it also owns the clause format, the contract between the stages. `LanguageGenerator.Glossing` turns English into clause files with a language model, and is the only project with a model's SDK. `LanguageGenerator.Cli` is the command line over both. Each has its own test project.
 
 ## Running it
 
 It needs the .NET 11 preview SDK; `global.json` pins the version, which Visual Studio also needs in order to pick up a preview SDK.
 
 ```bash
-dotnet run --project LanguageGenerator -- 11
+dotnet run --project LanguageGenerator.Cli -- 11
 ```
 
 prints the language generated from seed 11: its phonology, spelling, lexicon, word order, paradigms and some example sentences. Leave out the seed to get a random one, which is printed first.
@@ -65,7 +66,7 @@ prints the language generated from seed 11: its phonology, spelling, lexicon, wo
 ### Translating your own text
 
 ```bash
-dotnet run --project LanguageGenerator -- translate examples/scene.txt 11
+dotnet run --project LanguageGenerator.Cli -- translate examples/scene.txt 11
 ```
 
 translates a file of clauses into seed 11's language, glossing each one. Each clause is the English it means, then an indented line saying what it means in Leipzig glosses:
@@ -82,7 +83,7 @@ The verb comes first, then its arguments as `role:noun`. Words are English meani
 Writing clause files by hand gets old fast, so a language model can write them from plain English:
 
 ```bash
-dotnet run --project LanguageGenerator -- gloss examples/story.txt
+dotnet run --project LanguageGenerator.Cli -- gloss examples/story.txt
 ```
 
 writes `examples/story.clauses.txt`, ready for `translate`. Any model will do: Claude by default (with `ANTHROPIC_API_KEY` or an `ant auth login` profile), or anything with an OpenAI-style endpoint, like OpenAI itself or a local model, with `--provider openai --model <name>` and, for a local server, `--base-url http://localhost:11434/v1`. Each provider is a small adapter behind `IChatModel`.

@@ -1,7 +1,5 @@
-using System.Text.RegularExpressions;
-using LanguageGenerator.Glossing;
-
-namespace LanguageGenerator.Tests;
+﻿using System.Text.RegularExpressions;
+namespace LanguageGenerator.Glossing.Tests;
 
 public partial class GlossTests
 {

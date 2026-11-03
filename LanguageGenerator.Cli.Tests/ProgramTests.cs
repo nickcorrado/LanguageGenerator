@@ -1,4 +1,4 @@
-namespace LanguageGenerator.Tests;
+﻿namespace LanguageGenerator.Cli.Tests;
 
 //runs the program itself, since printing a language exercises paths the library tests don't, like
 //showing a negative affix on its own. Nothing else in the tests writes to the console, so taking
@@ -7,7 +7,7 @@ public class ProgramTests
 {
     private static (int ExitCode, string Output) Run(params string[] args)
     {
-        var entryPoint = typeof(Generator).Assembly.EntryPoint!;
+        var entryPoint = typeof(GlossCommand).Assembly.EntryPoint!;
         var original = Console.Out;
         var output = new StringWriter();
         Console.SetOut(output);

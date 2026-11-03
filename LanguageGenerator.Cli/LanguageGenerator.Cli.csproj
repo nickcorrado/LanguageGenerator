@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- the command line: describing a language, translating clause files, and glossing English -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net11.0</TargetFramework>
+    <LangVersion>preview</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\LanguageGenerator\LanguageGenerator.csproj" />
+    <ProjectReference Include="..\LanguageGenerator.Glossing\LanguageGenerator.Glossing.csproj" />
+  </ItemGroup>
+
+</Project>

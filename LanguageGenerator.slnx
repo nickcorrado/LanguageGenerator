@@ -1,4 +1,8 @@
 <Solution>
-  <Project Path="LanguageGenerator.Tests/LanguageGenerator.Tests.csproj" />
   <Project Path="LanguageGenerator/LanguageGenerator.csproj" />
+  <Project Path="LanguageGenerator.Glossing/LanguageGenerator.Glossing.csproj" />
+  <Project Path="LanguageGenerator.Cli/LanguageGenerator.Cli.csproj" />
+  <Project Path="LanguageGenerator.Tests/LanguageGenerator.Tests.csproj" />
+  <Project Path="LanguageGenerator.Glossing.Tests/LanguageGenerator.Glossing.Tests.csproj" />
+  <Project Path="LanguageGenerator.Cli.Tests/LanguageGenerator.Cli.Tests.csproj" />
 </Solution>

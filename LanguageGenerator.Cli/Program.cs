@@ -5,9 +5,9 @@
 //the language, and "gloss <english.txt>" writes such a file from English (see Glosser)
 if (args is ["gloss", .. var glossArguments])
 {
-    return await LanguageGenerator.Glossing.GlossCommand.Run(glossArguments);
+    return await LanguageGenerator.Cli.GlossCommand.Run(glossArguments);
 }
-const string Usage = "Usage: LanguageGenerator [seed], or LanguageGenerator translate <file> [seed], where the seed is an integer, or LanguageGenerator gloss <english.txt>.";
+const string Usage = "Usage: LanguageGenerator.Cli [seed], or LanguageGenerator.Cli translate <file> [seed], where the seed is an integer, or LanguageGenerator.Cli gloss <english.txt>.";
 var translating = args.Length > 0 && args[0] == "translate";
 if (translating && args.Length < 2)
 {

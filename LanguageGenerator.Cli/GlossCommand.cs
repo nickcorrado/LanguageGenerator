@@ -1,13 +1,14 @@
-using Anthropic.Exceptions;
+﻿using Anthropic.Exceptions;
+using LanguageGenerator.Glossing;
 
-namespace LanguageGenerator.Glossing;
+namespace LanguageGenerator.Cli;
 
 //gloss <english.txt> [output] [options]: writes a clause file for translate. The output defaults to
 //the input's name with .clauses.txt, and if it's already there, the sentences it glosses are kept
 public static class GlossCommand
 {
     public const string Usage = """
-        Usage: LanguageGenerator gloss <english.txt> [output] [--provider anthropic|openai] [--model name]
+        Usage: LanguageGenerator.Cli gloss <english.txt> [output] [--provider anthropic|openai] [--model name]
                  [--base-url url] [--effort low|medium|high|max] [--batch sentences]
           anthropic (the default) uses Claude, with ANTHROPIC_API_KEY or an ant auth login profile.
           openai is any OpenAI-compatible server: OpenAI with OPENAI_API_KEY, or a local one like
