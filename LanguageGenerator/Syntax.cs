@@ -6,17 +6,7 @@
 //TODO definiteness: there are no articles in the lexicon yet, so "the" only shows in translations
 //a noun, and any adjectives modifying it, in the order they're said in English, how many of it
 //there are, if a numeral says, as in 'three wolves', and whose it is, as in 'the king's house'
-public record NounPhrase(string Noun, Number Number, IReadOnlyList<Adjective>? Modifiers = null, int? Count = null, Argument? Possessor = null)
-{
-    public IReadOnlyList<Adjective> Adjectives => Modifiers ?? [];
-
-    //by value, adjectives and all, so that two phrases saying the same thing are equal
-    public virtual bool Equals(NounPhrase? other) =>
-        other is not null && Noun == other.Noun && Number == other.Number && Count == other.Count && Possessor.Equals(other.Possessor)
-        && Adjectives.SequenceEqual(other.Adjectives);
-
-    public override int GetHashCode() => Adjectives.Aggregate(HashCode.Combine(Noun, Number, Count, Possessor), HashCode.Combine);
-}
+public record NounPhrase(string Noun, Number Number, ValueList<Adjective> Adjectives = default, int? Count = null, Argument? Possessor = null);
 //what fills a role: a noun phrase, or a pronoun
 public union Argument(NounPhrase, Pronoun)
 {
@@ -35,17 +25,7 @@ public record Oblique(CaseUse Role, Argument Argument)
 }
 
 //obliques are in the order they're said in English
-public record Clause(string Verb, Tense Tense, Aspect Aspect, Argument Subject, Argument? Object = null, bool Negative = false, IReadOnlyList<Oblique>? Obliques = null)
-{
-    public IReadOnlyList<Oblique> Adjuncts => Obliques ?? [];
-
-    //by value, obliques and all, like NounPhrase
-    public virtual bool Equals(Clause? other) =>
-        other is not null && Verb == other.Verb && Tense == other.Tense && Aspect == other.Aspect && Subject.Equals(other.Subject)
-        && Object.Equals(other.Object) && Negative == other.Negative && Adjuncts.SequenceEqual(other.Adjuncts);
-
-    public override int GetHashCode() => Adjuncts.Aggregate(HashCode.Combine(Verb, Tense, Aspect, Subject, Object, Negative), HashCode.Combine);
-}
+public record Clause(string Verb, Tense Tense, Aspect Aspect, Argument Subject, Argument? Object = null, bool Negative = false, ValueList<Oblique> Obliques = default);
 
 //a property, like "big", said of something
 public record Adjective(string Meaning);
@@ -71,7 +51,7 @@ public static class Syntax
         var subject = Subject(language, clause.Subject, subjectRole);
         var @object = clause.Object.HasValue ? Inflect(language, clause.Object.GetValueOrDefault(), CaseUse.DirectObject) : null;
         var verb = Verb(language, language.Lexicon.Verb(clause.Verb), clause.Tense, clause.Aspect, clause.Subject, clause.Negative);
-        var obliques = clause.Adjuncts.SelectMany(o => Oblique(language, o)).ToList();
+        var obliques = clause.Obliques.SelectMany(o => Oblique(language, o)).ToList();
         return Sentence(language, Order(language.WordOrder, subject, verb, @object, obliques), translation);
     }
 

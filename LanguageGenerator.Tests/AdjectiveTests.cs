@@ -58,7 +58,7 @@ public class AdjectiveTests
     public void Realize_NounWithoutAdjectives_IsUnchanged()
     {
         Assert.All(GeneratedLanguages.Sample, l =>
-            Assert.Equal(Sleep(l, new NounPhrase("dog", Number.Plural)).Text, Sleep(l, BigOldDogs with { Modifiers = [] }).Text));
+            Assert.Equal(Sleep(l, new NounPhrase("dog", Number.Plural)).Text, Sleep(l, BigOldDogs with { Adjectives = [] }).Text));
     }
 
     [Fact]

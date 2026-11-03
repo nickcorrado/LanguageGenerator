@@ -201,7 +201,7 @@ public static class ClauseFile
             throw new ClauseFormatException($"Only be takes a noun: or adjective:. '{verb}' takes an object:.", number);
         }
         return new Clause(verb, tense ?? Tense.Present, aspect ?? Aspect.Imperfective, subject, arguments.TryGetValue("object", out var @object) ? @object : (Argument?)null,
-            Negative: negative, Obliques: obliques.Count > 0 ? [.. obliques.Select(o => o.Oblique)] : null);
+            Negative: negative, Obliques: [.. obliques.Select(o => o.Oblique)]);
     }
 
     //a noun and its adjectives, in parentheses, as in (dog.PL big old)
@@ -264,7 +264,7 @@ public static class ClauseFile
         var given = ParseWord(words[0], number).Features.OfType<Number>().Any();
         return noun with
         {
-            Modifiers = adjectives,
+            Adjectives = [.. adjectives],
             Count = count,
             Possessor = possessor,
             Number = given || count is not { } n ? noun.Number : NumberFor(n),

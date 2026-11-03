@@ -7,7 +7,7 @@ public class ObliqueTests
         sentence.Words.ToList().FindIndex(w => w.Word.Morphemes.Any(m => m.Value is Root r && r.Meaning == meaning));
 
     private static Sentence Walk(Language language, params Oblique[] obliques) =>
-        Syntax.Realize(language, new Clause("walk", Tense.Past, Aspect.Perfective, new NounPhrase("dog", Number.Singular), Obliques: obliques), "x");
+        Syntax.Realize(language, new Clause("walk", Tense.Past, Aspect.Perfective, new NounPhrase("dog", Number.Singular), Obliques: [.. obliques]), "x");
 
     private static Oblique Stone(CaseUse role) => new(role, new NounPhrase("stone", Number.Singular));
 

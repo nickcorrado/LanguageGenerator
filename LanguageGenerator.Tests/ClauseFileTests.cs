@@ -30,7 +30,7 @@ public class ClauseFileTests
             new(CaseUse.MovementTo, new NounPhrase("river", Number.Singular, [new("big")])),
             new(CaseUse.Accompaniment, new Pronoun(Person.Second, Number.Singular)),
         ]), clause);
-        Assert.NotEqual(clause with { Obliques = [.. clause.Adjuncts.Reverse()] }, clause);
+        Assert.NotEqual(clause with { Obliques = [.. clause.Obliques.Reverse()] }, clause);
     }
 
     [Theory]
@@ -42,7 +42,7 @@ public class ClauseFileTests
     [InlineData("instrument", CaseUse.Instrument)]
     public void Parse_ObliqueRole_IsItsCaseUse(string role, CaseUse use)
     {
-        Assert.Equal(use, Assert.Single(Verbal(Single($"x\n  see subject:dog object:cat {role}:stone")).Adjuncts).Role);
+        Assert.Equal(use, Assert.Single(Verbal(Single($"x\n  see subject:dog object:cat {role}:stone")).Obliques).Role);
     }
 
     [Fact]
