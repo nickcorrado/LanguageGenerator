@@ -1,4 +1,4 @@
-﻿namespace LanguageGenerator;
+namespace LanguageGenerator;
 
 /// <summary>Which part of a syllable a sound is.</summary>
 public enum SyllablePosition
@@ -211,4 +211,30 @@ public sealed class SoundChange(string name, Func<Site, bool> when, Func<Site, P
     public static SoundChange VowelElision { get; } = new("vowel elision (ka-a → ka, ka-o → ko)",
         site => site.Sound is Vowel && site.Next is { Phoneme: Vowel } next && next.Morpheme != site.Segment.Morpheme,
         Nothing);
+
+    /// <summary>
+    /// Vowels that meet merge into one, wherever they meet, as in Attic Greek or Sanskrit, where a + i
+    /// gives long e and a + u long o.
+    /// </summary>
+    //the merged vowel keeps the first one's morpheme, so a suffix can be left with no sound of its own
+    public static SoundChange VowelContraction { get; } = new("vowel contraction (ka-a → kaː, ka-i → keː)",
+        site => site.Sound is Vowel && (site.Before is Vowel || site.Next?.Phoneme is Vowel),
+        (site, phonology) => site.Before is Vowel
+            ? null
+            : site.Word.Skip(site.Index).Select(s => s.Phoneme).TakeWhile(p => p is Vowel).Cast<Vowel>().Aggregate((first, second) => Merged(first, second, phonology)));
+
+    //schwa gives way to anything. Otherwise the result is rounded if either vowel was, as Greek o wins
+    //over e, and halfway between their heights, and long if it can be, since it fills the time of two.
+    //Going by features means it works for any inventory
+    private static Vowel Merged(Vowel first, Vowel second, Phonology phonology)
+    {
+        if (first == Vowel.ə || second == Vowel.ə)
+        {
+            return first == Vowel.ə ? second : first;
+        }
+        var rounded = first.Rounded || second.Rounded;
+        var height = ((int)first.Height + (int)second.Height) / 2.0;
+        return phonology.Vowels.Where(v => v != Vowel.ə)
+            .MinBy(v => (v.Rounded != rounded, Math.Abs((int)v.Height - height), !v.Long))!;
+    }
 }

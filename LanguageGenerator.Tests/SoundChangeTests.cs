@@ -95,6 +95,83 @@ public class SoundChangeTests
         Assert.Contains("∅", surface.Segmented(Orthography.Ipa));
     }
 
+    private static string Contracted(IReadOnlyList<Vowel> vowels, params Phoneme[][] morphemes)
+    {
+        var phonology = TestData.Phonology(SyllableTemplates.CV, ClusterRepair.Epenthesis, SoundChange.VowelContraction) with { Vowels = [.. vowels] };
+
+        return string.Concat(phonology.Realize(TestData.Word(morphemes)).Phonemes.Select(p => p.IpaSymbol));
+    }
+
+    [Theory]
+    [InlineData("a", "a", "aː")]
+    [InlineData("a", "i", "eː")]
+    [InlineData("i", "a", "eː")]
+    [InlineData("a", "u", "oː")]
+    [InlineData("e", "o", "oː")]
+    [InlineData("o", "e", "oː")]
+    [InlineData("a", "e", "ɛ")]
+    [InlineData("a", "aː", "aː")]
+    [InlineData("ə", "a", "a")]
+    [InlineData("a", "ə", "a")]
+    [InlineData("ə", "ə", "ə")]
+    public void VowelContraction_MergesVowelsThatMeet(string first, string second, string merged)
+    {
+        Vowel Sound(string ipa) => Vowel.All.Single(v => v.IpaSymbol == ipa);
+
+        Assert.Equal($"k{merged}", Contracted(Vowel.All, [Consonant.k, Sound(first)], [Sound(second)]));
+    }
+
+    [Fact]
+    public void VowelContraction_WithinAMorpheme_MergesToo()
+    {
+        Assert.Equal("keː", Contracted(Vowel.All, [.. Ka, Vowel.i]));
+    }
+
+    [Fact]
+    public void VowelContraction_OfThreeVowels_LeavesOne()
+    {
+        Assert.Equal("kaː", Contracted(Vowel.All, [.. Ka, Vowel.a, Vowel.a]));
+    }
+
+    [Fact]
+    public void VowelContraction_WithoutLongVowels_KeepsTheShortOne()
+    {
+        Assert.Equal("ka", Contracted([Vowel.a, Vowel.i, Vowel.u], Ka, [Vowel.a]));
+    }
+
+    [Fact]
+    public void VowelContraction_WithoutTheHalfwayVowel_TakesTheNearest()
+    {
+        Assert.Equal("ki", Contracted([Vowel.i, Vowel.a, Vowel.u], [Consonant.k, Vowel.i], [Vowel.a]));
+    }
+
+    [Fact]
+    public void VowelContraction_LeavesVowelsApartAlone()
+    {
+        Assert.Equal("kala", Contracted(Vowel.All, Ka, [Consonant.l, Vowel.a]));
+    }
+
+    [Fact]
+    public void VowelContraction_OfAWholeSuffix_LeavesItEmptyInTheSegmentation()
+    {
+        var surface = TestData.Phonology(SyllableTemplates.CV, ClusterRepair.Epenthesis, SoundChange.VowelContraction).Realize(TestData.Word(Ka, [Vowel.i]));
+
+        Assert.Contains("∅", surface.Segmented(Orthography.Ipa));
+    }
+
+    [Fact]
+    public void Generate_LanguagesWithContraction_NeverLetVowelsMeet()
+    {
+        var contracting = GeneratedLanguages.Sample.Where(l => l.Phonology.SoundChanges.Contains(SoundChange.VowelContraction)).ToList();
+
+        Assert.NotEmpty(contracting);
+        Assert.All(contracting, l => Assert.All(GeneratedLanguages.AllWords(l).Select(l.Phonology.Realize), surface =>
+        {
+            var phonemes = surface.Phonemes.ToList();
+            Assert.DoesNotContain(Enumerable.Range(1, phonemes.Count - 1), i => phonemes[i] is Vowel && phonemes[i - 1] is Vowel);
+        }));
+    }
+
     //p voices to b, and then b weakens to v, so one change feeds the next
     [Fact]
     public void Realize_ChangesInOrder_CanFeedEachOther()
@@ -122,6 +199,7 @@ public class SoundChangeTests
         Assert.InRange(drawn.Count(c => c == SoundChange.VoicingAssimilation) / 2000.0, 0.27, 0.33);
         Assert.InRange(drawn.Count(c => c == SoundChange.FinalDevoicing) / 2000.0, 0.27, 0.33);
         Assert.InRange(drawn.Count(c => c == SoundChange.VowelElision) / 2000.0, 0.37, 0.43);
+        Assert.InRange(drawn.Count(c => c == SoundChange.VowelContraction) / 2000.0, 0.32, 0.38);
         Assert.InRange(drawn.Count(c => c == SoundChange.FrontBackHarmony) / 2000.0, 0.13, 0.17);
         Assert.InRange(drawn.Count(c => c == SoundChange.TongueRootHarmony) / 2000.0, 0.06, 0.10);
     }
@@ -138,15 +216,22 @@ public class SoundChangeTests
     }
 
     [Fact]
-    public void Generate_HarmonyAndElision_HarmonyComesFirst()
+    public void Generate_HarmonyAndElisionOrContraction_HarmonyComesFirst()
     {
         Assert.All(GeneratedLanguages.Sample, l =>
         {
             var changes = l.Phonology.SoundChanges;
-            var elision = changes.IndexOf(SoundChange.VowelElision);
-            Assert.True(elision < 0 || elision > changes.IndexOf(SoundChange.FrontBackHarmony));
-            Assert.True(elision < 0 || elision > changes.IndexOf(SoundChange.TongueRootHarmony));
+            var hiatus = Math.Max(changes.IndexOf(SoundChange.VowelElision), changes.IndexOf(SoundChange.VowelContraction));
+            Assert.True(hiatus < 0 || hiatus > changes.IndexOf(SoundChange.FrontBackHarmony));
+            Assert.True(hiatus < 0 || hiatus > changes.IndexOf(SoundChange.TongueRootHarmony));
         });
+    }
+
+    [Fact]
+    public void Generate_AnyLanguage_NeverBothElidesAndContracts()
+    {
+        Assert.DoesNotContain(GeneratedLanguages.Sample, l =>
+            l.Phonology.SoundChanges.Contains(SoundChange.VowelElision) && l.Phonology.SoundChanges.Contains(SoundChange.VowelContraction));
     }
 
     //a change that depends on syllables, applied to a word of one morpheme in a CVF language

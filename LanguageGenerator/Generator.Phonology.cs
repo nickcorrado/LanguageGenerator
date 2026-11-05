@@ -24,11 +24,11 @@ public static partial class Generator
         return rules;
     }
 
-    //more sound changes, applied after the first ones, in this order. Elision comes last so that the
-    //vowels it removes still separate consonants for the changes before it, and still set a word's
-    //harmony. The odds are guesses, final devoicing is for languages whose syllables can end in a
-    //consonant, and harmony is for those with vowels to pair. Harmony is drawn last, so that the
-    //changes before it stay as they were for each seed
+    //more sound changes, applied after the first ones, in this order. What a language does when vowels
+    //meet, elision, contraction or nothing, comes last, so that the vowels it removes still separate
+    //consonants for the changes before it, and still set a word's harmony. The odds are guesses, final
+    //devoicing is for languages whose syllables can end in a consonant, and harmony is for those with
+    //vowels to pair. Harmony is drawn last, so that the changes before it stay as they were for each seed
     public static List<SoundChange> SelectLaterSoundChanges(Random rand, SyllableRule rule, IReadOnlyCollection<Vowel> vowels)
     {
         var changes = new List<SoundChange>();
@@ -44,7 +44,12 @@ public static partial class Generator
         {
             changes.Add(SoundChange.FinalDevoicing);
         }
-        var elides = rand.NextDouble() < 0.4;
+        var hiatus = rand.NextDouble() switch
+        {
+            < 0.4 => SoundChange.VowelElision,
+            < 0.75 => SoundChange.VowelContraction,
+            _ => null,
+        };
         var harmony = rand.NextDouble() switch
         {
             < 0.15 => SoundChange.FrontBackHarmony,
@@ -55,9 +60,9 @@ public static partial class Generator
         {
             changes.Add(harmony);
         }
-        if (elides)
+        if (hiatus is not null)
         {
-            changes.Add(SoundChange.VowelElision);
+            changes.Add(hiatus);
         }
         return changes;
     }
