@@ -1,13 +1,22 @@
 ﻿namespace LanguageGenerator;
 
 /// <summary>
-/// One sound as a sound change sees it: the sound before it, already changed, and the one after it,
-/// not yet.
+/// One sound as a sound change sees it: the sound before it, already changed, the one after it, not
+/// yet, and the whole word as it was before this change, with which morpheme is its root, if any.
 /// </summary>
-public readonly record struct Site(Segment Segment, Segment? Previous, Segment? Next)
+public readonly record struct Site(Segment Segment, Segment? Previous, Segment? Next, IReadOnlyList<Segment> Word, int? Root)
 {
     public Phoneme Sound => Segment.Phoneme;
     public bool BetweenVowels => Previous?.Phoneme is Vowel && Next?.Phoneme is Vowel;
+
+    public IEnumerable<Phoneme> RootSounds
+    {
+        get
+        {
+            var root = Root;
+            return Word.Where(s => s.Morpheme == root).Select(s => s.Phoneme);
+        }
+    }
 }
 
 /// <summary>
@@ -18,16 +27,16 @@ public readonly record struct Site(Segment Segment, Segment? Previous, Segment? 
 //language applies its changes in order, so one can feed or bleed the next. Changes only ever use
 //phonemes from the language's own inventory; where it has no suitable phoneme, the sound is left
 //alone. A change is a value, so a language's are a list that can be drawn, compared or extended
-public sealed class SoundChange(string name, Func<Site, bool> when, Func<Site, Phonology, Phoneme?> becomes)
+public sealed class SoundChange(string name, Func<Site, bool> when, Func<Site, Phonology, Phoneme?> becomes, (Vowel First, Vowel Second)[]? pairs = null)
 {
     public override string ToString() => name;
 
-    public List<Segment> Apply(List<Segment> segments, Phonology phonology)
+    public List<Segment> Apply(List<Segment> segments, Phonology phonology, int? root = null)
     {
         var result = new List<Segment>();
         for (int i = 0; i < segments.Count; i++)
         {
-            var site = new Site(segments[i], result.LastOrDefault(), i + 1 < segments.Count ? segments[i + 1] : null);
+            var site = new Site(segments[i], result.LastOrDefault(), i + 1 < segments.Count ? segments[i + 1] : null, segments, root);
             if (!when(site))
             {
                 result.Add(segments[i]);
@@ -90,6 +99,46 @@ public sealed class SoundChange(string name, Func<Site, bool> when, Func<Site, P
     public static SoundChange FinalDevoicing { get; } = new("final devoicing (kab → kap)",
         site => site.Sound is Consonant { IsObstruent: true, Voiced: true } && site.Next is null,
         (site, phonology) => phonology.Counterpart((Consonant)site.Sound, voiced: false) ?? site.Sound);
+
+    /// <summary>
+    /// Every vowel in a word agrees with the root's first harmonizing vowel in being front or back, as
+    /// in Finnish talo-ssa 'in the house' but kylä-ssä 'in the village'.
+    /// </summary>
+    //the inventory has no u, and a pairs with æ as Finnish a does with ä, though it's a front vowel
+    //by its features
+    public static SoundChange FrontBackHarmony { get; } = Harmony("front-back harmony (kæ-la → kælæ)",
+        [(Vowel.æ, Vowel.a), (Vowel.e, Vowel.o), (Vowel.ɛ, Vowel.ɔ)]);
+
+    /// <summary>
+    /// Every vowel in a word agrees with the root's first harmonizing vowel in the position of the
+    /// tongue root, heard as close or open mid vowels, as in Akan or Igbo.
+    /// </summary>
+    public static SoundChange TongueRootHarmony { get; } = Harmony("tongue-root harmony (ke-lɛ → kele)",
+        [(Vowel.e, Vowel.ɛ), (Vowel.o, Vowel.ɔ)]);
+
+    /// <summary>Whether a language has both vowels of any pair this change needs, if it needs any.</summary>
+    public bool CanApplyTo(IReadOnlyCollection<Vowel> vowels) => pairs?.Any(p => vowels.Contains(p.First) && vowels.Contains(p.Second)) ?? true;
+
+    //harmony spreads from the root both ways, so prefixes agree too, and it reaches the root's own
+    //vowels, since real languages with harmony have roots that keep it. A vowel with no partner, like
+    //i in Finnish, is neutral: it doesn't change and harmony passes through it. It runs before
+    //epenthesis, whose usual vowels, ə and i, are neutral anyway
+    private static SoundChange Harmony(string name, (Vowel First, Vowel Second)[] pairs)
+    {
+        (Vowel First, Vowel Second)? PairOf(Phoneme sound) => pairs.FirstOrDefault(p => p.First == sound || p.Second == sound) is { First: not null } pair ? pair : null;
+        //the root's first vowel with a partner: which side of the pairs it's on decides the word
+        bool? First(Site site) => site.RootSounds.FirstOrDefault(s => PairOf(s) is not null) is { } trigger ? PairOf(trigger)!.Value.First == trigger : null;
+
+        return new(name,
+            site => site.Sound is Vowel && PairOf(site.Sound) is not null && First(site) is not null,
+            (site, phonology) =>
+            {
+                var pair = PairOf(site.Sound)!.Value;
+                var agreeing = First(site) == true ? pair.First : pair.Second;
+                return phonology.Vowels.Contains(agreeing) ? agreeing : site.Sound;
+            },
+            pairs);
+    }
 
     /// <summary>The first of two vowels that meet at a morpheme boundary is lost.</summary>
     public static SoundChange VowelElision { get; } = new("vowel elision (ka-a → ka, ka-o → ko)",

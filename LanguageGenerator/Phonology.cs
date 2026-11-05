@@ -46,9 +46,10 @@ public record Phonology
                 segments.Add(new Segment(phoneme, i));
             }
         }
+        var root = Enumerable.Range(0, word.Morphemes.Count).Where(i => word.Morphemes[i].Value is Root).Cast<int?>().FirstOrDefault();
         foreach (var change in SoundChanges)
         {
-            segments = change.Apply(segments, this);
+            segments = change.Apply(segments, this, root);
         }
 
         List<Syllable>? syllables;

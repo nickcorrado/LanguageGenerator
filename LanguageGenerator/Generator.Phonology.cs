@@ -25,9 +25,11 @@ public static partial class Generator
     }
 
     //more sound changes, applied after the first ones, in this order. Elision comes last so that the
-    //vowels it removes still separate consonants for the changes before it. The odds are guesses, and
-    //final devoicing is for languages whose syllables can end in a consonant
-    public static List<SoundChange> SelectLaterSoundChanges(Random rand, SyllableRule rule)
+    //vowels it removes still separate consonants for the changes before it, and still set a word's
+    //harmony. The odds are guesses, final devoicing is for languages whose syllables can end in a
+    //consonant, and harmony is for those with vowels to pair. Harmony is drawn last, so that the
+    //changes before it stay as they were for each seed
+    public static List<SoundChange> SelectLaterSoundChanges(Random rand, SyllableRule rule, IReadOnlyCollection<Vowel> vowels)
     {
         var changes = new List<SoundChange>();
         if (rand.NextDouble() < 0.25)
@@ -42,7 +44,18 @@ public static partial class Generator
         {
             changes.Add(SoundChange.FinalDevoicing);
         }
-        if (rand.NextDouble() < 0.4)
+        var elides = rand.NextDouble() < 0.4;
+        var harmony = rand.NextDouble() switch
+        {
+            < 0.15 => SoundChange.FrontBackHarmony,
+            < 0.23 => SoundChange.TongueRootHarmony,
+            _ => null,
+        };
+        if (harmony is not null && harmony.CanApplyTo(vowels))
+        {
+            changes.Add(harmony);
+        }
+        if (elides)
         {
             changes.Add(SoundChange.VowelElision);
         }

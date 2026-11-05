@@ -116,11 +116,105 @@ public class SoundChangeTests
     {
         var rand = new Random(1);
         var rule = new SyllableRule(SyllableTemplates.CVF, TestData.Vowels, TestData.Consonants);
-        var drawn = Enumerable.Range(0, 2000).SelectMany(_ => Generator.SelectLaterSoundChanges(rand, rule)).ToList();
+        var drawn = Enumerable.Range(0, 2000).SelectMany(_ => Generator.SelectLaterSoundChanges(rand, rule, TestData.Vowels)).ToList();
 
         Assert.InRange(drawn.Count(c => c == SoundChange.Lenition) / 2000.0, 0.22, 0.28);
         Assert.InRange(drawn.Count(c => c == SoundChange.VoicingAssimilation) / 2000.0, 0.27, 0.33);
         Assert.InRange(drawn.Count(c => c == SoundChange.FinalDevoicing) / 2000.0, 0.27, 0.33);
         Assert.InRange(drawn.Count(c => c == SoundChange.VowelElision) / 2000.0, 0.37, 0.43);
+        Assert.InRange(drawn.Count(c => c == SoundChange.FrontBackHarmony) / 2000.0, 0.13, 0.17);
+        Assert.InRange(drawn.Count(c => c == SoundChange.TongueRootHarmony) / 2000.0, 0.06, 0.10);
+    }
+
+    [Fact]
+    public void SelectLaterSoundChanges_WithoutVowelsToPair_DrawsNoHarmony()
+    {
+        var rand = new Random(1);
+        var rule = new SyllableRule(SyllableTemplates.CVF, TestData.Vowels, TestData.Consonants);
+        var drawn = Enumerable.Range(0, 2000).SelectMany(_ => Generator.SelectLaterSoundChanges(rand, rule, [Vowel.a, Vowel.i, Vowel.ə])).ToList();
+
+        Assert.DoesNotContain(SoundChange.FrontBackHarmony, drawn);
+        Assert.DoesNotContain(SoundChange.TongueRootHarmony, drawn);
+    }
+
+    [Fact]
+    public void Generate_HarmonyAndElision_HarmonyComesFirst()
+    {
+        Assert.All(GeneratedLanguages.Sample, l =>
+        {
+            var changes = l.Phonology.SoundChanges;
+            var elision = changes.IndexOf(SoundChange.VowelElision);
+            Assert.True(elision < 0 || elision > changes.IndexOf(SoundChange.FrontBackHarmony));
+            Assert.True(elision < 0 || elision > changes.IndexOf(SoundChange.TongueRootHarmony));
+        });
+    }
+
+    private static readonly Phoneme[] La = [Consonant.l, Vowel.a];
+    private static readonly Phoneme[] Læ = [Consonant.l, Vowel.æ];
+
+    [Fact]
+    public void FrontBackHarmony_SuffixTakesTheRootsSide()
+    {
+        Assert.Equal("kælæ", Surface(SyllableTemplates.CV, SoundChange.FrontBackHarmony, [Consonant.k, Vowel.æ], La));
+        Assert.Equal("kala", Surface(SyllableTemplates.CV, SoundChange.FrontBackHarmony, Ka, Læ));
+        Assert.Equal("kele", Surface(SyllableTemplates.CV, SoundChange.FrontBackHarmony, [Consonant.k, Vowel.e], [Consonant.l, Vowel.o]));
+    }
+
+    [Fact]
+    public void FrontBackHarmony_RootsFirstHarmonizingVowel_RulesTheRootToo()
+    {
+        Assert.Equal("kala", Surface(SyllableTemplates.CV, SoundChange.FrontBackHarmony, [.. Ka, .. Læ]));
+    }
+
+    [Fact]
+    public void FrontBackHarmony_NeutralVowels_StayAndLetItPass()
+    {
+        //i has no partner, so it doesn't change, and doesn't stop a from deciding the word
+        Assert.Equal("kilala", Surface(SyllableTemplates.CV, SoundChange.FrontBackHarmony, [Consonant.k, Vowel.i, .. La], Læ));
+        Assert.Equal("kali", Surface(SyllableTemplates.CV, SoundChange.FrontBackHarmony, Ka, [Consonant.l, Vowel.i]));
+        //with only neutral vowels in the root, nothing decides the word
+        Assert.Equal("kilæ", Surface(SyllableTemplates.CV, SoundChange.FrontBackHarmony, [Consonant.k, Vowel.i], Læ));
+    }
+
+    [Fact]
+    public void FrontBackHarmony_Prefix_AgreesWithTheRootToo()
+    {
+        var word = new Word([new Affix([Consonant.l, Vowel.æ], [Number.Plural]), new Root(Ka, "dog")]);
+        var phonology = TestData.Phonology(SyllableTemplates.CV, ClusterRepair.Epenthesis, SoundChange.FrontBackHarmony);
+
+        Assert.Equal("laka", string.Concat(phonology.Realize(word).Phonemes.Select(p => p.IpaSymbol)));
+    }
+
+    [Fact]
+    public void FrontBackHarmony_WithoutThePartnerInTheInventory_LeavesTheVowelAlone()
+    {
+        var phonology = TestData.Phonology(SyllableTemplates.CV, ClusterRepair.Epenthesis, SoundChange.FrontBackHarmony) with { Vowels = [Vowel.a, Vowel.e] };
+
+        //a is on the back side, but this language has no o for e to become
+        Assert.Equal("kale", string.Concat(phonology.Realize(TestData.Word(Ka, [Consonant.l, Vowel.e])).Phonemes.Select(p => p.IpaSymbol)));
+    }
+
+    [Fact]
+    public void TongueRootHarmony_SuffixTakesTheRootsSide()
+    {
+        Assert.Equal("kele", Surface(SyllableTemplates.CV, SoundChange.TongueRootHarmony, [Consonant.k, Vowel.e], [Consonant.l, Vowel.ɛ]));
+        Assert.Equal("kɔlɛ", Surface(SyllableTemplates.CV, SoundChange.TongueRootHarmony, [Consonant.k, Vowel.ɔ], [Consonant.l, Vowel.e]));
+    }
+
+    [Fact]
+    public void Harmony_WordWithNoRoot_IsLeftAlone()
+    {
+        var word = new Word([new Particle([Consonant.l, Vowel.æ, Consonant.l, Vowel.a], [Number.Plural])]);
+        var phonology = TestData.Phonology(SyllableTemplates.CV, ClusterRepair.Epenthesis, SoundChange.FrontBackHarmony);
+
+        Assert.Equal("læla", string.Concat(phonology.Realize(word).Phonemes.Select(p => p.IpaSymbol)));
+    }
+
+    [Fact]
+    public void Harmony_InASegmentedWord_ShowsOnEachMorpheme()
+    {
+        var phonology = TestData.Phonology(SyllableTemplates.CV, ClusterRepair.Epenthesis, SoundChange.FrontBackHarmony);
+
+        Assert.Equal("kæ-læ", phonology.Realize(TestData.Word([Consonant.k, Vowel.æ], La)).Segmented(Orthography.Ipa));
     }
 }
