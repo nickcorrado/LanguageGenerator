@@ -216,13 +216,6 @@ public class SyllableRule
         return new Syllable(new ConsonantCluster(onset), nucleus!, coda);
     }
 
-    /// <summary>Roughly how many distinct syllables this rule can make.</summary>
-    //each consonantal slot is empty or one of its phonemes. It overcounts a little, since in CLV an
-    //onset l could come from C or from L
-    public double DistinctSyllables => Template.Slots
-        .Select(s => s is VowelSlot ? vowels.Count() : 1 + Resolve(s).Phonemes.Count())
-        .Aggregate(1.0, (product, choices) => product * choices);
-
     //whether these consonants can open, or close, a syllable of this shape
     public bool IsLegalOnset(IReadOnlyList<Consonant> consonants) =>
         Fits(consonants, [.. Template.Slots.TakeWhile(s => s is not VowelSlot)]);

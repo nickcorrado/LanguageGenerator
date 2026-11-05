@@ -23,9 +23,10 @@ public static partial class Generator
         };
 
         var orthography = SelectOrthography(rand, vowels, consonants);
-        //the lexicon's seed and root length are drawn here, so that the draws after them stay where
-        //they were; the lexicon itself is built last, once there are closed classes for it to avoid
-        var (lexiconSeed, extraSyllables) = (rand.Next(), SelectExtraSyllables(rand, syllableRule));
+        //the lexicon's seed and root length noise are drawn here, so that the draws after them stay
+        //where they were; the lexicon itself is built last, once the sound changes that decide how
+        //long its roots must be are known, and there are closed classes for it to avoid
+        var (lexiconSeed, rootLengthNoise) = (rand.Next(), SelectRootLengthNoise(rand));
 
         //word order comes first because how isolating a language is, and how much it prefixes, depend on it
         var wordOrder = SelectWordOrder(rand);
@@ -52,6 +53,7 @@ public static partial class Generator
             SoundChanges = [.. phonology.SoundChanges, .. SelectLaterSoundChanges(rand, syllableRule, vowels)],
             SyllableChanges = SelectSyllableChanges(rand, syllableRule, vowels),
         };
+        var extraSyllables = SelectExtraSyllables(rootLengthNoise, lexiconSeed, phonology, syllableDropoff);
         var lexicon = GenerateLexicon(lexiconSeed, extraSyllables, phonology, syllableDropoff, new Dictionary<PartOfSpeech, IEnumerable<Lexeme>>
         {
             [PartOfSpeech.Noun] = pronouns.Forms.Values,

@@ -1,4 +1,4 @@
-﻿namespace LanguageGenerator;
+namespace LanguageGenerator;
 
 //roots, and how long they run
 public static partial class Generator
@@ -47,16 +47,38 @@ public static partial class Generator
 
     public const int MaxRootSyllables = 5;
 
-    //how many syllables past the first a root has on average. Languages with few possible syllables
-    //need longer words to tell them apart, so Hawaiian's roots run longer than English's: about as
-    //many syllables as it takes to make RootsToDistinguish distinct forms. Tuned by eye; WALS has
-    //nothing on word length
-    public static double SelectExtraSyllables(Random rand, SyllableRule rule)
+    //how much languages differ in root length around what they need
+    public static double SelectRootLengthNoise(Random rand) => 0.75 + 0.5 * rand.NextDouble();
+
+    public const double RootCollisionRate = 3.4e-4;
+    private const int RootsToSample = 400;
+    private const double MostExtraSyllables = 2.5;
+
+    //how many syllables past the first a root has on average: the fewest at which two roots sound
+    //alike about RootCollisionRate of the time, which is about 10 homophones among 250 words. Languages
+    //with little to work with need longer words, so Hawaiian's roots run longer than English's. It
+    //samples real surface forms because counting what's possible says little: common phonemes make
+    //for far fewer likely syllables than possible ones, and sound changes merge some of what's left.
+    //The target trades homophones for length, and WALS has nothing on word length to settle it:
+    //halving it halves the homophones and makes the average root a quarter of a syllable longer
+    public static double SelectExtraSyllables(double noise, int seed, Phonology phonology, double dropoff)
     {
-        const double RootsToDistinguish = 100_000;
-        var needed = Math.Log(RootsToDistinguish) / Math.Log(Math.Max(rule.DistinctSyllables, 2));
-        var noise = 0.75 + 0.5 * rand.NextDouble();
-        return Math.Clamp((needed - 1) * noise, 0.2, 2.0);
+        double CollisionRate(double extraSyllables)
+        {
+            var rand = Sampling.For(seed, "root length");
+            var forms = Enumerable.Range(0, RootsToSample)
+                .Select(_ => string.Concat(phonology.Realize(new Word([new Root(GenerateForm(rand, phonology.SyllableRule, dropoff, extraSyllables), "")])).Phonemes.Select(p => p.IpaSymbol)));
+            var pairs = forms.GroupBy(form => form).Sum(same => same.Count() * (same.Count() - 1L) / 2);
+            return pairs / (RootsToSample * (RootsToSample - 1) / 2.0);
+        }
+
+        var (low, high) = (0.0, MostExtraSyllables);
+        for (int step = 0; step < 5; step++)
+        {
+            var middle = (low + high) / 2;
+            (low, high) = CollisionRate(middle) > RootCollisionRate ? (middle, high) : (low, middle);
+        }
+        return Math.Clamp(high * noise, 0.2, MostExtraSyllables);
     }
 
     public static List<Phoneme> GenerateForm(Random rand, SyllableRule rule, double dropoff, double extraSyllables, int maxSyllables = MaxRootSyllables)

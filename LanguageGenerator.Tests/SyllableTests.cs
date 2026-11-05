@@ -188,35 +188,56 @@ public class SyllableTests
         Assert.InRange(Share(CodaRestriction.SingleNasal), 0.08, 0.12);
     }
 
-    [Fact]
-    public void DistinctSyllables_CV_IsAnOptionalConsonantTimesAVowel()
-    {
-        var rule = new SyllableRule(SyllableTemplates.CV, TestData.Vowels, TestData.Consonants);
-
-        Assert.Equal((1 + TestData.Consonants.Count) * TestData.Vowels.Count, rule.DistinctSyllables);
-    }
+    private static double ExtraSyllables(Phonology phonology, double noise = 1) =>
+        Enumerable.Range(0, 20).Average(seed => Generator.SelectExtraSyllables(noise, seed, phonology, 0.15));
 
     [Fact]
-    public void DistinctSyllables_RestrictedCodas_CountOnlyTheirClass()
-    {
-        var rule = new SyllableRule(SyllableTemplates.CVF, TestData.Vowels, TestData.Consonants, CodaRestriction.SingleNasal);
-
-        Assert.Equal((1 + TestData.Consonants.Count) * TestData.Vowels.Count * 2, rule.DistinctSyllables);
-    }
-
-    [Fact]
-    public void SelectExtraSyllables_FewerPossibleSyllables_GiveLongerRoots()
+    public void SelectExtraSyllables_FewerLikelySyllables_GiveLongerRoots()
     {
         var fewVowels = TestData.Vowels.Take(3).ToList();
         var fewConsonants = TestData.Consonants.Take(8).ToList();
-        var simple = new SyllableRule(SyllableTemplates.CV, fewVowels, fewConsonants);
-        var complex = new SyllableRule(SyllableTemplates.SCLVF, TestData.Vowels, TestData.Consonants);
-        var rand = new Random(1);
+        var simple = TestData.Phonology(SyllableTemplates.CV, ClusterRepair.Epenthesis) with
+        {
+            Vowels = fewVowels,
+            Consonants = fewConsonants,
+            SyllableRule = new SyllableRule(SyllableTemplates.CV, fewVowels, fewConsonants),
+        };
+        var complex = TestData.Phonology(SyllableTemplates.SCLVF, ClusterRepair.Epenthesis);
 
-        var simpleMean = Enumerable.Range(0, 200).Average(_ => Generator.SelectExtraSyllables(rand, simple));
-        var complexMean = Enumerable.Range(0, 200).Average(_ => Generator.SelectExtraSyllables(rand, complex));
+        var (simpleMean, complexMean) = (ExtraSyllables(simple), ExtraSyllables(complex));
 
-        Assert.True(simpleMean > complexMean + 1, $"CV roots average {1 + simpleMean:F2} syllables and SCLVF roots {1 + complexMean:F2}");
+        Assert.True(simpleMean > complexMean + 0.5, $"CV roots average {1 + simpleMean:F2} syllables and SCLVF roots {1 + complexMean:F2}");
+    }
+
+    [Fact]
+    public void SelectExtraSyllables_SoundChangesThatMergeSounds_GiveLongerRoots()
+    {
+        var merger = new SoundChange("every consonant becomes k", site => site.Sound is Consonant, (_, _) => Consonant.k);
+        var plain = TestData.Phonology(SyllableTemplates.CV, ClusterRepair.Epenthesis);
+
+        Assert.True(ExtraSyllables(plain with { SoundChanges = [merger] }) > ExtraSyllables(plain));
+    }
+
+    [Fact]
+    public void SelectExtraSyllables_MoreNoise_GivesLongerRoots()
+    {
+        var phonology = TestData.Phonology(SyllableTemplates.CVF, ClusterRepair.Epenthesis);
+
+        Assert.True(ExtraSyllables(phonology, 1.25) > ExtraSyllables(phonology, 0.75));
+    }
+
+    [Fact]
+    public void Generate_AnyLanguage_RootsStayMostlyDistinct()
+    {
+        static int Homophones(Language language)
+        {
+            var forms = Enumerable.Range(0, 250).Select(i => string.Concat(language.Phonology.Realize(new Word([language.Lexicon.Noun($"word {i}").Root])).Phonemes.Select(p => p.IpaSymbol)));
+            return forms.GroupBy(form => form).Sum(same => same.Count() * (same.Count() - 1) / 2);
+        }
+
+        var homophones = Enumerable.Range(0, 40).Select(seed => Homophones(Generator.Generate(new Random(seed)))).ToList();
+
+        Assert.InRange(homophones.Average(), 3, 20);
     }
 
     //single-letter IPA symbols only, which covers everything these tests need

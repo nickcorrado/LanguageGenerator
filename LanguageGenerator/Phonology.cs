@@ -26,7 +26,7 @@ public record Phonology
     //like as.hoka, which real languages mostly avoid inside a simple word (English has it in compounds
     //like "mishap"). A per-language rule about what meets at a boundary would keep such words out of
     //roots. Suffixes, sound changes and cluster repair make new boundaries too, so it has to decide
-    //how far to police those. It leaves less room for roots, so do it alongside root length
+    //how far to police those. It leaves less room for roots, which root length will have to measure
     public required SyllableRule SyllableRule { get; init; }
     /// <summary>Applied in order across the whole word, before clusters are repaired.</summary>
     public required List<SoundChange> SoundChanges { get; init; }
