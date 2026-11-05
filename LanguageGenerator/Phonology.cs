@@ -22,6 +22,11 @@ public record Phonology
 {
     public required List<Vowel> Vowels { get; init; }
     public required List<Consonant> Consonants { get; init; }
+    //TODO syllable contact: any legal coda can sit beside any legal onset, so nothing stops a word
+    //like as.hoka, which real languages mostly avoid inside a simple word (English has it in compounds
+    //like "mishap"). A per-language rule about what meets at a boundary would keep such words out of
+    //roots. Suffixes, sound changes and cluster repair make new boundaries too, so it has to decide
+    //how far to police those. It leaves less room for roots, so do it alongside root length
     public required SyllableRule SyllableRule { get; init; }
     /// <summary>Applied in order across the whole word, before clusters are repaired.</summary>
     public required List<SoundChange> SoundChanges { get; init; }

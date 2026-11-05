@@ -1,33 +1,39 @@
-﻿namespace LanguageGenerator.Tests;
+namespace LanguageGenerator.Tests;
 
 public class OrthographyTests
 {
     [Theory]
-    [InlineData(new[] { "a", "e", "ae" }, false)]
-    [InlineData(new[] { "s", "h", "sh" }, false)]
-    [InlineData(new[] { "i", "ii" }, false)]
     [InlineData(new[] { "e", "e" }, false)]
-    //a chain of dangling suffixes: "a" + "bc" and "ab" + "c" both spell "abc"
-    [InlineData(new[] { "a", "ab", "bc", "c" }, false)]
+    [InlineData(new[] { "a", "e", "a" }, false)]
     [InlineData(new[] { "s", "sh" }, true)]
     [InlineData(new[] { "a", "ä", "e", "ë" }, true)]
-    [InlineData(new[] { "k", "kh", "h" }, false)]
-    public void IsUnambiguous_DetectsSpellingsThatSplitMoreThanOneWay(string[] spellings, bool unambiguous)
+    //spellings may run together, so long as each is its own
+    [InlineData(new[] { "s", "h", "sh" }, true)]
+    [InlineData(new[] { "k", "kh", "h" }, true)]
+    public void AreDistinct_RejectsOnlyRepeatedSpellings(string[] spellings, bool distinct)
     {
-        Assert.Equal(unambiguous, Orthography.IsUnambiguous(spellings));
+        Assert.Equal(distinct, Orthography.AreDistinct(spellings));
     }
 
     [Fact]
     public void Ipa_SpellsEveryPhonemeWithItsIpaSymbol()
     {
         Assert.Equal("ʃiːk", Orthography.Ipa.Spell([Consonant.ʃ, Vowel.iː, Consonant.k]));
-        Assert.True(Orthography.IsUnambiguous(Orthography.Ipa.Spellings.Values));
+        Assert.True(Orthography.AreDistinct(Orthography.Ipa.Spellings.Values));
     }
 
     [Fact]
-    public void Constructor_AmbiguousSpellings_Throws()
+    public void Constructor_TwoPhonemesSpelledAlike_Throws()
     {
-        Assert.Throws<ArgumentException>(() => new Orthography(new Dictionary<Phoneme, string> { [Vowel.a] = "a", [Vowel.ɛ] = "e", [Vowel.æ] = "ae" }));
+        Assert.Throws<ArgumentException>(() => new Orthography(new Dictionary<Phoneme, string> { [Vowel.a] = "a", [Vowel.æ] = "a" }));
+    }
+
+    [Fact]
+    public void Constructor_SpellingsThatRunTogether_AreAllowed()
+    {
+        var orthography = new Orthography(new Dictionary<Phoneme, string> { [Consonant.s] = "s", [Consonant.h] = "h", [Consonant.ʃ] = "sh" });
+
+        Assert.Equal(orthography.Spell([Consonant.s, Consonant.h]), orthography.Spell([Consonant.ʃ]));
     }
 
     [Fact]
@@ -70,7 +76,7 @@ public class OrthographyTests
         Assert.Equal(["ī", "ō"], [spellings[Vowel.iː], spellings[Vowel.oː]]);
         Assert.Equal(["e", "è", "o", "ò"], [spellings[Vowel.e], spellings[Vowel.ɛ], spellings[Vowel.o], spellings[Vowel.ɔ]]);
         Assert.Equal(["ë", "ä", "k", "y", "r"], [spellings[Vowel.ə], spellings[Vowel.æ], spellings[Consonant.k], spellings[Consonant.j], spellings[Consonant.ɹ]]);
-        Assert.True(Orthography.IsUnambiguous(spellings.Values));
+        Assert.True(Orthography.AreDistinct(spellings.Values));
     }
 
     [Theory]
@@ -88,12 +94,12 @@ public class OrthographyTests
     }
 
     [Fact]
-    public void Spell_ClashingConventions_AreAmbiguous()
+    public void Spell_ClashingConventions_SpellTwoPhonemesAlike()
     {
         //acute long vowels and acute close vowels both write oː and o as ó
         var style = new OrthographicStyle(PostalveolarSpelling.Hacek, LongVowelSpelling.Acute, MidVowelSpelling.AcuteOnClose, "ë", "ä", "k", "y");
 
-        Assert.False(Orthography.IsUnambiguous(style.Spell(FullInventory).Values));
+        Assert.False(Orthography.AreDistinct(style.Spell(FullInventory).Values));
     }
 
     [Fact]
@@ -127,27 +133,34 @@ public class OrthographyTests
     }
 
     [Fact]
-    public void SelectOrthography_GeneratedLanguages_SpellTheirWholeInventoryUnambiguously()
+    public void SelectOrthography_GeneratedLanguages_SpellTheirWholeInventoryDistinctly()
     {
         Assert.All(GeneratedLanguages.Sample, l =>
         {
-            Assert.True(Orthography.IsUnambiguous(l.Orthography.Spellings.Values));
+            Assert.True(Orthography.AreDistinct(l.Orthography.Spellings.Values));
             Assert.All(l.Phonology.Vowels.Concat<Phoneme>(l.Phonology.Consonants), p => Assert.Contains(p, l.Orthography.Spellings.Keys));
         });
     }
 
     [Fact]
-    public void SelectOrthography_GeneratedLanguages_NeverSpellTwoDifferentWordsTheSame()
+    public void SelectOrthography_GeneratedLanguages_RarelySpellTwoDifferentWordsTheSame()
     {
-        foreach (var language in GeneratedLanguages.Sample)
-        {
-            var spelled = new Dictionary<string, string>();
-            foreach (var surface in GeneratedLanguages.AllWords(language).Select(language.Phonology.Realize))
-            {
-                var ipa = string.Join(" ", surface.Phonemes.Select(p => p.IpaSymbol));
-                Assert.Equal(ipa, spelled.TryAdd(surface.Spell(language.Orthography), ipa) ? ipa : spelled[surface.Spell(language.Orthography)]);
-            }
-        }
+        //spellings can run together, so s + h can meet sh, but it should take a rare coincidence of words
+        bool HasHomographs(Language language) =>
+            GeneratedLanguages.AllWords(language).Select(language.Phonology.Realize)
+                .GroupBy(surface => surface.Spell(language.Orthography))
+                .Any(forms => forms.Select(f => string.Join(" ", f.Phonemes.Select(p => p.IpaSymbol))).Distinct().Count() > 1);
+
+        var count = GeneratedLanguages.Sample.Count(HasHomographs);
+
+        Assert.True(count <= GeneratedLanguages.Sample.Count / 50, $"{count} of {GeneratedLanguages.Sample.Count} languages have homographs");
+    }
+
+    [Fact]
+    public void SelectOrthography_GeneratedLanguages_UseDigraphsBesideTheirOwnLetters()
+    {
+        Assert.Contains(GeneratedLanguages.Sample, l =>
+            l.Orthography.Spellings.Values.Contains("sh") && l.Orthography.Spellings.ContainsKey(Consonant.s) && l.Orthography.Spellings.ContainsKey(Consonant.h));
     }
 
     [Fact]

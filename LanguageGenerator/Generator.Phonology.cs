@@ -97,7 +97,7 @@ public static partial class Generator
     //a set of conventions, applied to the whole inventory. Conventions that clash for this
     //inventory (acute long vowels beside acute close vowels both give ó, say) are drawn again as
     //a set, so a language never ends up with a convention applied to only some of its sounds.
-    //IPA is the fallback, and always unambiguous
+    //IPA is the fallback, which never clashes
     public static Orthography SelectOrthography(Random rand, List<Vowel> vowels, List<Consonant> consonants)
     {
         var inventory = vowels.Concat<Phoneme>(consonants).ToList();
@@ -116,7 +116,7 @@ public static partial class Generator
                 Pick(OrthographicStyle.VelarNasalOptions),
                 Pick(OrthographicStyle.VelarFricativeOptions));
             var spellings = style.Spell(inventory);
-            if (Orthography.IsUnambiguous(spellings.Values))
+            if (Orthography.AreDistinct(spellings.Values))
             {
                 return new Orthography(spellings, style);
             }
