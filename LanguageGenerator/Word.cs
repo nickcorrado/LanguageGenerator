@@ -26,6 +26,15 @@ public record Word(IReadOnlyList<Morpheme> Morphemes, IReadOnlyList<Grammeme>? C
 }
 
 /// <summary>A dictionary entry: a root, and what it can be inflected as.</summary>
+//TODO stems: a word is inflected from its root, so there's no derivation yet. Stem can mean two
+//things: a base built up from morphemes, as in Latin am-ā-t-us 'loved', or one of a lexeme's
+//alternate stems, chosen by what's being formed, as with fer-, tul- and lāt-. Wait for the first
+//derivation to show which shape is needed, most likely agent nouns (hunt → hunt-AGT), which need no
+//voice or new paradigms. Participles need more: an adjective paradigm like the pronouns' borrowed
+//slots, which would replace AgreeingAdjective's relabeling, inflection classes, since amātus and
+//amāns decline differently, and syntax for words that agree like adjectives but take objects like
+//verbs. Until then, avoid adding more placement relative to the root, as in Gender.Agree and
+//Possession.Agree, since a marker there would land inside a derived stem
 public record Lexeme(Root Root, PartOfSpeech PartOfSpeech);
 
 public enum PartOfSpeech
