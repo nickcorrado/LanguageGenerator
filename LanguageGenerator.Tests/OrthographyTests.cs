@@ -48,7 +48,10 @@ public class OrthographyTests
         from nearOpenFront in OrthographicStyle.NearOpenFrontOptions
         from velarStop in OrthographicStyle.VelarStopOptions
         from palatalGlide in OrthographicStyle.PalatalGlideOptions
-        select new OrthographicStyle(postalveolars, longVowels, midVowels, schwa, nearOpenFront, velarStop, palatalGlide);
+        from dentalFricatives in Enum.GetValues<DentalFricativeSpelling>()
+        from velarNasal in OrthographicStyle.VelarNasalOptions
+        from velarFricative in OrthographicStyle.VelarFricativeOptions
+        select new OrthographicStyle(postalveolars, longVowels, midVowels, schwa, nearOpenFront, velarStop, palatalGlide, dentalFricatives, velarNasal, velarFricative);
 
     [Fact]
     public void Spell_EveryStyle_SpellsTheWholeInventory()

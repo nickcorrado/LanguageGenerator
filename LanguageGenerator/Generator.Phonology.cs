@@ -62,7 +62,7 @@ public static partial class Generator
     {
         var inventory = vowels.Concat<Phoneme>(consonants).ToList();
         T Pick<T>(IReadOnlyList<T> options) => options[rand.Next(options.Count)];
-        for (int attempt = 0; attempt < 50; attempt++)
+        for (int attempt = 0; attempt < 500; attempt++)
         {
             var style = new OrthographicStyle(
                 Pick(Enum.GetValues<PostalveolarSpelling>()),
@@ -71,7 +71,10 @@ public static partial class Generator
                 Pick(OrthographicStyle.SchwaOptions),
                 Pick(OrthographicStyle.NearOpenFrontOptions),
                 Pick(OrthographicStyle.VelarStopOptions),
-                Pick(OrthographicStyle.PalatalGlideOptions));
+                Pick(OrthographicStyle.PalatalGlideOptions),
+                Pick(Enum.GetValues<DentalFricativeSpelling>()),
+                Pick(OrthographicStyle.VelarNasalOptions),
+                Pick(OrthographicStyle.VelarFricativeOptions));
             var spellings = style.Spell(inventory);
             if (Orthography.IsUnambiguous(spellings.Values))
             {

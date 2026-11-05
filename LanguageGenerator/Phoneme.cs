@@ -68,16 +68,24 @@ public class Consonant : Phoneme
     public static Consonant l { get; } = new("l", ConsonantPlace.PostAlveolar, ConsonantManner.LateralApproximant, true);
     public static Consonant j { get; } = new("j", ConsonantPlace.Palatal, ConsonantManner.Approximant, true);
     public static Consonant w { get; } = new("w", ConsonantPlace.Velar, ConsonantManner.Approximant, true);
+    public static Consonant θ { get; } = new("θ", ConsonantPlace.Dental, ConsonantManner.Fricative, false);
+    public static Consonant ð { get; } = new("ð", ConsonantPlace.Dental, ConsonantManner.Fricative, true);
+    public static Consonant ŋ { get; } = new("ŋ", ConsonantPlace.Velar, ConsonantManner.Nasal, true);
+    public static Consonant h { get; } = new("h", ConsonantPlace.Glottal, ConsonantManner.Fricative, false);
+    public static Consonant x { get; } = new("x", ConsonantPlace.Velar, ConsonantManner.Fricative, false);
+    //the IPA ligatures, since a spelled tʃ couldn't be told from t and ʃ
+    public static Consonant ʧ { get; } = new("ʧ", ConsonantPlace.PostAlveolar, ConsonantManner.Affricate, false);
+    public static Consonant ʤ { get; } = new("ʤ", ConsonantPlace.PostAlveolar, ConsonantManner.Affricate, true);
 
     /// <summary>Every consonant a language can have, from which the generator prunes.</summary>
-    public static IReadOnlyList<Consonant> All { get; } = [b, d, g, k, m, n, p, s, t, z, ʃ, ʒ, f, v, ɹ, l, j, w];
+    public static IReadOnlyList<Consonant> All { get; } = [b, d, g, k, m, n, p, s, t, z, ʃ, ʒ, f, v, ɹ, l, j, w, θ, ð, ŋ, h, x, ʧ, ʤ];
 
     public ConsonantPlace Place { get; }
     public ConsonantManner Manner { get; }
     public bool Voiced { get; }
 
-    /// <summary>Whether the airflow is obstructed: a stop or a fricative, sibilant or not.</summary>
-    public bool IsObstruent => Manner is ConsonantManner.Plosive or ConsonantManner.Sibilant or ConsonantManner.Fricative;
+    /// <summary>Whether the airflow is obstructed: a stop, an affricate or a fricative, sibilant or not.</summary>
+    public bool IsObstruent => Manner is ConsonantManner.Plosive or ConsonantManner.Affricate or ConsonantManner.Sibilant or ConsonantManner.Fricative;
 
     private Consonant(string ipaSymbol, ConsonantPlace consonantPlace, ConsonantManner consonantManner, bool voiced)
         : base(ipaSymbol)
@@ -103,11 +111,11 @@ public enum ConsonantPlace
 {
     Labial, LabioDental, Dental, //more denti-alveolar
     PostAlveolar, Retroflex, Palatal,
-    Velar
+    Velar, Glottal
 }
 
 public enum ConsonantManner
 {
-    Nasal, Plosive, Sibilant, Fricative,
+    Nasal, Plosive, Affricate, Sibilant, Fricative,
     Approximant, Flap, Trill, LateralApproximant
 }

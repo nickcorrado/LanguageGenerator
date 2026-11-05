@@ -61,21 +61,24 @@ public sealed class SoundChange(string name, Func<Site, bool> when, Func<Site, P
         site => site.Sound is Consonant { Voiced: false } && site.BetweenVowels,
         (site, phonology) => phonology.Counterpart((Consonant)site.Sound, voiced: true) ?? site.Sound);
 
-    private static readonly Dictionary<Phoneme, Consonant> Lenited = new()
+    //what each stop weakens to, the likeliest first, of what the language has
+    private static readonly Dictionary<Phoneme, Consonant[]> Lenited = new()
     {
-        [Consonant.p] = Consonant.f,
-        [Consonant.b] = Consonant.v,
-        [Consonant.t] = Consonant.s,
-        [Consonant.d] = Consonant.z,
-        [Consonant.g] = Consonant.w,
+        [Consonant.p] = [Consonant.f],
+        [Consonant.b] = [Consonant.v],
+        [Consonant.t] = [Consonant.θ, Consonant.s],
+        [Consonant.d] = [Consonant.ð, Consonant.z],
+        [Consonant.k] = [Consonant.x],
+        [Consonant.g] = [Consonant.w],
+        [Consonant.ʧ] = [Consonant.ʃ],
+        [Consonant.ʤ] = [Consonant.ʒ],
     };
 
     /// <summary>A stop between vowels weakens to a continuant, as in Spanish or Tuscan.</summary>
-    //after voicing where a language has both, so that p can weaken all the way to v. The inventory has
-    //no x, so k stays, and d and t become sibilants, as the High German consonant shift made t into s
+    //after voicing where a language has both, so that p can weaken all the way to v
     public static SoundChange Lenition { get; } = new("lenition (apa → afa)",
         site => site.BetweenVowels && Lenited.ContainsKey(site.Sound),
-        (site, phonology) => phonology.Consonants.Contains(Lenited[site.Sound]) ? Lenited[site.Sound] : site.Sound);
+        (site, phonology) => Lenited[site.Sound].FirstOrDefault(phonology.Consonants.Contains) ?? site.Sound);
 
     /// <summary>An obstruent takes the voicing of an obstruent after it, as in Russian.</summary>
     public static SoundChange VoicingAssimilation { get; } = new("voicing assimilation (apda → abda)",

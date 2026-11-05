@@ -13,6 +13,14 @@ public enum PostalveolarSpelling
     SingleLetter,
 }
 
+public enum DentalFricativeSpelling
+{
+    //þ ð, as in Icelandic
+    Thorn,
+    //th dh, as in English or Albanian
+    Digraph,
+}
+
 public enum LongVowelSpelling
 {
     //ī ō, as in Latvian
@@ -43,13 +51,18 @@ public record OrthographicStyle(
     string Schwa,
     string NearOpenFront,
     string VelarStop,
-    string PalatalGlide)
+    string PalatalGlide,
+    DentalFricativeSpelling DentalFricatives = DentalFricativeSpelling.Thorn,
+    string VelarNasal = "ŋ",
+    string VelarFricative = "x")
 {
     //single sounds with a few established spellings each
     public static IReadOnlyList<string> SchwaOptions { get; } = ["ë", "ə", "e", "y"];
     public static IReadOnlyList<string> NearOpenFrontOptions { get; } = ["ä", "æ", "ae"];
     public static IReadOnlyList<string> VelarStopOptions { get; } = ["k", "c"];
     public static IReadOnlyList<string> PalatalGlideOptions { get; } = ["y", "j"];
+    public static IReadOnlyList<string> VelarNasalOptions { get; } = ["ŋ", "ng"];
+    public static IReadOnlyList<string> VelarFricativeOptions { get; } = ["x", "kh"];
 
     private static readonly Dictionary<string, string> Macrons = new() { ["a"] = "ā", ["e"] = "ē", ["i"] = "ī", ["o"] = "ō", ["u"] = "ū" };
     private static readonly Dictionary<string, string> Acutes = new() { ["a"] = "á", ["e"] = "é", ["i"] = "í", ["o"] = "ó", ["u"] = "ú" };
@@ -107,14 +120,33 @@ public record OrthographicStyle(
                 _ => throw new ArgumentOutOfRangeException(nameof(Postalveolars), Postalveolars, null),
             };
         }
+        //affricates go with the fricatives beside them: Czech č, English ch and j, Turkish ç and c
+        if (phoneme == Consonant.ʧ || phoneme == Consonant.ʤ)
+        {
+            var voiced = phoneme == Consonant.ʤ;
+            return Postalveolars switch
+            {
+                PostalveolarSpelling.Hacek => voiced ? "ǧ" : "č",
+                PostalveolarSpelling.Digraph => voiced ? "j" : "ch",
+                PostalveolarSpelling.SingleLetter => voiced ? "c" : "ç",
+                _ => throw new ArgumentOutOfRangeException(nameof(Postalveolars), Postalveolars, null),
+            };
+        }
+        if (phoneme == Consonant.θ || phoneme == Consonant.ð)
+        {
+            var voiced = phoneme == Consonant.ð;
+            return DentalFricatives == DentalFricativeSpelling.Thorn ? (voiced ? "ð" : "þ") : (voiced ? "dh" : "th");
+        }
         return phoneme == Vowel.ə ? Schwa
             : phoneme == Vowel.æ ? NearOpenFront
             : phoneme == Consonant.k ? VelarStop
             : phoneme == Consonant.j ? PalatalGlide
             : phoneme == Consonant.ɹ ? "r"
+            : phoneme == Consonant.ŋ ? VelarNasal
+            : phoneme == Consonant.x ? VelarFricative
             : phoneme.IpaSymbol;
     }
 
     public override string ToString() =>
-        $"{Postalveolars} postalveolars, {LongVowels} long vowels, {MidVowels} mid vowels, schwa {Schwa}, æ {NearOpenFront}, k {VelarStop}, j {PalatalGlide}";
+        $"{Postalveolars} postalveolars, {LongVowels} long vowels, {MidVowels} mid vowels, {DentalFricatives} dental fricatives, schwa {Schwa}, æ {NearOpenFront}, k {VelarStop}, j {PalatalGlide}, ŋ {VelarNasal}, x {VelarFricative}";
 }

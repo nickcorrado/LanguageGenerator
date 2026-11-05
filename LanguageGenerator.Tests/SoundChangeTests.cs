@@ -1,4 +1,4 @@
-namespace LanguageGenerator.Tests;
+﻿namespace LanguageGenerator.Tests;
 
 public class SoundChangeTests
 {
@@ -10,15 +10,33 @@ public class SoundChangeTests
     [Theory]
     [InlineData("p", "f")]
     [InlineData("b", "v")]
-    [InlineData("t", "s")]
-    [InlineData("d", "z")]
+    [InlineData("t", "θ")]
+    [InlineData("d", "ð")]
+    [InlineData("k", "x")]
     [InlineData("g", "w")]
-    [InlineData("k", "k")]
+    [InlineData("ʧ", "ʃ")]
+    [InlineData("ʤ", "ʒ")]
     public void Lenition_BetweenVowels_WeakensAStop(string stop, string weakened)
     {
         var consonant = Consonant.All.Single(c => c.IpaSymbol == stop);
 
         Assert.Equal($"ka{weakened}a", Surface(SyllableTemplates.CV, SoundChange.Lenition, [.. Ka, consonant, Vowel.a]));
+    }
+
+    [Fact]
+    public void Lenition_WithoutTheLikeliestSound_TakesTheNext()
+    {
+        List<Consonant> noθ = [.. Consonant.All.Where(c => c != Consonant.θ)];
+
+        var surface = TestData.Phonology(SyllableTemplates.CV, ClusterRepair.Epenthesis, noθ, SoundChange.Lenition).Realize(TestData.Word([Vowel.a, Consonant.t, Vowel.a]));
+
+        Assert.Equal("asa", string.Concat(surface.Phonemes.Select(p => p.IpaSymbol)));
+    }
+
+    [Fact]
+    public void NasalAssimilation_BeforeAVelar_GivesAVelarNasal()
+    {
+        Assert.Equal("kaŋka", Surface(SyllableTemplates.CVF, SoundChange.NasalAssimilation, [.. Ka, Consonant.n], Ka));
     }
 
     [Fact]
