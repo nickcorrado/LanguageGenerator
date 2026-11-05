@@ -28,19 +28,14 @@ public record Word(IReadOnlyList<Morpheme> Morphemes, IReadOnlyList<Grammeme>? C
 /// <summary>A dictionary entry: a root, and what it can be inflected as.</summary>
 public record Lexeme(Root Root, PartOfSpeech PartOfSpeech);
 
-//n.b. not every language has all these. A language might not have articles!
 public enum PartOfSpeech
 {
     Noun,
     Verb,
     Adjective,
-    Adverb,
     Pronoun,
     Adposition,
     Numeral,
-    Conjunction,
-    Interjection,
-    Article,
 }
 
 public enum AdpositionType
