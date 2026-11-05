@@ -24,6 +24,7 @@ public class Language
     public required GenderSystem Genders { get; init; }
     public required NumeralSystem Numerals { get; init; }
     public required Possession Possession { get; init; }
+    public required Commands Commands { get; init; }
 
     /// <summary>
     /// What the language calls itself: its word for 'people', spelled its own way and capitalized

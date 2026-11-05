@@ -51,6 +51,8 @@ public record Mood(string Name, string Gloss) : Grammeme(Name, Gloss)
     public static Mood Indicative { get; } = new("Indicative", "IND");
     public static Mood Subjunctive { get; } = new("Subjunctive", "SBJV");
     public static Mood Imperative { get; } = new("Imperative", "IMP");
+    /// <summary>A negative command, as in 'don't go', where a language marks it apart.</summary>
+    public static Mood Prohibitive { get; } = new("Prohibitive", "PROH");
 }
 
 public record Voice(string Name, string Gloss) : Grammeme(Name, Gloss)

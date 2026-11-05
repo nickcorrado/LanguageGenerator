@@ -34,8 +34,14 @@ public union Complement(NounPhrase, Adjective, Oblique);
 /// <summary>A clause saying what or where its subject is, as English does with be.</summary>
 public record CopularClause(Complement Complement, Tense Tense, Aspect Aspect, Argument Subject, bool Negative = false);
 
+/// <summary>
+/// Telling one person or more to do something, or with Negative, not to. Who's told is 'you', so it
+/// isn't said, and a command has no tense or aspect of its own.
+/// </summary>
+public record Command(string Verb, Number Number, Argument? Object = null, bool Negative = false, ValueList<Oblique> Obliques = default);
+
 /// <summary>Anything a sentence can say.</summary>
-public union Statement(Clause, CopularClause);
+public union Statement(Clause, CopularClause, Command);
 
 public static class Syntax
 {
@@ -43,7 +49,28 @@ public static class Syntax
     {
         Clause c => Realize(language, c, translation),
         CopularClause c => Realize(language, c, translation),
+        Command c => Realize(language, c, translation),
     };
+
+    //the verb takes the language's imperative, or its ordinary second person where it has none for
+    //this number or doesn't use it to forbid, and only its prohibitive negator says 'don't', if it
+    //has one. The subject goes unsaid even in a language that says its pronouns, as in English
+    public static Sentence Realize(Language language, Command command, string translation)
+    {
+        var commands = language.Commands;
+        var verb = language.Lexicon.Verb(command.Verb);
+        var imperative = command.Negative && !commands.ProhibitiveUsesImperative ? null : commands.MarkerFor(command.Number);
+        var words = imperative.HasValue
+            ? commands.Imperative(verb, imperative.GetValueOrDefault())
+            : Verb(language, verb, Tense.Present, Aspect.Imperfective, new Pronoun(Person.Second, command.Number), negative: false);
+        if (command.Negative)
+        {
+            words = (commands.Prohibitive ?? language.Negation).Apply(words);
+        }
+        var @object = command.Object.HasValue ? Inflect(language, command.Object.GetValueOrDefault(), Role.DirectObject) : null;
+        var obliques = command.Obliques.SelectMany(o => Oblique(language, o)).ToList();
+        return Sentence(language, Order(language.WordOrder, [], words, @object, obliques), translation);
+    }
 
     public static Sentence Realize(Language language, Clause clause, string translation)
     {

@@ -16,9 +16,11 @@ public static partial class Generator
 
     //an isolating language has no affixes to negate with, so it puts a word where an affix would go.
     //Double negation is two words, as French ne and pas are written; the first is often a clitic in
-    //speech, but that's a distinction the generator doesn't make
-    public static Negation GenerateNegation(Random rand, MorphologicalProfile morphology, Phonology phonology, double dropoff)
+    //speech, but that's a distinction the generator doesn't make. A language's prohibitive negator is
+    //drawn the same way, with what it means in place of plain negation
+    public static Negation GenerateNegation(Random rand, MorphologicalProfile morphology, Phonology phonology, double dropoff, Grammeme? meaning = null)
     {
+        var grammemes = (IReadOnlyList<Grammeme>)[meaning ?? Polarity.Negative];
         var strategy = Sampling.Categorical(rand, NegationCounts);
         if (morphology.Fusion == Fusion.Isolating)
         {
@@ -39,19 +41,15 @@ public static partial class Generator
             _ => throw new ArgumentOutOfRangeException(nameof(strategy), strategy, null),
         };
 
-        //a negative is a frequent, short morpheme: a syllable, or for an affix sometimes just a
-        //consonant, the way the generator makes other affixes
-        Morpheme Marker(ExponentPosition position)
-        {
-            if (position is ExponentPosition.Prefix or ExponentPosition.Suffix)
-            {
-                List<Phoneme> form = rand.NextDouble() < 0.3
-                    ? [phonology.Consonants[Sampling.TruncatedGeometric(rand, phonology.Consonants.Count, dropoff)]]
-                    : [.. GenerateSyllable(rand, phonology.SyllableRule, dropoff).Phonemes];
-                return new Affix(form, [Polarity.Negative]);
-            }
-            return new Particle([.. GenerateSyllable(rand, phonology.SyllableRule, dropoff).Phonemes], [Polarity.Negative]);
-        }
+        Morpheme Marker(ExponentPosition position) => position is ExponentPosition.Prefix or ExponentPosition.Suffix
+            ? new Affix(MarkerForm(rand, true, phonology, dropoff), grammemes)
+            : new Particle(MarkerForm(rand, false, phonology, dropoff), grammemes);
         return new Negation(strategy, [.. positions.Select(p => (p, Marker(p)))]);
     }
+
+    //a frequent, short morpheme: a syllable, or for an affix sometimes just a consonant, the way the
+    //generator makes other affixes
+    private static List<Phoneme> MarkerForm(Random rand, bool affix, Phonology phonology, double dropoff) => affix && rand.NextDouble() < 0.3
+        ? [phonology.Consonants[Sampling.TruncatedGeometric(rand, phonology.Consonants.Count, dropoff)]]
+        : [.. GenerateSyllable(rand, phonology.SyllableRule, dropoff).Phonemes];
 }

@@ -53,6 +53,7 @@ public static partial class Generator
             SoundChanges = [.. phonology.SoundChanges, .. SelectLaterSoundChanges(rand, syllableRule, vowels)],
             SyllableChanges = SelectSyllableChanges(rand, syllableRule, vowels),
         };
+        var commands = GenerateCommands(rand, morphology, wordOrder, phonology, syllableDropoff);
         var extraSyllables = SelectExtraSyllables(rootLengthNoise, lexiconSeed, phonology, syllableDropoff);
         var lexicon = GenerateLexicon(lexiconSeed, extraSyllables, phonology, syllableDropoff, new Dictionary<PartOfSpeech, IEnumerable<Lexeme>>
         {
@@ -80,6 +81,7 @@ public static partial class Generator
             Genders = genders,
             Numerals = numerals,
             Possession = possession,
+            Commands = commands,
         };
     }
 

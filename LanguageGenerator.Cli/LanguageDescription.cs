@@ -57,14 +57,18 @@ public static class LanguageDescription
             $"{p.Root.Meaning} {phonology.Realize(new Word([p.Root])).Spell(orthography)}")));
 
         //spelled as they're written, not realized: an affix can be a lone consonant, which isn't a word
-        var negation = lang.Negation;
-        var markers = negation.Markers.Select(m => m.Position switch
+        string Spelled(ExponentPosition position, Morpheme marker) => marker.Form.Count == 0 ? "∅" : position switch
         {
-            ExponentPosition.Prefix => $"{m.Marker.Spell(orthography)}-",
-            ExponentPosition.Suffix => $"-{m.Marker.Spell(orthography)}",
-            _ => m.Marker.Spell(orthography),
-        });
-        output.WriteLine($"Negation: {negation} ({string.Join(" ... ", markers)})");
+            ExponentPosition.Prefix => $"{marker.Spell(orthography)}-",
+            ExponentPosition.Suffix => $"-{marker.Spell(orthography)}",
+            _ => marker.Spell(orthography),
+        };
+        string Negator(Negation negation) => $"{negation} ({string.Join(" ... ", negation.Markers.Select(m => Spelled(m.Position, m.Marker)))})";
+        output.WriteLine($"Negation: {Negator(lang.Negation)}");
+        var commands = lang.Commands;
+        string Imperative(Morpheme? marker) => marker.HasValue ? Spelled(commands.Position, marker.GetValueOrDefault()) : "second person present";
+        output.WriteLine($"Imperative: SG {Imperative(commands.Singular)}, PL {Imperative(commands.Plural)}");
+        output.WriteLine($"Prohibitive: {(commands.ProhibitiveUsesImperative ? "the imperative" : "the second person present")} with {(commands.Prohibitive is { } prohibitive ? Negator(prohibitive) : "ordinary negation")}");
         var predication = lang.Predication;
         var copula = phonology.Realize(new Word([predication.Copula.Root])).Spell(orthography);
         var genders = lang.Genders;
@@ -158,7 +162,13 @@ public static class LanguageDescription
             (new(Phrase("bird", Number.Singular), Tense.Present, Aspect.Imperfective, new Pronoun(Person.Second, Number.Singular)), "you are a bird"),
             (new(new Oblique(Role.Location, Phrase("house", Number.Singular)), Tense.Present, Aspect.Imperfective, Phrase("dog", Number.Singular)), "the dog is in the house"),
         ];
-        foreach (var (clause, translation) in examples.Select(e => ((Statement)e.Clause, e.Translation)).Concat(copular.Select(e => ((Statement)e.Clause, e.Translation))))
+        (Command Clause, string Translation)[] commands =
+        [
+            (new("eat", Number.Singular, Phrase("fish", Number.Singular)), "eat the fish"),
+            (new("walk", Number.Plural, Obliques: [new(Role.Goal, Phrase("house", Number.Singular))]), "go to the house, all of you"),
+            (new("eat", Number.Singular, Phrase("fish", Number.Singular), Negative: true), "don't eat the fish"),
+        ];
+        foreach (var (clause, translation) in examples.Select(e => ((Statement)e.Clause, e.Translation)).Concat(copular.Select(e => ((Statement)e.Clause, e.Translation))).Concat(commands.Select(e => ((Statement)e.Clause, e.Translation))))
         {
             output.WriteLine();
             output.WriteLine(Syntax.Realize(lang, clause, translation).Interlinear());

@@ -52,6 +52,13 @@ public partial class GlossTests
     }
 
     [Fact]
+    public void Prompt_SaysHowToGiveCommandsAndNotToDropModals()
+    {
+        Assert.Contains(".IMP", GlossPrompt.System);
+        Assert.Contains("Never drop a modal", GlossPrompt.System);
+    }
+
+    [Fact]
     public void Prompt_ItsOwnExamples_Parse()
     {
         var examples = Regex.Matches(GlossPrompt.System, @"^ {2}(\S.*)\n {4}(\S.*)$", RegexOptions.Multiline);

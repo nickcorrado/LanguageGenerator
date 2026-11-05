@@ -10,6 +10,47 @@ public class ClauseFileTests
     private static ClauseFormatException Error(string text) => Assert.Throws<ClauseFormatException>(() => ClauseFile.Parse(text));
 
     [Fact]
+    public void Parse_Command_NeedsNoSubject()
+    {
+        var entry = Single("drink the wine\n  drink.IMP  object:wine  location:house");
+
+        Assert.Equal(new Command("drink", Number.Singular, new NounPhrase("wine", Number.Singular), Obliques: [new(Role.Location, new NounPhrase("house", Number.Singular))]), entry.Statement.Value);
+    }
+
+    [Fact]
+    public void Parse_NegativeCommand_IsNegative()
+    {
+        Assert.Equal(new Command("go", Number.Singular, Negative: true), Single("don't go\n  go.IMP.NEG").Statement.Value);
+    }
+
+    [Fact]
+    public void Parse_CommandToSeveralPeople_TakesTheirNumber()
+    {
+        Assert.Equal(new Command("go", Number.Plural), Single("go, all of you\n  go.IMP  subject:2PL").Statement.Value);
+    }
+
+    [Theory]
+    [InlineData("go.IMP.PST", "no tense or aspect")]
+    [InlineData("go.IMP.PFV", "no tense or aspect")]
+    [InlineData("go.IMP  subject:dog", "said to 'you'")]
+    [InlineData("go.IMP  subject:1PL", "said to 'you'")]
+    [InlineData("go.IMP.IMP", "more than one mood")]
+    [InlineData("be.IMP  adjective:careful", "be can't be a command")]
+    [InlineData("go.IMP  noun:fool", "Only be takes")]
+    [InlineData("go.PROH", "go.IMP.NEG")]
+    [InlineData("go.SBJV  subject:dog", "can't take SBJV")]
+    public void Parse_BadCommand_SaysWhatsWrong(string gloss, string message)
+    {
+        Assert.Contains(message, Error($"go\n  {gloss}").Message);
+    }
+
+    [Fact]
+    public void Parse_VerbWithoutImperative_StillNeedsASubject()
+    {
+        Assert.Contains("needs a subject", Error("go\n  go").Message);
+    }
+
+    [Fact]
     public void Parse_TransitiveClause_ReadsEveryPart()
     {
         var entry = Single("the dog saw the cats\n  see.PST.PFV  subject:dog  object:cat.PL\n");
@@ -179,7 +220,7 @@ public class ClauseFileTests
     [InlineData("x\n  sleep subject:dog location:house.ACC", 2, "case comes from its role")]
     [InlineData("x\n  sleep.PST.FUT subject:dog", 2, "more than one tense")]
     [InlineData("x\n  sleep.PL subject:dog", 2, "agrees with its subject")]
-    [InlineData("x\n  sleep.SBJV subject:dog", 2, "only tense, aspect and polarity")]
+    [InlineData("x\n  sleep.SBJV subject:dog", 2, "only tense, aspect, polarity and the imperative")]
     [InlineData("x\n  sleep.NEG.NEG subject:dog", 2, "more than one polarity")]
     [InlineData("x\n  sleep subject:dog.NEG", 2, "the verb that's negated")]
     [InlineData("x\n  sleep subject:dog.ACC", 2, "case comes from its role")]

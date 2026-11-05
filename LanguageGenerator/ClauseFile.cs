@@ -23,9 +23,11 @@ namespace LanguageGenerator;
 //king's' or 'her'. The verb be says what its subject is, with noun:fool or adjective:locked in place of an
 //object, or where it is, with location:house. Obliques say where, to where, from where, to whom,
 //with whom and with what, as location:house, goal:river, source:(village old), recipient:dog,
-//companion:1PL and instrument:knife, in the order they're said. Anything not given takes its
-//unmarked value: present, imperfective, singular, exclusive for 'we' and masculine for a gendered
-//pronoun. Whatever the generator can't express yet is an error, never dropped
+//companion:1PL and instrument:knife, in the order they're said. A verb with IMP is a command, as in
+//drink.IMP.NEG object:wine, with no tense or aspect and no subject but subject:2PL to tell several
+//people. Anything not given takes its unmarked value: present, imperfective, singular, exclusive for
+//'we' and masculine for a gendered pronoun. Whatever the generator can't express yet is an error,
+//never dropped
 public static class ClauseFile
 {
     public record Entry(string Translation, Statement Statement, int Line);
@@ -92,10 +94,16 @@ public static class ClauseFile
         Tense? tense = null;
         Aspect? aspect = null;
         Polarity? polarity = null;
+        Mood? mood = null;
         foreach (var feature in verbFeatures)
         {
             switch (feature)
             {
+                case Mood m when m == Mood.Prohibitive:
+                    throw new ClauseFormatException($"Write a command not to do something as {verb}.IMP.NEG, not {verb}.{m.Gloss}.", number);
+                case Mood m when m == Mood.Imperative && mood is null:
+                    mood = m;
+                    break;
                 case Tense t when tense is null:
                     tense = t;
                     break;
@@ -105,12 +113,12 @@ public static class ClauseFile
                 case Polarity p when polarity is null:
                     polarity = p;
                     break;
-                case Tense or Aspect or Polarity:
+                case Tense or Aspect or Polarity or Mood when feature is not Mood || feature == Mood.Imperative:
                     throw new ClauseFormatException($"'{verb}' has more than one {feature.GetType().Name.ToLowerInvariant()}.", number);
                 case Person or Number:
                     throw new ClauseFormatException($"'{verb}' can't take {feature.Gloss}: a verb agrees with its subject.", number);
                 default:
-                    throw new ClauseFormatException($"'{verb}' can't take {feature.Gloss} ({feature.Name}) yet: verbs have only tense, aspect and polarity.", number);
+                    throw new ClauseFormatException($"'{verb}' can't take {feature.Gloss} ({feature.Name}) yet: verbs have only tense, aspect, polarity and the imperative.", number);
             }
         }
 
@@ -164,11 +172,34 @@ public static class ClauseFile
             }
         }
 
+        var negative = polarity == Polarity.Negative;
+        if (mood == Mood.Imperative)
+        {
+            if (verb == "be")
+            {
+                throw new ClauseFormatException("be can't be a command yet.", number);
+            }
+            if (tense is not null || aspect is not null)
+            {
+                throw new ClauseFormatException($"'{verb}' can't take {(tense as Grammeme ?? aspect)!.Gloss}: a command has no tense or aspect.", number);
+            }
+            if (complement.HasValue)
+            {
+                throw new ClauseFormatException($"Only be takes a noun: or adjective:. '{verb}' takes an object:.", number);
+            }
+            var told = Number.Singular;
+            if (arguments.TryGetValue("subject", out var addressee))
+            {
+                told = addressee.Value is Pronoun { Person: var person, Number: var count } && person == Person.Second ? count
+                    : throw new ClauseFormatException("A command is said to 'you', so its subject can only be 2SG or 2PL, as in subject:2PL.", number);
+            }
+            return new Command(verb, told, arguments.TryGetValue("object", out var commanded) ? commanded : (Argument?)null, negative, [.. obliques.Select(o => o.Oblique)]);
+        }
+
         if (!arguments.TryGetValue("subject", out var subject))
         {
             throw new ClauseFormatException("The clause needs a subject, as in subject:dog.", number);
         }
-        var negative = polarity == Polarity.Negative;
         if (verb == "be")
         {
             if (arguments.ContainsKey("object"))

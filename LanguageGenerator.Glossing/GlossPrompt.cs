@@ -52,6 +52,14 @@ public static class GlossPrompt
               the queen is in the house
                 be  subject:queen  location:house
 
+            A command to 'you' has IMP on its verb, with no tense or aspect, NEG for 'don't', and no
+            subject, unless it's to several people, which is subject:2PL:
+
+              don't drink the red wine
+                drink.IMP.NEG  object:(wine red)
+              go to the inn, all of you
+                go.IMP  subject:2PL  goal:inn
+
             Rules:
             - One clause per verb. Split a sentence with several verbs into several clauses, each with
               its own English line, as in 'the hunter saw the wolves' and 'he ran'.
@@ -60,8 +68,10 @@ public static class GlossPrompt
               English saying what the gloss does, so 'the' stays, but a dropped adverb goes.
             - Paraphrase into what the format can say when that keeps the meaning, as with 'went' for
               walk.PST, or 'lives in' for be with location:.
-            - When a sentence can't be said even loosely, as with a question, a command, a relative
-              clause or a comparison, write instead one line: {CantExpress} (what's missing): the sentence.
+            - Never drop a modal, like must, can, should or want to: 'you must go' doesn't say 'you go'.
+            - When a sentence can't be said even loosely, as with a question, a modal, a relative
+              clause, a comparison, a command with be, or a command to anyone but 'you', like 'let's
+              go', write instead one line: {CantExpress} (what's missing): the sentence.
               This is better than a gloss that changes what the sentence means.
 
             Reply with each numbered sentence's lines after its number in brackets, and nothing else:
