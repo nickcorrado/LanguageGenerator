@@ -67,7 +67,7 @@ public class SoundChangeTests
 
         var surface = TestData.Phonology(SyllableTemplates.CVF, ClusterRepair.Deletion, SoundChange.VoicingAssimilation);
         Morpheme morpheme = new Root([], "dog");
-        var changed = SoundChange.VoicingAssimilation.Apply([new(Vowel.a, morpheme, 0), new(Sound(first), morpheme, 0), new(Sound(second), morpheme, 1), new(Vowel.a, morpheme, 1)], surface);
+        var changed = SoundChange.VoicingAssimilation.Apply([new(Vowel.a, morpheme), new(Sound(first), morpheme), new(Sound(second), morpheme), new(Vowel.a, morpheme)], surface);
 
         Assert.Equal($"a{result}a", string.Concat(changed.Select(s => s.Phoneme.IpaSymbol)));
     }

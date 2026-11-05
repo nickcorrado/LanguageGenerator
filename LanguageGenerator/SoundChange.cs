@@ -193,7 +193,7 @@ public sealed class SoundChange(string name, Func<Site, bool> when, Func<Site, P
 
     /// <summary>The first of two vowels that meet at a morpheme boundary is lost.</summary>
     public static SoundChange VowelElision { get; } = new("vowel elision (ka-a → ka, ka-o → ko)",
-        site => site.Sound is Vowel && site.Next is { Phoneme: Vowel } next && next.Position != site.Segment.Position,
+        site => site.Sound is Vowel && site.Next is { Phoneme: Vowel } next && !next.Morpheme.Equals(site.Segment.Morpheme),
         Nothing);
 
     /// <summary>

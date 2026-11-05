@@ -1,10 +1,10 @@
 ﻿namespace LanguageGenerator;
 
 /// <summary>
-/// One sound of a word's surface form, the morpheme it belongs to, and that morpheme's place in the
-/// word, since the same affix can appear twice.
+/// One sound of a word's surface form and the morpheme it belongs to. A word never has the same
+/// morpheme twice, so that morpheme also says where the sound sits among the word's morphemes.
 /// </summary>
-public record Segment(Phoneme Phoneme, Morpheme Morpheme, int Position);
+public record Segment(Phoneme Phoneme, Morpheme Morpheme);
 
 /// <summary>What a language does with a consonant cluster its syllables can't hold.</summary>
 public enum ClusterRepair
@@ -52,11 +52,11 @@ public record Phonology
     public SurfaceForm Realize(Word word)
     {
         var segments = new List<Segment>();
-        for (int i = 0; i < word.Morphemes.Count; i++)
+        foreach (var morpheme in word.Morphemes)
         {
-            foreach (var phoneme in word.Morphemes[i].Form)
+            foreach (var phoneme in morpheme.Form)
             {
-                segments.Add(new Segment(phoneme, word.Morphemes[i], i));
+                segments.Add(new Segment(phoneme, morpheme));
             }
         }
         foreach (var change in SoundChanges)
@@ -193,8 +193,8 @@ public record SurfaceForm(Word Word, IReadOnlyList<Segment> Segments, IReadOnlyL
 
     //the surface form split back into its morphemes, lining up with Gloss. A morpheme that lost
     //all of its sounds to a sound change or cluster repair shows as ∅
-    public string Segmented(Orthography orthography) => string.Join("-", Enumerable.Range(0, Word.Morphemes.Count).Select(i =>
-        Segments.Any(s => s.Position == i) ? orthography.Spell(Segments.Where(s => s.Position == i).Select(s => s.Phoneme)) : "∅"));
+    public string Segmented(Orthography orthography) => string.Join("-", Word.Morphemes.Select(morpheme =>
+        Segments.Any(s => s.Morpheme.Equals(morpheme)) ? orthography.Spell(Segments.Where(s => s.Morpheme.Equals(morpheme)).Select(s => s.Phoneme)) : "∅"));
 
     public string Gloss => Word.Gloss;
 }

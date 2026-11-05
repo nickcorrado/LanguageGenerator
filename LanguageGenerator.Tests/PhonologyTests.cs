@@ -169,6 +169,35 @@ public class PhonologyTests
         Assert.Equal("ʃsa", syllable.Spell(Orthography.Ipa));
     }
 
+    //segments tell morphemes apart by comparing them, so a morpheme that came twice in a word would
+    //have no boundary between its two copies, and each would be segmented as both. One with no sounds
+    //has no segments to confuse. Sentences are here because some affixes only join a word there
+    [Fact]
+    public void GeneratedLanguages_NoWordHasTheSameSoundedMorphemeTwice()
+    {
+        static bool Repeats(Word word)
+        {
+            var sounded = word.Morphemes.Where(m => m.Form.Count > 0).ToList();
+            return sounded.Distinct().Count() != sounded.Count;
+        }
+
+        //the example doesn't give any commands
+        Statement[] commands =
+        [
+            new Command("see", Number.Singular),
+            new Command("see", Number.Plural),
+            new Command("see", Number.Singular, Negative: true),
+            new Command("see", Number.Plural, Negative: true),
+        ];
+        var example = ClauseFile.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "scene.txt")));
+        var statements = example.Select(e => e.Statement).Concat(commands).ToList();
+        foreach (var language in Enumerable.Range(0, 100).Select(seed => Generator.Generate(new Random(seed))))
+        {
+            var said = statements.SelectMany(s => Syntax.Realize(language, s, "").Words.Select(w => w.Word));
+            Assert.Empty(GeneratedLanguages.AllWords(language).Concat(said).Where(Repeats).Select(w => w.Gloss));
+        }
+    }
+
     [Fact]
     public void Realize_GeneratedLanguages_ProducesOnlySyllablesTheirRulesAllow()
     {
