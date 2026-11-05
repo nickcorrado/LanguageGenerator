@@ -1,11 +1,14 @@
-using System.Collections;
+﻿using System.Collections;
 using System.Runtime.CompilerServices;
 
 namespace LanguageGenerator;
 
-//a read-only list that's equal to another with the same items, so that a record holding one keeps
-//its value equality without an Equals written by hand. Its default is the empty list, so a record
-//can take one as an optional parameter, and collection expressions build one
+/// <summary>
+/// A read-only list that's equal to another with the same items, so that a record holding one keeps
+/// its value equality without an Equals written by hand.
+/// </summary>
+//its default is the empty list, so a record can take one as an optional parameter, and collection
+//expressions build one
 [CollectionBuilder(typeof(ValueList), nameof(ValueList.Create))]
 public readonly struct ValueList<T> : IReadOnlyList<T>, IEquatable<ValueList<T>>
 {

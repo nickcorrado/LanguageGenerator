@@ -2,7 +2,10 @@
 
 namespace LanguageGenerator.Cli;
 
-//what the program prints about a language: its features, its paradigms, and a few sentences in it
+/// <summary>
+/// What the program prints about a language: its features, its paradigms, and a few sentences in
+/// it.
+/// </summary>
 public static class LanguageDescription
 {
     public static void Write(Language lang, TextWriter output)

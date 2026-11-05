@@ -1,7 +1,9 @@
 ﻿namespace LanguageGenerator;
 
-//a category a part of speech inflects for, with the values this language distinguishes,
-//e.g. Number with SG, DU and PL
+/// <summary>
+/// A category a part of speech inflects for, with the values this language distinguishes, such as
+/// Number with SG, DU and PL.
+/// </summary>
 //Name is for display; Is says which category it is, by its values' type
 public record InflectionalCategory(string Name, IReadOnlyList<Grammeme> Values)
 {
@@ -14,6 +16,9 @@ public static class InflectionalCategories
     public static bool Has<T>(this IEnumerable<InflectionalCategory> categories) where T : Grammeme => categories.Any(c => c.Is<T>());
 }
 
+/// <summary>
+/// Where a marker of grammatical features, its exponent, goes relative to the word it marks.
+/// </summary>
 public enum ExponentPosition
 {
     Prefix,
@@ -23,13 +28,14 @@ public enum ExponentPosition
     FollowingParticle,
 }
 
-//one place where a word's features are expressed. A slot covering several categories is
-//fusional: each of its exponents expresses a whole combination of their values at once
+/// <summary>One place where a word's features are expressed.</summary>
+//a slot covering several categories is fusional: each of its exponents expresses a whole
+//combination of their values at once
 public class ExponentSlot
 {
     public required IReadOnlyList<InflectionalCategory> Categories { get; init; }
     public required ExponentPosition Position { get; init; }
-    //one exponent for every combination of the categories' values
+    /// <summary>One exponent for every combination of the categories' values.</summary>
     public required IReadOnlyList<(IReadOnlyList<Grammeme> Values, Morpheme Exponent)> Exponents { get; init; }
 
     public Morpheme ExponentFor(IReadOnlyList<Grammeme> features) =>
@@ -38,17 +44,18 @@ public class ExponentSlot
     public override string ToString() => $"{Position} ({string.Join(" + ", Categories.Select(c => c.Name))})";
 }
 
-//how one part of speech inflects. The morphological type of the language shows up here only
-//as a tendency in how the slots were built: many categories per slot reads as fusional, one per
-//slot as agglutinative, and particles as analytic, and a language can mix all three
+/// <summary>How one part of speech inflects.</summary>
+//the morphological type of the language shows up here only as a tendency in how the slots were
+//built: many categories per slot reads as fusional, one per slot as agglutinative, and particles as
+//analytic, and a language can mix all three
 public class Paradigm
 {
     public required PartOfSpeech PartOfSpeech { get; init; }
     public required IReadOnlyList<InflectionalCategory> Categories { get; init; }
-    //innermost first: the first slot sits closest to the root
+    /// <summary>Innermost first: the first slot sits closest to the root.</summary>
     public required IReadOnlyList<ExponentSlot> Slots { get; init; }
 
-    //every combination of feature values, one per cell of the paradigm table
+    /// <summary>Every combination of feature values, one per cell of the paradigm table.</summary>
     public IEnumerable<IReadOnlyList<Grammeme>> Cells => Combinations(Categories);
 
     public static IEnumerable<IReadOnlyList<Grammeme>> Combinations(IEnumerable<InflectionalCategory> categories)

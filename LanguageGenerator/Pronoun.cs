@@ -1,12 +1,15 @@
 ﻿namespace LanguageGenerator;
 
-//a personal pronoun as a clause asks for it, independent of any language: 1SG, 1PL.INCL or 3SG.F
+/// <summary>
+/// A personal pronoun as a clause asks for it, independent of any language: 1SG, 1PL.INCL or 3SG.F.
+/// </summary>
 public record Pronoun(Person Person, Number Number, Clusivity? Clusivity = null, Gender? Gender = null)
 {
     public string Gloss => Person.Gloss + Number.Gloss + (Clusivity is { } c ? $".{c.Gloss}" : "") + (Gender is { } g ? $".{g.Gloss}" : "");
 }
 
-//WALS 39A: how a language's pronouns say 'we'
+/// <summary>How a language's pronouns say 'we'.</summary>
+//WALS 39A
 public enum FirstPersonPlural
 {
     //one 'we', like English
@@ -17,8 +20,9 @@ public enum FirstPersonPlural
     InclusiveExclusive,
 }
 
-//WALS 44A: which pronouns distinguish gender. Its 2 languages with gender only in the first or
-//second person, and 1 with it only in the third person plural, are left out
+/// <summary>Which pronouns distinguish gender.</summary>
+//WALS 44A, leaving out its 2 languages with gender only in the first or second person, and 1 with
+//it only in the third person plural
 public enum PronounGender
 {
     None,
@@ -31,19 +35,24 @@ public enum PronounGender
     ThirdAndSecond,
 }
 
-//a language's personal pronouns. Unlike the lexicon, they're a closed set, made along with the
-//language. They inflect only for case, since person and number are part of the pronoun itself
+/// <summary>A language's personal pronouns, a closed set made along with the language.</summary>
+//they inflect only for case, since person and number are part of the pronoun itself
 public class PronounSystem
 {
     public required FirstPersonPlural FirstPersonPlural { get; init; }
     public required PronounGender GenderedPronouns { get; init; }
-    //the genders gendered pronouns distinguish: masculine and feminine, and maybe a neuter, which
-    //only the third person has
+    /// <summary>
+    /// The genders gendered pronouns distinguish: masculine and feminine, and maybe a neuter, which
+    /// only the third person has.
+    /// </summary>
     public required IReadOnlyList<Gender> Genders { get; init; }
-    //every pronoun the language has, by the person, number, clusivity and gender it means
+    /// <summary>
+    /// Every pronoun the language has, by the person, number, clusivity and gender it means.
+    /// </summary>
     public required IReadOnlyDictionary<Pronoun, Lexeme> Forms { get; init; }
     public required Paradigm Paradigm { get; init; }
-    //WALS 101A: whether a subject pronoun is usually left out, as in Spanish veo 'I see'
+    /// <summary>Whether a subject pronoun is usually left out, as in Spanish veo 'I see'.</summary>
+    //WALS 101A
     public required bool DropsSubjects { get; init; }
 
     private static readonly Number[] Numbers = [Number.Singular, Number.Plural];

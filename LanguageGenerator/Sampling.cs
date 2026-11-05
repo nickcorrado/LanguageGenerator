@@ -2,7 +2,9 @@
 
 namespace LanguageGenerator;
 
-//the distributions the generator draws from, each used where it fits the feature
+/// <summary>
+/// The distributions the generator draws from, each used where it fits the feature.
+/// </summary>
 public static class Sampling
 {
     //a Random for one key, like a word, that depends only on the seed and the key, so drawing for

@@ -1,7 +1,8 @@
 ﻿namespace LanguageGenerator;
 
-//WALS 30A and 31A: how many genders a language's nouns fall into, and on what basis. Its 36
-//languages with four or more, mostly Bantu-style noun classes, are left out
+/// <summary>How many genders a language's nouns fall into, and on what basis.</summary>
+//WALS 30A and 31A. Its 36 languages with four or more, mostly Bantu-style noun classes, are left
+//out
 public enum NounGenders
 {
     None,
@@ -13,7 +14,10 @@ public enum NounGenders
     AnimateInanimate,
 }
 
-//WALS 32A: whether a noun's gender follows only from what it means, or also from its form
+/// <summary>
+/// Whether a noun's gender follows only from what it means, or also from its form.
+/// </summary>
+//WALS 32A
 public enum GenderAssignment
 {
     //people by sex, and everything else in one gender, like Tamil's rational and non-rational
@@ -22,7 +26,7 @@ public enum GenderAssignment
     SemanticAndFormal,
 }
 
-//what kind of thing a noun names, as far as gender cares
+/// <summary>What kind of thing a noun names, as far as gender cares.</summary>
 public enum SemanticClass
 {
     Male,
@@ -33,8 +37,9 @@ public enum SemanticClass
     Thing,
 }
 
-//what the generator knows of what nouns mean. Anything not here is taken to be a thing, which a
-//front end could do better at, from a resource like WordNet
+/// <summary>What the generator knows of what nouns mean.</summary>
+//anything not here is taken to be a thing, which a front end could do better at, from a resource
+//like WordNet
 public static class Semantics
 {
     private static readonly Dictionary<string, SemanticClass> Classes = new()
@@ -55,17 +60,23 @@ public static class Semantics
     public static SemanticClass Of(string meaning) => Classes.GetValueOrDefault(meaning, SemanticClass.Thing);
 }
 
-//a language's noun genders: which there are, how a noun gets one, and how words agree with it
+/// <summary>
+/// A language's noun genders: which there are, how a noun gets one, and how words agree with it.
+/// </summary>
 public class GenderSystem
 {
     public required NounGenders Genders { get; init; }
     public required GenderAssignment Assignment { get; init; }
-    //the affix each gender puts on a word that agrees with a noun, all on one side of it. Null in
-    //a language without gender, or an isolating one, with no affixes to agree with
+    /// <summary>
+    /// The affix each gender puts on a word that agrees with a noun, all on one side of it. Null in
+    /// a language without gender, or an isolating one, with no affixes to agree with.
+    /// </summary>
     public required IReadOnlyDictionary<Gender, Affix>? Markers { get; init; }
     public required ExponentPosition MarkerPosition { get; init; }
-    //whether a verb agrees with the gender of its subject, as in Russian on spal 'he slept' and
-    //ona spala 'she slept'
+    /// <summary>
+    /// Whether a verb agrees with the gender of its subject, as in Russian on spal 'he slept' and
+    /// ona spala 'she slept'.
+    /// </summary>
     public required bool VerbsAgree { get; init; }
 
     public IReadOnlyList<Gender> Values => Genders switch

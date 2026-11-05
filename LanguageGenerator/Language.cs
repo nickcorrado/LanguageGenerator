@@ -1,13 +1,15 @@
 ﻿namespace LanguageGenerator;
 
-//a plain description of a language: everything Generator chose, and nothing about how, except
-//that the lexicon can coin roots for new meanings the way Generator would have
+/// <summary>
+/// A plain description of a language: everything Generator chose, and nothing about how.
+/// </summary>
+//except that the lexicon can coin roots for new meanings the way Generator would have
 public class Language
 {
     public required Phonology Phonology { get; init; }
     public required Orthography Orthography { get; init; }
     public required Lexicon Lexicon { get; init; }
-    //how each part of speech inflects
+    /// <summary>How each part of speech inflects.</summary>
     public required Dictionary<PartOfSpeech, Paradigm> Paradigms { get; init; }
     public required MorphologicalProfile MorphologicalProfile { get; init; }
     public required WordOrder WordOrder { get; init; }
@@ -23,18 +25,23 @@ public class Language
     public required NumeralSystem Numerals { get; init; }
     public required Possession Possession { get; init; }
 
-    //what the language calls itself: its word for 'people', the plural of 'person', as Bantu is the
-    //plural of -ntu 'person' and Inuit of inuk. A language that doesn't mark the plural calls itself
-    //just 'person', as many do. It's read off the lexicon, so it's always the word the language
-    //itself would say, spelled its own way and capitalized like a name
+    /// <summary>
+    /// What the language calls itself: its word for 'people', spelled its own way and capitalized
+    /// like a name.
+    /// </summary>
+    //the plural of 'person', as Bantu is the plural of -ntu 'person' and Inuit of inuk. A language
+    //that doesn't mark the plural calls itself just 'person', as many do. It's read off the
+    //lexicon, so it's always the word the language itself would say
     public string Name => Capitalized(Endonym.Spell(Orthography));
 
-    //the word Name spells, for its gloss
+    /// <summary>The word Name spells, for its gloss.</summary>
     public SurfaceForm Endonym => Phonology.Realize(Syntax.Cited(this, new NounPhrase("person", Number.Plural)).First(w => w.Root is not null));
 
     private static string Capitalized(string spelling) => spelling.Length == 0 ? spelling : char.ToUpperInvariant(spelling[0]) + spelling[1..];
 
-    //the classic three-way label, for display only, read off what the paradigms actually do:
+    /// <summary>
+    /// The classic three-way label, for display only, read off what the paradigms actually do.
+    /// </summary>
     //analytic if markers stand alone, fusional if any marker expresses more than one category
     //(person and number together don't count, since nearly every language fuses those)
     public Morphology Morphology =>
@@ -52,8 +59,11 @@ public enum Morphology
     Agglutinative,
 }
 
-//WALS 20A: whether grammatical markers are bound to words or stand alone. Not to be confused
-//with fusional morphology, which is about exponence
+/// <summary>
+/// Whether grammatical markers are bound to words or stand alone. Not to be confused with fusional
+/// morphology, which is about exponence.
+/// </summary>
+//WALS 20A
 public enum Fusion
 {
     Concatenative,
@@ -61,7 +71,10 @@ public enum Fusion
     Isolating,
 }
 
-//WALS 26A: how much of a language's inflection goes before the stem rather than after it
+/// <summary>
+/// How much of a language's inflection goes before the stem rather than after it.
+/// </summary>
+//WALS 26A
 public enum Affixation
 {
     StronglySuffixing,
@@ -71,11 +84,12 @@ public enum Affixation
     StronglyPrefixing,
 }
 
-//WALS 21A and 21B: which categories share a single marker. Person and number agreement aren't
-//here because they always do
+/// <summary>Which categories share a single marker.</summary>
+//WALS 21A and 21B. Person and number agreement aren't here because they always do
 public record Exponence(bool CaseWithNumber, bool TamWithAgreement, bool TenseWithAspect);
 
-//WALS 103A: whether third person agreement is marked at all
+/// <summary>Whether third person agreement is marked at all.</summary>
+//WALS 103A
 public enum ThirdPersonZero
 {
     None,
@@ -85,7 +99,7 @@ public enum ThirdPersonZero
     All,
 }
 
-//which values a language leaves unmarked, expressed by no form at all
+/// <summary>Which values a language leaves unmarked, expressed by no form at all.</summary>
 public record ZeroMarking(bool Singular, bool CoreCase, bool Present, ThirdPersonZero ThirdPerson)
 {
     //whether this combination of values, all in one slot, has no form. Every value in it has to be
@@ -121,10 +135,12 @@ public record ZeroMarking(bool Singular, bool CoreCase, bool Present, ThirdPerso
     }
 }
 
-//how a language builds words, along the dimensions typologists actually measure
+/// <summary>
+/// How a language builds words, along the dimensions typologists actually measure.
+/// </summary>
 public record MorphologicalProfile(Fusion Fusion, Exponence Exponence, Affixation Affixation, ZeroMarking ZeroMarking)
 {
-    //how often a new marker is a separate word rather than an affix
+    /// <summary>How often a new marker is a separate word rather than an affix.</summary>
     public double ParticleChance => Fusion switch
     {
         Fusion.Concatenative => 0,

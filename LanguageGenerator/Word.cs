@@ -1,12 +1,13 @@
 ﻿namespace LanguageGenerator;
 
-//a word is a sequence of morphemes, and everything else about it is derived from them.
-//its spellings here are of the underlying form, the morphemes simply run together;
-//Phonology.Realize gives the surface form, after sandhi and syllabification. Covert holds
-//features the word has but no morpheme expresses, like the singular of most nouns
+/// <summary>
+/// A word as a sequence of morphemes, in its underlying form; Phonology.Realize gives the surface
+/// form. Covert holds features the word has but no morpheme expresses, like the singular of most
+/// nouns.
+/// </summary>
 public record Word(IReadOnlyList<Morpheme> Morphemes, IReadOnlyList<Grammeme>? Covert = null)
 {
-    //the word's root, if it has one: a particle's word doesn't
+    /// <summary>The word's root, if it has one: a particle's word doesn't.</summary>
     public Root? Root => Morphemes.Select(m => m.Value).OfType<Root>().FirstOrDefault();
 
     public string Spell(Orthography orthography) => string.Concat(Morphemes.Select(m => m.Spell(orthography)));
@@ -24,7 +25,7 @@ public record Word(IReadOnlyList<Morpheme> Morphemes, IReadOnlyList<Grammeme>? C
         m.Value is Root && Covert is { Count: > 0 } covert ? $"{m.Gloss}[{Grammeme.JoinGlosses(covert)}]" : m.Gloss));
 }
 
-//a dictionary entry: a root, and what it can be inflected as
+/// <summary>A dictionary entry: a root, and what it can be inflected as.</summary>
 public record Lexeme(Root Root, PartOfSpeech PartOfSpeech);
 
 //n.b. not every language has all these. A language might not have articles!

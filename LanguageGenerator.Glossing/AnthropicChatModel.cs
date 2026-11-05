@@ -1,12 +1,15 @@
-using Anthropic;
+﻿using Anthropic;
 using Anthropic.Models.Beta.Messages;
 
 namespace LanguageGenerator.Glossing;
 
-//Claude, through Anthropic's SDK, which finds its credentials itself: ANTHROPIC_API_KEY, or a
-//profile from ant auth login. The system prompt is marked for caching, so a long text's batches
-//read it from the cache after the first, if it's long enough for the model to cache. Fallbacks
-//let the API retry a policy refusal on another model, though glossing should never draw one
+/// <summary>
+/// Claude, through Anthropic's SDK, which finds its credentials itself: ANTHROPIC_API_KEY, or a
+/// profile from ant auth login.
+/// </summary>
+//the system prompt is marked for caching, so a long text's batches read it from the cache after the
+//first, if it's long enough for the model to cache. Fallbacks let the API retry a policy refusal on
+//another model, though glossing should never draw one
 public sealed class AnthropicChatModel(string model, string? effort = null) : IChatModel
 {
     private readonly AnthropicClient client = new();

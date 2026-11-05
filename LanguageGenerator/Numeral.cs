@@ -1,6 +1,7 @@
-namespace LanguageGenerator;
+﻿namespace LanguageGenerator;
 
-//WALS 131A: how a language builds numbers past its first few words
+/// <summary>How a language builds numbers past its first few words.</summary>
+//WALS 131A
 public enum NumeralBase
 {
     //tens: 37 is three ten seven, as in Mandarin sān shí qī
@@ -11,10 +12,11 @@ public enum NumeralBase
     Restricted,
 }
 
-//a language's numerals, each a word of its own: Words has one for each number from 1 to 9 and for
-//each power of the base (10 and 100, or 10, 20 and 400), or in a restricted system for each number
-//up to Limit, with Many past it. A numeral goes before or after its noun, outside any adjectives,
-//and some languages leave the noun singular after one, as Turkish üç kurt 'three wolf' does
+/// <summary>A language's numerals, each a word of its own.</summary>
+//Words has one for each number from 1 to 9 and for each power of the base (10 and 100, or 10, 20
+//and 400), or in a restricted system for each number up to Limit, with Many past it. A numeral goes
+//before or after its noun, outside any adjectives, and some languages leave the noun singular after
+//one, as Turkish üç kurt 'three wolf' does
 public record NumeralSystem(NumeralBase Base, int Limit, IReadOnlyDictionary<int, Lexeme> Words, Lexeme? Many,
     bool BeforeNoun, bool NounStaysSingular, bool LargestFirst)
 {

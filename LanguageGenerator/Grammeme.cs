@@ -1,7 +1,10 @@
 ﻿namespace LanguageGenerator;
 
-//a value of one of the grammatical categories which morphemes might express. It's closed, so a
-//switch that handles every category below needs no discard, and adding a category flags it
+/// <summary>
+/// One value of a grammatical category, such as Past for tense or Plural for number.
+/// </summary>
+//closed, so a switch that handles every category below needs no discard, and adding a category
+//flags it
 public closed record Grammeme(string Name, string Gloss)
 {
     // https://www.eva.mpg.de/lingua/resources/glossing-rules.php
@@ -68,13 +71,15 @@ public record Case(string Name, string Gloss) : Grammeme(Name, Gloss)
     public static Case Instrumental { get; } = new("Instrumental", "INS");
     public static Case Ergative { get; } = new("Ergative", "ERG");
     public static Case Absolutive { get; } = new("Absolutive", "ABS");
-    //the plain form in a language whose only cases are peripheral, covering everything they don't
+    /// <summary>
+    /// The plain form in a language with only peripheral cases, covering everything they don't.
+    /// </summary>
     public static Case Direct { get; } = new("Direct", "DIR");
 }
 
-//this is a list of case uses that cases in the language cover. direct and indirect
-//objects, direct address, etc.
-//each of these is marked by exactly one RoleMarker: a case, an adposition, or nothing
+/// <summary>
+/// A role a phrase can play, which a language marks with a case, an adposition or nothing.
+/// </summary>
 public enum CaseUse
 {
     //the subject is split in two because alignments group the core roles differently:
@@ -94,6 +99,10 @@ public enum CaseUse
     //maybe Likeness?
 }
 
+/// <summary>
+/// Which core roles a language marks alike: both subjects (nominative-accusative), or the
+/// intransitive subject and the object (ergative-absolutive).
+/// </summary>
 public enum MorphosyntacticAlignment
 {
     NominativeAccusative,
@@ -132,23 +141,28 @@ public record Gender(string Name, string Gloss) : Grammeme(Name, Gloss)
     public static Gender Inanimate { get; } = new("Inanimate", "NANM");
 }
 
-//whether a first person plural includes the person spoken to: 'we, you among us' or 'we, but
-//not you'. Only pronouns distinguish it here
+/// <summary>
+/// Whether a first person plural includes the person spoken to: 'you and I' or 'we, but not you'.
+/// </summary>
+//only pronouns distinguish it here
 public record Clusivity(string Name, string Gloss) : Grammeme(Name, Gloss)
 {
     public static Clusivity Inclusive { get; } = new("Inclusive", "INCL");
     public static Clusivity Exclusive { get; } = new("Exclusive", "EXCL");
 }
 
-//whether a clause is asserted or denied. Affirmative is never marked, so it never shows in a gloss
+/// <summary>Whether a clause is asserted or denied.</summary>
+//affirmative is never marked, so it never shows in a gloss
 public record Polarity(string Name, string Gloss) : Grammeme(Name, Gloss)
 {
     public static Polarity Affirmative { get; } = new("Affirmative", "AFF");
     public static Polarity Negative { get; } = new("Negative", "NEG");
 }
 
-//what an affix agreeing with a possessor adds to its person and number, so that ház-am
-//'house-1SG.POSS' isn't read as a verb's agreement
+/// <summary>
+/// Marks an affix as agreeing with a possessor, as in Hungarian ház-am 'house-1SG.POSS', so that it
+/// isn't read as a verb's agreement.
+/// </summary>
 public record Possessive(string Name, string Gloss) : Grammeme(Name, Gloss)
 {
     public static Possessive Possessed { get; } = new("Possessed", "POSS");
@@ -160,4 +174,4 @@ public record Definiteness(string Name, string Gloss) : Grammeme(Name, Gloss)
     public static Definiteness Indefinite { get; } = new("Indefinite", "NDF");
 }
 
-//politeness?
+//TODO politeness

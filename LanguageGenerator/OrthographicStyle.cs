@@ -23,7 +23,9 @@ public enum LongVowelSpelling
     Doubled,
 }
 
-//how /e/ is told apart from /ɛ/, and /o/ from /ɔ/, in a language that has both
+/// <summary>
+/// How /e/ is told apart from /ɛ/, and /o/ from /ɔ/, in a language that has both.
+/// </summary>
 public enum MidVowelSpelling
 {
     //è ò for the open vowels, as in Italian dictionaries

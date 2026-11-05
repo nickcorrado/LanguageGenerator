@@ -3,9 +3,12 @@ using LanguageGenerator.Glossing;
 
 namespace LanguageGenerator.Cli;
 
-//gloss <english.txt> [output] [options]: writes a clause file for translate. The output defaults to
-//the input's name with .clauses.txt, and if it's already there, the sentences it glosses are kept,
-//unless --again says to gloss them all afresh, as after the format learns something new
+/// <summary>
+/// The gloss command, which writes a clause file for translate from a file of English.
+/// </summary>
+//the output defaults to the input's name with .clauses.txt, and if it's already there, the
+//sentences it glosses are kept, unless --again says to gloss them all afresh, as after the format
+//learns something new
 public static class GlossCommand
 {
     public const string Usage = """

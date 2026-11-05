@@ -1,7 +1,9 @@
-namespace LanguageGenerator;
+﻿namespace LanguageGenerator;
 
-//where a noun phrase's number and case show when an adjective modifies the noun. WALS has no
-//chapter counting these, so the generator's odds are guesses
+/// <summary>
+/// Where a noun phrase's number and case show when an adjective modifies the noun.
+/// </summary>
+//WALS has no chapter counting these, so the generator's odds are guesses
 public enum AdjectiveAgreement
 {
     //only the noun inflects, and the adjective is bare, like English big dogs

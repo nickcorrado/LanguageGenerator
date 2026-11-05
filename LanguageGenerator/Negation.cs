@@ -1,6 +1,7 @@
 ﻿namespace LanguageGenerator;
 
-//WALS 143A: how a language negates a clause, by what kind of marker and where it goes
+/// <summary>How a language negates a clause: what kind of marker, and where it goes.</summary>
+//WALS 143A
 public enum NegationStrategy
 {
     //a word before the verb, like English not or Mandarin bù
@@ -15,8 +16,9 @@ public enum NegationStrategy
     Double,
 }
 
-//how a language says not: its markers, each with where it goes. A prefix or suffix goes outside
-//the verb's other affixes, and a particle outside its other particles
+/// <summary>How a language says not: its markers, each with where it goes.</summary>
+//a prefix or suffix goes outside the verb's other affixes, and a particle outside its other
+//particles
 public record Negation(NegationStrategy Strategy, IReadOnlyList<(ExponentPosition Position, Morpheme Marker)> Markers)
 {
     //the verb's words, negated

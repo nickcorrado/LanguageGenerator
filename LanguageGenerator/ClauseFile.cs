@@ -2,8 +2,11 @@
 
 namespace LanguageGenerator;
 
-//a file of clauses to translate, each the English it means followed by an indented line saying
-//what it means in glosses:
+/// <summary>
+/// A file of clauses to translate, each the English it means followed by an indented line saying
+/// what it means in glosses.
+/// </summary>
+//for example:
 //
 //  # a comment
 //  the dog didn't see the cat

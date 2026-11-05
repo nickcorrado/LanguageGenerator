@@ -1,9 +1,9 @@
 ﻿namespace LanguageGenerator.Glossing;
 
-//what a model is told about the clause format. The roles and glosses come from ClauseFile's own
-//tables, so the prompt keeps up as the format grows; the system prompt is the same for every
-//request, so that providers that cache can reuse it, and everything that varies is in the user
-//message
+/// <summary>What a model is told about the clause format.</summary>
+//the roles and glosses come from ClauseFile's own tables, so the prompt keeps up as the format
+//grows; the system prompt is the same for every request, so that providers that cache can reuse it,
+//and everything that varies is in the user message
 public static class GlossPrompt
 {
     public const string CantExpress = "# can't express yet";

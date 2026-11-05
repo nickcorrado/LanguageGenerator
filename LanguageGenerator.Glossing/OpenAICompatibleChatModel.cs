@@ -1,11 +1,13 @@
-using System.Net.Http.Json;
+﻿using System.Net.Http.Json;
 using System.Text.Json;
 
 namespace LanguageGenerator.Glossing;
 
-//any server with an OpenAI-style chat completions endpoint: OpenAI itself, or a local model run by
-//Ollama (http://localhost:11434/v1), LM Studio or llama.cpp, which need no key. Plain HTTP, since
-//that endpoint's shape is the one thing all of them share
+/// <summary>
+/// Any server with an OpenAI-style chat completions endpoint: OpenAI itself, or a local model run
+/// by Ollama (http://localhost:11434/v1), LM Studio or llama.cpp, which need no key.
+/// </summary>
+//plain HTTP, since that endpoint's shape is the one thing all of them share
 public sealed class OpenAICompatibleChatModel(Uri baseUrl, string model, string? apiKey) : IChatModel, IDisposable
 {
     private readonly HttpClient http = new() { Timeout = TimeSpan.FromMinutes(10) };

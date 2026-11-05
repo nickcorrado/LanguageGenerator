@@ -2,8 +2,11 @@
 
 namespace LanguageGenerator.Glossing;
 
-//turns English text into a clause file, with a language model doing the glossing and ClauseFile
-//checking it. Tokens go only where they're needed:
+/// <summary>
+/// Turns English text into a clause file, with a language model doing the glossing and ClauseFile
+/// checking it.
+/// </summary>
+//tokens go only where they're needed:
 //- sentences go in batches, so the instructions are paid for once per batch, not per sentence
 //- a sentence already glossed in an earlier output file is kept, so editing a text and glossing it
 //  again sends only what changed

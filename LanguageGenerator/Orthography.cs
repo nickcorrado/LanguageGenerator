@@ -1,13 +1,14 @@
 ﻿namespace LanguageGenerator;
 
-//how a language writes its phonemes. Spellings must be unambiguous, so that any written word
-//splits back into phonemes in only one way: a spelled "ae" can't be both æ and a + ɛ
+/// <summary>How a language writes its phonemes.</summary>
+//spellings must be unambiguous, so that any written word splits back into phonemes in only one way:
+//a spelled "ae" can't be both æ and a + ɛ
 public class Orthography
 {
     private readonly Dictionary<Phoneme, string> spellings;
 
     public IReadOnlyDictionary<Phoneme, string> Spellings => spellings;
-    //the conventions the spellings come from, if they came from any
+    /// <summary>The conventions the spellings come from, if they came from any.</summary>
     public OrthographicStyle? Style { get; }
 
     public Orthography(IReadOnlyDictionary<Phoneme, string> spellings, OrthographicStyle? style = null)
@@ -20,7 +21,7 @@ public class Orthography
         Style = style;
     }
 
-    //IPA as an orthography, for debugging and for underlying forms
+    /// <summary>IPA as an orthography, for debugging and for underlying forms.</summary>
     public static Orthography Ipa { get; } =
         new(Vowel.All.Concat<Phoneme>(Consonant.All).ToDictionary(p => p, p => p.IpaSymbol));
 

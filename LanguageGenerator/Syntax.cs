@@ -4,13 +4,17 @@
 //language's lexicon turns into its own roots. Realizing one in a language is where all of that
 //language's choices (word order, role markers, paradigms, phonology) come together
 //TODO definiteness: there are no articles in the lexicon yet, so "the" only shows in translations
-//a noun, and any adjectives modifying it, in the order they're said in English, how many of it
-//there are, if a numeral says, as in 'three wolves', and whose it is, as in 'the king's house'
+/// <summary>
+/// A noun with any adjectives modifying it, in English order, how many of it there are if a numeral
+/// says, as in 'three wolves', and whose it is, as in 'the king's house'.
+/// </summary>
 public record NounPhrase(string Noun, Number Number, ValueList<Adjective> Adjectives = default, int? Count = null, Argument? Possessor = null);
-//what fills a role: a noun phrase, or a pronoun. What agrees with one depends on the language, so
-//that's Syntax.AgreementOf's to say
+/// <summary>What fills a role: a noun phrase or a pronoun.</summary>
+//what agrees with one depends on the language, so that's Syntax.AgreementOf's to say
 public union Argument(NounPhrase, Pronoun);
-//a phrase saying where, to where, from where, to whom, with whom or with what something happened
+/// <summary>
+/// A phrase saying where, to where, from where, to whom, with whom or with what something happened.
+/// </summary>
 public record Oblique(CaseUse Role, Argument Argument)
 {
     public static IReadOnlyList<CaseUse> Roles { get; } =
@@ -20,14 +24,17 @@ public record Oblique(CaseUse Role, Argument Argument)
 //obliques are in the order they're said in English
 public record Clause(string Verb, Tense Tense, Aspect Aspect, Argument Subject, Argument? Object = null, bool Negative = false, ValueList<Oblique> Obliques = default);
 
-//a property, like "big", said of something
+/// <summary>A property, like 'big', said of something.</summary>
 public record Adjective(string Meaning);
-//what a copular clause says its subject is: a noun phrase, as in 'you are a fool', or an adjective,
-//as in 'the gate is locked', or where it is, as in 'the dog is in the house', with a Location
+/// <summary>
+/// What a copular clause says of its subject: a noun phrase, as in 'you are a fool', an adjective,
+/// as in 'the gate is locked', or a Location, as in 'the dog is in the house'.
+/// </summary>
 public union Complement(NounPhrase, Adjective, Oblique);
+/// <summary>A clause saying what or where its subject is, as English does with be.</summary>
 public record CopularClause(Complement Complement, Tense Tense, Aspect Aspect, Argument Subject, bool Negative = false);
 
-//anything a sentence can say
+/// <summary>Anything a sentence can say.</summary>
 public union Statement(Clause, CopularClause);
 
 public static class Syntax

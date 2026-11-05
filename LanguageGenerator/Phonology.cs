@@ -1,9 +1,11 @@
 ﻿namespace LanguageGenerator;
 
-//one sound of a word's surface form, and the index of the morpheme it belongs to
+/// <summary>
+/// One sound of a word's surface form, and the index of the morpheme it belongs to.
+/// </summary>
 public record Segment(Phoneme Phoneme, int Morpheme);
 
-//what a language does with a consonant cluster its syllables can't hold
+/// <summary>What a language does with a consonant cluster its syllables can't hold.</summary>
 public enum ClusterRepair
 {
     //insert a vowel to break the cluster up (kabak-s → kabakəs)
@@ -12,14 +14,16 @@ public enum ClusterRepair
     Deletion,
 }
 
-//how a language's words sound: the inventory, what a syllable may be, and the rules that
-//turn a word's underlying morphemes into its surface form
+/// <summary>
+/// How a language's words sound: the inventory, what a syllable may be, and the rules that turn a
+/// word's underlying morphemes into its surface form.
+/// </summary>
 public class Phonology
 {
     public required List<Vowel> Vowels { get; init; }
     public required List<Consonant> Consonants { get; init; }
     public required SyllableRule SyllableRule { get; init; }
-    //applied in order across the whole word, before clusters are repaired
+    /// <summary>Applied in order across the whole word, before clusters are repaired.</summary>
     public required List<SandhiRule> SandhiRules { get; init; }
     public required ClusterRepair ClusterRepair { get; init; }
     public required Vowel EpentheticVowel { get; init; }
@@ -136,7 +140,7 @@ public class Phonology
     }
 }
 
-//a word as it's actually pronounced
+/// <summary>A word as it's actually pronounced.</summary>
 public record SurfaceForm(Word Word, IReadOnlyList<Segment> Segments, IReadOnlyList<Syllable> Syllables)
 {
     public IEnumerable<Phoneme> Phonemes => Segments.Select(s => s.Phoneme);

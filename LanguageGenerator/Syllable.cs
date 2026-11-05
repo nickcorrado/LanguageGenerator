@@ -68,9 +68,7 @@ public class Category<T> : IEnumerable<T> where T : Phoneme
     IEnumerator IEnumerable.GetEnumerator() => Phonemes.GetEnumerator();
 }
 
-//the C, S, L, V and F of templates like CLVF. A slot is only a kind of sound;
-//which phonemes can fill it isn't known until it's resolved against a language's
-//inventory. Consonantal slots are optional and get filled with the given chance
+//consonantal slots are optional and get filled with the given chance
 public record ConsonantSlot(double Chance);
 public record SibilantSlot(double Chance);
 public record LiquidSlot(double Chance);
@@ -78,6 +76,10 @@ public record FinalSlot(double Chance);
 //every syllable has exactly one nucleus, so this one is never optional
 public record VowelSlot;
 
+/// <summary>
+/// One of the C, S, L, V and F of a template like CLVF: a kind of sound, whose phonemes aren't
+/// known until it's resolved against a language's inventory.
+/// </summary>
 public union Slot(ConsonantSlot, SibilantSlot, LiquidSlot, VowelSlot, FinalSlot)
 {
     public char Letter => this switch
@@ -90,7 +92,10 @@ public union Slot(ConsonantSlot, SibilantSlot, LiquidSlot, VowelSlot, FinalSlot)
     };
 }
 
-//slots before the vowel make up the onset; at most one slot may follow it, as the coda
+/// <summary>
+/// A syllable's shape, like CLVF. Slots before the vowel make up the onset, and at most one slot
+/// may follow it, as the coda.
+/// </summary>
 public class SyllableTemplate
 {
     public IReadOnlyList<Slot> Slots { get; }
@@ -134,8 +139,8 @@ public static class SyllableTemplates
     public static IReadOnlyList<SyllableTemplate> All { get; } = [CV, CVF, CLV, CLVF, SCV, SCVF, SCLVF];
 }
 
-//which consonants may close a syllable. Many languages allow only some: Mandarin allows only
-//nasals, and Japanese only its moraic n
+/// <summary>Which consonants may close a syllable.</summary>
+//many languages allow only some: Mandarin allows only nasals, and Japanese only its moraic n
 public enum CodaRestriction
 {
     Any,
@@ -146,7 +151,7 @@ public enum CodaRestriction
     SingleNasal,
 }
 
-//a syllable template resolved against a language's phoneme inventory
+/// <summary>A syllable template resolved against a language's phoneme inventory.</summary>
 public class SyllableRule
 {
     public SyllableTemplate Template { get; }
@@ -211,8 +216,9 @@ public class SyllableRule
         return new Syllable(new ConsonantCluster(onset), nucleus!, coda);
     }
 
-    //roughly how many distinct syllables this rule can make: each consonantal slot is empty or one
-    //of its phonemes. It overcounts a little, since in CLV an onset l could come from C or from L
+    /// <summary>Roughly how many distinct syllables this rule can make.</summary>
+    //each consonantal slot is empty or one of its phonemes. It overcounts a little, since in CLV an
+    //onset l could come from C or from L
     public double DistinctSyllables => Template.Slots
         .Select(s => s is VowelSlot ? vowels.Count() : 1 + Resolve(s).Phonemes.Count())
         .Aggregate(1.0, (product, choices) => product * choices);

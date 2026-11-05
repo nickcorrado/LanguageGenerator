@@ -1,7 +1,9 @@
 ﻿namespace LanguageGenerator;
 
-//WALS 118A: whether an adjective said of something, as in 'the gate is locked', acts like a verb.
-//Its 103 languages that do this with some adjectives and not others are left out
+/// <summary>
+/// Whether an adjective said of something, as in 'the gate is locked', acts like a verb.
+/// </summary>
+//WALS 118A, leaving out its 103 languages that do this with some adjectives and not others
 public enum PredicativeAdjectives
 {
     //the adjective inflects like a verb, with no copula, as in Mandarin māo dà 'the cat is big'
@@ -10,13 +12,18 @@ public enum PredicativeAdjectives
     Nonverbal,
 }
 
-//how a language says that something is a thing, has a property or is somewhere. The copula is a
-//short verb, glossed COP, that inflects for tense, aspect and agreement like any other
+/// <summary>
+/// How a language says that something is a thing, has a property or is somewhere. The copula is a
+/// short verb, glossed COP, that inflects for tense, aspect and agreement like any other.
+/// </summary>
 public record Predication(PredicativeAdjectives Adjectives, bool ZeroCopula, Lexeme Copula)
 {
-    //WALS 119A: most languages say where something is with a verb of its own, glossed be.at, like
-    //Spanish estar beside ser, or Japanese iru beside da. Null where the copula does both, as in
-    //English. Drawn after the rest, so it isn't part of the record's constructor
+    /// <summary>
+    /// The language's own verb for where something is, glossed be.at, like Spanish estar beside
+    /// ser. Null where the copula does both, as in English.
+    /// </summary>
+    //WALS 119A, where most languages have one, as Japanese has iru beside da. Drawn after the rest,
+    //so it isn't part of the record's constructor
     public Lexeme? LocationalCopula { get; init; }
 
     public Lexeme CopulaFor(bool locational) => locational ? LocationalCopula ?? Copula : Copula;

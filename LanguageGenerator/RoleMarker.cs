@@ -1,18 +1,23 @@
 ﻿namespace LanguageGenerator;
 
-//a word before or after a noun phrase saying its role, glossed by its English meaning, as in an
-//interlinear gloss. If the language has cases, the adposition governs one of them
+/// <summary>
+/// A word before or after a noun phrase saying its role, glossed by its English meaning.
+/// </summary>
+//if the language has cases, the adposition governs one of them
 public record Adposition(Lexeme Lexeme, AdpositionType Type, Case? Governs)
 {
     public string Gloss => Lexeme.Root.Meaning;
 }
 
-//no case and no adposition: the role is recovered from word order (core
-//arguments in English) or from context (English vocatives)
+/// <summary>
+/// No case and no adposition: the role is recovered from word order, as with English's core
+/// arguments, or from context, as with its vocatives.
+/// </summary>
 public record Unmarked;
 
-//how a language marks one CaseUse. Every role gets exactly one strategy,
-//so a language with no locative case falls back on an adposition, and so on
+/// <summary>How a language marks one CaseUse: a case, an adposition or nothing.</summary>
+//every role gets exactly one strategy, so a language with no locative case falls back on an
+//adposition, and so on
 //TODO two simplifications to revisit:
 //- Cases are a fixed list named for one use each, and a role with no case of its own gets an
 //  adposition. Real cases cover connected regions of a semantic map of roles (Haspelmath):

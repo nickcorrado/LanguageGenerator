@@ -1,8 +1,9 @@
 ﻿namespace LanguageGenerator;
 
-//with head-initial, verb would come before objects. with head-final, verb comes after.
-//so the verb phrase follows from constituent order, and the other phrases are drawn
-//depending on it, since each tends to share the verb phrase's direction to some degree
+/// <summary>A language's constituent order and the head direction of each phrase.</summary>
+//with head-initial, verb would come before objects. with head-final, verb comes after. so the verb
+//phrase follows from constituent order, and the other phrases are drawn depending on it, since each
+//tends to share the verb phrase's direction to some degree
 public record WordOrder
 {
     public required ConstituentWordOrder ConstituentWordOrder { get; init; }
@@ -45,8 +46,9 @@ public enum ConstituentWordOrder
     OVS
 }
 
-//where obliques, like 'in the house', go: WALS 84A's XOV and XVO, OXV, and OVX and VOX. Between
-//is drawn only where the object precedes the verb, and puts them just before the verb
+/// <summary>Where obliques, like 'in the house', go relative to the verb and object.</summary>
+//WALS 84A's XOV and XVO, OXV, and OVX and VOX. Between is drawn only where the object precedes the
+//verb, and puts them just before the verb
 public enum ObliquePosition
 {
     BeforeVerbAndObject,
@@ -54,6 +56,9 @@ public enum ObliquePosition
     AfterVerbAndObject,
 }
 
+/// <summary>
+/// Whether a phrase's head comes first or last, as a verb comes before or after its object.
+/// </summary>
 public enum HeadDirectionality
 {
     Initial,

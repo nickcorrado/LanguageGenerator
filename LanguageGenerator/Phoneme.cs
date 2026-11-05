@@ -1,8 +1,11 @@
 ﻿namespace LanguageGenerator;
 
-//a phoneme is only its sound. How it's written depends on the language, so spelling lives in
-//each language's Orthography; IpaSymbol is for debugging and for writing underlying forms
-//closed: every phoneme is a Vowel or a Consonant, so a switch over the two is exhaustive
+/// <summary>
+/// A unit of sound. How it's written depends on the language, so spelling lives in each language's
+/// Orthography.
+/// </summary>
+//IpaSymbol is for debugging and for writing underlying forms. Closed: every phoneme is a Vowel or a
+//Consonant, so a switch over the two is exhaustive
 public closed class Phoneme
 {
     public string IpaSymbol { get; }
@@ -26,8 +29,8 @@ public class Vowel : Phoneme
     public static Vowel o { get; } = new("o", VowelHeight.CloseMid, VowelFrontness.Back, true, false);
     public static Vowel oː { get; } = new("oː", VowelHeight.CloseMid, VowelFrontness.Back, true, true);
 
-    //every vowel a language can have, from which the generator prunes. Declared after the vowels
-    //themselves, since static properties initialize in order
+    /// <summary>Every vowel a language can have, from which the generator prunes.</summary>
+    //declared after the vowels themselves, since static properties initialize in order
     public static IReadOnlyList<Vowel> All { get; } = [a, e, i, æ, ɛ, ə, ɔ, o, iː, oː];
 
     public VowelHeight Height { get; }
@@ -66,7 +69,7 @@ public class Consonant : Phoneme
     public static Consonant j { get; } = new("j", ConsonantPlace.Palatal, ConsonantManner.Approximant, true);
     public static Consonant w { get; } = new("w", ConsonantPlace.Velar, ConsonantManner.Approximant, true);
 
-    //every consonant a language can have, from which the generator prunes
+    /// <summary>Every consonant a language can have, from which the generator prunes.</summary>
     public static IReadOnlyList<Consonant> All { get; } = [b, d, g, k, m, n, p, s, t, z, ʃ, ʒ, f, v, ɹ, l, j, w];
 
     public ConsonantPlace Place { get; }
