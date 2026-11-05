@@ -205,7 +205,7 @@ public class GeneratorTests
         {
             Assert.Equal(11, l.Lexicon.Count(x => x.PartOfSpeech == PartOfSpeech.Noun));
             Assert.Equal(8, l.Lexicon.Count(x => x.PartOfSpeech == PartOfSpeech.Verb));
-            Assert.Equal(Enum.GetValues<CaseUse>().Length, l.RoleMarkers.Count);
+            Assert.Equal(Enum.GetValues<Role>().Length, l.RoleMarkers.Count);
         });
     }
 

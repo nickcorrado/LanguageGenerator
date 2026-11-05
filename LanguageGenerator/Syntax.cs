@@ -15,10 +15,10 @@ public union Argument(NounPhrase, Pronoun);
 /// <summary>
 /// A phrase saying where, to where, from where, to whom, with whom or with what something happened.
 /// </summary>
-public record Oblique(CaseUse Role, Argument Argument)
+public record Oblique(Role Role, Argument Argument)
 {
-    public static IReadOnlyList<CaseUse> Roles { get; } =
-        [CaseUse.IndirectObject, CaseUse.Location, CaseUse.MovementTo, CaseUse.MovementFrom, CaseUse.Accompaniment, CaseUse.Instrument];
+    public static IReadOnlyList<Role> Roles { get; } =
+        [Role.Recipient, Role.Location, Role.Goal, Role.Source, Role.Companion, Role.Instrument];
 }
 
 //obliques are in the order they're said in English
@@ -47,9 +47,9 @@ public static class Syntax
 
     public static Sentence Realize(Language language, Clause clause, string translation)
     {
-        var subjectRole = clause.Object is null ? CaseUse.IntransitiveSubject : CaseUse.TransitiveSubject;
+        var subjectRole = clause.Object is null ? Role.IntransitiveSubject : Role.TransitiveSubject;
         var subject = Subject(language, clause.Subject, subjectRole);
-        var @object = clause.Object.HasValue ? Inflect(language, clause.Object.GetValueOrDefault(), CaseUse.DirectObject) : null;
+        var @object = clause.Object.HasValue ? Inflect(language, clause.Object.GetValueOrDefault(), Role.DirectObject) : null;
         var verb = Verb(language, language.Lexicon.Verb(clause.Verb), clause.Tense, clause.Aspect, clause.Subject, clause.Negative);
         var obliques = clause.Obliques.SelectMany(o => Oblique(language, o)).ToList();
         return Sentence(language, Order(language.WordOrder, subject, verb, @object, obliques), translation);
@@ -66,7 +66,7 @@ public static class Syntax
     }
 
     //a phrase marked for a role: its case, and its adposition, if the role has one, before or after it
-    private static IReadOnlyList<Word> Marked(Language language, Argument argument, CaseUse role)
+    private static IReadOnlyList<Word> Marked(Language language, Argument argument, Role role)
     {
         var phrase = Inflect(language, argument, role);
         return language.RoleMarkers[role] switch
@@ -83,7 +83,7 @@ public static class Syntax
     public static Sentence Realize(Language language, CopularClause clause, string translation)
     {
         var predication = language.Predication;
-        var subject = Subject(language, clause.Subject, CaseUse.IntransitiveSubject);
+        var subject = Subject(language, clause.Subject, Role.IntransitiveSubject);
         if (clause.Complement.Value is Adjective verbal && predication.Adjectives == PredicativeAdjectives.Verbal)
         {
             //a property word inflects as a verb in a language whose adjectives are verbs
@@ -95,7 +95,7 @@ public static class Syntax
         //a location is an oblique, and goes where obliques go, with the language's locational copula
         if (clause.Complement.Value is Oblique location)
         {
-            if (location.Role != CaseUse.Location)
+            if (location.Role != Role.Location)
             {
                 throw new ArgumentException($"A copular clause can say where its subject is, but not its {location.Role}.", nameof(clause));
             }
@@ -110,10 +110,10 @@ public static class Syntax
         //as in Latin canis magnus est 'the dog is big'; otherwise it's just its root
         IReadOnlyList<Word> complement = clause.Complement.Value switch
         {
-            NounPhrase noun => Inflect(language, noun, CaseUse.IntransitiveSubject),
+            NounPhrase noun => Inflect(language, noun, Role.IntransitiveSubject),
             Adjective adjective when language.AdjectiveAgreement == AdjectiveAgreement.Agreement =>
                 [AgreeingAdjective(language, language.Lexicon.Adjective(adjective.Meaning),
-                    Features(language.Paradigms[PartOfSpeech.Noun], [AgreementOf(language, clause.Subject).Number, CaseFor(language, language.RoleMarkers[CaseUse.IntransitiveSubject])]),
+                    Features(language.Paradigms[PartOfSpeech.Noun], [AgreementOf(language, clause.Subject).Number, CaseFor(language, language.RoleMarkers[Role.IntransitiveSubject])]),
                     GenderOf(language, clause.Subject))],
             Adjective adjective => [new Word([language.Lexicon.Adjective(adjective.Meaning).Root])],
             _ => throw new ArgumentException("A copular clause needs a complement.", nameof(clause)),
@@ -125,7 +125,7 @@ public static class Syntax
     }
 
     //a language that drops subject pronouns leaves the verb's agreement, if any, to say who
-    private static IReadOnlyList<Word> Subject(Language language, Argument subject, CaseUse role) =>
+    private static IReadOnlyList<Word> Subject(Language language, Argument subject, Role role) =>
         subject.Value is Pronoun && language.Pronouns.DropsSubjects ? [] : Inflect(language, subject, role);
 
     //the verb agrees with its subject. TODO many ergative languages agree with the absolutive instead
@@ -180,7 +180,7 @@ public static class Syntax
     private static Sentence Sentence(Language language, IEnumerable<IReadOnlyList<Word>> constituents, string translation) =>
         new([.. constituents.SelectMany(c => c).Select(language.Phonology.Realize)], translation, language.Orthography);
 
-    private static IReadOnlyList<Word> Inflect(Language language, Argument argument, CaseUse role) =>
+    private static IReadOnlyList<Word> Inflect(Language language, Argument argument, Role role) =>
         Inflect(language, argument, CaseFor(language, language.RoleMarkers[role]));
 
     //a noun phrase on its own, in the case a noun is cited in, as in a dictionary or a name
@@ -222,7 +222,7 @@ public static class Syntax
         {
             return possessed;
         }
-        var owner = possession.MarksPossessor ? Marked(language, possessor, CaseUse.Possessive) : Inflect(language, possessor, Citation(language));
+        var owner = possession.MarksPossessor ? Marked(language, possessor, Role.Possessor) : Inflect(language, possessor, Citation(language));
         return possession.PossessorFirst ? [.. owner, .. possessed] : [.. possessed, .. owner];
     }
 

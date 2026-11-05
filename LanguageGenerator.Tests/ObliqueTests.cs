@@ -9,7 +9,7 @@ public class ObliqueTests
     private static Sentence Walk(Language language, params Oblique[] obliques) =>
         Syntax.Realize(language, new Clause("walk", Tense.Past, Aspect.Perfective, new NounPhrase("dog", Number.Singular), Obliques: [.. obliques]), "x");
 
-    private static Oblique Stone(CaseUse role) => new(role, new NounPhrase("stone", Number.Singular));
+    private static Oblique Stone(Role role) => new(role, new NounPhrase("stone", Number.Singular));
 
     [Fact]
     public void GenerateAdpositions_ManyDraws_AreOneSyllableAndShareWordsAsWalsSays()
@@ -20,10 +20,10 @@ public class ObliqueTests
         var drawn = Enumerable.Range(0, 3000).Select(_ => Generator.GenerateAdpositions(rand, phonology, 0.15)).ToList();
 
         //WALS 52A: 76 of 289 languages modeled use one word for 'with a friend' and 'with a knife'
-        Assert.InRange(drawn.Count(a => a[CaseUse.Instrument] == a[CaseUse.Accompaniment]) / 3000.0, 0.23, 0.30);
+        Assert.InRange(drawn.Count(a => a[Role.Instrument] == a[Role.Companion]) / 3000.0, 0.23, 0.30);
         Assert.All(drawn, a =>
         {
-            Assert.Same(a[CaseUse.IndirectObject], a[CaseUse.MovementTo]);
+            Assert.Same(a[Role.Recipient], a[Role.Goal]);
             Assert.All(a.Values, w => Assert.Equal(1, w.Root.Form.Count(p => p is Vowel)));
             Assert.All(a.Values, w => Assert.Equal(PartOfSpeech.Adposition, w.PartOfSpeech));
         });
@@ -100,7 +100,7 @@ public class ObliqueTests
         {
             var order = language.WordOrder;
             var transitive = Syntax.Realize(language, new Clause("see", Tense.Past, Aspect.Perfective, new NounPhrase("dog", Number.Singular),
-                new NounPhrase("cat", Number.Singular), Obliques: [Stone(CaseUse.Location)]), "x");
+                new NounPhrase("cat", Number.Singular), Obliques: [Stone(Role.Location)]), "x");
             var (s, v, o, x) = (IndexOf(transitive, "dog"), IndexOf(transitive, "see"), IndexOf(transitive, "cat"), IndexOf(transitive, "stone"));
 
             //the core constituents keep their order
@@ -119,7 +119,7 @@ public class ObliqueTests
                     break;
             }
 
-            var intransitive = Walk(language, Stone(CaseUse.Location));
+            var intransitive = Walk(language, Stone(Role.Location));
             Assert.Equal(order.ObliquePosition == ObliquePosition.AfterVerbAndObject, IndexOf(intransitive, "stone") > IndexOf(intransitive, "walk"));
         }
     }
@@ -129,7 +129,7 @@ public class ObliqueTests
     {
         Assert.All(GeneratedLanguages.Sample, l =>
         {
-            var sentence = Walk(l, new Oblique(CaseUse.MovementFrom, new NounPhrase("tree", Number.Singular)), new Oblique(CaseUse.MovementTo, new NounPhrase("water", Number.Singular)));
+            var sentence = Walk(l, new Oblique(Role.Source, new NounPhrase("tree", Number.Singular)), new Oblique(Role.Goal, new NounPhrase("water", Number.Singular)));
             var (tree, water) = (IndexOf(sentence, "tree"), IndexOf(sentence, "water"));
 
             Assert.True(tree < water);
@@ -147,15 +147,15 @@ public class ObliqueTests
         Assert.All(dropping, l =>
         {
             var root = l.Pronouns.For(you).Root;
-            Assert.Contains(Walk(l, new Oblique(CaseUse.Accompaniment, you)).Words, w => w.Word.Root == root);
+            Assert.Contains(Walk(l, new Oblique(Role.Companion, you)).Words, w => w.Word.Root == root);
         });
     }
 
     [Theory]
-    [InlineData(CaseUse.DirectObject)]
-    [InlineData(CaseUse.Possessive)]
-    [InlineData(CaseUse.Address)]
-    public void Realize_NonObliqueRole_Throws(CaseUse role)
+    [InlineData(Role.DirectObject)]
+    [InlineData(Role.Possessor)]
+    [InlineData(Role.Addressee)]
+    public void Realize_NonObliqueRole_Throws(Role role)
     {
         Assert.Throws<ArgumentException>(() => Walk(GeneratedLanguages.Sample[0], Stone(role)));
     }

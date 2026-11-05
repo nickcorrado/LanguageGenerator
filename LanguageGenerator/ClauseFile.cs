@@ -69,17 +69,9 @@ public static class ClauseFile
         return entries;
     }
 
-    //the roles a clause can have now, and the rest of CaseUse's roles, which it can't yet. A noun or
-    //adjective is what be says its subject is
-    private static readonly Dictionary<string, CaseUse> ObliqueRoles = new()
-    {
-        ["recipient"] = CaseUse.IndirectObject,
-        ["location"] = CaseUse.Location,
-        ["goal"] = CaseUse.MovementTo,
-        ["source"] = CaseUse.MovementFrom,
-        ["companion"] = CaseUse.Accompaniment,
-        ["instrument"] = CaseUse.Instrument,
-    };
+    //the roles a clause can have now, and the rest of the Role enum's, which it can't yet. An oblique
+    //role is written as its name in lowercase. A noun or adjective is what be says its subject is
+    private static readonly Dictionary<string, Role> ObliqueRoles = Oblique.Roles.ToDictionary(r => r.ToString().ToLowerInvariant());
     private static readonly string[] Roles = ["subject", "object", "noun", "adjective", .. ObliqueRoles.Keys];
     private static readonly string[] FutureRoles = ["addressee"];
 
@@ -163,8 +155,8 @@ public static class ClauseFile
                 case "adjective":
                     complement = ParseAdjective(value, number);
                     break;
-                case var oblique when ObliqueRoles.TryGetValue(oblique, out var use):
-                    obliques.Add((role, new Oblique(use, ParseArgument(value, number))));
+                case var name when ObliqueRoles.TryGetValue(name, out var oblique):
+                    obliques.Add((role, new Oblique(oblique, ParseArgument(value, number))));
                     break;
                 default:
                     arguments[role] = ParseArgument(value, number);

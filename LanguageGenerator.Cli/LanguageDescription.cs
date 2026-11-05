@@ -43,10 +43,10 @@ public static class LanguageDescription
 
         output.WriteLine(lang.MorphosyntacticAlignment);
         output.WriteLine($"Cases: {string.Join(", ", lang.Cases.Select(c => c.Gloss))}");
-        foreach (var (use, marker) in lang.RoleMarkers)
+        foreach (var (role, marker) in lang.RoleMarkers)
         {
             var spelled = marker.Value is Adposition a ? $" ({phonology.Realize(new Word([a.Lexeme.Root])).Spell(orthography)})" : "";
-            output.WriteLine($"{use}: {marker}{spelled}");
+            output.WriteLine($"{role}: {marker}{spelled}");
         }
         output.WriteLine($"Obliques: {lang.WordOrder.ObliquePosition}");
 
@@ -98,9 +98,9 @@ public static class LanguageDescription
             : $" ({string.Join(", ", possession.Affixes.Select(a => $"{Grammeme.JoinGlosses(a.Value.Grammemes)} {(possession.AffixPosition == ExponentPosition.Prefix ? $"{((Morpheme)a.Value).Spell(orthography)}-" : $"-{((Morpheme)a.Value).Spell(orthography)}")}"))})";
         output.WriteLine($"Possessors go {(possession.PossessorFirst ? "before" : "after")} the noun, " + possession.Marking switch
         {
-            PossessiveMarking.Dependent => $"marked {lang.RoleMarkers[CaseUse.Possessive]}",
+            PossessiveMarking.Dependent => $"marked {lang.RoleMarkers[Role.Possessor]}",
             PossessiveMarking.Head => $"and the noun agrees with them{possessedMarkers}",
-            PossessiveMarking.Double => $"marked {lang.RoleMarkers[CaseUse.Possessive]}, and the noun agrees with them{possessedMarkers}",
+            PossessiveMarking.Double => $"marked {lang.RoleMarkers[Role.Possessor]}, and the noun agrees with them{possessedMarkers}",
             _ => "unmarked",
         });
     }
@@ -146,9 +146,9 @@ public static class LanguageDescription
             (new("see", Tense.Past, Aspect.Perfective, Phrase("dog", Number.Singular), Phrase("cat", Number.Singular), Negative: true), "the dog didn't see the cat"),
             (new("see", Tense.Past, Aspect.Perfective, new NounPhrase("dog", Number.Singular, [new("big")]), new NounPhrase("cat", Number.Plural, [new("small")])), "the big dog saw the small cats"),
             (new("see", Tense.Past, Aspect.Perfective, new NounPhrase("woman", Number.Singular, [new("old")]), new NounPhrase("sun", Number.Singular, [new("big")])), "the old woman saw the big sun"),
-            (new("sleep", Tense.Past, Aspect.Imperfective, Phrase("dog", Number.Singular), Obliques: [new(CaseUse.Location, new NounPhrase("house", Number.Singular, [new("big")]))]), "the dog was sleeping in the big house"),
-            (new("give", Tense.Past, Aspect.Perfective, Phrase("person", Number.Singular), Phrase("fish", Number.Singular), Obliques: [new(CaseUse.IndirectObject, Phrase("cat", Number.Plural))]), "the person gave the fish to the cats"),
-            (new("walk", Tense.Past, Aspect.Perfective, new Pronoun(Person.First, Number.Singular), Obliques: [new(CaseUse.MovementFrom, Phrase("tree", Number.Singular)), new(CaseUse.MovementTo, Phrase("water", Number.Singular)), new(CaseUse.Accompaniment, new Pronoun(Person.Second, Number.Singular))]), "I walked from the tree to the water with you"),
+            (new("sleep", Tense.Past, Aspect.Imperfective, Phrase("dog", Number.Singular), Obliques: [new(Role.Location, new NounPhrase("house", Number.Singular, [new("big")]))]), "the dog was sleeping in the big house"),
+            (new("give", Tense.Past, Aspect.Perfective, Phrase("person", Number.Singular), Phrase("fish", Number.Singular), Obliques: [new(Role.Recipient, Phrase("cat", Number.Plural))]), "the person gave the fish to the cats"),
+            (new("walk", Tense.Past, Aspect.Perfective, new Pronoun(Person.First, Number.Singular), Obliques: [new(Role.Source, Phrase("tree", Number.Singular)), new(Role.Goal, Phrase("water", Number.Singular)), new(Role.Companion, new Pronoun(Person.Second, Number.Singular))]), "I walked from the tree to the water with you"),
             (new("see", Tense.Past, Aspect.Perfective, Phrase("person", Number.Singular), new NounPhrase("dog", ClauseFile.NumberFor(3), [new("big")], Count: 3)), "the person saw three big dogs"),
             (new("see", Tense.Past, Aspect.Perfective, new NounPhrase("dog", Number.Singular, Possessor: Phrase("person", Number.Singular)), new NounPhrase("cat", Number.Plural, Possessor: new Pronoun(Person.First, Number.Singular))), "the person's dog saw my cats"),
         ];
@@ -156,7 +156,7 @@ public static class LanguageDescription
         [
             (new(new Adjective("big"), Tense.Present, Aspect.Imperfective, Phrase("dog", Number.Singular)), "the dog is big"),
             (new(Phrase("bird", Number.Singular), Tense.Present, Aspect.Imperfective, new Pronoun(Person.Second, Number.Singular)), "you are a bird"),
-            (new(new Oblique(CaseUse.Location, Phrase("house", Number.Singular)), Tense.Present, Aspect.Imperfective, Phrase("dog", Number.Singular)), "the dog is in the house"),
+            (new(new Oblique(Role.Location, Phrase("house", Number.Singular)), Tense.Present, Aspect.Imperfective, Phrase("dog", Number.Singular)), "the dog is in the house"),
         ];
         foreach (var (clause, translation) in examples.Select(e => ((Statement)e.Clause, e.Translation)).Concat(copular.Select(e => ((Statement)e.Clause, e.Translation))))
         {

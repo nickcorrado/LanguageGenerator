@@ -15,7 +15,7 @@ public record Adposition(Lexeme Lexeme, AdpositionType Type, Case? Governs)
 /// </summary>
 public record Unmarked;
 
-/// <summary>How a language marks one CaseUse: a case, an adposition or nothing.</summary>
+/// <summary>How a language marks one role: a case, an adposition or nothing.</summary>
 //every role gets exactly one strategy, so a language with no locative case falls back on an
 //adposition, and so on
 //TODO two simplifications to revisit:

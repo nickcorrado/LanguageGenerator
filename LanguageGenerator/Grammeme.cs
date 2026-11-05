@@ -80,7 +80,7 @@ public record Case(string Name, string Gloss) : Grammeme(Name, Gloss)
 /// <summary>
 /// A role a phrase can play, which a language marks with a case, an adposition or nothing.
 /// </summary>
-public enum CaseUse
+public enum Role
 {
     //the subject is split in two because alignments group the core roles differently:
     //nominative/accusative marks both subjects alike, while ergative/absolutive marks
@@ -88,13 +88,13 @@ public enum CaseUse
     IntransitiveSubject,
     TransitiveSubject,
     DirectObject,
-    Possessive,
-    IndirectObject,
-    Address,
+    Possessor,
+    Recipient,
+    Addressee,
     Location,
-    MovementTo,
-    MovementFrom,
-    Accompaniment,
+    Goal,
+    Source,
+    Companion,
     Instrument,
     //maybe Likeness?
 }

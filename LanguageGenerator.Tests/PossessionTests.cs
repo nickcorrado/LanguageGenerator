@@ -50,7 +50,7 @@ public class PossessionTests
 
             Assert.Equal(possession.PossessorFirst, person < dog);
             Assert.Equal(possession.MarksPossessed, sentence.Words[dog].Gloss.Contains("-3SG.POSS") || sentence.Words[dog].Gloss.StartsWith("3SG.POSS-"));
-            var marker = language.RoleMarkers[CaseUse.Possessive].Value;
+            var marker = language.RoleMarkers[Role.Possessor].Value;
             var marked = marker switch
             {
                 Case c => Glosses(sentence).Contains(c.Gloss),

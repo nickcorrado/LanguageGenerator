@@ -73,7 +73,7 @@ public static partial class Generator
     //both a recipient and a goal, as in English, and the comitative marks instruments too in about
     //a quarter of languages. Each new word is redrawn a few times to keep it from sounding like
     //one before it; a small inventory may still make homophones, as real languages have
-    public static Dictionary<CaseUse, Lexeme> GenerateAdpositions(Random rand, Phonology phonology, double dropoff)
+    public static Dictionary<Role, Lexeme> GenerateAdpositions(Random rand, Phonology phonology, double dropoff)
     {
         var instrumentalIsComitative = Sampling.Categorical(rand, ComitativeIsInstrumentalCounts);
         var words = new Dictionary<string, Lexeme>();
@@ -90,18 +90,18 @@ public static partial class Generator
 
         return new()
         {
-            [CaseUse.Possessive] = Word("of"),
-            [CaseUse.IndirectObject] = Word("to"),
-            [CaseUse.Location] = Word("at"),
-            [CaseUse.MovementTo] = Word("to"),
-            [CaseUse.MovementFrom] = Word("from"),
-            [CaseUse.Accompaniment] = Word("with"),
-            [CaseUse.Instrument] = Word(instrumentalIsComitative ? "with" : "using"),
+            [Role.Possessor] = Word("of"),
+            [Role.Recipient] = Word("to"),
+            [Role.Location] = Word("at"),
+            [Role.Goal] = Word("to"),
+            [Role.Source] = Word("from"),
+            [Role.Companion] = Word("with"),
+            [Role.Instrument] = Word(instrumentalIsComitative ? "with" : "using"),
         };
     }
 
     //a role gets its case if the language has one, and otherwise its adposition
-    public static Dictionary<CaseUse, RoleMarker> SelectRoleMarkers(MorphosyntacticAlignment alignment, List<Case> cases, WordOrder wordOrder, IReadOnlyDictionary<CaseUse, Lexeme> adpositions)
+    public static Dictionary<Role, RoleMarker> SelectRoleMarkers(MorphosyntacticAlignment alignment, List<Case> cases, WordOrder wordOrder, IReadOnlyDictionary<Role, Lexeme> adpositions)
     {
         var type = wordOrder.AdpositionalPhraseDirectionality == HeadDirectionality.Initial ? AdpositionType.Preposition : AdpositionType.Postposition;
         //a simplification: real languages often pick the governed case per adposition
@@ -118,25 +118,25 @@ public static partial class Generator
             MorphosyntacticAlignment.ErgativeAbsolutive => ergativeAbsolutive,
             _ => new Unmarked(),
         };
-        RoleMarker Adposition(CaseUse use) => new Adposition(adpositions[use], type, governs);
-        RoleMarker CaseOrAdposition(Case @case, CaseUse use) => cases.Contains(@case) ? @case : Adposition(use);
+        RoleMarker Adposition(Role role) => new Adposition(adpositions[role], type, governs);
+        RoleMarker CaseOrAdposition(Case @case, Role role) => cases.Contains(@case) ? @case : Adposition(role);
 
-        RoleMarker MarkerFor(CaseUse use) => use switch
+        RoleMarker MarkerFor(Role role) => role switch
         {
-            CaseUse.IntransitiveSubject => Core(Case.Nominative, Case.Absolutive),
-            CaseUse.TransitiveSubject => Core(Case.Nominative, Case.Ergative),
-            CaseUse.DirectObject => Core(Case.Accusative, Case.Absolutive),
-            CaseUse.Possessive => CaseOrAdposition(Case.Genitive, use),
-            CaseUse.IndirectObject => CaseOrAdposition(Case.Dative, use),
-            CaseUse.Address => cases.Contains(Case.Vocative) ? Case.Vocative : new Unmarked(),
-            CaseUse.Location => CaseOrAdposition(Case.Locative, use),
-            CaseUse.MovementTo => Adposition(use),
-            CaseUse.MovementFrom => CaseOrAdposition(Case.Ablative, use),
-            CaseUse.Accompaniment => Adposition(use),
-            CaseUse.Instrument => CaseOrAdposition(Case.Instrumental, use),
-            _ => throw new ArgumentOutOfRangeException(nameof(use), use, "Every role needs a marker."),
+            Role.IntransitiveSubject => Core(Case.Nominative, Case.Absolutive),
+            Role.TransitiveSubject => Core(Case.Nominative, Case.Ergative),
+            Role.DirectObject => Core(Case.Accusative, Case.Absolutive),
+            Role.Possessor => CaseOrAdposition(Case.Genitive, role),
+            Role.Recipient => CaseOrAdposition(Case.Dative, role),
+            Role.Addressee => cases.Contains(Case.Vocative) ? Case.Vocative : new Unmarked(),
+            Role.Location => CaseOrAdposition(Case.Locative, role),
+            Role.Goal => Adposition(role),
+            Role.Source => CaseOrAdposition(Case.Ablative, role),
+            Role.Companion => Adposition(role),
+            Role.Instrument => CaseOrAdposition(Case.Instrumental, role),
+            _ => throw new ArgumentOutOfRangeException(nameof(role), role, "Every role needs a marker."),
         };
 
-        return Enum.GetValues<CaseUse>().ToDictionary(use => use, MarkerFor);
+        return Enum.GetValues<Role>().ToDictionary(role => role, MarkerFor);
     }
 }

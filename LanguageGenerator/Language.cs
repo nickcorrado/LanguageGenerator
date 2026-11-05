@@ -16,7 +16,7 @@ public class Language
     public required bool HasArticles { get; init; }
     public required MorphosyntacticAlignment MorphosyntacticAlignment { get; init; }
     public required List<Case> Cases { get; init; }
-    public required Dictionary<CaseUse, RoleMarker> RoleMarkers { get; init; }
+    public required Dictionary<Role, RoleMarker> RoleMarkers { get; init; }
     public required PronounSystem Pronouns { get; init; }
     public required Negation Negation { get; init; }
     public required Predication Predication { get; init; }

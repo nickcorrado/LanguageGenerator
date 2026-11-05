@@ -26,23 +26,23 @@ public class ClauseFileTests
 
         Assert.Equal(new Clause("walk", Tense.Past, Aspect.Imperfective, new Pronoun(Person.First, Number.Plural), Obliques:
         [
-            new(CaseUse.MovementFrom, new NounPhrase("village", Number.Singular)),
-            new(CaseUse.MovementTo, new NounPhrase("river", Number.Singular, [new("big")])),
-            new(CaseUse.Accompaniment, new Pronoun(Person.Second, Number.Singular)),
+            new(Role.Source, new NounPhrase("village", Number.Singular)),
+            new(Role.Goal, new NounPhrase("river", Number.Singular, [new("big")])),
+            new(Role.Companion, new Pronoun(Person.Second, Number.Singular)),
         ]), clause);
         Assert.NotEqual(clause with { Obliques = [.. clause.Obliques.Reverse()] }, clause);
     }
 
     [Theory]
-    [InlineData("recipient", CaseUse.IndirectObject)]
-    [InlineData("location", CaseUse.Location)]
-    [InlineData("goal", CaseUse.MovementTo)]
-    [InlineData("source", CaseUse.MovementFrom)]
-    [InlineData("companion", CaseUse.Accompaniment)]
-    [InlineData("instrument", CaseUse.Instrument)]
-    public void Parse_ObliqueRole_IsItsCaseUse(string role, CaseUse use)
+    [InlineData("recipient", Role.Recipient)]
+    [InlineData("location", Role.Location)]
+    [InlineData("goal", Role.Goal)]
+    [InlineData("source", Role.Source)]
+    [InlineData("companion", Role.Companion)]
+    [InlineData("instrument", Role.Instrument)]
+    public void Parse_ObliqueRole_IsTheRoleOfThatName(string name, Role role)
     {
-        Assert.Equal(use, Assert.Single(Verbal(Single($"x\n  see subject:dog object:cat {role}:stone")).Obliques).Role);
+        Assert.Equal(role, Assert.Single(Verbal(Single($"x\n  see subject:dog object:cat {name}:stone")).Obliques).Role);
     }
 
     [Fact]
@@ -98,7 +98,7 @@ public class ClauseFileTests
     [Fact]
     public void Parse_BeWithALocation_SaysWhereItsSubjectIs()
     {
-        Assert.Equal(new CopularClause(new Oblique(CaseUse.Location, new NounPhrase("house", Number.Singular, [new("big")])), Tense.Past, Aspect.Imperfective, new NounPhrase("dog", Number.Singular), Negative: true),
+        Assert.Equal(new CopularClause(new Oblique(Role.Location, new NounPhrase("house", Number.Singular, [new("big")])), Tense.Past, Aspect.Imperfective, new NounPhrase("dog", Number.Singular), Negative: true),
             Single("the dog wasn't in the big house\n  be.PST.NEG location:(house big) subject:dog").Statement.Value);
     }
 
