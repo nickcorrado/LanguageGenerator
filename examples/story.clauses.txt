@@ -1,0 +1,35 @@
+# Glossed from story.txt by claude-opus-5-5. Glossing it again keeps the sentences here that
+# still parse, so edit those freely; delete one to have it glossed again.
+
+# > The old hunter walked to the river with his dogs.
+the old hunter walked to the river with his dogs
+  walk.PST.PFV  subject:(hunter old)  goal:river  companion:(dog.PL possessor:3SG.M)
+
+# > He saw three wolves in the trees.
+he saw three wolves in the trees
+  see.PST.PFV  subject:3SG.M  object:(wolf 3)  location:tree.PL
+
+# > The wolves didn't see him.
+the wolves didn't see him
+  see.PST.PFV.NEG  subject:wolf.PL  object:3SG.M
+
+# > They were sleeping.
+they were sleeping
+  sleep.PST  subject:3PL.N
+
+# > He gave the fish to the dogs and went home.
+he gave the fish to the dogs
+  give.PST.PFV  subject:3SG.M  object:fish  recipient:dog.PL
+he went home
+  go.PST.PFV  subject:3SG.M  goal:home
+
+# > The queen was in the big house.
+the queen was in the big house
+  be.PST  subject:queen  location:(house big)
+
+# > Where was the king?
+# can't express yet (question): Where was the king?
+
+# > He was sleeping in the house too.
+he was sleeping in the house
+  sleep.PST  subject:3SG.M  location:house
