@@ -28,10 +28,12 @@ public class Vowel : Phoneme
     public static Vowel ɔ { get; } = new("ɔ", VowelHeight.OpenMid, VowelFrontness.Back, true, false);
     public static Vowel o { get; } = new("o", VowelHeight.CloseMid, VowelFrontness.Back, true, false);
     public static Vowel oː { get; } = new("oː", VowelHeight.CloseMid, VowelFrontness.Back, true, true);
+    public static Vowel aː { get; } = new("aː", VowelHeight.Open, VowelFrontness.Front, false, true);
+    public static Vowel eː { get; } = new("eː", VowelHeight.CloseMid, VowelFrontness.Front, false, true);
 
     /// <summary>Every vowel a language can have, from which the generator prunes.</summary>
     //declared after the vowels themselves, since static properties initialize in order
-    public static IReadOnlyList<Vowel> All { get; } = [a, e, i, æ, ɛ, ə, ɔ, o, iː, oː];
+    public static IReadOnlyList<Vowel> All { get; } = [a, e, i, æ, ɛ, ə, ɔ, o, iː, oː, aː, eː];
 
     public VowelHeight Height { get; }
     public VowelFrontness Backness { get; }

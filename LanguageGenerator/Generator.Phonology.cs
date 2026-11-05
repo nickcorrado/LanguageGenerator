@@ -63,8 +63,9 @@ public static partial class Generator
     }
 
     //changes that depend on syllables, for languages whose syllables can end in a consonant. Devoicing
-    //and weakening need obstruents in codas, which a coda restriction rules out. The odds are guesses
-    public static List<SoundChange> SelectSyllableChanges(Random rand, SyllableRule rule)
+    //and weakening need obstruents in codas, which a coda restriction rules out, and lengthening needs
+    //long vowels. It's drawn last, so that the others stay as they were. The odds are guesses
+    public static List<SoundChange> SelectSyllableChanges(Random rand, SyllableRule rule, IReadOnlyCollection<Vowel> vowels)
     {
         var changes = new List<SoundChange>();
         var codas = rule.Template.Slots.Any(s => s is FinalSlot);
@@ -76,7 +77,12 @@ public static partial class Generator
         {
             changes.Add(SoundChange.CodaWeakening);
         }
-        if (rand.NextDouble() < 0.15 && codas)
+        var laxes = rand.NextDouble() < 0.15 && codas;
+        if (rand.NextDouble() < 0.12 && codas && vowels.Any(v => v.Long))
+        {
+            changes.Add(SoundChange.CompensatoryLengthening);
+        }
+        if (laxes)
         {
             changes.Add(SoundChange.ClosedSyllableLaxing);
         }

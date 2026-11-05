@@ -206,7 +206,7 @@ public class PhonologyTests
     public void Realize_RootsInLanguagesWithoutSoundChanges_AreUnchanged()
     {
         //roots are built from legal syllables, so only morpheme boundaries can need repair
-        foreach (var language in GeneratedLanguages.Sample.Where(l => l.Phonology.SoundChanges.Count == 0))
+        foreach (var language in GeneratedLanguages.Sample.Where(l => l.Phonology.SoundChanges.Count + l.Phonology.SyllableChanges.Count == 0))
         {
             foreach (var lexeme in language.Lexicon)
             {

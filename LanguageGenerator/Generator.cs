@@ -50,7 +50,7 @@ public static partial class Generator
         phonology = phonology with
         {
             SoundChanges = [.. phonology.SoundChanges, .. SelectLaterSoundChanges(rand, syllableRule, vowels)],
-            SyllableChanges = SelectSyllableChanges(rand, syllableRule),
+            SyllableChanges = SelectSyllableChanges(rand, syllableRule, vowels),
         };
         var lexicon = GenerateLexicon(lexiconSeed, extraSyllables, phonology, syllableDropoff, new Dictionary<PartOfSpeech, IEnumerable<Lexeme>>
         {

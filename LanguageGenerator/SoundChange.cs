@@ -16,8 +16,11 @@ public readonly record struct SyllablePlace(SyllablePosition Position, bool Clos
 /// yet, and the whole word as it was before this change, with which morpheme is its root, if any.
 /// Place is known only to changes that run on syllabified words.
 /// </summary>
-public readonly record struct Site(Segment Segment, Segment? Previous, Segment? Next, IReadOnlyList<Segment> Word, int? Root, SyllablePlace? Place = null)
+public readonly record struct Site(Segment Segment, Segment? Previous, Segment? Next, IReadOnlyList<Segment> Word, int? Root, int Index, SyllablePlace? Place = null)
 {
+    /// <summary>The sound before this one as it was before this change, unlike Previous.</summary>
+    public Phoneme? Before => Index > 0 ? Word[Index - 1].Phoneme : null;
+
     public Phoneme Sound => Segment.Phoneme;
     public bool BetweenVowels => Previous?.Phoneme is Vowel && Next?.Phoneme is Vowel;
 
@@ -48,7 +51,7 @@ public sealed class SoundChange(string name, Func<Site, bool> when, Func<Site, P
         var result = new List<Segment>();
         for (int i = 0; i < segments.Count; i++)
         {
-            var site = new Site(segments[i], result.LastOrDefault(), i + 1 < segments.Count ? segments[i + 1] : null, segments, root, places?[i]);
+            var site = new Site(segments[i], result.LastOrDefault(), i + 1 < segments.Count ? segments[i + 1] : null, segments, root, i, places?[i]);
             if (!when(site))
             {
                 result.Add(segments[i]);
@@ -119,7 +122,7 @@ public sealed class SoundChange(string name, Func<Site, bool> when, Func<Site, P
     //the inventory has no u, and a pairs with æ as Finnish a does with ä, though it's a front vowel
     //by its features
     public static SoundChange FrontBackHarmony { get; } = Harmony("front-back harmony (kæ-la → kælæ)",
-        [(Vowel.æ, Vowel.a), (Vowel.e, Vowel.o), (Vowel.ɛ, Vowel.ɔ)]);
+        [(Vowel.æ, Vowel.a), (Vowel.e, Vowel.o), (Vowel.ɛ, Vowel.ɔ), (Vowel.eː, Vowel.oː)]);
 
     /// <summary>
     /// Every vowel in a word agrees with the root's first harmonizing vowel in the position of the
@@ -176,6 +179,33 @@ public sealed class SoundChange(string name, Func<Site, bool> when, Func<Site, P
     public static SoundChange ClosedSyllableLaxing { get; } = new("closed-syllable laxing (pet → pɛt)",
         site => site is { Place: { Position: SyllablePosition.Nucleus, Closed: true } } && Laxed.ContainsKey(site.Sound),
         (site, phonology) => phonology.Vowels.Contains(Laxed[site.Sound]) ? Laxed[site.Sound] : site.Sound);
+
+    private static readonly Dictionary<Phoneme, Vowel> Lengthened = new()
+    {
+        [Vowel.a] = Vowel.aː,
+        [Vowel.e] = Vowel.eː,
+        [Vowel.i] = Vowel.iː,
+        [Vowel.o] = Vowel.oː,
+    };
+
+    private static readonly Phoneme[] LostCodas = [Consonant.h, Consonant.ɹ, Consonant.s];
+
+    /// <summary>
+    /// A coda is lost and the vowel before it lengthens to make up for it, as English car lost its r
+    /// and Old French teste its s.
+    /// </summary>
+    //both halves apply only where the language has the long vowel, so a coda is never lost for nothing.
+    //It follows coda weakening, which it can feed, and precedes laxing, whose closed syllables it opens
+    public static SoundChange CompensatoryLengthening { get; } = new("compensatory lengthening (kaɹ → kaː)",
+        site => site.Place switch
+        {
+            { Position: SyllablePosition.Nucleus, Closed: true } => Lengthened.ContainsKey(site.Sound) && site.Next is { } coda && LostCodas.Contains(coda.Phoneme),
+            { Position: SyllablePosition.Coda } => LostCodas.Contains(site.Sound) && site.Before is { } vowel && Lengthened.ContainsKey(vowel),
+            _ => false,
+        },
+        (site, phonology) => site.Sound is Vowel
+            ? (phonology.Vowels.Contains(Lengthened[site.Sound]) ? Lengthened[site.Sound] : site.Sound)
+            : (phonology.Vowels.Contains(Lengthened[site.Before!]) ? null : site.Sound));
 
     /// <summary>The first of two vowels that meet at a morpheme boundary is lost.</summary>
     public static SoundChange VowelElision { get; } = new("vowel elision (ka-a → ka, ka-o → ko)",

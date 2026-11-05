@@ -235,11 +235,74 @@ public class SoundChangeTests
     {
         var rand = new Random(1);
         var rule = new SyllableRule(SyllableTemplates.CVF, TestData.Vowels, TestData.Consonants);
-        var drawn = Enumerable.Range(0, 3000).SelectMany(_ => Generator.SelectSyllableChanges(rand, rule)).ToList();
+        var drawn = Enumerable.Range(0, 3000).SelectMany(_ => Generator.SelectSyllableChanges(rand, rule, TestData.Vowels)).ToList();
 
         Assert.InRange(drawn.Count(c => c == SoundChange.CodaDevoicing) / 3000.0, 0.17, 0.23);
         Assert.InRange(drawn.Count(c => c == SoundChange.CodaWeakening) / 3000.0, 0.13, 0.17);
         Assert.InRange(drawn.Count(c => c == SoundChange.ClosedSyllableLaxing) / 3000.0, 0.13, 0.17);
+        Assert.InRange(drawn.Count(c => c == SoundChange.CompensatoryLengthening) / 3000.0, 0.10, 0.14);
+    }
+
+    [Fact]
+    public void SelectSyllableChanges_WithoutLongVowels_NeverLengthens()
+    {
+        var rand = new Random(1);
+        var rule = new SyllableRule(SyllableTemplates.CVF, TestData.Vowels, TestData.Consonants);
+
+        Assert.DoesNotContain(SoundChange.CompensatoryLengthening,
+            Enumerable.Range(0, 500).SelectMany(_ => Generator.SelectSyllableChanges(rand, rule, [Vowel.a, Vowel.i])));
+    }
+
+    [Fact]
+    public void CompensatoryLengthening_LosesTheCodaAndLengthensTheVowel()
+    {
+        Assert.Equal("kaː", Sounds(Syllabic(SoundChange.CompensatoryLengthening, Consonant.k, Vowel.a, Consonant.ɹ)));
+        Assert.Equal("teːta", Sounds(Syllabic(SoundChange.CompensatoryLengthening, Consonant.t, Vowel.e, Consonant.s, Consonant.t, Vowel.a)));
+        Assert.Equal("koː", Sounds(Syllabic(SoundChange.CompensatoryLengthening, Consonant.k, Vowel.o, Consonant.h)));
+    }
+
+    [Fact]
+    public void CompensatoryLengthening_LeavesAnOnsetAndOtherCodasAlone()
+    {
+        Assert.Equal("kaɹa", Sounds(Syllabic(SoundChange.CompensatoryLengthening, Consonant.k, Vowel.a, Consonant.ɹ, Vowel.a)));
+        Assert.Equal("kat", Sounds(Syllabic(SoundChange.CompensatoryLengthening, Consonant.k, Vowel.a, Consonant.t)));
+    }
+
+    [Fact]
+    public void CompensatoryLengthening_AfterAVowelThatCantLengthen_KeepsTheCoda()
+    {
+        Assert.Equal("kaːɹ", Sounds(Syllabic(SoundChange.CompensatoryLengthening, Consonant.k, Vowel.aː, Consonant.ɹ)));
+        Assert.Equal("kəɹ", Sounds(Syllabic(SoundChange.CompensatoryLengthening, Consonant.k, Vowel.ə, Consonant.ɹ)));
+    }
+
+    [Fact]
+    public void CompensatoryLengthening_WithoutTheLongVowel_KeepsBothHalves()
+    {
+        var phonology = TestData.Phonology(SyllableTemplates.CVF, ClusterRepair.Epenthesis) with { Vowels = [Vowel.a, Vowel.i], SyllableChanges = [SoundChange.CompensatoryLengthening] };
+
+        Assert.Equal("kaɹ", Sounds(phonology.Realize(TestData.Word([Consonant.k, Vowel.a, Consonant.ɹ]))));
+    }
+
+    [Fact]
+    public void CompensatoryLengthening_OfAWholeSuffix_LeavesItEmpty()
+    {
+        var phonology = TestData.Phonology(SyllableTemplates.CVF, ClusterRepair.Epenthesis) with { SyllableChanges = [SoundChange.CompensatoryLengthening] };
+
+        Assert.Equal("kaː-∅", phonology.Realize(TestData.Word([Consonant.k, Vowel.a], [Consonant.ɹ])).Segmented(Orthography.Ipa));
+    }
+
+    [Fact]
+    public void CompensatoryLengthening_AfterCodaWeakening_IsFedByIt()
+    {
+        var phonology = TestData.Phonology(SyllableTemplates.CVF, ClusterRepair.Epenthesis) with { SyllableChanges = [SoundChange.CodaWeakening, SoundChange.CompensatoryLengthening] };
+
+        Assert.Equal("kaː", Sounds(phonology.Realize(TestData.Word([Consonant.k, Vowel.a, Consonant.s]))));
+    }
+
+    [Fact]
+    public void FrontBackHarmony_LongVowels_HarmonizeToo()
+    {
+        Assert.Equal("keːleː", Surface(SyllableTemplates.CV, SoundChange.FrontBackHarmony, [Consonant.k, Vowel.eː], [Consonant.l, Vowel.oː]));
     }
 
     [Fact]
@@ -248,7 +311,7 @@ public class SoundChangeTests
         var rand = new Random(1);
         var rule = new SyllableRule(SyllableTemplates.CV, TestData.Vowels, TestData.Consonants);
 
-        Assert.Empty(Enumerable.Range(0, 500).SelectMany(_ => Generator.SelectSyllableChanges(rand, rule)));
+        Assert.Empty(Enumerable.Range(0, 500).SelectMany(_ => Generator.SelectSyllableChanges(rand, rule, TestData.Vowels)));
     }
 
     [Fact]
@@ -256,7 +319,7 @@ public class SoundChangeTests
     {
         var rand = new Random(1);
         var rule = new SyllableRule(SyllableTemplates.CVF, TestData.Vowels, TestData.Consonants, CodaRestriction.Sonorants);
-        var drawn = Enumerable.Range(0, 500).SelectMany(_ => Generator.SelectSyllableChanges(rand, rule)).ToList();
+        var drawn = Enumerable.Range(0, 500).SelectMany(_ => Generator.SelectSyllableChanges(rand, rule, TestData.Vowels)).ToList();
 
         Assert.Contains(SoundChange.ClosedSyllableLaxing, drawn);
         Assert.DoesNotContain(SoundChange.CodaDevoicing, drawn);
