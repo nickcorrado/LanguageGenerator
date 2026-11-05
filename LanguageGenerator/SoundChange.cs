@@ -13,10 +13,10 @@ public readonly record struct SyllablePlace(SyllablePosition Position, bool Clos
 
 /// <summary>
 /// One sound as a sound change sees it: the sound before it, already changed, the one after it, not
-/// yet, and the whole word as it was before this change, with which morpheme is its root, if any.
-/// Place is known only to changes that run on syllabified words.
+/// yet, and the whole word as it was before this change. Place is known only to changes that run on
+/// syllabified words.
 /// </summary>
-public readonly record struct Site(Segment Segment, Segment? Previous, Segment? Next, IReadOnlyList<Segment> Word, int? Root, int Index, SyllablePlace? Place = null)
+public readonly record struct Site(Segment Segment, Segment? Previous, Segment? Next, IReadOnlyList<Segment> Word, int Index, SyllablePlace? Place = null)
 {
     /// <summary>The sound before this one as it was before this change, unlike Previous.</summary>
     public Phoneme? Before => Index > 0 ? Word[Index - 1].Phoneme : null;
@@ -24,14 +24,7 @@ public readonly record struct Site(Segment Segment, Segment? Previous, Segment? 
     public Phoneme Sound => Segment.Phoneme;
     public bool BetweenVowels => Previous?.Phoneme is Vowel && Next?.Phoneme is Vowel;
 
-    public IEnumerable<Phoneme> RootSounds
-    {
-        get
-        {
-            var root = Root;
-            return Word.Where(s => s.Morpheme == root).Select(s => s.Phoneme);
-        }
-    }
+    public IEnumerable<Phoneme> RootSounds => Word.Where(s => s.Morpheme.Value is Root).Select(s => s.Phoneme);
 }
 
 /// <summary>
@@ -46,12 +39,12 @@ public sealed class SoundChange(string name, Func<Site, bool> when, Func<Site, P
 {
     public override string ToString() => name;
 
-    public List<Segment> Apply(List<Segment> segments, Phonology phonology, int? root = null, IReadOnlyList<SyllablePlace>? places = null)
+    public List<Segment> Apply(List<Segment> segments, Phonology phonology, IReadOnlyList<SyllablePlace>? places = null)
     {
         var result = new List<Segment>();
         for (int i = 0; i < segments.Count; i++)
         {
-            var site = new Site(segments[i], result.LastOrDefault(), i + 1 < segments.Count ? segments[i + 1] : null, segments, root, i, places?[i]);
+            var site = new Site(segments[i], result.LastOrDefault(), i + 1 < segments.Count ? segments[i + 1] : null, segments, i, places?[i]);
             if (!when(site))
             {
                 result.Add(segments[i]);
@@ -200,7 +193,7 @@ public sealed class SoundChange(string name, Func<Site, bool> when, Func<Site, P
 
     /// <summary>The first of two vowels that meet at a morpheme boundary is lost.</summary>
     public static SoundChange VowelElision { get; } = new("vowel elision (ka-a → ka, ka-o → ko)",
-        site => site.Sound is Vowel && site.Next is { Phoneme: Vowel } next && next.Morpheme != site.Segment.Morpheme,
+        site => site.Sound is Vowel && site.Next is { Phoneme: Vowel } next && next.Position != site.Segment.Position,
         Nothing);
 
     /// <summary>

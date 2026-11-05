@@ -1,9 +1,10 @@
 ﻿namespace LanguageGenerator;
 
 /// <summary>
-/// One sound of a word's surface form, and the index of the morpheme it belongs to.
+/// One sound of a word's surface form, the morpheme it belongs to, and that morpheme's place in the
+/// word, since the same affix can appear twice.
 /// </summary>
-public record Segment(Phoneme Phoneme, int Morpheme);
+public record Segment(Phoneme Phoneme, Morpheme Morpheme, int Position);
 
 /// <summary>What a language does with a consonant cluster its syllables can't hold.</summary>
 public enum ClusterRepair
@@ -55,19 +56,18 @@ public record Phonology
         {
             foreach (var phoneme in word.Morphemes[i].Form)
             {
-                segments.Add(new Segment(phoneme, i));
+                segments.Add(new Segment(phoneme, word.Morphemes[i], i));
             }
         }
-        var root = Enumerable.Range(0, word.Morphemes.Count).Where(i => word.Morphemes[i].Value is Root).Cast<int?>().FirstOrDefault();
         foreach (var change in SoundChanges)
         {
-            segments = change.Apply(segments, this, root);
+            segments = change.Apply(segments, this);
         }
 
         var syllables = Repaired(word, ref segments);
         foreach (var change in SyllableChanges)
         {
-            segments = change.Apply(segments, this, root, Places(syllables));
+            segments = change.Apply(segments, this, Places(syllables));
             syllables = Repaired(word, ref segments);
         }
         return new SurfaceForm(word, segments, syllables);
@@ -163,8 +163,8 @@ public record Phonology
             for (int at = atStart ? cluster.Start : cluster.Start + 1; at <= (atEnd ? cluster.End : cluster.End - 1); at++)
             {
                 //an inserted vowel belongs with the morpheme after it, or the last one at the end of a word
-                var morpheme = at < segments.Count ? segments[at].Morpheme : segments[^1].Morpheme;
-                candidates.Add(([.. segments[..at], new Segment(EpentheticVowel, morpheme), .. segments[at..]], cluster.End + 1));
+                var neighbor = at < segments.Count ? segments[at] : segments[^1];
+                candidates.Add(([.. segments[..at], neighbor with { Phoneme = EpentheticVowel }, .. segments[at..]], cluster.End + 1));
             }
         }
         //deletion, or the only fix left for a consonant no vowel can save
@@ -194,7 +194,7 @@ public record SurfaceForm(Word Word, IReadOnlyList<Segment> Segments, IReadOnlyL
     //the surface form split back into its morphemes, lining up with Gloss. A morpheme that lost
     //all of its sounds to a sound change or cluster repair shows as ∅
     public string Segmented(Orthography orthography) => string.Join("-", Enumerable.Range(0, Word.Morphemes.Count).Select(i =>
-        Segments.Any(s => s.Morpheme == i) ? orthography.Spell(Segments.Where(s => s.Morpheme == i).Select(s => s.Phoneme)) : "∅"));
+        Segments.Any(s => s.Position == i) ? orthography.Spell(Segments.Where(s => s.Position == i).Select(s => s.Phoneme)) : "∅"));
 
     public string Gloss => Word.Gloss;
 }
