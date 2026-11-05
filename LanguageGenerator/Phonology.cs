@@ -24,11 +24,17 @@ public class Phonology
     public required List<Consonant> Consonants { get; init; }
     public required SyllableRule SyllableRule { get; init; }
     /// <summary>Applied in order across the whole word, before clusters are repaired.</summary>
-    public required List<SandhiRule> SandhiRules { get; init; }
+    public required List<SoundChange> SoundChanges { get; init; }
     public required ClusterRepair ClusterRepair { get; init; }
     public required Vowel EpentheticVowel { get; init; }
 
-    //underlying morphemes, run together → sandhi → cluster repair → syllables. Every
+    /// <summary>
+    /// The consonant in this inventory with these features, and the given one's for any not given.
+    /// </summary>
+    public Consonant? Counterpart(Consonant consonant, ConsonantPlace? place = null, ConsonantManner? manner = null, bool? voiced = null) =>
+        Consonants.FirstOrDefault(c => c.Place == (place ?? consonant.Place) && c.Manner == (manner ?? consonant.Manner) && c.Voiced == (voiced ?? consonant.Voiced));
+
+    //underlying morphemes, run together → sound changes → cluster repair → syllables. Every
     //segment keeps track of its morpheme throughout, so the result can still be segmented
     public SurfaceForm Realize(Word word)
     {
@@ -40,9 +46,9 @@ public class Phonology
                 segments.Add(new Segment(phoneme, i));
             }
         }
-        foreach (var rule in SandhiRules)
+        foreach (var change in SoundChanges)
         {
-            segments = rule.Apply(segments, Consonants);
+            segments = change.Apply(segments, this);
         }
 
         List<Syllable>? syllables;
@@ -149,7 +155,7 @@ public record SurfaceForm(Word Word, IReadOnlyList<Segment> Segments, IReadOnlyL
     public string Syllabified(Orthography orthography) => string.Join(".", Syllables.Select(s => s.Spell(orthography)));
 
     //the surface form split back into its morphemes, lining up with Gloss. A morpheme that lost
-    //all of its sounds to sandhi or cluster repair shows as ∅
+    //all of its sounds to a sound change or cluster repair shows as ∅
     public string Segmented(Orthography orthography) => string.Join("-", Enumerable.Range(0, Word.Morphemes.Count).Select(i =>
         Segments.Any(s => s.Morpheme == i) ? orthography.Spell(Segments.Where(s => s.Morpheme == i).Select(s => s.Phoneme)) : "∅"));
 

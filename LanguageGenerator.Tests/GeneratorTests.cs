@@ -4,7 +4,7 @@ public class GeneratorTests
 {
     //everything a run prints, so two languages with the same fingerprint are indistinguishable
     private static string Fingerprint(Language l) => string.Join("|",
-        l.Phonology.SyllableRule, string.Join(",", l.Phonology.SandhiRules), l.Phonology.ClusterRepair,
+        l.Phonology.SyllableRule, string.Join(",", l.Phonology.SoundChanges), l.Phonology.ClusterRepair,
         string.Join(",", l.Orthography.Spellings.Select(s => $"{s.Key.IpaSymbol}={s.Value}")),
         string.Join(",", GeneratedLanguages.AllWords(l).Select(w => $"{l.Phonology.Realize(w).Segmented(l.Orthography)}={w.Gloss}")),
         l.MorphologicalType, l.WordOrder.ConstituentWordOrder, l.WordOrder.HeadDirectionality, l.WordOrder.VerbPhraseDirectionality,

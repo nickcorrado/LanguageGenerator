@@ -41,7 +41,7 @@ public class PhonologyTests
             Vowels = TestData.Vowels,
             Consonants = TestData.Consonants,
             SyllableRule = new SyllableRule(SyllableTemplates.CVF, TestData.Vowels, TestData.Consonants, CodaRestriction.Nasals),
-            SandhiRules = [],
+            SoundChanges = [],
             ClusterRepair = ClusterRepair.Epenthesis,
             EpentheticVowel = Vowel.ə,
         };
@@ -60,7 +60,7 @@ public class PhonologyTests
             Vowels = TestData.Vowels,
             Consonants = TestData.Consonants,
             SyllableRule = new SyllableRule(Templates.Onsetless, TestData.Vowels, TestData.Consonants, CodaRestriction.Nasals),
-            SandhiRules = [],
+            SoundChanges = [],
             ClusterRepair = ClusterRepair.Epenthesis,
             EpentheticVowel = Vowel.ə,
         };
@@ -113,7 +113,7 @@ public class PhonologyTests
     [Fact]
     public void Realize_GeminateWithDegemination_MergesIntoTheFirstMorpheme()
     {
-        var surface = TestData.Phonology(SyllableTemplates.CVF, ClusterRepair.Epenthesis, new Degemination()).Realize(TestData.Word([Consonant.k, Vowel.a, Consonant.t], [Consonant.t]));
+        var surface = TestData.Phonology(SyllableTemplates.CVF, ClusterRepair.Epenthesis, SoundChange.Degemination).Realize(TestData.Word([Consonant.k, Vowel.a, Consonant.t], [Consonant.t]));
 
         Assert.Equal("kat-∅", surface.Segmented(Orthography.Ipa));
     }
@@ -121,7 +121,7 @@ public class PhonologyTests
     [Fact]
     public void Realize_NasalBeforeStopWithAssimilation_TakesTheStopsPlace()
     {
-        var surface = TestData.Phonology(SyllableTemplates.CVF, ClusterRepair.Epenthesis, new NasalAssimilation()).Realize(TestData.Word([Consonant.k, Vowel.a, Consonant.n], [Consonant.p, Vowel.a]));
+        var surface = TestData.Phonology(SyllableTemplates.CVF, ClusterRepair.Epenthesis, SoundChange.NasalAssimilation).Realize(TestData.Word([Consonant.k, Vowel.a, Consonant.n], [Consonant.p, Vowel.a]));
 
         Assert.Equal("kam-pa", surface.Segmented(Orthography.Ipa));
     }
@@ -129,7 +129,7 @@ public class PhonologyTests
     [Fact]
     public void Realize_UnvoicedBetweenVowelsAcrossABoundary_IsVoiced()
     {
-        var surface = TestData.Phonology(SyllableTemplates.CV, ClusterRepair.Epenthesis, new IntervocalicVoicing()).Realize(TestData.Word(Kaba, [Consonant.t, Vowel.a]));
+        var surface = TestData.Phonology(SyllableTemplates.CV, ClusterRepair.Epenthesis, SoundChange.IntervocalicVoicing).Realize(TestData.Word(Kaba, [Consonant.t, Vowel.a]));
 
         Assert.Equal("kaba-da", surface.Segmented(Orthography.Ipa));
     }
@@ -139,7 +139,7 @@ public class PhonologyTests
     {
         var noD = TestData.Consonants.Where(c => c != Consonant.d).ToList();
 
-        var surface = TestData.Phonology(SyllableTemplates.CV, ClusterRepair.Epenthesis, noD, new IntervocalicVoicing()).Realize(TestData.Word(Kaba, [Consonant.t, Vowel.a]));
+        var surface = TestData.Phonology(SyllableTemplates.CV, ClusterRepair.Epenthesis, noD, SoundChange.IntervocalicVoicing).Realize(TestData.Word(Kaba, [Consonant.t, Vowel.a]));
 
         Assert.Equal("kaba-ta", surface.Segmented(Orthography.Ipa));
     }
@@ -147,9 +147,9 @@ public class PhonologyTests
     [Fact]
     public void Realize_EpenthesisCreatingAVowelContext_DoesNotFeedVoicing()
     {
-        var surface = TestData.Phonology(SyllableTemplates.CVF, ClusterRepair.Epenthesis, new IntervocalicVoicing()).Realize(TestData.Word([Consonant.k, Vowel.a, Consonant.b, Vowel.ə, Consonant.k], S));
+        var surface = TestData.Phonology(SyllableTemplates.CVF, ClusterRepair.Epenthesis, SoundChange.IntervocalicVoicing).Realize(TestData.Word([Consonant.k, Vowel.a, Consonant.b, Vowel.ə, Consonant.k], S));
 
-        //sandhi runs before repair, so the k wasn't between vowels yet when voicing applied
+        //sound changes run before repair, so the k wasn't between vowels yet when voicing applied
         Assert.Equal("kabək-əs", surface.Segmented(Orthography.Ipa));
     }
 
@@ -203,10 +203,10 @@ public class PhonologyTests
     }
 
     [Fact]
-    public void Realize_RootsInLanguagesWithoutSandhi_AreUnchanged()
+    public void Realize_RootsInLanguagesWithoutSoundChanges_AreUnchanged()
     {
         //roots are built from legal syllables, so only morpheme boundaries can need repair
-        foreach (var language in GeneratedLanguages.Sample.Where(l => l.Phonology.SandhiRules.Count == 0))
+        foreach (var language in GeneratedLanguages.Sample.Where(l => l.Phonology.SoundChanges.Count == 0))
         {
             foreach (var lexeme in language.Lexicon)
             {

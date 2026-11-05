@@ -17,7 +17,7 @@ public static partial class Generator
             Vowels = vowels,
             Consonants = consonants,
             SyllableRule = syllableRule,
-            SandhiRules = SelectSandhiRules(rand),
+            SoundChanges = SelectSoundChanges(rand),
             ClusterRepair = rand.NextDouble() < 0.6 ? ClusterRepair.Epenthesis : ClusterRepair.Deletion,
             EpentheticVowel = SelectEpentheticVowel(vowels),
         };

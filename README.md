@@ -30,7 +30,7 @@ So nothing should depend on hand-curating the vocabulary: the lexicon has to be 
 
 `Generator.Generate(Random)` builds a `Language` in stages, each depending on the earlier ones:
 
-- **Phonology:** vowel and consonant inventories, a syllable template (CV, CVF, SCLVF, ...) with an optional restriction on codas, sandhi rules at morpheme boundaries, and a strategy for repairing illegal clusters (epenthesis or deletion).
+- **Phonology:** vowel and consonant inventories, a syllable template (CV, CVF, SCLVF, ...) with an optional restriction on codas, sound changes that turn underlying forms into surface ones, and a strategy for repairing illegal clusters (epenthesis or deletion).
 - **Orthography:** a spelling for each phoneme, from one consistent style per language (háček or digraph postalveolars, macron or acute long vowels, ...), checked to be unambiguous with the Sardinas–Patterson test.
 - **Lexicon:** roots built from legal syllables. Root length follows a displaced Poisson whose mean depends on how many distinct syllables the phonology allows, so languages with simple syllables have longer words. The lexicon is open: asking for a meaning it doesn't have coins a root, seeded from the language and the meaning alone, so a word comes out the same however much other text has been translated. A language calls itself by its word for 'people', the plural of 'person', as *Bantu* and *Inuit* do. A root is redrawn if it would sound like a closed-class word that fills the same slot (a noun like a pronoun, an adjective like a numeral, a verb like a copula), since those would be confused; homophones in different slots, like English *there* and *their*, are left alone, as languages leave them.
 - **Word order:** constituent order, the head directionality of each phrase type, and where obliques go: almost always after the verb and object in VO languages, and before them, between them or after them in OV ones, in WALS's proportions.
@@ -44,7 +44,7 @@ So nothing should depend on hand-curating the vocabulary: the lexicon has to be 
 - **Copular clauses:** a short copula, glossed COP, which some languages leave out in the present, and adjectives that either take it or inflect like verbs themselves, as in Mandarin *māo dà* 'the cat is big', each in WALS's proportions. Most languages say where something is with a verb of their own, glossed be.at, like Spanish *estar* beside *ser*, and the rest with the copula.
 - **Pronouns:** one short form per person and number, with inclusive and exclusive 'we' in some languages, and none at all in others; masculine and feminine (and sometimes neuter) forms in the third person, or the second and third, in about a third of languages; case markers shared with nouns where nouns have a case slot of their own; and whether subject pronouns are usually dropped, leaving the verb's agreement to say who.
 
-`Syntax.Realize` then turns a clause into words, and `Phonology.Realize` turns each word into its surface form: sandhi, cluster repair and syllabification.
+`Syntax.Realize` then turns a clause into words, and `Phonology.Realize` turns each word into its surface form: sound changes, cluster repair and syllabification.
 
 ## Design principles
 
@@ -52,7 +52,7 @@ So nothing should depend on hand-curating the vocabulary: the lexicon has to be 
 - **Tendencies in language, conventions in spelling.** Grammar varies the way real languages do, but an orthography is designed, so once a language picks a spelling convention it applies it everywhere.
 - **Description is separate from generation.** A `Language` is plain data that knows nothing about how it was chosen; everything random lives in `Generator`.
 - **Deterministic from a seed.** All randomness flows from one `Random` passed in explicitly, so a seed always reproduces the same language.
-- **Closed sets in the type system.** Category values, morphemes, syllable slots, sandhi rules and role markers are C# 15 unions or closed hierarchies, so a switch over them is checked for exhaustiveness.
+- **Closed sets in the type system.** Category values, morphemes, syllable slots and role markers are C# 15 unions or closed hierarchies, so a switch over them is checked for exhaustiveness.
 - **The pipeline's stages are separate projects.** `LanguageGenerator` is the generator, and has no dependencies, so a game can embed it; it also owns the clause format, the contract between the stages. `LanguageGenerator.Glossing` turns English into clause files with a language model, and is the only project with a model's SDK. `LanguageGenerator.Cli` is the command line over both. Each has its own test project.
 
 ## Running it

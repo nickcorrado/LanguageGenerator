@@ -6,20 +6,20 @@ namespace LanguageGenerator;
 public static partial class Generator
 {
     //each rule is independent of the others, and they apply in this order
-    public static List<SandhiRule> SelectSandhiRules(Random rand)
+    public static List<SoundChange> SelectSoundChanges(Random rand)
     {
-        var rules = new List<SandhiRule>();
+        var rules = new List<SoundChange>();
         if (rand.NextDouble() < 0.5)
         {
-            rules.Add(new NasalAssimilation());
+            rules.Add(SoundChange.NasalAssimilation);
         }
         if (rand.NextDouble() < 0.5)
         {
-            rules.Add(new Degemination());
+            rules.Add(SoundChange.Degemination);
         }
         if (rand.NextDouble() < 0.3)
         {
-            rules.Add(new IntervocalicVoicing());
+            rules.Add(SoundChange.IntervocalicVoicing);
         }
         return rules;
     }

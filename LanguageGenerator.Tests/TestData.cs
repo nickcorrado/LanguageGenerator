@@ -6,15 +6,15 @@ internal static class TestData
     public static List<Vowel> Vowels { get; } = [.. Vowel.All];
     public static List<Consonant> Consonants { get; } = [.. Consonant.All];
 
-    public static Phonology Phonology(SyllableTemplate template, ClusterRepair repair, params SandhiRule[] rules) =>
+    public static Phonology Phonology(SyllableTemplate template, ClusterRepair repair, params SoundChange[] rules) =>
         Phonology(template, repair, Consonants, rules);
 
-    public static Phonology Phonology(SyllableTemplate template, ClusterRepair repair, List<Consonant> consonants, params SandhiRule[] rules) => new()
+    public static Phonology Phonology(SyllableTemplate template, ClusterRepair repair, List<Consonant> consonants, params SoundChange[] rules) => new()
     {
         Vowels = Vowels,
         Consonants = consonants,
         SyllableRule = new SyllableRule(template, Vowels, consonants),
-        SandhiRules = [.. rules],
+        SoundChanges = [.. rules],
         ClusterRepair = repair,
         EpentheticVowel = Vowel.ə,
     };
