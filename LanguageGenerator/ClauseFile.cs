@@ -83,7 +83,7 @@ public static class ClauseFile
     //what the format can say, for describing it elsewhere, as the glosser's prompt does
     public static IReadOnlyList<string> RoleNames => Roles;
     public static IReadOnlyList<string> UnsupportedRoleNames => FutureRoles;
-    public static IReadOnlyList<T> ValuesOf<T>() where T : Tagmeme => [.. Glosses.Values.OfType<T>()];
+    public static IReadOnlyList<T> ValuesOf<T>() where T : Grammeme => [.. Glosses.Values.OfType<T>()];
 
     private static Statement ParseClause(string line, int number)
     {
@@ -384,7 +384,7 @@ public static class ClauseFile
         Gender? gender = null;
         foreach (var gloss in parts.Skip(1))
         {
-            var feature = Glosses.TryGetValue(gloss, out var tagmeme) ? tagmeme
+            var feature = Glosses.TryGetValue(gloss, out var grammeme) ? grammeme
                 : throw new ClauseFormatException($"'{gloss}' isn't a gloss.{Suggestion(gloss)}", number);
             switch (feature)
             {
@@ -416,7 +416,7 @@ public static class ClauseFile
     private static string A(string role) => ("aeiou".Contains(role[0]) ? "an " : "a ") + role;
 
     //a meaning and the glosses after it, as in dog.PL
-    private static (string Meaning, List<Tagmeme> Features) ParseWord(string token, int number)
+    private static (string Meaning, List<Grammeme> Features) ParseWord(string token, int number)
     {
         var parts = token.Split('.');
         var meaning = parts[0];
@@ -424,15 +424,15 @@ public static class ClauseFile
         {
             throw new ClauseFormatException($"'{token}' needs a word before its glosses.", number);
         }
-        return (meaning, [.. parts.Skip(1).Select(gloss => Glosses.TryGetValue(gloss, out var tagmeme) ? tagmeme
+        return (meaning, [.. parts.Skip(1).Select(gloss => Glosses.TryGetValue(gloss, out var grammeme) ? grammeme
             : throw new ClauseFormatException($"'{gloss}' isn't a gloss.{Suggestion(gloss)}", number))]);
     }
 
     //every value of every category, by its gloss
-    private static readonly Dictionary<string, Tagmeme> Glosses = typeof(Tagmeme).Assembly.GetTypes()
-        .Where(t => t.BaseType == typeof(Tagmeme))
+    private static readonly Dictionary<string, Grammeme> Glosses = typeof(Grammeme).Assembly.GetTypes()
+        .Where(t => t.BaseType == typeof(Grammeme))
         .SelectMany(t => t.GetProperties(BindingFlags.Public | BindingFlags.Static).Where(p => p.PropertyType == t))
-        .Select(p => (Tagmeme)p.GetValue(null)!)
+        .Select(p => (Grammeme)p.GetValue(null)!)
         .ToDictionary(t => t.Gloss);
 
     //a guess at the gloss meant, from its name: PAST or past for PST, PERF for PFV

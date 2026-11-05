@@ -3,15 +3,15 @@
 //a category a part of speech inflects for, with the values this language distinguishes,
 //e.g. Number with SG, DU and PL
 //Name is for display; Is says which category it is, by its values' type
-public record InflectionalCategory(string Name, IReadOnlyList<Tagmeme> Values)
+public record InflectionalCategory(string Name, IReadOnlyList<Grammeme> Values)
 {
-    public bool Is<T>() where T : Tagmeme => Values is [T, ..];
+    public bool Is<T>() where T : Grammeme => Values is [T, ..];
 }
 
 public static class InflectionalCategories
 {
     //whether any of these is the category whose values are T, as in paradigm.Categories.Has<Person>()
-    public static bool Has<T>(this IEnumerable<InflectionalCategory> categories) where T : Tagmeme => categories.Any(c => c.Is<T>());
+    public static bool Has<T>(this IEnumerable<InflectionalCategory> categories) where T : Grammeme => categories.Any(c => c.Is<T>());
 }
 
 public enum ExponentPosition
@@ -30,9 +30,9 @@ public class ExponentSlot
     public required IReadOnlyList<InflectionalCategory> Categories { get; init; }
     public required ExponentPosition Position { get; init; }
     //one exponent for every combination of the categories' values
-    public required IReadOnlyList<(IReadOnlyList<Tagmeme> Values, Morpheme Exponent)> Exponents { get; init; }
+    public required IReadOnlyList<(IReadOnlyList<Grammeme> Values, Morpheme Exponent)> Exponents { get; init; }
 
-    public Morpheme ExponentFor(IReadOnlyList<Tagmeme> features) =>
+    public Morpheme ExponentFor(IReadOnlyList<Grammeme> features) =>
         Exponents.First(e => e.Values.All(features.Contains)).Exponent;
 
     public override string ToString() => $"{Position} ({string.Join(" + ", Categories.Select(c => c.Name))})";
@@ -49,20 +49,20 @@ public class Paradigm
     public required IReadOnlyList<ExponentSlot> Slots { get; init; }
 
     //every combination of feature values, one per cell of the paradigm table
-    public IEnumerable<IReadOnlyList<Tagmeme>> Cells => Combinations(Categories);
+    public IEnumerable<IReadOnlyList<Grammeme>> Cells => Combinations(Categories);
 
-    public static IEnumerable<IReadOnlyList<Tagmeme>> Combinations(IEnumerable<InflectionalCategory> categories)
+    public static IEnumerable<IReadOnlyList<Grammeme>> Combinations(IEnumerable<InflectionalCategory> categories)
     {
-        IEnumerable<IReadOnlyList<Tagmeme>> cells = [[]];
+        IEnumerable<IReadOnlyList<Grammeme>> cells = [[]];
         foreach (var category in categories)
         {
-            cells = cells.SelectMany(cell => category.Values.Select(value => (IReadOnlyList<Tagmeme>)[.. cell, value]));
+            cells = cells.SelectMany(cell => category.Values.Select(value => (IReadOnlyList<Grammeme>)[.. cell, value]));
         }
         return cells;
     }
 
     //the inflected word, plus any particles, in order
-    public IReadOnlyList<Word> Inflect(Lexeme lexeme, IReadOnlyList<Tagmeme> features)
+    public IReadOnlyList<Word> Inflect(Lexeme lexeme, IReadOnlyList<Grammeme> features)
     {
         if (lexeme.PartOfSpeech != PartOfSpeech)
         {
@@ -77,7 +77,7 @@ public class Paradigm
         }
 
         var morphemes = new List<Morpheme> { lexeme.Root };
-        var covert = new List<Tagmeme>();
+        var covert = new List<Grammeme>();
         var before = new List<Word>();
         var after = new List<Word>();
         //each slot goes outside the ones before it
@@ -89,8 +89,8 @@ public class Paradigm
             {
                 covert.AddRange(exponent switch
                 {
-                    Affix a => a.Tagmemes,
-                    Particle p => p.Tagmemes,
+                    Affix a => a.Grammemes,
+                    Particle p => p.Grammemes,
                     Root => [],
                 });
                 continue;

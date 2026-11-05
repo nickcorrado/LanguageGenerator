@@ -105,7 +105,7 @@ public class ParadigmTests
         Assert.Equal(("kaba no", "dog[SG] ACC"), Show(paradigm.Inflect(Dog, [Number.Singular, Case.Accusative])));
     }
 
-    public static TheoryData<bool, bool, bool, ThirdPersonZero, Tagmeme[], bool> ZeroCases => new()
+    public static TheoryData<bool, bool, bool, ThirdPersonZero, Grammeme[], bool> ZeroCases => new()
     {
         { true, false, false, ThirdPersonZero.None, [Number.Singular], true },
         { false, false, false, ThirdPersonZero.None, [Number.Singular], false },
@@ -127,7 +127,7 @@ public class ParadigmTests
 
     [Theory]
     [MemberData(nameof(ZeroCases))]
-    public void IsZero_OnlyWhenEveryValueIsOneTheLanguageLeavesUnmarked(bool singular, bool coreCase, bool present, ThirdPersonZero thirdPerson, Tagmeme[] values, bool zero)
+    public void IsZero_OnlyWhenEveryValueIsOneTheLanguageLeavesUnmarked(bool singular, bool coreCase, bool present, ThirdPersonZero thirdPerson, Grammeme[] values, bool zero)
     {
         Assert.Equal(zero, new ZeroMarking(singular, coreCase, present, thirdPerson).IsZero(values));
     }

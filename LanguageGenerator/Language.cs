@@ -91,7 +91,7 @@ public record ZeroMarking(bool Singular, bool CoreCase, bool Present, ThirdPerso
     //whether this combination of values, all in one slot, has no form. Every value in it has to be
     //one the language leaves unmarked, so a fused SG.NOM is zero only if both singular and the core
     //case are, and a plural is never zero except as part of a zero third person
-    public bool IsZero(IReadOnlyList<Tagmeme> values)
+    public bool IsZero(IReadOnlyList<Grammeme> values)
     {
         var agreement = values.Any(v => v is Person);
         var thirdPersonZero = values.Contains(Person.Third) && ThirdPerson switch

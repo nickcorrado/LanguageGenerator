@@ -4,7 +4,7 @@
 //its spellings here are of the underlying form, the morphemes simply run together;
 //Phonology.Realize gives the surface form, after sandhi and syllabification. Covert holds
 //features the word has but no morpheme expresses, like the singular of most nouns
-public record Word(IReadOnlyList<Morpheme> Morphemes, IReadOnlyList<Tagmeme>? Covert = null)
+public record Word(IReadOnlyList<Morpheme> Morphemes, IReadOnlyList<Grammeme>? Covert = null)
 {
     //the word's root, if it has one: a particle's word doesn't
     public Root? Root => Morphemes.Select(m => m.Value).OfType<Root>().FirstOrDefault();
@@ -21,7 +21,7 @@ public record Word(IReadOnlyList<Morpheme> Morphemes, IReadOnlyList<Tagmeme>? Co
     public string Segmented(Orthography orthography) => string.Join("-", Morphemes.Select(m => m.Spell(orthography)));
     //Leipzig rule 6: features with no form of their own go in brackets on the root, as in boy[NOM.SG]
     public string Gloss => string.Join("-", Morphemes.Select(m =>
-        m.Value is Root && Covert is { Count: > 0 } covert ? $"{m.Gloss}[{Tagmeme.JoinGlosses(covert)}]" : m.Gloss));
+        m.Value is Root && Covert is { Count: > 0 } covert ? $"{m.Gloss}[{Grammeme.JoinGlosses(covert)}]" : m.Gloss));
 }
 
 //a dictionary entry: a root, and what it can be inflected as

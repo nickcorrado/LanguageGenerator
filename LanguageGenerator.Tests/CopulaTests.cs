@@ -106,10 +106,10 @@ public class CopulaTests
 
     //a word's affixes, by gloss, leaving out gender markers
     private static string Affixes(Word word) =>
-        string.Join("-", word.Morphemes.Where(m => m.Value is not Root and not Affix { Tagmemes: [Gender] }).Select(m => m.Gloss));
+        string.Join("-", word.Morphemes.Where(m => m.Value is not Root and not Affix { Grammemes: [Gender] }).Select(m => m.Gloss));
 
     private static List<string> GenderGlosses(Word word) =>
-        [.. word.Morphemes.Where(m => m.Value is Affix { Tagmemes: [Gender] }).Select(m => m.Gloss)];
+        [.. word.Morphemes.Where(m => m.Value is Affix { Grammemes: [Gender] }).Select(m => m.Gloss)];
 
     private static List<Language> Agreeing() =>
         [.. GeneratedLanguages.Sample.Where(l => l.Predication.Adjectives == PredicativeAdjectives.Nonverbal && l.AdjectiveAgreement == AdjectiveAgreement.Agreement)];

@@ -244,7 +244,7 @@ public class ClauseFileTests
         Assert.All(values, value =>
         {
             var clause = Verbal(Single(value is Number ? $"x\n  sleep subject:dog.{value.Gloss}" : $"x\n  sleep.{value.Gloss} subject:dog"));
-            Assert.Contains(value, (Tagmeme[])[clause.Tense, clause.Aspect, ((NounPhrase)clause.Subject.Value!).Number]);
+            Assert.Contains(value, (Grammeme[])[clause.Tense, clause.Aspect, ((NounPhrase)clause.Subject.Value!).Number]);
         });
     }
 

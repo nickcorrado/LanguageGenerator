@@ -10,7 +10,7 @@ public static class GlossPrompt
 
     public static string System { get; } = BuildSystem();
 
-    private static string Values<T>(Func<T, bool>? keep = null) where T : Tagmeme =>
+    private static string Values<T>(Func<T, bool>? keep = null) where T : Grammeme =>
         string.Join(", ", ClauseFile.ValuesOf<T>().Where(v => keep?.Invoke(v) ?? true).Select(v => $"{v.Gloss} ({v.Name.ToLowerInvariant()})"));
 
     private static string BuildSystem()

@@ -19,7 +19,7 @@ public static partial class Generator
         var categories = new List<InflectionalCategory>();
         if (rand.NextDouble() < 0.85)
         {
-            List<Tagmeme> numbers = rand.NextDouble() < 0.1 ? [Number.Singular, Number.Dual, Number.Plural] : [Number.Singular, Number.Plural];
+            List<Grammeme> numbers = rand.NextDouble() < 0.1 ? [Number.Singular, Number.Dual, Number.Plural] : [Number.Singular, Number.Plural];
             categories.Add(new("Number", numbers));
         }
         //with no core cases, a noun still needs a plain form for everything the peripheral cases don't cover
@@ -40,7 +40,7 @@ public static partial class Generator
         }
         if (rand.NextDouble() < 0.8)
         {
-            List<Tagmeme> tenses = rand.NextDouble() < 0.4 ? [Tense.Present, Tense.Past, Tense.Future] : [Tense.Present, Tense.Past];
+            List<Grammeme> tenses = rand.NextDouble() < 0.4 ? [Tense.Present, Tense.Past, Tense.Future] : [Tense.Present, Tense.Past];
             categories.Add(new("Tense", tenses));
         }
         if (rand.NextDouble() < 0.6)
@@ -99,9 +99,9 @@ public static partial class Generator
     //one exponent per combination of values, with no form at all for combinations the language
     //leaves unmarked. Other forms are kept distinct within a slot where possible; if the phonology
     //keeps producing repeats, the syncretism is allowed
-    private static List<(IReadOnlyList<Tagmeme> Values, Morpheme Exponent)> GenerateExponents(Random rand, List<InflectionalCategory> categories, ExponentPosition position, ZeroMarking zeroMarking, Phonology phonology, double dropoff)
+    private static List<(IReadOnlyList<Grammeme> Values, Morpheme Exponent)> GenerateExponents(Random rand, List<InflectionalCategory> categories, ExponentPosition position, ZeroMarking zeroMarking, Phonology phonology, double dropoff)
     {
-        var exponents = new List<(IReadOnlyList<Tagmeme>, Morpheme)>();
+        var exponents = new List<(IReadOnlyList<Grammeme>, Morpheme)>();
         var forms = new DistinctForms();
         foreach (var values in Paradigm.Combinations(categories))
         {

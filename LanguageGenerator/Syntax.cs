@@ -162,7 +162,7 @@ public static class Syntax
     //an adjective agreeing with a noun: it takes the noun's markers for these features, but only its
     //affixes, since a particle belongs to the phrase and is said once, and a marker for its gender.
     //Its zero markers go unglossed, since the noun's gloss already shows them
-    private static Word AgreeingAdjective(Language language, Lexeme adjective, IReadOnlyList<Tagmeme> features, Gender? gender)
+    private static Word AgreeingAdjective(Language language, Lexeme adjective, IReadOnlyList<Grammeme> features, Gender? gender)
     {
         var inflected = language.Paradigms[PartOfSpeech.Noun].Inflect(adjective with { PartOfSpeech = PartOfSpeech.Noun }, features);
         var word = inflected.First(w => w.Root is not null) with { Covert = null };
@@ -223,7 +223,7 @@ public static class Syntax
     //phrases are head-initial, before it in one whose are head-final, in the order given either way.
     //A numeral goes outside them, before or after, as the language puts numerals, so that 'three big
     //wolves' is either three big wolf or wolf big three. The noun's particles stay outside it all
-    private static IReadOnlyList<Word> Modified(Language language, NounPhrase phrase, IReadOnlyList<Tagmeme> features)
+    private static IReadOnlyList<Word> Modified(Language language, NounPhrase phrase, IReadOnlyList<Grammeme> features)
     {
         var nounLexeme = language.Lexicon.Noun(phrase.Noun);
         var noun = language.Paradigms[PartOfSpeech.Noun].Inflect(nounLexeme, features);
@@ -286,20 +286,20 @@ public static class Syntax
     //each category the paradigm inflects for takes whichever wanted value it distinguishes. A value
     //the language doesn't have falls back on the nearest one it does, and failing that on the
     //category's first value
-    private static List<Tagmeme> Features(Paradigm paradigm, IReadOnlyList<Tagmeme> wanted) =>
+    private static List<Grammeme> Features(Paradigm paradigm, IReadOnlyList<Grammeme> wanted) =>
         [.. paradigm.Categories.Select(category =>
             wanted.Where(w => w.GetType() == category.Values[0].GetType())
                 .Select(w => Nearest(w, category.Values))
                 .FirstOrDefault(v => v is not null) ?? category.Values[0])];
 
     //the value itself if it's available, or else the nearest available one it falls back on
-    public static Tagmeme? Nearest(Tagmeme wanted, IReadOnlyCollection<Tagmeme> available) =>
-        ((Tagmeme[])[wanted, .. Fallbacks.GetValueOrDefault(wanted, [])]).FirstOrDefault(available.Contains);
+    public static Grammeme? Nearest(Grammeme wanted, IReadOnlyCollection<Grammeme> available) =>
+        ((Grammeme[])[wanted, .. Fallbacks.GetValueOrDefault(wanted, [])]).FirstOrDefault(available.Contains);
 
     //what a value turns into in a language that doesn't distinguish it, nearest first: a dual or a
     //paucal is still more than one, a language without a future speaks of it in the present, as
     //English often does, and an aorist is a perfective
-    private static readonly Dictionary<Tagmeme, Tagmeme[]> Fallbacks = new()
+    private static readonly Dictionary<Grammeme, Grammeme[]> Fallbacks = new()
     {
         [Number.Dual] = [Number.Paucal, Number.Plural],
         [Number.Paucal] = [Number.Plural],

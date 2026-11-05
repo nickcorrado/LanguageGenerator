@@ -92,7 +92,7 @@ public static class LanguageDescription
         output.WriteLine("  " + string.Join(", ", ((int[])[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 20, 37, 100]).Select(n => $"{n} {Say(n)}")));
         var possession = lang.Possession;
         var possessedMarkers = possession.Affixes is null ? ""
-            : $" ({string.Join(", ", possession.Affixes.Select(a => $"{Tagmeme.JoinGlosses(a.Value.Tagmemes)} {(possession.AffixPosition == ExponentPosition.Prefix ? $"{((Morpheme)a.Value).Spell(orthography)}-" : $"-{((Morpheme)a.Value).Spell(orthography)}")}"))})";
+            : $" ({string.Join(", ", possession.Affixes.Select(a => $"{Grammeme.JoinGlosses(a.Value.Grammemes)} {(possession.AffixPosition == ExponentPosition.Prefix ? $"{((Morpheme)a.Value).Spell(orthography)}-" : $"-{((Morpheme)a.Value).Spell(orthography)}")}"))})";
         output.WriteLine($"Possessors go {(possession.PossessorFirst ? "before" : "after")} the noun, " + possession.Marking switch
         {
             PossessiveMarking.Dependent => $"marked {lang.RoleMarkers[CaseUse.Possessive]}",

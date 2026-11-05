@@ -14,7 +14,7 @@ public class GenderTests
 
     //which gender markers a word has, by gloss
     private static List<string> GenderGlosses(Word word) =>
-        [.. word.Morphemes.Where(m => m.Value is Affix { Tagmemes: [Gender] }).Select(m => m.Gloss)];
+        [.. word.Morphemes.Where(m => m.Value is Affix { Grammemes: [Gender] }).Select(m => m.Gloss)];
 
     [Fact]
     public void GenerateGenders_ManyDraws_MatchTheWalsCounts()

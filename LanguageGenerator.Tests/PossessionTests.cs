@@ -95,8 +95,8 @@ public class PossessionTests
             var word = Slept(l, Me, Number.Plural).Words.Select(w => w.Word).First(w => w.Root?.Meaning == "dog");
             var morphemes = word.Morphemes.ToList();
             var root = morphemes.FindIndex(m => m.Value is Root);
-            var possessive = morphemes.FindIndex(m => m.Value is Affix { Tagmemes: [Person, Number, Possessive] });
-            var plural = morphemes.FindIndex(m => m.Value is Affix { Tagmemes: [Number] });
+            var possessive = morphemes.FindIndex(m => m.Value is Affix { Grammemes: [Person, Number, Possessive] });
+            var plural = morphemes.FindIndex(m => m.Value is Affix { Grammemes: [Number] });
 
             if (plural >= 0 && (plural < root) == (possessive < root))
             {

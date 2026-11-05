@@ -35,7 +35,7 @@ public record Possession(PossessiveMarking Marking, bool PossessorFirst, IReadOn
             return noun;
         }
         var morphemes = noun.Morphemes.ToList();
-        static bool IsNumber(Morpheme m) => m.Value is Affix { Tagmemes: [Number] };
+        static bool IsNumber(Morpheme m) => m.Value is Affix { Grammemes: [Number] };
         var root = morphemes.FindIndex(m => m.Value is Root);
         var at = root;
         if (AffixPosition == ExponentPosition.Prefix)
