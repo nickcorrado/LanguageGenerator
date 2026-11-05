@@ -156,7 +156,7 @@ public class PhonologyTests
     [Fact]
     public void ElideDuplicates_DoubledOnsetConsonant_Collapses()
     {
-        var syllable = Sandhi.ElideDuplicates(new Syllable(new ConsonantCluster([Consonant.s, Consonant.s, Consonant.t]), Vowel.a, Consonant.k));
+        var syllable = Generator.ElideDuplicates(new Syllable(new ConsonantCluster([Consonant.s, Consonant.s, Consonant.t]), Vowel.a, Consonant.k));
 
         Assert.Equal("stak", syllable.Spell(Orthography.Ipa));
     }
@@ -164,7 +164,7 @@ public class PhonologyTests
     [Fact]
     public void ElideDuplicates_DistinctOnsetConsonants_AreKept()
     {
-        var syllable = Sandhi.ElideDuplicates(new Syllable(new ConsonantCluster([Consonant.ʃ, Consonant.s]), Vowel.a, null));
+        var syllable = Generator.ElideDuplicates(new Syllable(new ConsonantCluster([Consonant.ʃ, Consonant.s]), Vowel.a, null));
 
         Assert.Equal("ʃsa", syllable.Spell(Orthography.Ipa));
     }

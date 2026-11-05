@@ -60,8 +60,27 @@ public static partial class Generator
     {
         var syllable = rule.GenerateSyllable(rand, dropoff);
 
-        syllable = Sandhi.ElideDuplicates(syllable);
+        syllable = ElideDuplicates(syllable);
         return syllable;
+    }
+
+    //if a word has doubled phonemes in the onset, like ppa or nokks,
+    //collapse them to one phoneme
+    //n.b. this has no effect on geminates, which occur between syllables
+    public static Syllable ElideDuplicates(Syllable syllable)
+    {
+        var onset = syllable.Onset;
+        var onsetResult = new List<Consonant>();
+        foreach (var c in onset)
+        {
+            if (onsetResult.Count == 0 || onsetResult.Last() != c)
+            {
+                onsetResult.Add(c);
+            }
+        }
+
+        var result = new Syllable(new ConsonantCluster(onsetResult), syllable.Nucleus, syllable.Coda);
+        return result;
     }
 
     public static SyllableRule SelectSyllableRule(Random rand, List<Vowel> vowels, List<Consonant> consonants)

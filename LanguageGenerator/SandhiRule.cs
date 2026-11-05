@@ -1,28 +1,5 @@
 ﻿namespace LanguageGenerator;
 
-/// <summary>Sandhi: the changes sounds undergo where they meet.</summary>
-public static class Sandhi
-{
-    //if a word has doubled phonemes in the onset, like ppa or nokks,
-    //collapse them to one phoneme
-    //n.b. this has no effect on geminates, which occur between syllables
-    public static Syllable ElideDuplicates(Syllable syllable)
-    {
-        var onset = syllable.Onset;
-        var onsetResult = new List<Consonant>();
-        foreach (var c in onset)
-        {
-            if (onsetResult.Count == 0 || onsetResult.Last() != c)
-            {
-                onsetResult.Add(c);
-            }
-        }
-
-        var result = new Syllable(new ConsonantCluster(onsetResult), syllable.Nucleus, syllable.Coda);
-        return result;
-    }
-}
-
 //rules a language applies across a whole word, so they see morpheme boundaries and the
 //syllables on either side of them. Changes only ever use phonemes from the language's
 //own inventory; where it has no suitable phoneme, the sound is left alone
@@ -31,7 +8,10 @@ public record Degemination;
 public record NasalAssimilation;
 public record IntervocalicVoicing;
 
-/// <summary>A sound change a language applies across a whole word, where morphemes meet.</summary>
+/// <summary>
+/// A rule of sandhi, the changes sounds undergo where they meet, which a language applies across a
+/// whole word.
+/// </summary>
 public union SandhiRule(Degemination, NasalAssimilation, IntervocalicVoicing)
 {
     public List<Segment> Apply(List<Segment> segments, IReadOnlyList<Consonant> inventory) => this switch
