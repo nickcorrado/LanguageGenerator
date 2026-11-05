@@ -38,7 +38,7 @@ public class ConsonantCluster : IEnumerable<Consonant>
     IEnumerator IEnumerable.GetEnumerator() => Consonants.GetEnumerator();
 }
 
-public class Category<T> : IEnumerable<T> where T : Phoneme
+public class NaturalClass<T> : IEnumerable<T> where T : Phoneme
 {
     private List<T> Phonemes { get; init; } = [];
     public override string ToString()
@@ -52,7 +52,7 @@ public class Category<T> : IEnumerable<T> where T : Phoneme
         return result;
     }
 
-    public Category(IEnumerable<T> phonemes)
+    public NaturalClass(IEnumerable<T> phonemes)
     {
         Phonemes = phonemes.ToList();
     }
@@ -157,11 +157,11 @@ public class SyllableRule
     public SyllableTemplate Template { get; }
     public CodaRestriction Codas { get; }
 
-    private readonly Category<Vowel> vowels;
-    private readonly Category<Consonant> consonants;
-    private readonly Category<Consonant> sibilants;
-    private readonly Category<Consonant> liquids;
-    private readonly Category<Consonant> finals;
+    private readonly NaturalClass<Vowel> vowels;
+    private readonly NaturalClass<Consonant> consonants;
+    private readonly NaturalClass<Consonant> sibilants;
+    private readonly NaturalClass<Consonant> liquids;
+    private readonly NaturalClass<Consonant> finals;
 
     public SyllableRule(SyllableTemplate template, List<Vowel> vowels, List<Consonant> consonants, CodaRestriction codas = CodaRestriction.Any)
     {
@@ -247,7 +247,7 @@ public class SyllableRule
     }
 
     //which phonemes can fill a consonantal slot, and how often it's filled
-    private (Category<Consonant> Phonemes, double Chance) Resolve(Slot slot) => slot switch
+    private (NaturalClass<Consonant> Phonemes, double Chance) Resolve(Slot slot) => slot switch
     {
         ConsonantSlot c => (consonants, c.Chance),
         SibilantSlot s => (sibilants, s.Chance),
@@ -256,7 +256,7 @@ public class SyllableRule
         VowelSlot => throw new ArgumentException("A vowel slot is the nucleus, not a consonant.", nameof(slot)),
     };
 
-    private static T? Pick<T>(Random rand, Category<T> phonemes, double chance, double dropoff) where T : Phoneme
+    private static T? Pick<T>(Random rand, NaturalClass<T> phonemes, double chance, double dropoff) where T : Phoneme
     {
         //pruning can empty a category (say, both sibilants); then the slot just goes unfilled
         if (!phonemes.Any() || rand.NextDouble() >= chance)
