@@ -25,6 +25,9 @@ public record Phonology
     public required SyllableRule SyllableRule { get; init; }
     /// <summary>Applied in order across the whole word, before clusters are repaired.</summary>
     public required List<SoundChange> SoundChanges { get; init; }
+    //TODO stress: syllables don't have any yet. WALS 14A counts fixed stress positions, and 15A what
+    //weight does to them. It would bring unstressed vowel reduction and syncope, as more changes here
+    //that run after harmony, and the homophone check should then look at inflected forms too
     /// <summary>Changes that depend on syllables, so they apply once a word has them.</summary>
     public List<SoundChange> SyllableChanges { get; init; } = [];
     public required ClusterRepair ClusterRepair { get; init; }
