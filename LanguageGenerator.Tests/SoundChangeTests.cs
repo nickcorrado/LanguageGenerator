@@ -95,6 +95,22 @@ public class SoundChangeTests
         Assert.Contains("∅", surface.Segmented(Orthography.Ipa));
     }
 
+    [Theory]
+    [InlineData("a", "aː")]
+    [InlineData("e", "eː")]
+    [InlineData("i", "iː")]
+    [InlineData("o", "oː")]
+    [InlineData("u", "uː")]
+    [InlineData("æ", null)]
+    [InlineData("ɛ", null)]
+    [InlineData("ɔ", null)]
+    [InlineData("ə", null)]
+    [InlineData("aː", null)]
+    public void Lengthened_GivesTheSameVowelHeldLonger(string vowel, string? lengthened)
+    {
+        Assert.Equal(lengthened, Vowel.All.Single(v => v.IpaSymbol == vowel).Lengthened?.IpaSymbol);
+    }
+
     private static string Contracted(IReadOnlyList<Vowel> vowels, params Phoneme[][] morphemes)
     {
         var phonology = TestData.Phonology(SyllableTemplates.CV, ClusterRepair.Epenthesis, SoundChange.VowelContraction) with { Vowels = [.. vowels] };

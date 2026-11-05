@@ -42,6 +42,9 @@ public class Vowel : Phoneme
     public bool Rounded { get; }
     public bool Long { get; }
 
+    /// <summary>The same vowel held longer, if there is one.</summary>
+    public Vowel? Lengthened => Long ? null : All.FirstOrDefault(v => v.Long && v.Height == Height && v.Backness == Backness && v.Rounded == Rounded);
+
     private Vowel(string ipaSymbol, VowelHeight vowelHeight, VowelFrontness vowelBackness, bool rounded, bool @long)
         : base(ipaSymbol)
     {

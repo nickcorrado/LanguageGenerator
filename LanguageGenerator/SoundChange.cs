@@ -179,15 +179,6 @@ public sealed class SoundChange(string name, Func<Site, bool> when, Func<Site, P
         site => site is { Place: { Position: SyllablePosition.Nucleus, Closed: true } } && Laxed.ContainsKey(site.Sound),
         (site, phonology) => phonology.Vowels.Contains(Laxed[site.Sound]) ? Laxed[site.Sound] : site.Sound);
 
-    private static readonly Dictionary<Phoneme, Vowel> Lengthened = new()
-    {
-        [Vowel.a] = Vowel.aː,
-        [Vowel.e] = Vowel.eː,
-        [Vowel.i] = Vowel.iː,
-        [Vowel.o] = Vowel.oː,
-        [Vowel.u] = Vowel.uː,
-    };
-
     private static readonly Phoneme[] LostCodas = [Consonant.h, Consonant.ɹ, Consonant.s];
 
     /// <summary>
@@ -199,13 +190,13 @@ public sealed class SoundChange(string name, Func<Site, bool> when, Func<Site, P
     public static SoundChange CompensatoryLengthening { get; } = new("compensatory lengthening (kaɹ → kaː)",
         site => site.Place switch
         {
-            { Position: SyllablePosition.Nucleus, Closed: true } => Lengthened.ContainsKey(site.Sound) && site.Next is { } coda && LostCodas.Contains(coda.Phoneme),
-            { Position: SyllablePosition.Coda } => LostCodas.Contains(site.Sound) && site.Before is { } vowel && Lengthened.ContainsKey(vowel),
+            { Position: SyllablePosition.Nucleus, Closed: true } => site.Sound is Vowel { Lengthened: not null } && site.Next is { } coda && LostCodas.Contains(coda.Phoneme),
+            { Position: SyllablePosition.Coda } => LostCodas.Contains(site.Sound) && site.Before is Vowel { Lengthened: not null },
             _ => false,
         },
-        (site, phonology) => site.Sound is Vowel
-            ? (phonology.Vowels.Contains(Lengthened[site.Sound]) ? Lengthened[site.Sound] : site.Sound)
-            : (phonology.Vowels.Contains(Lengthened[site.Before!]) ? null : site.Sound));
+        (site, phonology) => site.Sound is Vowel vowel
+            ? (phonology.Vowels.Contains(vowel.Lengthened!) ? vowel.Lengthened : vowel)
+            : (phonology.Vowels.Contains(((Vowel)site.Before!).Lengthened!) ? null : site.Sound));
 
     /// <summary>The first of two vowels that meet at a morpheme boundary is lost.</summary>
     public static SoundChange VowelElision { get; } = new("vowel elision (ka-a → ka, ka-o → ko)",
