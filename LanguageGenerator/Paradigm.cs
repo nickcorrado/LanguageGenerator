@@ -44,6 +44,15 @@ public class ExponentSlot
     public override string ToString() => $"{Position} ({string.Join(" + ", Categories.Select(c => c.Name))})";
 }
 
+/// <summary>
+/// The paradigms a language's lexical words inflect by. Pronouns have their own, with the rest of
+/// the pronoun system.
+/// </summary>
+public record Paradigms(Paradigm Nouns, Paradigm Verbs)
+{
+    public IEnumerable<Paradigm> All => [Nouns, Verbs];
+}
+
 /// <summary>How one part of speech inflects.</summary>
 //the morphological type of the language shows up here only as a tendency in how the slots were
 //built: many categories per slot reads as fusional, one per slot as agglutinative, and particles as

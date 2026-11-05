@@ -112,7 +112,7 @@ public class AdjectiveTests
     public void Realize_ParticlesOfTheNoun_StayOutsideTheWholePhrase()
     {
         //in a language with case or number particles, nothing comes between the noun and its adjectives
-        var withParticles = GeneratedLanguages.Sample.Where(l => l.Paradigms[PartOfSpeech.Noun].Slots.Any(s => s.Position is ExponentPosition.PrecedingParticle or ExponentPosition.FollowingParticle)).ToList();
+        var withParticles = GeneratedLanguages.Sample.Where(l => l.Paradigms.Nouns.Slots.Any(s => s.Position is ExponentPosition.PrecedingParticle or ExponentPosition.FollowingParticle)).ToList();
 
         Assert.NotEmpty(withParticles);
         Assert.All(withParticles, l =>

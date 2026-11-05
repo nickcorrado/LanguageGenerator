@@ -135,14 +135,14 @@ public class ParadigmTests
     [Fact]
     public void GenerateParadigm_GeneratedLanguages_HaveZeroExponentsExactlyWhereTheirRulesSay()
     {
-        Assert.All(GeneratedLanguages.Sample, l => Assert.All(l.Paradigms.Values.SelectMany(p => p.Slots).SelectMany(s => s.Exponents), e =>
+        Assert.All(GeneratedLanguages.Sample, l => Assert.All(l.Paradigms.All.SelectMany(p => p.Slots).SelectMany(s => s.Exponents), e =>
             Assert.Equal(l.MorphologicalProfile.ZeroMarking.IsZero(e.Values), e.Exponent.Form.Count == 0)));
     }
 
     [Fact]
     public void GenerateParadigm_GeneratedLanguages_NeverLeaveANounPluralUnmarked()
     {
-        var plurals = GeneratedLanguages.Sample.SelectMany(l => l.Paradigms[PartOfSpeech.Noun].Slots).SelectMany(s => s.Exponents)
+        var plurals = GeneratedLanguages.Sample.SelectMany(l => l.Paradigms.Nouns.Slots).SelectMany(s => s.Exponents)
             .Where(e => e.Values.Contains(Number.Plural)).ToList();
 
         Assert.NotEmpty(plurals);
@@ -183,7 +183,7 @@ public class ParadigmTests
     public void GenerateParadigm_ByFusion_UsesParticlesOnlyWhenIsolating(Fusion fusion, bool particles)
     {
         var slots = GeneratedLanguages.Sample.Where(l => l.MorphologicalProfile.Fusion == fusion)
-            .SelectMany(l => l.Paradigms.Values.SelectMany(p => p.Slots)).ToList();
+            .SelectMany(l => l.Paradigms.All.SelectMany(p => p.Slots)).ToList();
 
         Assert.NotEmpty(slots);
         Assert.All(slots, s => Assert.Equal(particles, IsParticle(s)));
@@ -193,7 +193,7 @@ public class ParadigmTests
     public void GenerateParadigm_MixedFusion_UsesBothParticlesAndAffixes()
     {
         var slots = GeneratedLanguages.Sample.Where(l => l.MorphologicalProfile.Fusion == Fusion.Mixed)
-            .SelectMany(l => l.Paradigms.Values.SelectMany(p => p.Slots)).ToList();
+            .SelectMany(l => l.Paradigms.All.SelectMany(p => p.Slots)).ToList();
 
         Assert.Contains(slots, IsParticle);
         Assert.Contains(slots, s => !IsParticle(s));
@@ -202,7 +202,7 @@ public class ParadigmTests
     [Fact]
     public void GenerateParadigm_CaseWithNumber_DecidesWhetherTheyShareASlot()
     {
-        var nouns = GeneratedLanguages.Sample.Select(l => (l.MorphologicalProfile.Exponence.CaseWithNumber, Paradigm: l.Paradigms[PartOfSpeech.Noun]))
+        var nouns = GeneratedLanguages.Sample.Select(l => (l.MorphologicalProfile.Exponence.CaseWithNumber, Paradigm: l.Paradigms.Nouns))
             .Where(x => x.Paradigm.Categories.Has<Case>() && x.Paradigm.Categories.Has<Number>())
             .ToList();
 
@@ -213,7 +213,7 @@ public class ParadigmTests
     [Fact]
     public void GenerateParadigm_TamWithAgreement_DecidesWhetherTheyShareASlot()
     {
-        var verbs = GeneratedLanguages.Sample.Select(l => (l.MorphologicalProfile.Exponence.TamWithAgreement, Paradigm: l.Paradigms[PartOfSpeech.Verb]))
+        var verbs = GeneratedLanguages.Sample.Select(l => (l.MorphologicalProfile.Exponence.TamWithAgreement, Paradigm: l.Paradigms.Verbs))
             .Where(x => x.Paradigm.Categories.Has<Person>() && x.Paradigm.Categories.Any(c => c.Is<Tense>() || c.Is<Aspect>()))
             .ToList();
 
@@ -231,7 +231,7 @@ public class ParadigmTests
     {
         Assert.All(GeneratedLanguages.Sample, l =>
         {
-            var multiCategory = l.Paradigms.Values.SelectMany(p => p.Slots)
+            var multiCategory = l.Paradigms.All.SelectMany(p => p.Slots)
                 .Any(s => s.Categories.Count(c => !c.Is<Number>()) + (s.Categories.Has<Number>() && !s.Categories.Has<Person>() ? 1 : 0) > 1);
             var expected = l.MorphologicalProfile.Fusion == Fusion.Isolating ? MorphologicalType.Analytic
                 : multiCategory ? MorphologicalType.Fusional
@@ -244,7 +244,7 @@ public class ParadigmTests
     public void GenerateParadigm_VerbAgreement_AlwaysFusesPersonAndNumber()
     {
         var agreementSlots = GeneratedLanguages.Sample
-            .SelectMany(l => l.Paradigms[PartOfSpeech.Verb].Slots)
+            .SelectMany(l => l.Paradigms.Verbs.Slots)
             .Where(s => s.Categories.Has<Person>())
             .ToList();
 
@@ -255,7 +255,7 @@ public class ParadigmTests
     [Fact]
     public void GenerateParadigm_GeneratedLanguages_HaveNoSingleValuedCategory()
     {
-        var categories = GeneratedLanguages.Sample.SelectMany(l => l.Paradigms.Values.SelectMany(p => p.Categories));
+        var categories = GeneratedLanguages.Sample.SelectMany(l => l.Paradigms.All.SelectMany(p => p.Categories));
 
         Assert.All(categories, c => Assert.True(c.Values.Count >= 2, $"{c.Name} has only {c.Values.Count} value"));
     }
@@ -264,7 +264,7 @@ public class ParadigmTests
     public void GenerateParadigm_GeneratedLanguages_KeepExponentsAlmostAlwaysDistinctWithinASlot()
     {
         //zero exponents are all alike on purpose, so only overt ones count
-        var slots = GeneratedLanguages.Sample.SelectMany(l => l.Paradigms.Values.SelectMany(p => p.Slots))
+        var slots = GeneratedLanguages.Sample.SelectMany(l => l.Paradigms.All.SelectMany(p => p.Slots))
             .Select(s => s.Exponents.Where(e => e.Exponent.Form.Count > 0).ToList()).ToList();
 
         //syncretism is allowed when the phonology runs out of distinct forms, which happens in big

@@ -161,6 +161,6 @@ public class GenderTests
     public void Generate_VerbsAgreeInGender_OnlyWhereTheyAgreeWithTheirSubject()
     {
         Assert.All(GeneratedLanguages.Sample.Where(l => l.Genders.VerbsAgree), l =>
-            Assert.Contains(l.Paradigms[PartOfSpeech.Verb].Categories, c => c.Is<Person>()));
+            Assert.Contains(l.Paradigms.Verbs.Categories, c => c.Is<Person>()));
     }
 }

@@ -22,8 +22,8 @@ public class NameTests
     [Fact]
     public void Name_WhereNounsMarkThePlural_IsPlural()
     {
-        var marking = GeneratedLanguages.Sample.Where(l => l.Paradigms[PartOfSpeech.Noun].Categories.Has<Number>()
-            && l.Paradigms[PartOfSpeech.Noun].Slots.Any(s => s.Categories.Has<Number>() && s.Position is ExponentPosition.Prefix or ExponentPosition.Suffix)).ToList();
+        var marking = GeneratedLanguages.Sample.Where(l => l.Paradigms.Nouns.Categories.Has<Number>()
+            && l.Paradigms.Nouns.Slots.Any(s => s.Categories.Has<Number>() && s.Position is ExponentPosition.Prefix or ExponentPosition.Suffix)).ToList();
 
         Assert.NotEmpty(marking);
         Assert.All(marking, l => Assert.Contains("PL", l.Endonym.Gloss.Split('-', '.', '[', ']')));

@@ -17,8 +17,8 @@ public class SyntaxTests
     private static int Position(Sentence sentence, string meaning) =>
         sentence.Words.ToList().FindIndex(w => w.Gloss.Split('-', '.', '[', ']').Contains(meaning));
 
-    private static bool HasCategory(Language l, PartOfSpeech partOfSpeech, string category) =>
-        l.Paradigms[partOfSpeech].Categories.Any(c => c.Name == category);
+    private static bool HasCategory(Paradigm paradigm, string category) =>
+        paradigm.Categories.Any(c => c.Name == category);
 
     [Fact]
     public void Realize_GeneratedLanguages_PlaceConstituentsInTheirWordOrder()
@@ -39,7 +39,7 @@ public class SyntaxTests
     [Fact]
     public void Realize_GeneratedLanguages_MarkArgumentsWithTheirAlignmentsCases()
     {
-        foreach (var language in GeneratedLanguages.Sample.Where(l => HasCategory(l, PartOfSpeech.Noun, "Case")))
+        foreach (var language in GeneratedLanguages.Sample.Where(l => HasCategory(l.Paradigms.Nouns, "Case")))
         {
             var (agent, patient, intransitiveSubject) = language.MorphosyntacticAlignment switch
             {
@@ -66,7 +66,7 @@ public class SyntaxTests
     [Fact]
     public void Realize_VerbsWithAgreement_AgreeWithTheirSubject()
     {
-        var agreeing = GeneratedLanguages.Sample.Where(l => HasCategory(l, PartOfSpeech.Verb, "Person")).ToList();
+        var agreeing = GeneratedLanguages.Sample.Where(l => HasCategory(l.Paradigms.Verbs, "Person")).ToList();
 
         Assert.NotEmpty(agreeing);
         Assert.All(agreeing, l =>
@@ -80,7 +80,7 @@ public class SyntaxTests
     [Fact]
     public void Realize_VerbsWithTense_CarryTheClausesTense()
     {
-        Assert.All(GeneratedLanguages.Sample.Where(l => HasCategory(l, PartOfSpeech.Verb, "Tense")), l =>
+        Assert.All(GeneratedLanguages.Sample.Where(l => HasCategory(l.Paradigms.Verbs, "Tense")), l =>
         {
             Assert.Contains("PST", Glosses(DogSawCat(l)));
             Assert.Contains("PRS", Glosses(BirdsSleep(l)));
@@ -90,7 +90,7 @@ public class SyntaxTests
     [Fact]
     public void Realize_NounsWithNumber_CarryTheirPhrasesNumber()
     {
-        Assert.All(GeneratedLanguages.Sample.Where(l => HasCategory(l, PartOfSpeech.Noun, "Number")), l =>
+        Assert.All(GeneratedLanguages.Sample.Where(l => HasCategory(l.Paradigms.Nouns, "Number")), l =>
         {
             Assert.Contains("SG", Glosses(PersonSeesDogs(l)));
             Assert.Contains("PL", Glosses(PersonSeesDogs(l)));
@@ -100,7 +100,7 @@ public class SyntaxTests
     [Fact]
     public void Realize_TenseTheLanguageLacks_FallsBackOnTheFirstTense()
     {
-        var language = GeneratedLanguages.Sample.First(l => l.Paradigms[PartOfSpeech.Verb].Categories.Any(c => c.Is<Tense>() && c.Values.Count == 2));
+        var language = GeneratedLanguages.Sample.First(l => l.Paradigms.Verbs.Categories.Any(c => c.Is<Tense>() && c.Values.Count == 2));
 
         var sentence = Syntax.Realize(language, new Clause("eat", Tense.Future, Aspect.Perfective, new NounPhrase("dog", Number.Singular)), "the dog will eat");
 
@@ -112,7 +112,7 @@ public class SyntaxTests
     [InlineData(3, "DU")]
     public void Realize_Dual_IsPluralUnlessTheLanguageHasADual(int numbers, string expected)
     {
-        var language = GeneratedLanguages.Sample.First(l => l.Paradigms[PartOfSpeech.Noun].Categories.Any(c => c.Is<Number>() && c.Values.Count == numbers));
+        var language = GeneratedLanguages.Sample.First(l => l.Paradigms.Nouns.Categories.Any(c => c.Is<Number>() && c.Values.Count == numbers));
 
         var sentence = Syntax.Realize(language, new Clause("sleep", Tense.Present, Aspect.Imperfective, new NounPhrase("bird", Number.Dual)), "the two birds are sleeping");
 

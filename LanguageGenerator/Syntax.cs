@@ -140,7 +140,7 @@ public static class Syntax
             NounPhrase noun => Inflect(language, noun, Role.IntransitiveSubject),
             Adjective adjective when language.AdjectiveAgreement == AdjectiveAgreement.Agreement =>
                 [AgreeingAdjective(language, language.Lexicon.Adjective(adjective.Meaning),
-                    Features(language.Paradigms[PartOfSpeech.Noun], [AgreementOf(language, clause.Subject).Number, CaseFor(language, language.RoleMarkers[Role.IntransitiveSubject])]),
+                    Features(language.Paradigms.Nouns, [AgreementOf(language, clause.Subject).Number, CaseFor(language, language.RoleMarkers[Role.IntransitiveSubject])]),
                     GenderOf(language, clause.Subject))],
             Adjective adjective => [new Word([language.Lexicon.Adjective(adjective.Meaning).Root])],
             _ => throw new ArgumentException("A copular clause needs a complement.", nameof(clause)),
@@ -159,7 +159,7 @@ public static class Syntax
     private static IReadOnlyList<Word> Verb(Language language, Lexeme verb, Tense tense, Aspect aspect, Argument subject, bool negative)
     {
         var (person, number) = AgreementOf(language, subject);
-        var paradigm = language.Paradigms[PartOfSpeech.Verb];
+        var paradigm = language.Paradigms.Verbs;
         var words = paradigm.Inflect(verb, Features(paradigm, [tense, aspect, person, number])).ToList();
         var genders = language.Genders;
         var gender = genders.VerbsAgree ? GenderOf(language, subject) : null;
@@ -198,7 +198,7 @@ public static class Syntax
     //Its zero markers go unglossed, since the noun's gloss already shows them
     private static Word AgreeingAdjective(Language language, Lexeme adjective, IReadOnlyList<Grammeme> features, Gender? gender)
     {
-        var inflected = language.Paradigms[PartOfSpeech.Noun].Inflect(adjective with { PartOfSpeech = PartOfSpeech.Noun }, features);
+        var inflected = language.Paradigms.Nouns.Inflect(adjective with { PartOfSpeech = PartOfSpeech.Noun }, features);
         var word = inflected.First(w => w.Root is not null) with { Covert = null };
         return gender is null ? word : language.Genders.Agree(word, gender, nextToRoot: true);
     }
@@ -215,7 +215,7 @@ public static class Syntax
 
     private static IReadOnlyList<Word> Inflect(Language language, Argument argument, Case @case)
     {
-        var nouns = language.Paradigms[PartOfSpeech.Noun];
+        var nouns = language.Paradigms.Nouns;
         var pronouns = language.Pronouns.Paradigm;
         return argument switch
         {
@@ -260,7 +260,7 @@ public static class Syntax
     private static IReadOnlyList<Word> Modified(Language language, NounPhrase phrase, IReadOnlyList<Grammeme> features)
     {
         var nounLexeme = language.Lexicon.Noun(phrase.Noun);
-        var noun = language.Paradigms[PartOfSpeech.Noun].Inflect(nounLexeme, features);
+        var noun = language.Paradigms.Nouns.Inflect(nounLexeme, features);
         if (phrase.Adjectives.Count == 0 && phrase.Count is null)
         {
             return noun;

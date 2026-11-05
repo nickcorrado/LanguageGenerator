@@ -3,12 +3,12 @@
 //how words are built: fusion, affixation, zero marking and paradigms
 public static partial class Generator
 {
-    public static Dictionary<PartOfSpeech, Paradigm> GenerateParadigms(Random rand, MorphologicalProfile morphology, WordOrder wordOrder, MorphosyntacticAlignment alignment, List<Case> cases, Phonology phonology, double dropoff)
+    public static Paradigms GenerateParadigms(Random rand, MorphologicalProfile morphology, WordOrder wordOrder, MorphosyntacticAlignment alignment, List<Case> cases, Phonology phonology, double dropoff)
     {
         //case and number particles on nouns behave like adpositions, so they follow the same directionality
         var nouns = GenerateParadigm(rand, PartOfSpeech.Noun, SelectNounCategories(rand, alignment, cases), morphology, wordOrder.AdpositionalPhraseDirectionality, phonology, dropoff);
         var verbs = GenerateParadigm(rand, PartOfSpeech.Verb, SelectVerbCategories(rand), morphology, wordOrder.VerbPhraseDirectionality, phonology, dropoff);
-        return new() { [PartOfSpeech.Noun] = nouns, [PartOfSpeech.Verb] = verbs };
+        return new Paradigms(nouns, verbs);
     }
 
     //innermost first: number sits closer to the root than case, as it overwhelmingly does.

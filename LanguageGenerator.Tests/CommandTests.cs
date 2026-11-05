@@ -60,7 +60,7 @@ public class CommandTests
     [Fact]
     public void Realize_Imperative_HasNoTenseOrAgreement()
     {
-        var seed = SeedWhere(l => Sounded(l.Commands.Singular) && l.Paradigms[PartOfSpeech.Verb].Categories.Has<Person>());
+        var seed = SeedWhere(l => Sounded(l.Commands.Singular) && l.Paradigms.Verbs.Categories.Has<Person>());
 
         var gloss = Glosses(Say(seed, Eat));
 
@@ -83,7 +83,7 @@ public class CommandTests
     [Fact]
     public void Realize_NoImperativeOfItsOwn_UsesTheSecondPerson()
     {
-        var seed = SeedWhere(l => !l.Commands.Singular.HasValue && l.Paradigms[PartOfSpeech.Verb].Categories.Has<Person>());
+        var seed = SeedWhere(l => !l.Commands.Singular.HasValue && l.Paradigms.Verbs.Categories.Has<Person>());
 
         var gloss = Glosses(Say(seed, Eat));
 
@@ -130,7 +130,7 @@ public class CommandTests
     [Fact]
     public void Realize_ProhibitiveNotUsingTheImperative_UsesTheSecondPerson()
     {
-        var seed = SeedWhere(l => !l.Commands.ProhibitiveUsesImperative && l.Commands.Singular.HasValue && l.Paradigms[PartOfSpeech.Verb].Categories.Has<Person>());
+        var seed = SeedWhere(l => !l.Commands.ProhibitiveUsesImperative && l.Commands.Singular.HasValue && l.Paradigms.Verbs.Categories.Has<Person>());
 
         var (command, prohibitive) = (Glosses(Say(seed, Eat)), Glosses(Say(seed, Eat with { Negative = true })));
 

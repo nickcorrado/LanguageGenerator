@@ -117,7 +117,7 @@ public static class LanguageDescription
         //each paradigm, shown on the first lexeme that uses it, and the pronouns' on 1SG. Spelled surface
         //forms come first, with the underlying form after them in IPA wherever sandhi or cluster repair
         //changed something
-        var shown = lang.Paradigms.Values.Select(p => (Paradigm: p, Lexeme: lang.Lexicon.First(l => l.PartOfSpeech == p.PartOfSpeech)))
+        var shown = lang.Paradigms.All.Select(p => (Paradigm: p, Lexeme: lang.Lexicon.First(l => l.PartOfSpeech == p.PartOfSpeech)))
             .Append((pronouns.Paradigm, pronouns.For(new(Person.First, Number.Singular))));
         foreach (var (paradigm, lexeme) in shown)
         {

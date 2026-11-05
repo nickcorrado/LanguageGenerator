@@ -125,7 +125,7 @@ public class GeneratorTests
         double PrefixShare(bool objectFirst)
         {
             var affixes = GeneratedLanguages.Sample.Where(l => WordOrder.ObjectPrecedesVerb(l.WordOrder.ConstituentWordOrder) == objectFirst)
-                .SelectMany(l => l.Paradigms.Values.SelectMany(p => p.Slots))
+                .SelectMany(l => l.Paradigms.All.SelectMany(p => p.Slots))
                 .Where(s => s.Position is ExponentPosition.Prefix or ExponentPosition.Suffix).ToList();
             return affixes.Count(s => s.Position == ExponentPosition.Prefix) / (double)affixes.Count;
         }

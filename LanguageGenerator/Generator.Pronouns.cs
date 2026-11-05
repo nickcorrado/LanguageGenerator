@@ -24,7 +24,7 @@ public static partial class Generator
     //since a pronoun is never helped by context the way a noun is. Pronouns are among a language's
     //most frequent words, so they're short, by the law of abbreviation: mostly one syllable, never
     //more than two
-    public static PronounSystem GeneratePronouns(Random rand, Dictionary<PartOfSpeech, Paradigm> paradigms, MorphologicalProfile morphology, WordOrder wordOrder, Phonology phonology, double dropoff)
+    public static PronounSystem GeneratePronouns(Random rand, Paradigms paradigms, MorphologicalProfile morphology, WordOrder wordOrder, Phonology phonology, double dropoff)
     {
         var firstPersonPlural = Sampling.Categorical(rand, FirstPersonPluralCounts);
         List<Pronoun> meanings =
@@ -58,14 +58,14 @@ public static partial class Generator
         //pronouns take the nouns' case markers where nouns mark case in a slot of its own, as in
         //Turkish ben-i 'me', like ev-i 'the house'. Where case is fused with number, pronouns get
         //case markers of their own, since a pronoun's number is already part of it
-        var nouns = paradigms[PartOfSpeech.Noun];
+        var nouns = paradigms.Nouns;
         var caseCategory = nouns.Categories.FirstOrDefault(c => c.Is<Case>());
         List<InflectionalCategory> categories = caseCategory is null ? [] : [caseCategory];
         var paradigm = nouns.Slots.FirstOrDefault(s => s.Categories is [var only] && only.Is<Case>()) is { } caseSlot
             ? new Paradigm { PartOfSpeech = PartOfSpeech.Pronoun, Categories = categories, Slots = [caseSlot] }
             : GenerateParadigm(rand, PartOfSpeech.Pronoun, categories, morphology, wordOrder.AdpositionalPhraseDirectionality, phonology, dropoff);
 
-        var agrees = paradigms[PartOfSpeech.Verb].Categories.Has<Person>();
+        var agrees = paradigms.Verbs.Categories.Has<Person>();
         var dropsSubjects = Sampling.Categorical(rand, agrees ? AgreeingSubjectDropCounts : NonAgreeingSubjectDropCounts);
 
         //gender comes last, so that adding it left every other pronoun as it was for each seed: an

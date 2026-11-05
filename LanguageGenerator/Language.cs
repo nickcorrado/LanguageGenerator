@@ -10,7 +10,7 @@ public class Language
     public required Orthography Orthography { get; init; }
     public required Lexicon Lexicon { get; init; }
     /// <summary>How each part of speech inflects.</summary>
-    public required Dictionary<PartOfSpeech, Paradigm> Paradigms { get; init; }
+    public required Paradigms Paradigms { get; init; }
     public required MorphologicalProfile MorphologicalProfile { get; init; }
     public required WordOrder WordOrder { get; init; }
     public required bool HasArticles { get; init; }
@@ -47,7 +47,7 @@ public class Language
     //(person and number together don't count, since nearly every language fuses those)
     public MorphologicalType MorphologicalType =>
         MorphologicalProfile.Fusion == Fusion.Isolating ? MorphologicalType.Analytic
-        : Paradigms.Values.SelectMany(p => p.Slots).Any(s => s.Categories.Count(c => !(c.Is<Number>() && s.Categories.Has<Person>())) > 1) ? MorphologicalType.Fusional
+        : Paradigms.All.SelectMany(p => p.Slots).Any(s => s.Categories.Count(c => !(c.Is<Number>() && s.Categories.Has<Person>())) > 1) ? MorphologicalType.Fusional
         : MorphologicalType.Agglutinative;
 }
 

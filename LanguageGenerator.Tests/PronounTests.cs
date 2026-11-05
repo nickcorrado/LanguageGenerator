@@ -13,7 +13,7 @@ public class PronounTests
         return [.. Enumerable.Range(0, count).Select(_ => Generator.GeneratePronouns(rand, language.Paradigms, language.MorphologicalProfile, language.WordOrder, language.Phonology, 0.15))];
     }
 
-    private static bool Agrees(Language language) => language.Paradigms[PartOfSpeech.Verb].Categories.Has<Person>();
+    private static bool Agrees(Language language) => language.Paradigms.Verbs.Categories.Has<Person>();
 
     [Fact]
     public void GeneratePronouns_ManyDraws_MatchTheWalsCountsForWe()
@@ -175,10 +175,10 @@ public class PronounTests
     [Fact]
     public void Generate_NounsWithACaseSlotOfTheirOwn_ShareItWithPronouns()
     {
-        var sharing = GeneratedLanguages.Sample.Where(l => l.Paradigms[PartOfSpeech.Noun].Slots.Any(s => s.Categories is [var only] && only.Is<Case>())).ToList();
+        var sharing = GeneratedLanguages.Sample.Where(l => l.Paradigms.Nouns.Slots.Any(s => s.Categories is [var only] && only.Is<Case>())).ToList();
 
         Assert.NotEmpty(sharing);
-        Assert.All(sharing, l => Assert.Same(l.Paradigms[PartOfSpeech.Noun].Slots.Single(s => s.Categories is [var only] && only.Is<Case>()), Assert.Single(l.Pronouns.Paradigm.Slots)));
+        Assert.All(sharing, l => Assert.Same(l.Paradigms.Nouns.Slots.Single(s => s.Categories is [var only] && only.Is<Case>()), Assert.Single(l.Pronouns.Paradigm.Slots)));
     }
 
     [Fact]

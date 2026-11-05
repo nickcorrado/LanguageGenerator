@@ -61,7 +61,7 @@ internal static class GeneratedLanguages
         {
             yield return new Word([lexeme.Root]);
         }
-        foreach (var paradigm in language.Paradigms.Values.Append(language.Pronouns.Paradigm))
+        foreach (var paradigm in language.Paradigms.All.Append(language.Pronouns.Paradigm))
         {
             foreach (var lexeme in lexemes.Where(l => l.PartOfSpeech == paradigm.PartOfSpeech))
             {
