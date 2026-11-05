@@ -303,6 +303,20 @@ public class SoundChangeTests
     public void FrontBackHarmony_LongVowels_HarmonizeToo()
     {
         Assert.Equal("keːleː", Surface(SyllableTemplates.CV, SoundChange.FrontBackHarmony, [Consonant.k, Vowel.eː], [Consonant.l, Vowel.oː]));
+        Assert.Equal("kuːluː", Surface(SyllableTemplates.CV, SoundChange.FrontBackHarmony, [Consonant.k, Vowel.uː], [Consonant.l, Vowel.iː]));
+    }
+
+    [Fact]
+    public void FrontBackHarmony_IAndU_ArePartners()
+    {
+        Assert.Equal("kili", Surface(SyllableTemplates.CV, SoundChange.FrontBackHarmony, [Consonant.k, Vowel.i], [Consonant.l, Vowel.u]));
+        Assert.Equal("kulu", Surface(SyllableTemplates.CV, SoundChange.FrontBackHarmony, [Consonant.k, Vowel.u], [Consonant.l, Vowel.i]));
+    }
+
+    [Fact]
+    public void CompensatoryLengthening_OfU_GivesItsLongForm()
+    {
+        Assert.Equal("kuː", Sounds(Syllabic(SoundChange.CompensatoryLengthening, Consonant.k, Vowel.u, Consonant.ɹ)));
     }
 
     [Fact]
@@ -346,11 +360,11 @@ public class SoundChangeTests
     [Fact]
     public void FrontBackHarmony_NeutralVowels_StayAndLetItPass()
     {
-        //i has no partner, so it doesn't change, and doesn't stop a from deciding the word
-        Assert.Equal("kilala", Surface(SyllableTemplates.CV, SoundChange.FrontBackHarmony, [Consonant.k, Vowel.i, .. La], Læ));
-        Assert.Equal("kali", Surface(SyllableTemplates.CV, SoundChange.FrontBackHarmony, Ka, [Consonant.l, Vowel.i]));
+        //ə has no partner, so it doesn't change, and doesn't stop a from deciding the word
+        Assert.Equal("kəlala", Surface(SyllableTemplates.CV, SoundChange.FrontBackHarmony, [Consonant.k, Vowel.ə, .. La], Læ));
+        Assert.Equal("kalə", Surface(SyllableTemplates.CV, SoundChange.FrontBackHarmony, Ka, [Consonant.l, Vowel.ə]));
         //with only neutral vowels in the root, nothing decides the word
-        Assert.Equal("kilæ", Surface(SyllableTemplates.CV, SoundChange.FrontBackHarmony, [Consonant.k, Vowel.i], Læ));
+        Assert.Equal("kəlæ", Surface(SyllableTemplates.CV, SoundChange.FrontBackHarmony, [Consonant.k, Vowel.ə], Læ));
     }
 
     [Fact]

@@ -119,10 +119,9 @@ public sealed class SoundChange(string name, Func<Site, bool> when, Func<Site, P
     /// Every vowel in a word agrees with the root's first harmonizing vowel in being front or back, as
     /// in Finnish talo-ssa 'in the house' but kylä-ssä 'in the village'.
     /// </summary>
-    //the inventory has no u, and a pairs with æ as Finnish a does with ä, though it's a front vowel
-    //by its features
+    //a pairs with æ as Finnish a does with ä, though it's a front vowel by its features
     public static SoundChange FrontBackHarmony { get; } = Harmony("front-back harmony (kæ-la → kælæ)",
-        [(Vowel.æ, Vowel.a), (Vowel.e, Vowel.o), (Vowel.ɛ, Vowel.ɔ), (Vowel.eː, Vowel.oː)]);
+        [(Vowel.æ, Vowel.a), (Vowel.e, Vowel.o), (Vowel.ɛ, Vowel.ɔ), (Vowel.i, Vowel.u), (Vowel.eː, Vowel.oː), (Vowel.iː, Vowel.uː)]);
 
     /// <summary>
     /// Every vowel in a word agrees with the root's first harmonizing vowel in the position of the
@@ -136,8 +135,8 @@ public sealed class SoundChange(string name, Func<Site, bool> when, Func<Site, P
 
     //harmony spreads from the root both ways, so prefixes agree too, and it reaches the root's own
     //vowels, since real languages with harmony have roots that keep it. A vowel with no partner, like
-    //i in Finnish, is neutral: it doesn't change and harmony passes through it. It runs before
-    //epenthesis, whose usual vowels, ə and i, are neutral anyway
+    //ə, is neutral: it doesn't change and harmony passes through it. It runs before epenthesis, so an
+    //inserted vowel doesn't take part
     private static SoundChange Harmony(string name, (Vowel First, Vowel Second)[] pairs)
     {
         (Vowel First, Vowel Second)? PairOf(Phoneme sound) => pairs.FirstOrDefault(p => p.First == sound || p.Second == sound) is { First: not null } pair ? pair : null;
@@ -186,6 +185,7 @@ public sealed class SoundChange(string name, Func<Site, bool> when, Func<Site, P
         [Vowel.e] = Vowel.eː,
         [Vowel.i] = Vowel.iː,
         [Vowel.o] = Vowel.oː,
+        [Vowel.u] = Vowel.uː,
     };
 
     private static readonly Phoneme[] LostCodas = [Consonant.h, Consonant.ɹ, Consonant.s];
