@@ -1,0 +1,119 @@
+The village of Hollow sits at the edge of the old forest. Few travelers come here now. The road from the coast washed out three winters ago, and nobody has repaired it. Smoke rises from a dozen chimneys. A dog barks somewhere behind the mill.
+
+You arrive at dusk with an empty purse and a sword that has seen better days. The gate stands open. An old woman sits beside it, mending a net.
+
+"You're late," she says. "We expected you yesterday."
+
+"Who told you I was coming?"
+
+"The crows tell me everything." She bites through the thread. "Go to the inn. Ask for Marta. Don't drink the red wine."
+
+The inn is warm and crowded. Hunters sit by the fire and argue about the price of furs. A boy carries bread to the long table. Everyone stops talking when you walk in.
+
+Marta wipes her hands on her apron. She is taller than most of the men here. "So you're the one," she says. "Sit down. Eat something first. You look terrible."
+
+She brings you a bowl of stew and a cup of water. The stew is mostly turnips. You eat it anyway.
+
+"Three of our children have gone missing," she says. "The first disappeared at the harvest. The second vanished a month later. Last night, my sister's son did not come home."
+
+"Did anyone see what happened?"
+
+"The miller saw lights in the forest. He says they moved against the wind. Nobody believes him, because he drinks. But I believe him."
+
+"Why didn't you send for the king's soldiers?"
+
+Marta laughs without smiling. "The king doesn't know this village exists. We sent a letter in the spring. No one answered."
+
+She puts a small iron key on the table. "This opens the old watchtower. My husband kept it before he died. There is a map inside, if the rats haven't eaten it."
+
+A hunter at the fire turns around. His left hand has only two fingers. "Don't listen to her," he says. "Nobody who goes into the forest at night comes back."
+
+"Then you can go in the morning," says Marta.
+
+New quest: The Missing Children. Find the watchtower and recover the map.
+
+The watchtower stands on a hill north of the village. Its door is swollen with rain, but the key still turns. Inside, the stairs are rotten. You climb carefully. On the top floor you find a table, a broken chair, and a chest.
+
+The chest is locked. You can pick the lock if you have a lockpick. Otherwise, you must find the key. Search the room to look for hidden objects. Press the left button to open your bag.
+
+The map is rolled inside a leather tube. Someone has drawn a red circle around the old stone circle in the deep woods. Beneath it, in a shaking hand, someone has written three words: Do not sing.
+
+You hear footsteps on the stairs below you. They stop. Then they start again, slower than before.
+
+A pale figure stands in the doorway. It wears the clothes of a child, but its face is wrong. It tilts its head and begins to hum.
+
+Your sword is in your hand before you know it. The thing does not move. Slowly, it raises one finger and points at the map. Then it turns and walks down the stairs, and the humming fades.
+
+You wait a long time before you follow it. The stairs are empty. There are small wet footprints in the dust.
+
+Item: Rusty Key. An old iron key. It opens a door somewhere in the north.
+
+Item: Healing Moss. Grows on the shaded side of stones. Restores a little health when eaten. Tastes like a wet boot.
+
+Item: Hunter's Bow. A short bow made of yew. It was made for someone with stronger arms than yours.
+
+Item: Crow Feather. The old woman gave you this. It feels warmer than it should.
+
+The next morning, the miller finds you at the well. He smells of beer, and his eyes are red.
+
+"You went to the tower," he says. "I saw your torch. Did you see them?"
+
+"I saw something."
+
+"They come when the moon is dark. I have watched them for years. They walk in a line, and they sing. If you hear the song, cover your ears. My brother heard it. He walked into the river with his boots on."
+
+"What do they want?"
+
+"I don't know. Maybe they want what we all want. Maybe they just want to go home."
+
+He presses a small bag into your hand. It contains wax. "For your ears," he says. "Buy me a drink when you come back. If you come back."
+
+The forest begins where the fields end. The trees here are older than the village, older than the kingdom. Their branches close over the path and shut out the sun. Birds do not sing here. Your footsteps sound very loud.
+
+You follow the map for most of the day. The path splits twice. At the first fork you go left, because the moss grows thicker on that side. At the second fork you find a child's shoe, and you stop for a while.
+
+By evening you reach a river. The bridge has fallen. A ferryman sits on the far bank with his back to you. You call out, but he does not turn around.
+
+To cross the river, you need a rope or a boat. There is a fallen tree upstream. Be careful: the current is strong, and you cannot swim in armor.
+
+You cross on the fallen tree. Halfway over, you look down and see faces in the water. They are looking up at you. They are all smiling.
+
+The ferryman is dead. He has been dead for a long time. His hand is still closed around his pole.
+
+You make camp in a hollow between two roots. You light a small fire and eat the last of the bread. Later, you wake suddenly. The fire is out, and someone is singing.
+
+Press the wax into your ears now. If you do not have wax, you will lose control of your character.
+
+The song stops, or you stop hearing it. Lights move between the trees, soft and blue. They pass so close that you could touch them. Each light is carried by a small figure. There are nine of them, and the last one is much smaller than the rest.
+
+You follow them. You know that you should not, but you do.
+
+The stone circle stands in a clearing where nothing grows. Nine stones lean inward like old men sharing a secret. The children stand in front of the stones, one to each. In the middle of the circle, a woman is waiting.
+
+It is the old woman from the gate.
+
+"I told you that you were late," she says. You cannot hear her, but you can read her lips. You pull the wax from your ears.
+
+"What have you done to them?"
+
+"I have kept them safe. This valley is dying, stranger. The forest wants a price, and it has always wanted one. Long ago, the village paid it willingly. Then they forgot, and the forest began to take what it was owed."
+
+"They are children."
+
+"So was I." She lifts the net she was mending. It shines like water. "Nine must stand here until the next nine come. That is the bargain. I have stood here for two hundred years. I am very tired."
+
+She holds the net out to you. "Someone has to carry it. You came here with nothing. Nobody is waiting for you. Would it be so terrible?"
+
+Choose your answer. Your decision will change the ending of the story.
+
+If you take the net, the children will go home, and you will remain in the circle forever. If you refuse, you must fight the old woman. If you have the crow feather, you can offer a third choice.
+
+You hold up the crow feather. The old woman's face changes for the first time. For a moment she looks young.
+
+"Where did you get that?"
+
+"You gave it to me."
+
+"No," she says quietly. "I did not."
+
+Above you, the sky fills with crows.
