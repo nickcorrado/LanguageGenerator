@@ -7,7 +7,7 @@ public class GeneratorTests
         l.Phonology.SyllableRule, string.Join(",", l.Phonology.SandhiRules), l.Phonology.ClusterRepair,
         string.Join(",", l.Orthography.Spellings.Select(s => $"{s.Key.IpaSymbol}={s.Value}")),
         string.Join(",", GeneratedLanguages.AllWords(l).Select(w => $"{l.Phonology.Realize(w).Segmented(l.Orthography)}={w.Gloss}")),
-        l.Morphology, l.WordOrder.ConstituentWordOrder, l.WordOrder.HeadDirectionality, l.WordOrder.VerbPhraseDirectionality,
+        l.MorphologicalType, l.WordOrder.ConstituentWordOrder, l.WordOrder.HeadDirectionality, l.WordOrder.VerbPhraseDirectionality,
         l.WordOrder.NounPhraseDirectionality, l.WordOrder.AdjectivePhraseDirectionality, l.WordOrder.AdpositionalPhraseDirectionality,
         l.HasArticles, l.MorphosyntacticAlignment, string.Join(",", l.Cases.Select(c => c.Gloss)),
         string.Join(",", l.RoleMarkers.Select(kv => $"{kv.Key}={kv.Value}")));

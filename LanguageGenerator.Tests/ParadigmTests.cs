@@ -233,10 +233,10 @@ public class ParadigmTests
         {
             var multiCategory = l.Paradigms.Values.SelectMany(p => p.Slots)
                 .Any(s => s.Categories.Count(c => !c.Is<Number>()) + (s.Categories.Has<Number>() && !s.Categories.Has<Person>() ? 1 : 0) > 1);
-            var expected = l.MorphologicalProfile.Fusion == Fusion.Isolating ? Morphology.Analytic
-                : multiCategory ? Morphology.Fusional
-                : Morphology.Agglutinative;
-            Assert.Equal(expected, l.Morphology);
+            var expected = l.MorphologicalProfile.Fusion == Fusion.Isolating ? MorphologicalType.Analytic
+                : multiCategory ? MorphologicalType.Fusional
+                : MorphologicalType.Agglutinative;
+            Assert.Equal(expected, l.MorphologicalType);
         });
     }
 

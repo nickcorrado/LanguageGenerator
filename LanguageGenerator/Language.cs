@@ -44,15 +44,15 @@ public class Language
     /// </summary>
     //analytic if markers stand alone, fusional if any marker expresses more than one category
     //(person and number together don't count, since nearly every language fuses those)
-    public Morphology Morphology =>
-        MorphologicalProfile.Fusion == Fusion.Isolating ? Morphology.Analytic
-        : Paradigms.Values.SelectMany(p => p.Slots).Any(s => s.Categories.Count(c => !(c.Is<Number>() && s.Categories.Has<Person>())) > 1) ? Morphology.Fusional
-        : Morphology.Agglutinative;
+    public MorphologicalType MorphologicalType =>
+        MorphologicalProfile.Fusion == Fusion.Isolating ? MorphologicalType.Analytic
+        : Paradigms.Values.SelectMany(p => p.Slots).Any(s => s.Categories.Count(c => !(c.Is<Number>() && s.Categories.Has<Person>())) > 1) ? MorphologicalType.Fusional
+        : MorphologicalType.Agglutinative;
 }
 
 //WALS doesn't use these labels, because they lump together properties that vary independently;
 //MorphologicalProfile holds those properties
-public enum Morphology
+public enum MorphologicalType
 {
     Analytic,
     Fusional,

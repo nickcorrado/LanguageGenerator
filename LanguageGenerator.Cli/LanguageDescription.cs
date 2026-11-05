@@ -36,7 +36,7 @@ public static class LanguageDescription
         }
 
         var order = lang.WordOrder;
-        output.WriteLine($"{lang.Morphology} ({lang.MorphologicalProfile})");
+        output.WriteLine($"{lang.MorphologicalType} ({lang.MorphologicalProfile})");
         output.WriteLine(order.ConstituentWordOrder);
         output.WriteLine($"{order.HeadDirectionality}, {order.VerbPhraseDirectionality}, {order.NounPhraseDirectionality}, {order.AdjectivePhraseDirectionality}, {order.AdpositionalPhraseDirectionality}");
         output.WriteLine(lang.HasArticles ? "Has articles" : "No articles");
