@@ -1,10 +1,22 @@
 ﻿namespace LanguageGenerator;
 
+/// <summary>Which part of a syllable a sound is.</summary>
+public enum SyllablePosition
+{
+    Onset,
+    Nucleus,
+    Coda,
+}
+
+/// <summary>Where a sound sits in its syllable, and whether that syllable ends in a consonant.</summary>
+public readonly record struct SyllablePlace(SyllablePosition Position, bool Closed);
+
 /// <summary>
 /// One sound as a sound change sees it: the sound before it, already changed, the one after it, not
 /// yet, and the whole word as it was before this change, with which morpheme is its root, if any.
+/// Place is known only to changes that run on syllabified words.
 /// </summary>
-public readonly record struct Site(Segment Segment, Segment? Previous, Segment? Next, IReadOnlyList<Segment> Word, int? Root)
+public readonly record struct Site(Segment Segment, Segment? Previous, Segment? Next, IReadOnlyList<Segment> Word, int? Root, SyllablePlace? Place = null)
 {
     public Phoneme Sound => Segment.Phoneme;
     public bool BetweenVowels => Previous?.Phoneme is Vowel && Next?.Phoneme is Vowel;
@@ -31,12 +43,12 @@ public sealed class SoundChange(string name, Func<Site, bool> when, Func<Site, P
 {
     public override string ToString() => name;
 
-    public List<Segment> Apply(List<Segment> segments, Phonology phonology, int? root = null)
+    public List<Segment> Apply(List<Segment> segments, Phonology phonology, int? root = null, IReadOnlyList<SyllablePlace>? places = null)
     {
         var result = new List<Segment>();
         for (int i = 0; i < segments.Count; i++)
         {
-            var site = new Site(segments[i], result.LastOrDefault(), i + 1 < segments.Count ? segments[i + 1] : null, segments, root);
+            var site = new Site(segments[i], result.LastOrDefault(), i + 1 < segments.Count ? segments[i + 1] : null, segments, root, places?[i]);
             if (!when(site))
             {
                 result.Add(segments[i]);
@@ -139,6 +151,31 @@ public sealed class SoundChange(string name, Func<Site, bool> when, Func<Site, P
             },
             pairs);
     }
+
+    /// <summary>
+    /// A voiced obstruent loses its voicing at the end of any syllable, as in German, where Tag
+    /// 'day' ends in k but Tage 'days' keeps its g, which a vowel makes an onset.
+    /// </summary>
+    public static SoundChange CodaDevoicing { get; } = new("coda devoicing (kab.da → kap.da)",
+        site => site.Place?.Position == SyllablePosition.Coda && site.Sound is Consonant { IsObstruent: true, Voiced: true },
+        (site, phonology) => phonology.Counterpart((Consonant)site.Sound, voiced: false) ?? site.Sound);
+
+    /// <summary>
+    /// An s closing a syllable weakens to h, as in Andalusian or Caribbean Spanish estas, said ehtah.
+    /// </summary>
+    public static SoundChange CodaWeakening { get; } = new("coda weakening (kas.ta → kah.ta)",
+        site => site.Place?.Position == SyllablePosition.Coda && site.Sound == Consonant.s,
+        (site, phonology) => phonology.Consonants.Contains(Consonant.h) ? Consonant.h : site.Sound);
+
+    private static readonly Dictionary<Phoneme, Vowel> Laxed = new() { [Vowel.e] = Vowel.ɛ, [Vowel.o] = Vowel.ɔ };
+
+    /// <summary>
+    /// A close-mid vowel opens in a syllable that ends in a consonant, as French fête has the open
+    /// vowel that féter lacks.
+    /// </summary>
+    public static SoundChange ClosedSyllableLaxing { get; } = new("closed-syllable laxing (pet → pɛt)",
+        site => site is { Place: { Position: SyllablePosition.Nucleus, Closed: true } } && Laxed.ContainsKey(site.Sound),
+        (site, phonology) => phonology.Vowels.Contains(Laxed[site.Sound]) ? Laxed[site.Sound] : site.Sound);
 
     /// <summary>The first of two vowels that meet at a morpheme boundary is lost.</summary>
     public static SoundChange VowelElision { get; } = new("vowel elision (ka-a → ka, ka-o → ko)",

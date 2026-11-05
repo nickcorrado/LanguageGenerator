@@ -25,6 +25,8 @@ public record Phonology
     public required SyllableRule SyllableRule { get; init; }
     /// <summary>Applied in order across the whole word, before clusters are repaired.</summary>
     public required List<SoundChange> SoundChanges { get; init; }
+    /// <summary>Changes that depend on syllables, so they apply once a word has them.</summary>
+    public List<SoundChange> SyllableChanges { get; init; } = [];
     public required ClusterRepair ClusterRepair { get; init; }
     public required Vowel EpentheticVowel { get; init; }
 
@@ -34,8 +36,10 @@ public record Phonology
     public Consonant? Counterpart(Consonant consonant, ConsonantPlace? place = null, ConsonantManner? manner = null, bool? voiced = null) =>
         Consonants.FirstOrDefault(c => c.Place == (place ?? consonant.Place) && c.Manner == (manner ?? consonant.Manner) && c.Voiced == (voiced ?? consonant.Voiced));
 
-    //underlying morphemes, run together → sound changes → cluster repair → syllables. Every
-    //segment keeps track of its morpheme throughout, so the result can still be segmented
+    //underlying morphemes, run together → sound changes → cluster repair → syllables → changes that
+    //depend on syllables, each followed by repair and syllables again, since it can leave a word
+    //that needs them. Every segment keeps track of its morpheme throughout, so the result can still
+    //be segmented
     public SurfaceForm Realize(Word word)
     {
         var segments = new List<Segment>();
@@ -52,6 +56,18 @@ public record Phonology
             segments = change.Apply(segments, this, root);
         }
 
+        var syllables = Repaired(word, ref segments);
+        foreach (var change in SyllableChanges)
+        {
+            segments = change.Apply(segments, this, root, Places(syllables));
+            syllables = Repaired(word, ref segments);
+        }
+        return new SurfaceForm(word, segments, syllables);
+    }
+
+    //the word's syllables, once it's been repaired until it has legal ones
+    private List<Syllable> Repaired(Word word, ref List<Segment> segments)
+    {
         List<Syllable>? syllables;
         for (int repairs = 0; (syllables = Syllabify(segments, out var badCluster)) is null; repairs++)
         {
@@ -62,8 +78,20 @@ public record Phonology
             }
             segments = Repair(segments, badCluster);
         }
-        return new SurfaceForm(word, segments, syllables);
+        return syllables;
     }
+
+    //where each sound sits, in the order of the word's segments
+    private static List<SyllablePlace> Places(IReadOnlyList<Syllable> syllables) =>
+    [
+        .. syllables.SelectMany(syllable =>
+        {
+            var closed = syllable.Coda is not null;
+            return syllable.Onset.Select(_ => new SyllablePlace(SyllablePosition.Onset, closed))
+                .Append(new SyllablePlace(SyllablePosition.Nucleus, closed))
+                .Concat(closed ? [new SyllablePlace(SyllablePosition.Coda, closed)] : []);
+        }),
+    ];
 
     //every vowel is a nucleus. Consonants before the first vowel are its onset and those after the
     //last are the final coda; between two vowels, the onset takes as many as it legally can and the

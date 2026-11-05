@@ -62,6 +62,27 @@ public static partial class Generator
         return changes;
     }
 
+    //changes that depend on syllables, for languages whose syllables can end in a consonant. Devoicing
+    //and weakening need obstruents in codas, which a coda restriction rules out. The odds are guesses
+    public static List<SoundChange> SelectSyllableChanges(Random rand, SyllableRule rule)
+    {
+        var changes = new List<SoundChange>();
+        var codas = rule.Template.Slots.Any(s => s is FinalSlot);
+        if (rand.NextDouble() < 0.2 && codas && rule.Codas == CodaRestriction.Any)
+        {
+            changes.Add(SoundChange.CodaDevoicing);
+        }
+        if (rand.NextDouble() < 0.15 && codas && rule.Codas == CodaRestriction.Any)
+        {
+            changes.Add(SoundChange.CodaWeakening);
+        }
+        if (rand.NextDouble() < 0.15 && codas)
+        {
+            changes.Add(SoundChange.ClosedSyllableLaxing);
+        }
+        return changes;
+    }
+
     //schwa and i are the usual epenthetic vowels; failing those, the language's commonest vowel,
     //which is the first one since picks are biased toward the front
     public static Vowel SelectEpentheticVowel(List<Vowel> vowels) =>

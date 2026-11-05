@@ -149,6 +149,120 @@ public class SoundChangeTests
         });
     }
 
+    //a change that depends on syllables, applied to a word of one morpheme in a CVF language
+    private static SurfaceForm Syllabic(SoundChange change, params Phoneme[] sounds) =>
+        (TestData.Phonology(SyllableTemplates.CVF, ClusterRepair.Epenthesis) with { SyllableChanges = [change] }).Realize(TestData.Word(sounds));
+
+    private static string Sounds(SurfaceForm form) => string.Concat(form.Phonemes.Select(p => p.IpaSymbol));
+
+    [Fact]
+    public void CodaDevoicing_DevoicesAtTheEndOfAnySyllable()
+    {
+        Assert.Equal("tak", Sounds(Syllabic(SoundChange.CodaDevoicing, Consonant.t, Vowel.a, Consonant.g)));
+        Assert.Equal("takma", Sounds(Syllabic(SoundChange.CodaDevoicing, Consonant.t, Vowel.a, Consonant.g, Consonant.m, Vowel.a)));
+    }
+
+    [Fact]
+    public void CodaDevoicing_LeavesAnOnsetAlone()
+    {
+        Assert.Equal("taga", Sounds(Syllabic(SoundChange.CodaDevoicing, Consonant.t, Vowel.a, Consonant.g, Vowel.a)));
+    }
+
+    //a suffix's vowel makes the g an onset, as German Tage does
+    [Fact]
+    public void CodaDevoicing_AcrossAMorphemeBoundary_GoesBySyllablesNotMorphemes()
+    {
+        var phonology = TestData.Phonology(SyllableTemplates.CVF, ClusterRepair.Epenthesis) with { SyllableChanges = [SoundChange.CodaDevoicing] };
+
+        Assert.Equal("taga", Sounds(phonology.Realize(TestData.Word([Consonant.t, Vowel.a, Consonant.g], [Vowel.a]))));
+    }
+
+    [Fact]
+    public void CodaWeakening_WeakensAnSClosingASyllable()
+    {
+        Assert.Equal("pah", Sounds(Syllabic(SoundChange.CodaWeakening, Consonant.p, Vowel.a, Consonant.s)));
+        Assert.Equal("pahta", Sounds(Syllabic(SoundChange.CodaWeakening, Consonant.p, Vowel.a, Consonant.s, Consonant.t, Vowel.a)));
+        Assert.Equal("pasa", Sounds(Syllabic(SoundChange.CodaWeakening, Consonant.p, Vowel.a, Consonant.s, Vowel.a)));
+    }
+
+    [Fact]
+    public void CodaWeakening_WithoutH_LeavesTheSAlone()
+    {
+        List<Consonant> noH = [.. Consonant.All.Where(c => c != Consonant.h)];
+        var phonology = TestData.Phonology(SyllableTemplates.CVF, ClusterRepair.Epenthesis, noH) with { SyllableChanges = [SoundChange.CodaWeakening] };
+
+        Assert.Equal("pas", Sounds(phonology.Realize(TestData.Word([Consonant.p, Vowel.a, Consonant.s]))));
+    }
+
+    [Fact]
+    public void ClosedSyllableLaxing_OpensAVowelOnlyInAClosedSyllable()
+    {
+        Assert.Equal("pɛt", Sounds(Syllabic(SoundChange.ClosedSyllableLaxing, Consonant.p, Vowel.e, Consonant.t)));
+        Assert.Equal("kɔl", Sounds(Syllabic(SoundChange.ClosedSyllableLaxing, Consonant.k, Vowel.o, Consonant.l)));
+        Assert.Equal("peta", Sounds(Syllabic(SoundChange.ClosedSyllableLaxing, Consonant.p, Vowel.e, Consonant.t, Vowel.a)));
+    }
+
+    [Fact]
+    public void ClosedSyllableLaxing_WithoutTheOpenVowel_LeavesTheVowelAlone()
+    {
+        var phonology = (TestData.Phonology(SyllableTemplates.CVF, ClusterRepair.Epenthesis) with { Vowels = [Vowel.a, Vowel.e], SyllableChanges = [SoundChange.ClosedSyllableLaxing] });
+
+        Assert.Equal("pet", Sounds(phonology.Realize(TestData.Word([Consonant.p, Vowel.e, Consonant.t]))));
+    }
+
+    //the surface form's syllables are the ones after the change, not before it
+    [Fact]
+    public void Realize_SyllableChanges_LeaveSyllablesThatMatchTheSounds()
+    {
+        var form = Syllabic(SoundChange.CodaDevoicing, Consonant.t, Vowel.a, Consonant.g, Consonant.m, Vowel.a);
+
+        Assert.Equal(Consonant.k, form.Syllables[0].Coda);
+        Assert.Equal("tak.ma", form.Syllabified(Orthography.Ipa));
+    }
+
+    //in a language with no codas, an epenthetic vowel leaves the g an onset by the time the change runs
+    [Fact]
+    public void Realize_SyllableChanges_SeeTheWordAfterRepair()
+    {
+        var form = (TestData.Phonology(SyllableTemplates.CV, ClusterRepair.Epenthesis) with { SyllableChanges = [SoundChange.CodaDevoicing] })
+            .Realize(TestData.Word([Consonant.t, Vowel.a, Consonant.g]));
+
+        Assert.Contains(Consonant.g, form.Phonemes);
+    }
+
+    [Fact]
+    public void SelectSyllableChanges_ManyDraws_EachComeUp()
+    {
+        var rand = new Random(1);
+        var rule = new SyllableRule(SyllableTemplates.CVF, TestData.Vowels, TestData.Consonants);
+        var drawn = Enumerable.Range(0, 3000).SelectMany(_ => Generator.SelectSyllableChanges(rand, rule)).ToList();
+
+        Assert.InRange(drawn.Count(c => c == SoundChange.CodaDevoicing) / 3000.0, 0.17, 0.23);
+        Assert.InRange(drawn.Count(c => c == SoundChange.CodaWeakening) / 3000.0, 0.13, 0.17);
+        Assert.InRange(drawn.Count(c => c == SoundChange.ClosedSyllableLaxing) / 3000.0, 0.13, 0.17);
+    }
+
+    [Fact]
+    public void SelectSyllableChanges_WithoutCodas_DrawsNone()
+    {
+        var rand = new Random(1);
+        var rule = new SyllableRule(SyllableTemplates.CV, TestData.Vowels, TestData.Consonants);
+
+        Assert.Empty(Enumerable.Range(0, 500).SelectMany(_ => Generator.SelectSyllableChanges(rand, rule)));
+    }
+
+    [Fact]
+    public void SelectSyllableChanges_WithSonorantCodas_LaxesButNeverDevoices()
+    {
+        var rand = new Random(1);
+        var rule = new SyllableRule(SyllableTemplates.CVF, TestData.Vowels, TestData.Consonants, CodaRestriction.Sonorants);
+        var drawn = Enumerable.Range(0, 500).SelectMany(_ => Generator.SelectSyllableChanges(rand, rule)).ToList();
+
+        Assert.Contains(SoundChange.ClosedSyllableLaxing, drawn);
+        Assert.DoesNotContain(SoundChange.CodaDevoicing, drawn);
+        Assert.DoesNotContain(SoundChange.CodaWeakening, drawn);
+    }
+
     private static readonly Phoneme[] La = [Consonant.l, Vowel.a];
     private static readonly Phoneme[] Læ = [Consonant.l, Vowel.æ];
 
