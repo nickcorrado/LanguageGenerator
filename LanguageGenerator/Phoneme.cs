@@ -76,6 +76,9 @@ public class Consonant : Phoneme
     public ConsonantManner Manner { get; }
     public bool Voiced { get; }
 
+    /// <summary>Whether the airflow is obstructed: a stop or a fricative, sibilant or not.</summary>
+    public bool IsObstruent => Manner is ConsonantManner.Plosive or ConsonantManner.Sibilant or ConsonantManner.Fricative;
+
     private Consonant(string ipaSymbol, ConsonantPlace consonantPlace, ConsonantManner consonantManner, bool voiced)
         : base(ipaSymbol)
     {

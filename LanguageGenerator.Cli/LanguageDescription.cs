@@ -20,7 +20,7 @@ public static class LanguageDescription
         output.WriteLine($"{lang.Name}, 'the people' ({lang.Endonym.Gloss})");
         var phonology = lang.Phonology;
         output.WriteLine(phonology.SyllableRule);
-        output.WriteLine($"Sandhi: {(phonology.SoundChanges.Count == 0 ? "none" : string.Join(", ", phonology.SoundChanges))}");
+        output.WriteLine($"Sound changes: {(phonology.SoundChanges.Count == 0 ? "none" : string.Join(", ", phonology.SoundChanges))}");
         var repair = phonology.ClusterRepair == ClusterRepair.Epenthesis ? $"epenthesis of {phonology.EpentheticVowel.IpaSymbol}" : "deletion";
         output.WriteLine($"Illegal clusters: {repair}");
         var orthography = lang.Orthography;

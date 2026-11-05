@@ -18,7 +18,7 @@ public enum ClusterRepair
 /// How a language's words sound: the inventory, what a syllable may be, and the rules that turn a
 /// word's underlying morphemes into its surface form.
 /// </summary>
-public class Phonology
+public record Phonology
 {
     public required List<Vowel> Vowels { get; init; }
     public required List<Consonant> Consonants { get; init; }

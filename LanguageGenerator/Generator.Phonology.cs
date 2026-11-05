@@ -24,6 +24,31 @@ public static partial class Generator
         return rules;
     }
 
+    //more sound changes, applied after the first ones, in this order. Elision comes last so that the
+    //vowels it removes still separate consonants for the changes before it. The odds are guesses, and
+    //final devoicing is for languages whose syllables can end in a consonant
+    public static List<SoundChange> SelectLaterSoundChanges(Random rand, SyllableRule rule)
+    {
+        var changes = new List<SoundChange>();
+        if (rand.NextDouble() < 0.25)
+        {
+            changes.Add(SoundChange.Lenition);
+        }
+        if (rand.NextDouble() < 0.3)
+        {
+            changes.Add(SoundChange.VoicingAssimilation);
+        }
+        if (rand.NextDouble() < 0.3 && rule.Template.Slots.Any(s => s is FinalSlot))
+        {
+            changes.Add(SoundChange.FinalDevoicing);
+        }
+        if (rand.NextDouble() < 0.4)
+        {
+            changes.Add(SoundChange.VowelElision);
+        }
+        return changes;
+    }
+
     //schwa and i are the usual epenthetic vowels; failing those, the language's commonest vowel,
     //which is the first one since picks are biased toward the front
     public static Vowel SelectEpentheticVowel(List<Vowel> vowels) =>

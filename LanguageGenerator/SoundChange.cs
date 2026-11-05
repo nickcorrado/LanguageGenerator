@@ -1,4 +1,4 @@
-namespace LanguageGenerator;
+﻿namespace LanguageGenerator;
 
 /// <summary>
 /// One sound as a sound change sees it: the sound before it, already changed, and the one after it,
@@ -60,4 +60,36 @@ public sealed class SoundChange(string name, Func<Site, bool> when, Func<Site, P
     public static SoundChange IntervocalicVoicing { get; } = new("intervocalic voicing (apa → aba)",
         site => site.Sound is Consonant { Voiced: false } && site.BetweenVowels,
         (site, phonology) => phonology.Counterpart((Consonant)site.Sound, voiced: true) ?? site.Sound);
+
+    private static readonly Dictionary<Phoneme, Consonant> Lenited = new()
+    {
+        [Consonant.p] = Consonant.f,
+        [Consonant.b] = Consonant.v,
+        [Consonant.t] = Consonant.s,
+        [Consonant.d] = Consonant.z,
+        [Consonant.g] = Consonant.w,
+    };
+
+    /// <summary>A stop between vowels weakens to a continuant, as in Spanish or Tuscan.</summary>
+    //after voicing where a language has both, so that p can weaken all the way to v. The inventory has
+    //no x, so k stays, and d and t become sibilants, as the High German consonant shift made t into s
+    public static SoundChange Lenition { get; } = new("lenition (apa → afa)",
+        site => site.BetweenVowels && Lenited.ContainsKey(site.Sound),
+        (site, phonology) => phonology.Consonants.Contains(Lenited[site.Sound]) ? Lenited[site.Sound] : site.Sound);
+
+    /// <summary>An obstruent takes the voicing of an obstruent after it, as in Russian.</summary>
+    public static SoundChange VoicingAssimilation { get; } = new("voicing assimilation (apda → abda)",
+        site => site.Sound is Consonant { IsObstruent: true } consonant
+            && site.Next?.Phoneme is Consonant { IsObstruent: true } next && next.Voiced != consonant.Voiced,
+        (site, phonology) => phonology.Counterpart((Consonant)site.Sound, voiced: ((Consonant)site.Next!.Phoneme).Voiced) ?? site.Sound);
+
+    /// <summary>A voiced obstruent loses its voicing at the end of a word, as in German or Turkish.</summary>
+    public static SoundChange FinalDevoicing { get; } = new("final devoicing (kab → kap)",
+        site => site.Sound is Consonant { IsObstruent: true, Voiced: true } && site.Next is null,
+        (site, phonology) => phonology.Counterpart((Consonant)site.Sound, voiced: false) ?? site.Sound);
+
+    /// <summary>The first of two vowels that meet at a morpheme boundary is lost.</summary>
+    public static SoundChange VowelElision { get; } = new("vowel elision (ka-a → ka, ka-o → ko)",
+        site => site.Sound is Vowel && site.Next is { Phoneme: Vowel } next && next.Morpheme != site.Segment.Morpheme,
+        Nothing);
 }

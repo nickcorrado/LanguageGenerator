@@ -47,6 +47,7 @@ public static partial class Generator
         predication = GenerateLocationalPredication(rand, predication, phonology, syllableDropoff);
         var numerals = GenerateNumerals(rand, phonology, syllableDropoff);
         var possession = GeneratePossession(rand, morphology, wordOrder, phonology, syllableDropoff);
+        phonology = phonology with { SoundChanges = [.. phonology.SoundChanges, .. SelectLaterSoundChanges(rand, syllableRule)] };
         var lexicon = GenerateLexicon(lexiconSeed, extraSyllables, phonology, syllableDropoff, new Dictionary<PartOfSpeech, IEnumerable<Lexeme>>
         {
             [PartOfSpeech.Noun] = pronouns.Forms.Values,
