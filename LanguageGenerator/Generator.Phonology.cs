@@ -131,10 +131,41 @@ public static partial class Generator
 
     public static Syllable GenerateSyllable(Random rand, SyllableRule rule, double dropoff)
     {
-        var syllable = rule.GenerateSyllable(rand, dropoff);
+        var onset = new List<Consonant>();
+        Vowel? nucleus = null;
+        Consonant? coda = null;
 
-        syllable = ElideDuplicates(syllable);
-        return syllable;
+        foreach (var slot in rule.Template.Slots)
+        {
+            if (slot is VowelSlot)
+            {
+                nucleus = Pick(rand, rule.Vowels, 1, dropoff) ?? throw new InvalidOperationException("The inventory has no vowels.");
+            }
+            else if (rule.Resolve(slot) is var (phonemes, chance) && Pick(rand, phonemes, chance, dropoff) is { } consonant)
+            {
+                if (nucleus is null)
+                {
+                    onset.Add(consonant);
+                }
+                else
+                {
+                    coda = consonant;
+                }
+            }
+        }
+
+        //the template guarantees exactly one vowel slot
+        return ElideDuplicates(new Syllable(new ConsonantCluster(onset), nucleus!, coda));
+    }
+
+    private static T? Pick<T>(Random rand, NaturalClass<T> phonemes, double chance, double dropoff) where T : Phoneme
+    {
+        //pruning can empty a category (say, both sibilants); then the slot just goes unfilled
+        if (!phonemes.Any() || rand.NextDouble() >= chance)
+        {
+            return null;
+        }
+        return phonemes[Sampling.TruncatedGeometric(rand, phonemes.Count(), dropoff)];
     }
 
     //if a word has doubled phonemes in the onset, like ppa or nokks,

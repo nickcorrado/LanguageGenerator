@@ -156,8 +156,8 @@ public class SyllableRule
 {
     public SyllableTemplate Template { get; }
     public CodaRestriction Codas { get; }
+    public NaturalClass<Vowel> Vowels { get; }
 
-    private readonly NaturalClass<Vowel> vowels;
     private readonly NaturalClass<Consonant> consonants;
     private readonly NaturalClass<Consonant> sibilants;
     private readonly NaturalClass<Consonant> liquids;
@@ -168,7 +168,7 @@ public class SyllableRule
         Template = template;
         Codas = codas;
         //Where() keeps the inventory's order, which matters because picks are biased toward the front
-        this.vowels = new(vowels);
+        Vowels = new(vowels);
         this.consonants = new(consonants);
         //natural classes, by feature: S is a voiceless sibilant, as in s-clusters like st or šp, and
         //L is any approximant, liquids and glides alike, as in pl, kw or by
@@ -185,35 +185,6 @@ public class SyllableRule
             CodaRestriction.SingleNasal => consonants.Contains(Consonant.n) ? new[] { Consonant.n } : consonants.Where(c => c.Manner == ConsonantManner.Nasal).Take(1),
             _ => throw new ArgumentOutOfRangeException(nameof(codas), codas, null),
         });
-    }
-
-    public Syllable GenerateSyllable(Random rand, double dropoff)
-    {
-        var onset = new List<Consonant>();
-        Vowel? nucleus = null;
-        Consonant? coda = null;
-
-        foreach (var slot in Template.Slots)
-        {
-            if (slot is VowelSlot)
-            {
-                nucleus = Pick(rand, vowels, 1, dropoff) ?? throw new InvalidOperationException("The inventory has no vowels.");
-            }
-            else if (Resolve(slot) is var (phonemes, chance) && Pick(rand, phonemes, chance, dropoff) is { } consonant)
-            {
-                if (nucleus is null)
-                {
-                    onset.Add(consonant);
-                }
-                else
-                {
-                    coda = consonant;
-                }
-            }
-        }
-
-        //the template guarantees exactly one vowel slot
-        return new Syllable(new ConsonantCluster(onset), nucleus!, coda);
     }
 
     //whether these consonants can open, or close, a syllable of this shape
@@ -240,7 +211,7 @@ public class SyllableRule
     }
 
     //which phonemes can fill a consonantal slot, and how often it's filled
-    private (NaturalClass<Consonant> Phonemes, double Chance) Resolve(Slot slot) => slot switch
+    public (NaturalClass<Consonant> Phonemes, double Chance) Resolve(Slot slot) => slot switch
     {
         ConsonantSlot c => (consonants, c.Chance),
         SibilantSlot s => (sibilants, s.Chance),
@@ -249,17 +220,7 @@ public class SyllableRule
         VowelSlot => throw new ArgumentException("A vowel slot is the nucleus, not a consonant.", nameof(slot)),
     };
 
-    private static T? Pick<T>(Random rand, NaturalClass<T> phonemes, double chance, double dropoff) where T : Phoneme
-    {
-        //pruning can empty a category (say, both sibilants); then the slot just goes unfilled
-        if (!phonemes.Any() || rand.NextDouble() >= chance)
-        {
-            return null;
-        }
-        return phonemes[Sampling.TruncatedGeometric(rand, phonemes.Count(), dropoff)];
-    }
-
     public override string ToString() =>
-        $"{Template.Name}: " + string.Join(" ", Template.Slots.Select(s => s is VowelSlot ? $"V{vowels}" : $"{s.Letter}{Resolve(s).Phonemes}"))
+        $"{Template.Name}: " + string.Join(" ", Template.Slots.Select(s => s is VowelSlot ? $"V{Vowels}" : $"{s.Letter}{Resolve(s).Phonemes}"))
         + (Codas != CodaRestriction.Any && Template.Slots.Any(s => s is FinalSlot) ? $" ({Codas} codas)" : "");
 }

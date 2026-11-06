@@ -8,7 +8,7 @@ public class SyllableTests
     {
         var rule = new SyllableRule(template, TestData.Vowels, consonants);
         var rand = new Random(1);
-        return [.. Enumerable.Range(0, count).Select(_ => rule.GenerateSyllable(rand, 0.15))];
+        return [.. Enumerable.Range(0, count).Select(_ => Generator.GenerateSyllable(rand, rule, 0.15))];
     }
 
     [Fact]
@@ -144,7 +144,7 @@ public class SyllableTests
         var rule = new SyllableRule(SyllableTemplates.CVF, TestData.Vowels, TestData.Consonants, codas);
         var rand = new Random(1);
 
-        var codaConsonants = Enumerable.Range(0, 5000).Select(_ => rule.GenerateSyllable(rand, 0.15).Coda).OfType<Consonant>().ToList();
+        var codaConsonants = Enumerable.Range(0, 5000).Select(_ => Generator.GenerateSyllable(rand, rule, 0.15).Coda).OfType<Consonant>().ToList();
 
         Assert.NotEmpty(codaConsonants);
         Assert.All(codaConsonants, c => Assert.True(rule.IsLegalCoda([c]), $"{c.IpaSymbol} isn't a legal {codas} coda"));
@@ -167,7 +167,7 @@ public class SyllableTests
         var rule = new SyllableRule(SyllableTemplates.CVF, TestData.Vowels, noNasals, CodaRestriction.Nasals);
         var rand = new Random(1);
 
-        Assert.All(Enumerable.Range(0, 2000).Select(_ => rule.GenerateSyllable(rand, 0.15)), s => Assert.Null(s.Coda));
+        Assert.All(Enumerable.Range(0, 2000).Select(_ => Generator.GenerateSyllable(rand, rule, 0.15)), s => Assert.Null(s.Coda));
         Assert.All(noNasals, c => Assert.False(rule.IsLegalCoda([c])));
     }
 
