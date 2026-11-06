@@ -21,8 +21,8 @@ public enum ClusterRepair
 /// </summary>
 public record Phonology
 {
-    public required List<Vowel> Vowels { get; init; }
-    public required List<Consonant> Consonants { get; init; }
+    public required IReadOnlyList<Vowel> Vowels { get; init; }
+    public required IReadOnlyList<Consonant> Consonants { get; init; }
     //TODO syllable contact: any legal coda can sit beside any legal onset, so nothing stops a word
     //like as.hoka, which real languages mostly avoid inside a simple word (English has it in compounds
     //like "mishap"). A per-language rule about what meets at a boundary would keep such words out of
@@ -30,12 +30,12 @@ public record Phonology
     //how far to police those. It leaves less room for roots, which root length will have to measure
     public required SyllableRule SyllableRule { get; init; }
     /// <summary>Applied in order across the whole word, before clusters are repaired.</summary>
-    public required List<SoundChange> SoundChanges { get; init; }
+    public required IReadOnlyList<SoundChange> SoundChanges { get; init; }
     //TODO stress: syllables don't have any yet. WALS 14A counts fixed stress positions, and 15A what
     //weight does to them. It would bring unstressed vowel reduction and syncope, as more changes here
     //that run after harmony, and the homophone check should then look at inflected forms too
     /// <summary>Changes that depend on syllables, so they apply once a word has them.</summary>
-    public List<SoundChange> SyllableChanges { get; init; } = [];
+    public IReadOnlyList<SoundChange> SyllableChanges { get; init; } = [];
     public required ClusterRepair ClusterRepair { get; init; }
     public required Vowel EpentheticVowel { get; init; }
 

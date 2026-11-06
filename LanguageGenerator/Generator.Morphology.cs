@@ -3,7 +3,7 @@
 //how words are built: fusion, affixation, zero marking and paradigms
 public static partial class Generator
 {
-    public static Paradigms GenerateParadigms(Random rand, MorphologicalProfile morphology, WordOrder wordOrder, MorphosyntacticAlignment alignment, List<Case> cases, Phonology phonology, double dropoff)
+    public static Paradigms GenerateParadigms(Random rand, MorphologicalProfile morphology, WordOrder wordOrder, MorphosyntacticAlignment alignment, IReadOnlyList<Case> cases, Phonology phonology, double dropoff)
     {
         //case and number particles on nouns behave like adpositions, so they follow the same directionality
         var nouns = GenerateParadigm(rand, PartOfSpeech.Noun, SelectNounCategories(rand, alignment, cases), morphology, wordOrder.AdpositionalPhraseDirectionality, phonology, dropoff);
@@ -14,7 +14,7 @@ public static partial class Generator
     //innermost first: number sits closer to the root than case, as it overwhelmingly does.
     //gender isn't here because a noun doesn't inflect for it; it has one, and adjectives and
     //verbs agree with it
-    public static List<InflectionalCategory> SelectNounCategories(Random rand, MorphosyntacticAlignment alignment, List<Case> cases)
+    public static List<InflectionalCategory> SelectNounCategories(Random rand, MorphosyntacticAlignment alignment, IReadOnlyList<Case> cases)
     {
         var categories = new List<InflectionalCategory>();
         if (rand.NextDouble() < 0.85)
@@ -82,7 +82,7 @@ public static partial class Generator
         _ => throw new ArgumentOutOfRangeException(nameof(morphology), morphology.Affixation, null),
     };
 
-    public static Paradigm GenerateParadigm(Random rand, PartOfSpeech partOfSpeech, List<InflectionalCategory> categories, MorphologicalProfile morphology, HeadDirectionality directionality, Phonology phonology, double dropoff)
+    public static Paradigm GenerateParadigm(Random rand, PartOfSpeech partOfSpeech, IReadOnlyList<InflectionalCategory> categories, MorphologicalProfile morphology, HeadDirectionality directionality, Phonology phonology, double dropoff)
     {
         var particlePosition = directionality == HeadDirectionality.Initial ? ExponentPosition.PrecedingParticle : ExponentPosition.FollowingParticle;
 
@@ -119,7 +119,7 @@ public static partial class Generator
     //one exponent per combination of values, with no form at all for combinations the language
     //leaves unmarked. Other forms are kept distinct within a slot where possible; if the phonology
     //keeps producing repeats, the syncretism is allowed
-    private static List<(IReadOnlyList<Grammeme> Values, Morpheme Exponent)> GenerateExponents(Random rand, List<InflectionalCategory> categories, ExponentPosition position, ZeroMarking zeroMarking, Phonology phonology, double dropoff)
+    private static List<(IReadOnlyList<Grammeme> Values, Morpheme Exponent)> GenerateExponents(Random rand, IReadOnlyList<InflectionalCategory> categories, ExponentPosition position, ZeroMarking zeroMarking, Phonology phonology, double dropoff)
     {
         var exponents = new List<(IReadOnlyList<Grammeme>, Morpheme)>();
         var forms = new DistinctForms();

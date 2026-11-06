@@ -96,14 +96,14 @@ public static partial class Generator
 
     //schwa and i are the usual epenthetic vowels; failing those, the language's commonest vowel,
     //which is the first one since picks are biased toward the front
-    public static Vowel SelectEpentheticVowel(List<Vowel> vowels) =>
+    public static Vowel SelectEpentheticVowel(IReadOnlyList<Vowel> vowels) =>
         vowels.Contains(Vowel.ə) ? Vowel.ə : vowels.Contains(Vowel.i) ? Vowel.i : vowels[0];
 
     //a set of conventions, applied to the whole inventory. Conventions that clash for this
     //inventory (acute long vowels beside acute close vowels both give ó, say) are drawn again as
     //a set, so a language never ends up with a convention applied to only some of its sounds.
     //IPA is the fallback, which never clashes
-    public static Orthography SelectOrthography(Random rand, List<Vowel> vowels, List<Consonant> consonants)
+    public static Orthography SelectOrthography(Random rand, IReadOnlyList<Vowel> vowels, IReadOnlyList<Consonant> consonants)
     {
         var inventory = vowels.Concat<Phoneme>(consonants).ToList();
         T Pick<T>(IReadOnlyList<T> options) => options[rand.Next(options.Count)];
@@ -183,7 +183,7 @@ public static partial class Generator
         {
             return null;
         }
-        return phonemes[Sampling.TruncatedGeometric(rand, phonemes.Count(), dropoff)];
+        return phonemes[Sampling.TruncatedGeometric(rand, phonemes.Count, dropoff)];
     }
 
     //if a word has doubled phonemes in the onset, like ppa or nokks,
@@ -205,7 +205,7 @@ public static partial class Generator
         return result;
     }
 
-    public static SyllableRule SelectSyllableRule(Random rand, List<Vowel> vowels, List<Consonant> consonants)
+    public static SyllableRule SelectSyllableRule(Random rand, IReadOnlyList<Vowel> vowels, IReadOnlyList<Consonant> consonants)
     {
         var template = SyllableTemplates.All[rand.Next(SyllableTemplates.All.Count)];
         //a restriction only matters for templates with a coda

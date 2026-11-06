@@ -101,7 +101,7 @@ public static partial class Generator
     }
 
     //a role gets its case if the language has one, and otherwise its adposition
-    public static Dictionary<Role, RoleMarker> SelectRoleMarkers(MorphosyntacticAlignment alignment, List<Case> cases, WordOrder wordOrder, IReadOnlyDictionary<Role, Lexeme> adpositions)
+    public static Dictionary<Role, RoleMarker> SelectRoleMarkers(MorphosyntacticAlignment alignment, IReadOnlyList<Case> cases, WordOrder wordOrder, IReadOnlyDictionary<Role, Lexeme> adpositions)
     {
         var type = wordOrder.AdpositionalPhraseDirectionality == HeadDirectionality.Initial ? AdpositionType.Preposition : AdpositionType.Postposition;
         //a simplification: real languages often pick the governed case per adposition

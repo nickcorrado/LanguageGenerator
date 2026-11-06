@@ -38,7 +38,7 @@ public class ConsonantCluster : IEnumerable<Consonant>
     IEnumerator IEnumerable.GetEnumerator() => Consonants.GetEnumerator();
 }
 
-public class NaturalClass<T> : IEnumerable<T> where T : Phoneme
+public class NaturalClass<T> : IReadOnlyList<T> where T : Phoneme
 {
     private List<T> Phonemes { get; init; } = [];
     public override string ToString()
@@ -57,11 +57,9 @@ public class NaturalClass<T> : IEnumerable<T> where T : Phoneme
         Phonemes = phonemes.ToList();
     }
 
-    public T this[int index]
-    {
-        get => Phonemes[index];
-        set => Phonemes[index] = value;
-    }
+    public T this[int index] => Phonemes[index];
+
+    public int Count => Phonemes.Count;
 
     public IEnumerator<T> GetEnumerator() => Phonemes.GetEnumerator();
 
@@ -165,7 +163,7 @@ public class SyllableRule
     private readonly NaturalClass<Consonant> liquids;
     private readonly NaturalClass<Consonant> finals;
 
-    public SyllableRule(SyllableTemplate template, List<Vowel> vowels, List<Consonant> consonants, CodaRestriction codas = CodaRestriction.Any)
+    public SyllableRule(SyllableTemplate template, IReadOnlyList<Vowel> vowels, IReadOnlyList<Consonant> consonants, CodaRestriction codas = CodaRestriction.Any)
     {
         Template = template;
         Codas = codas;

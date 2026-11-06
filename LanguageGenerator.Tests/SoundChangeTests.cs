@@ -237,7 +237,7 @@ public class SoundChangeTests
     {
         Assert.All(GeneratedLanguages.Sample, l =>
         {
-            var changes = l.Phonology.SoundChanges;
+            var changes = l.Phonology.SoundChanges.ToList();
             var hiatus = Math.Max(changes.IndexOf(SoundChange.VowelElision), changes.IndexOf(SoundChange.VowelContraction));
             Assert.True(hiatus < 0 || hiatus > changes.IndexOf(SoundChange.FrontBackHarmony));
             Assert.True(hiatus < 0 || hiatus > changes.IndexOf(SoundChange.TongueRootHarmony));
