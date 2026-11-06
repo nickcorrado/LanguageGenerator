@@ -89,13 +89,40 @@ public static class ClauseFile
         {
             throw new ClauseFormatException($"A clause starts with its verb, not with '{tokens[0]}'.", number);
         }
-        var (verb, verbFeatures) = ParseWord(tokens[0], number);
+        var (verb, glosses) = ParseWord(tokens[0], number);
+        var features = ParseVerbFeatures(verb, glosses, number);
+        var roles = ParseRoles(verb, tokens.Skip(1), number);
 
+        if (features.Imperative)
+        {
+            return ToCommand(verb, features, roles, number);
+        }
+        if (!roles.Arguments.TryGetValue("subject", out var subject))
+        {
+            throw new ClauseFormatException("The clause needs a subject, as in subject:dog.", number);
+        }
+        if (verb == "be")
+        {
+            return ToCopularClause(features, roles, subject, number);
+        }
+        return ToClause(verb, features, roles, subject, number);
+    }
+
+    private record VerbFeatures(Tense? Tense, Aspect? Aspect, bool Negative, bool Imperative);
+
+    //the obliques keep the role they were written with, which is how be finds its location:
+    private record ClauseRoles(Dictionary<string, Argument> Arguments, List<(string Role, Oblique Oblique)> Obliques, Complement? Complement)
+    {
+        public Argument? Object => Arguments.TryGetValue("object", out var argument) ? argument : (Argument?)null;
+    }
+
+    private static VerbFeatures ParseVerbFeatures(string verb, IEnumerable<Grammeme> glosses, int number)
+    {
         Tense? tense = null;
         Aspect? aspect = null;
         Polarity? polarity = null;
         Mood? mood = null;
-        foreach (var feature in verbFeatures)
+        foreach (var feature in glosses)
         {
             switch (feature)
             {
@@ -121,11 +148,15 @@ public static class ClauseFile
                     throw new ClauseFormatException($"'{verb}' can't take {feature.Gloss} ({feature.Name}) yet: verbs have only tense, aspect, polarity and the imperative.", number);
             }
         }
+        return new VerbFeatures(tense, aspect, polarity == Polarity.Negative, mood == Mood.Imperative);
+    }
 
+    private static ClauseRoles ParseRoles(string verb, IEnumerable<string> tokens, int number)
+    {
         var arguments = new Dictionary<string, Argument>();
         var obliques = new List<(string Role, Oblique Oblique)>();
         Complement? complement = null;
-        foreach (var token in tokens.Skip(1))
+        foreach (var token in tokens)
         {
             var colon = token.IndexOf(':');
             if (colon < 0)
@@ -171,63 +202,65 @@ public static class ClauseFile
                     break;
             }
         }
+        return new ClauseRoles(arguments, obliques, complement);
+    }
 
-        var negative = polarity == Polarity.Negative;
-        if (mood == Mood.Imperative)
-        {
-            if (verb == "be")
-            {
-                throw new ClauseFormatException("be can't be a command yet.", number);
-            }
-            if (tense is not null || aspect is not null)
-            {
-                throw new ClauseFormatException($"'{verb}' can't take {(tense as Grammeme ?? aspect)!.Gloss}: a command has no tense or aspect.", number);
-            }
-            if (complement.HasValue)
-            {
-                throw new ClauseFormatException($"Only be takes a noun: or adjective:. '{verb}' takes an object:.", number);
-            }
-            var told = Number.Singular;
-            if (arguments.TryGetValue("subject", out var addressee))
-            {
-                told = addressee.Value is Pronoun { Person: var person, Number: var count } && person == Person.Second ? count
-                    : throw new ClauseFormatException("A command is said to 'you', so its subject can only be 2SG or 2PL, as in subject:2PL.", number);
-            }
-            return new Command(verb, told, arguments.TryGetValue("object", out var commanded) ? commanded : (Argument?)null, negative, [.. obliques.Select(o => o.Oblique)]);
-        }
-
-        if (!arguments.TryGetValue("subject", out var subject))
-        {
-            throw new ClauseFormatException("The clause needs a subject, as in subject:dog.", number);
-        }
+    private static Command ToCommand(string verb, VerbFeatures features, ClauseRoles roles, int number)
+    {
         if (verb == "be")
         {
-            if (arguments.ContainsKey("object"))
-            {
-                throw new ClauseFormatException("be has no object. Say what its subject is with noun: or adjective:, as in noun:fool.", number);
-            }
-            //where its subject is, as in location:house
-            if (obliques.Find(o => o.Role == "location") is { Oblique: { } location })
-            {
-                obliques.RemoveAll(o => o.Role == "location");
-                complement = location;
-            }
-            if (obliques.Count > 0)
-            {
-                throw new ClauseFormatException($"be can't take {A(obliques[0].Role)} yet, only a noun:, adjective: or location: saying what or where its subject is.", number);
-            }
-            if (!complement.HasValue)
-            {
-                throw new ClauseFormatException("be needs a noun, adjective or location saying what or where its subject is, as in noun:fool, adjective:big or location:house.", number);
-            }
-            return new CopularClause(complement.GetValueOrDefault(), tense ?? Tense.Present, aspect ?? Aspect.Imperfective, subject, negative);
+            throw new ClauseFormatException("be can't be a command yet.", number);
         }
-        if (complement.HasValue)
+        if (features.Tense is not null || features.Aspect is not null)
+        {
+            throw new ClauseFormatException($"'{verb}' can't take {(features.Tense as Grammeme ?? features.Aspect)!.Gloss}: a command has no tense or aspect.", number);
+        }
+        RejectComplement(verb, roles, number);
+        var told = Number.Singular;
+        if (roles.Arguments.TryGetValue("subject", out var addressee))
+        {
+            told = addressee.Value is Pronoun { Person: var person, Number: var count } && person == Person.Second ? count
+                : throw new ClauseFormatException("A command is said to 'you', so its subject can only be 2SG or 2PL, as in subject:2PL.", number);
+        }
+        return new Command(verb, told, roles.Object, features.Negative, [.. roles.Obliques.Select(o => o.Oblique)]);
+    }
+
+    private static CopularClause ToCopularClause(VerbFeatures features, ClauseRoles roles, Argument subject, int number)
+    {
+        if (roles.Arguments.ContainsKey("object"))
+        {
+            throw new ClauseFormatException("be has no object. Say what its subject is with noun: or adjective:, as in noun:fool.", number);
+        }
+        //where its subject is, as in location:house
+        var complement = roles.Complement;
+        if (roles.Obliques.Find(o => o.Role == "location") is { Oblique: { } location })
+        {
+            complement = location;
+        }
+        if (roles.Obliques.Find(o => o.Role != "location") is { Role: { } other })
+        {
+            throw new ClauseFormatException($"be can't take {A(other)} yet, only a noun:, adjective: or location: saying what or where its subject is.", number);
+        }
+        if (!complement.HasValue)
+        {
+            throw new ClauseFormatException("be needs a noun, adjective or location saying what or where its subject is, as in noun:fool, adjective:big or location:house.", number);
+        }
+        return new CopularClause(complement.GetValueOrDefault(), features.Tense ?? Tense.Present, features.Aspect ?? Aspect.Imperfective, subject, features.Negative);
+    }
+
+    private static Clause ToClause(string verb, VerbFeatures features, ClauseRoles roles, Argument subject, int number)
+    {
+        RejectComplement(verb, roles, number);
+        return new Clause(verb, features.Tense ?? Tense.Present, features.Aspect ?? Aspect.Imperfective, subject, roles.Object,
+            Negative: features.Negative, Obliques: [.. roles.Obliques.Select(o => o.Oblique)]);
+    }
+
+    private static void RejectComplement(string verb, ClauseRoles roles, int number)
+    {
+        if (roles.Complement.HasValue)
         {
             throw new ClauseFormatException($"Only be takes a noun: or adjective:. '{verb}' takes an object:.", number);
         }
-        return new Clause(verb, tense ?? Tense.Present, aspect ?? Aspect.Imperfective, subject, arguments.TryGetValue("object", out var @object) ? @object : (Argument?)null,
-            Negative: negative, Obliques: [.. obliques.Select(o => o.Oblique)]);
     }
 
     //a noun and its adjectives, in parentheses, as in (dog.PL big old)
