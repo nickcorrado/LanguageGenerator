@@ -39,9 +39,9 @@ public static partial class Generator
     //like the plural everywhere else here
     public static Commands GenerateCommands(Random rand, MorphologicalProfile morphology, WordOrder wordOrder, Phonology phonology, double dropoff)
     {
-        var position = rand.NextDouble() < morphology.ParticleChance
+        var position = rand.NextDouble() < ParticleChance(morphology)
             ? (wordOrder.VerbPhraseDirectionality == HeadDirectionality.Initial ? ExponentPosition.PrecedingParticle : ExponentPosition.FollowingParticle)
-            : rand.NextDouble() < morphology.PrefixChance ? ExponentPosition.Prefix : ExponentPosition.Suffix;
+            : rand.NextDouble() < PrefixChance(morphology) ? ExponentPosition.Prefix : ExponentPosition.Suffix;
         var affix = position is ExponentPosition.Prefix or ExponentPosition.Suffix;
         var forms = new DistinctForms();
 

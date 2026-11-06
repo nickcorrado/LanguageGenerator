@@ -141,26 +141,6 @@ public record ZeroMarking(bool Singular, bool CoreCase, bool Present, ThirdPerso
 /// </summary>
 public record MorphologicalProfile(Fusion Fusion, Exponence Exponence, Affixation Affixation, ZeroMarking ZeroMarking)
 {
-    /// <summary>How often a new marker is a separate word rather than an affix.</summary>
-    public double ParticleChance => Fusion switch
-    {
-        Fusion.Concatenative => 0,
-        Fusion.Mixed => 0.5,
-        Fusion.Isolating => 1,
-        _ => throw new ArgumentOutOfRangeException(nameof(Fusion), Fusion, null),
-    };
-
-    //the middle of each 26A band, which WALS defines by the share of affixes that are prefixes
-    public double PrefixChance => Affixation switch
-    {
-        Affixation.StronglySuffixing => 0.1,
-        Affixation.WeaklySuffixing => 0.3,
-        Affixation.Equal => 0.5,
-        Affixation.WeaklyPrefixing => 0.7,
-        Affixation.StronglyPrefixing => 0.9,
-        _ => throw new ArgumentOutOfRangeException(nameof(Affixation), Affixation, null),
-    };
-
     public override string ToString()
     {
         (bool Fused, string Name)[] pairs = [(Exponence.CaseWithNumber, "case+number"), (Exponence.TamWithAgreement, "TAM+agreement"), (Exponence.TenseWithAspect, "tense+aspect")];

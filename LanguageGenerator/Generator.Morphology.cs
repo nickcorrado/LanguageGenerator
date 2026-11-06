@@ -62,6 +62,26 @@ public static partial class Generator
         _ => false,
     };
 
+    //how often a new marker is a separate word rather than an affix
+    private static double ParticleChance(MorphologicalProfile morphology) => morphology.Fusion switch
+    {
+        Fusion.Concatenative => 0,
+        Fusion.Mixed => 0.5,
+        Fusion.Isolating => 1,
+        _ => throw new ArgumentOutOfRangeException(nameof(morphology), morphology.Fusion, null),
+    };
+
+    //the middle of each 26A band, which WALS defines by the share of affixes that are prefixes
+    private static double PrefixChance(MorphologicalProfile morphology) => morphology.Affixation switch
+    {
+        Affixation.StronglySuffixing => 0.1,
+        Affixation.WeaklySuffixing => 0.3,
+        Affixation.Equal => 0.5,
+        Affixation.WeaklyPrefixing => 0.7,
+        Affixation.StronglyPrefixing => 0.9,
+        _ => throw new ArgumentOutOfRangeException(nameof(morphology), morphology.Affixation, null),
+    };
+
     public static Paradigm GenerateParadigm(Random rand, PartOfSpeech partOfSpeech, List<InflectionalCategory> categories, MorphologicalProfile morphology, HeadDirectionality directionality, Phonology phonology, double dropoff)
     {
         var particlePosition = directionality == HeadDirectionality.Initial ? ExponentPosition.PrecedingParticle : ExponentPosition.FollowingParticle;
@@ -73,13 +93,13 @@ public static partial class Generator
             {
                 groups[^1].Categories.Add(category);
             }
-            else if (rand.NextDouble() < morphology.ParticleChance)
+            else if (rand.NextDouble() < ParticleChance(morphology))
             {
                 groups.Add(([category], particlePosition));
             }
             else
             {
-                groups.Add(([category], rand.NextDouble() < morphology.PrefixChance ? ExponentPosition.Prefix : ExponentPosition.Suffix));
+                groups.Add(([category], rand.NextDouble() < PrefixChance(morphology) ? ExponentPosition.Prefix : ExponentPosition.Suffix));
             }
         }
 

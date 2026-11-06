@@ -29,7 +29,7 @@ public static partial class Generator
             return new Possession(marking, possessorFirst, null, ExponentPosition.Suffix);
         }
 
-        var position = rand.NextDouble() < morphology.PrefixChance ? ExponentPosition.Prefix : ExponentPosition.Suffix;
+        var position = rand.NextDouble() < PrefixChance(morphology) ? ExponentPosition.Prefix : ExponentPosition.Suffix;
         var affixes = new Dictionary<(Person, Number), Affix>();
         var forms = new DistinctForms();
         foreach (var person in new[] { Person.First, Person.Second, Person.Third })

@@ -24,7 +24,7 @@ public static partial class Generator
     {
         var kind = Sampling.Categorical(rand, NounGenderCounts);
         var assignment = Sampling.Categorical(rand, GenderAssignmentCounts);
-        var position = rand.NextDouble() < morphology.PrefixChance ? ExponentPosition.Prefix : ExponentPosition.Suffix;
+        var position = rand.NextDouble() < PrefixChance(morphology) ? ExponentPosition.Prefix : ExponentPosition.Suffix;
         var verbsAgree = rand.NextDouble() < 0.5 && paradigms.Verbs.Categories.Has<Person>();
         var system = new GenderSystem { Genders = kind, Assignment = assignment, Markers = null, MarkerPosition = position, VerbsAgree = false };
         if (kind == NounGenders.None || morphology.Fusion == Fusion.Isolating)
