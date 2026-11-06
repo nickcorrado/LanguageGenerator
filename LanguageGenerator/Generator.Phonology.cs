@@ -155,7 +155,7 @@ public static partial class Generator
         }
 
         //the template guarantees exactly one vowel slot
-        return ElideDuplicates(new Syllable(new ConsonantCluster(onset), nucleus!, coda));
+        return ElideDuplicates(new Syllable([.. onset], nucleus!, coda));
     }
 
     //how often a consonantal slot is filled. Every language has syllables with onsets, and most
@@ -201,7 +201,7 @@ public static partial class Generator
             }
         }
 
-        var result = new Syllable(new ConsonantCluster(onsetResult), syllable.Nucleus, syllable.Coda);
+        var result = new Syllable([.. onsetResult], syllable.Nucleus, syllable.Coda);
         return result;
     }
 

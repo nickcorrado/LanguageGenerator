@@ -131,7 +131,7 @@ public class AdjectiveTests
             var rule = language.Phonology.SyllableRule;
             Assert.All(Sleep(language, BigOldDogs).Words.SelectMany(w => w.Syllables), s =>
             {
-                Assert.True(rule.IsLegalOnset([.. s.Onset]));
+                Assert.True(rule.IsLegalOnset(s.Onset));
                 Assert.True(rule.IsLegalCoda(s.Coda is null ? [] : [s.Coda]));
             });
         }

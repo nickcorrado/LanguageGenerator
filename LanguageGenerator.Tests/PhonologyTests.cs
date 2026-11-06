@@ -156,7 +156,7 @@ public class PhonologyTests
     [Fact]
     public void ElideDuplicates_DoubledOnsetConsonant_Collapses()
     {
-        var syllable = Generator.ElideDuplicates(new Syllable(new ConsonantCluster([Consonant.s, Consonant.s, Consonant.t]), Vowel.a, Consonant.k));
+        var syllable = Generator.ElideDuplicates(new Syllable([Consonant.s, Consonant.s, Consonant.t], Vowel.a, Consonant.k));
 
         Assert.Equal("stak", syllable.Spell(Orthography.Ipa));
     }
@@ -164,7 +164,7 @@ public class PhonologyTests
     [Fact]
     public void ElideDuplicates_DistinctOnsetConsonants_AreKept()
     {
-        var syllable = Generator.ElideDuplicates(new Syllable(new ConsonantCluster([Consonant.ʃ, Consonant.s]), Vowel.a, null));
+        var syllable = Generator.ElideDuplicates(new Syllable([Consonant.ʃ, Consonant.s], Vowel.a, null));
 
         Assert.Equal("ʃsa", syllable.Spell(Orthography.Ipa));
     }
@@ -209,7 +209,7 @@ public class PhonologyTests
                 var surface = language.Phonology.Realize(word);
                 Assert.All(surface.Syllables, s =>
                 {
-                    Assert.True(rule.IsLegalOnset([.. s.Onset]), $"{surface.Syllabified(Orthography.Ipa)} has an illegal onset under {rule}");
+                    Assert.True(rule.IsLegalOnset(s.Onset), $"{surface.Syllabified(Orthography.Ipa)} has an illegal onset under {rule}");
                     Assert.True(rule.IsLegalCoda(s.Coda is null ? [] : [s.Coda]), $"{surface.Syllabified(Orthography.Ipa)} has an illegal coda under {rule}");
                 });
             }

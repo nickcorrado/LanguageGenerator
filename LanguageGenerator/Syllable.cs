@@ -2,7 +2,7 @@
 
 namespace LanguageGenerator;
 
-public record Syllable(ConsonantCluster Onset, Vowel Nucleus, Consonant? Coda)
+public record Syllable(ValueList<Consonant> Onset, Vowel Nucleus, Consonant? Coda)
 {
     public string Spell(Orthography orthography) => orthography.Spell(Phonemes);
 
@@ -21,21 +21,6 @@ public record Syllable(ConsonantCluster Onset, Vowel Nucleus, Consonant? Coda)
             }
         }
     }
-}
-
-//is this necessary? it can't be used in SyllableRule, which is annoying
-public class ConsonantCluster : IEnumerable<Consonant>
-{
-    private List<Consonant> Consonants { get; init; }
-
-    public ConsonantCluster(IEnumerable<Consonant> consonants)
-    {
-        Consonants = consonants.ToList();
-    }
-
-    public IEnumerator<Consonant> GetEnumerator() => Consonants.GetEnumerator();
-
-    IEnumerator IEnumerable.GetEnumerator() => Consonants.GetEnumerator();
 }
 
 public class NaturalClass<T> : IReadOnlyList<T> where T : Phoneme

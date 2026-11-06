@@ -53,7 +53,7 @@ public class SyllableTests
 
         var syllables = Generate(template, TestData.Consonants, 2000);
 
-        Assert.All(syllables, s => Assert.True(s.Onset.Count() <= onsetSlots));
+        Assert.All(syllables, s => Assert.True(s.Onset.Count <= onsetSlots));
         Assert.All(syllables, s => Assert.True(hasCoda || s.Coda is null));
     }
 
@@ -68,7 +68,7 @@ public class SyllableTests
     [Fact]
     public void GenerateSyllable_TwoConsonantOnsetInCLV_EndsInALiquid()
     {
-        var twoConsonants = Generate(SyllableTemplates.CLV, TestData.Consonants, 20000).Where(s => s.Onset.Count() == 2).ToList();
+        var twoConsonants = Generate(SyllableTemplates.CLV, TestData.Consonants, 20000).Where(s => s.Onset.Count == 2).ToList();
 
         Assert.All(twoConsonants, s => Assert.True(s.Onset.Last().Manner is ConsonantManner.Approximant or ConsonantManner.LateralApproximant));
         //C fills 85% of the time and L 30% of the time
@@ -89,7 +89,7 @@ public class SyllableTests
 
         var syllables = Generate(SyllableTemplates.SCV, noSibilants, 2000);
 
-        Assert.All(syllables, s => Assert.True(s.Onset.Count() <= 1 && !s.Onset.Any(c => c.Manner == ConsonantManner.Sibilant)));
+        Assert.All(syllables, s => Assert.True(s.Onset.Count <= 1 && !s.Onset.Any(c => c.Manner == ConsonantManner.Sibilant)));
     }
 
     [Theory]

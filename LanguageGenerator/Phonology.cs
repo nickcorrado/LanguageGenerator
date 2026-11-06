@@ -145,7 +145,7 @@ public record Phonology
         }
 
         //templates allow at most one coda consonant, which legality has already checked
-        return [.. nuclei.Select((n, k) => new Syllable(new ConsonantCluster(onsets[k]), (Vowel)segments[n].Phoneme, codas[k].SingleOrDefault()))];
+        return [.. nuclei.Select((n, k) => new Syllable([.. onsets[k]], (Vowel)segments[n].Phoneme, codas[k].SingleOrDefault()))];
     }
 
     //one edit to the bad cluster: the first one that fixes it if any does, and otherwise the first

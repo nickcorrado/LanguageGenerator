@@ -124,7 +124,7 @@ public class LexiconTests
             {
                 var root = language.Lexicon.Noun(meaning).Root;
                 Assert.InRange(root.Form.Count(p => p is Vowel), 1, Generator.MaxRootSyllables);
-                Assert.All(language.Phonology.Realize(new Word([root])).Syllables, s => Assert.True(rule.IsLegalOnset([.. s.Onset])));
+                Assert.All(language.Phonology.Realize(new Word([root])).Syllables, s => Assert.True(rule.IsLegalOnset(s.Onset)));
             }
         }
     }

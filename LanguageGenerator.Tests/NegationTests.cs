@@ -92,7 +92,7 @@ public class NegationTests
             var rule = language.Phonology.SyllableRule;
             Assert.All(DogDidNotSeeCat(language).Words.SelectMany(w => w.Syllables), s =>
             {
-                Assert.True(rule.IsLegalOnset([.. s.Onset]));
+                Assert.True(rule.IsLegalOnset(s.Onset));
                 Assert.True(rule.IsLegalCoda(s.Coda is null ? [] : [s.Coda]));
             });
         }
