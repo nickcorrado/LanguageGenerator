@@ -116,40 +116,29 @@ public static class ClauseFile
         public Argument? Object => Arguments.TryGetValue("object", out var argument) ? argument : (Argument?)null;
     }
 
-    private static VerbFeatures ParseVerbFeatures(string verb, IEnumerable<Grammeme> glosses, int number)
+    private static VerbFeatures ParseVerbFeatures(string verb, IReadOnlyList<Grammeme> glosses, int number)
     {
-        Tense? tense = null;
-        Aspect? aspect = null;
-        Polarity? polarity = null;
-        Mood? mood = null;
-        foreach (var feature in glosses)
+        if (glosses.FirstOrDefault(g => g is not (Tense or Aspect or Polarity) && g != Mood.Imperative) is { } unsupported)
         {
-            switch (feature)
-            {
-                case Mood m when m == Mood.Prohibitive:
-                    throw new ClauseFormatException($"Write a command not to do something as {verb}.IMP.NEG, not {verb}.{m.Gloss}.", number);
-                case Mood m when m == Mood.Imperative && mood is null:
-                    mood = m;
-                    break;
-                case Tense t when tense is null:
-                    tense = t;
-                    break;
-                case Aspect a when aspect is null:
-                    aspect = a;
-                    break;
-                case Polarity p when polarity is null:
-                    polarity = p;
-                    break;
-                case Tense or Aspect or Polarity or Mood when feature is not Mood || feature == Mood.Imperative:
-                    throw new ClauseFormatException($"'{verb}' has more than one {feature.GetType().Name.ToLowerInvariant()}.", number);
-                case Person or Number:
-                    throw new ClauseFormatException($"'{verb}' can't take {feature.Gloss}: a verb agrees with its subject.", number);
-                default:
-                    throw new ClauseFormatException($"'{verb}' can't take {feature.Gloss} ({feature.Name}) yet: verbs have only tense, aspect, polarity and the imperative.", number);
-            }
+            throw Unsupported(verb, unsupported, number);
         }
-        return new VerbFeatures(tense, aspect, polarity == Polarity.Negative, mood == Mood.Imperative);
+        if (glosses.GroupBy(g => g.GetType()).FirstOrDefault(g => g.Count() > 1) is { } repeated)
+        {
+            throw new ClauseFormatException($"'{verb}' has more than one {repeated.Key.Name.ToLowerInvariant()}.", number);
+        }
+        return new VerbFeatures(
+            glosses.OfType<Tense>().SingleOrDefault(),
+            glosses.OfType<Aspect>().SingleOrDefault(),
+            glosses.Contains(Polarity.Negative),
+            glosses.Contains(Mood.Imperative));
     }
+
+    private static ClauseFormatException Unsupported(string verb, Grammeme feature, int number) => feature switch
+    {
+        Mood m when m == Mood.Prohibitive => new($"Write a command not to do something as {verb}.IMP.NEG, not {verb}.{m.Gloss}.", number),
+        Person or Number => new($"'{verb}' can't take {feature.Gloss}: a verb agrees with its subject.", number),
+        _ => new($"'{verb}' can't take {feature.Gloss} ({feature.Name}) yet: verbs have only tense, aspect, polarity and the imperative.", number),
+    };
 
     private static ClauseRoles ParseRoles(string verb, IEnumerable<string> tokens, int number)
     {
