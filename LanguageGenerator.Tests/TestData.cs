@@ -27,7 +27,7 @@ internal static class TestData
 //a template with no onsets, which no generated language has, for testing what happens at the edges
 internal static class Templates
 {
-    public static SyllableTemplate Onsetless { get; } = new(new VowelSlot(), new FinalSlot(0.5));
+    public static SyllableTemplate Onsetless { get; } = new(Slot.Vowel, Slot.Final);
 }
 
 //finding words in a realized sentence, by meaning or by root

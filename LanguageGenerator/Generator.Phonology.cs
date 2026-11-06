@@ -40,7 +40,7 @@ public static partial class Generator
         {
             changes.Add(SoundChange.VoicingAssimilation);
         }
-        if (rand.NextDouble() < 0.3 && rule.Template.Slots.Any(s => s is FinalSlot))
+        if (rand.NextDouble() < 0.3 && rule.Template.Slots.Any(s => s is Slot.Final))
         {
             changes.Add(SoundChange.FinalDevoicing);
         }
@@ -73,7 +73,7 @@ public static partial class Generator
     public static List<SoundChange> SelectSyllableChanges(Random rand, SyllableRule rule, IReadOnlyCollection<Vowel> vowels)
     {
         var changes = new List<SoundChange>();
-        var codas = rule.Template.Slots.Any(s => s is FinalSlot);
+        var codas = rule.Template.Slots.Any(s => s is Slot.Final);
         if (rand.NextDouble() < 0.2 && codas && rule.Codas == CodaRestriction.Any)
         {
             changes.Add(SoundChange.CodaDevoicing);
@@ -137,11 +137,11 @@ public static partial class Generator
 
         foreach (var slot in rule.Template.Slots)
         {
-            if (slot is VowelSlot)
+            if (slot is Slot.Vowel)
             {
                 nucleus = Pick(rand, rule.Vowels, 1, dropoff) ?? throw new InvalidOperationException("The inventory has no vowels.");
             }
-            else if (rule.Resolve(slot) is var (phonemes, chance) && Pick(rand, phonemes, chance, dropoff) is { } consonant)
+            else if (Pick(rand, rule.Resolve(slot), FillChance(rule.Template, slot), dropoff) is { } consonant)
             {
                 if (nucleus is null)
                 {
@@ -156,6 +156,24 @@ public static partial class Generator
 
         //the template guarantees exactly one vowel slot
         return ElideDuplicates(new Syllable(new ConsonantCluster(onset), nucleus!, coda));
+    }
+
+    //how often a consonantal slot is filled. Every language has syllables with onsets, and most
+    //syllables have one: onsets are filled 85% of the time, or about that in templates with two
+    //consonants that can start one. A guess, but onsetless syllables are dispreferred everywhere, and
+    //at even odds, a quarter of all syllables were a bare vowel, which made homophones of most of the
+    //short words
+    private static double FillChance(SyllableTemplate template, Slot slot)
+    {
+        var sibilantOnset = template.Slots.Contains(Slot.Sibilant);
+        return slot switch
+        {
+            Slot.Consonant => sibilantOnset ? 0.7 : 0.85,
+            Slot.Sibilant => 0.5,
+            Slot.Liquid => sibilantOnset ? 0.2 : 0.3,
+            Slot.Final => 0.5,
+            _ => throw new ArgumentOutOfRangeException(nameof(slot), slot, null),
+        };
     }
 
     private static T? Pick<T>(Random rand, NaturalClass<T> phonemes, double chance, double dropoff) where T : Phoneme
@@ -191,7 +209,7 @@ public static partial class Generator
     {
         var template = SyllableTemplates.All[rand.Next(SyllableTemplates.All.Count)];
         //a restriction only matters for templates with a coda
-        var codas = template.Slots.Any(s => s is FinalSlot) ? Sampling.Categorical(rand, CodaRestrictionWeights) : CodaRestriction.Any;
+        var codas = template.Slots.Any(s => s is Slot.Final) ? Sampling.Categorical(rand, CodaRestrictionWeights) : CodaRestriction.Any;
         return new SyllableRule(template, vowels, consonants, codas);
     }
 

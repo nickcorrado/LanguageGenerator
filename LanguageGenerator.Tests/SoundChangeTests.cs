@@ -202,7 +202,7 @@ public class SoundChangeTests
     public void Generate_AnyLanguage_OnlyDevoicesFinallyIfSyllablesCanEndInAConsonant()
     {
         Assert.All(GeneratedLanguages.Sample.Where(l => l.Phonology.SoundChanges.Contains(SoundChange.FinalDevoicing)),
-            l => Assert.Contains(l.Phonology.SyllableRule.Template.Slots, s => s is FinalSlot));
+            l => Assert.Contains(l.Phonology.SyllableRule.Template.Slots, s => s is Slot.Final));
     }
 
     [Fact]

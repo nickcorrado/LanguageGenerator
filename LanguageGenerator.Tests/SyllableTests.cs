@@ -21,19 +21,19 @@ public class SyllableTests
     [Fact]
     public void Constructor_WithNoVowelSlot_Throws()
     {
-        Assert.Throws<ArgumentException>(() => new SyllableTemplate(new ConsonantSlot(1)));
+        Assert.Throws<ArgumentException>(() => new SyllableTemplate(Slot.Consonant));
     }
 
     [Fact]
     public void Constructor_WithTwoVowelSlots_Throws()
     {
-        Assert.Throws<ArgumentException>(() => new SyllableTemplate(new VowelSlot(), new VowelSlot()));
+        Assert.Throws<ArgumentException>(() => new SyllableTemplate(Slot.Vowel, Slot.Vowel));
     }
 
     [Fact]
     public void Constructor_WithTwoCodaSlots_Throws()
     {
-        Assert.Throws<ArgumentException>(() => new SyllableTemplate(new VowelSlot(), new FinalSlot(1), new FinalSlot(1)));
+        Assert.Throws<ArgumentException>(() => new SyllableTemplate(Slot.Vowel, Slot.Final, Slot.Final));
     }
 
     [Theory]
@@ -48,8 +48,8 @@ public class SyllableTests
     public void GenerateSyllable_AnyTemplate_StaysWithinItsSlots(string name)
     {
         var template = Template(name);
-        var onsetSlots = template.Slots.TakeWhile(s => s is not VowelSlot).Count();
-        var hasCoda = template.Slots.Any(s => s is FinalSlot);
+        var onsetSlots = template.Slots.TakeWhile(s => s is not Slot.Vowel).Count();
+        var hasCoda = template.Slots.Any(s => s is Slot.Final);
 
         var syllables = Generate(template, TestData.Consonants, 2000);
 
@@ -177,10 +177,10 @@ public class SyllableTests
         var rand = new Random(1);
         var rules = Enumerable.Range(0, 40000).Select(_ => Generator.SelectSyllableRule(rand, TestData.Vowels, TestData.Consonants)).ToList();
         //only templates with a coda get a restriction, and every template has an onset
-        var withCodas = rules.Where(r => r.Template.Slots.Any(s => s is FinalSlot)).ToList();
+        var withCodas = rules.Where(r => r.Template.Slots.Any(s => s is Slot.Final)).ToList();
 
         Assert.All(rules.Except(withCodas), r => Assert.Equal(CodaRestriction.Any, r.Codas));
-        Assert.All(rules, r => Assert.IsNotType<VowelSlot>(r.Template.Slots[0].Value));
+        Assert.All(rules, r => Assert.NotEqual(Slot.Vowel, r.Template.Slots[0]));
         double Share(CodaRestriction codas) => withCodas.Count(r => r.Codas == codas) / (double)withCodas.Count;
         Assert.InRange(Share(CodaRestriction.Any), 0.48, 0.52);
         Assert.InRange(Share(CodaRestriction.Sonorants), 0.23, 0.27);

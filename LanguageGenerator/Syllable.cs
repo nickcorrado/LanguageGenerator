@@ -68,28 +68,34 @@ public class NaturalClass<T> : IEnumerable<T> where T : Phoneme
     IEnumerator IEnumerable.GetEnumerator() => Phonemes.GetEnumerator();
 }
 
-//consonantal slots are optional and get filled with the given chance
-public record ConsonantSlot(double Chance);
-public record SibilantSlot(double Chance);
-public record LiquidSlot(double Chance);
-public record FinalSlot(double Chance);
-//every syllable has exactly one nucleus, so this one is never optional
-public record VowelSlot;
-
 /// <summary>
 /// One of the C, S, L, V and F of a template like CLVF: a kind of sound, whose phonemes aren't
 /// known until it's resolved against a language's inventory.
 /// </summary>
-public union Slot(ConsonantSlot, SibilantSlot, LiquidSlot, VowelSlot, FinalSlot)
+//consonantal slots are optional; every syllable has exactly one nucleus, so the vowel never is
+public enum Slot
 {
-    public char Letter => this switch
+    Consonant,
+    Sibilant,
+    Liquid,
+    Vowel,
+    Final,
+}
+
+public static class SlotExtensions
+{
+    extension(Slot slot)
     {
-        ConsonantSlot => 'C',
-        SibilantSlot => 'S',
-        LiquidSlot => 'L',
-        VowelSlot => 'V',
-        FinalSlot => 'F',
-    };
+        public char Letter => slot switch
+        {
+            Slot.Consonant => 'C',
+            Slot.Sibilant => 'S',
+            Slot.Liquid => 'L',
+            Slot.Vowel => 'V',
+            Slot.Final => 'F',
+            _ => throw new ArgumentOutOfRangeException(nameof(slot), slot, null),
+        };
+    }
 }
 
 /// <summary>
@@ -105,13 +111,13 @@ public class SyllableTemplate
     {
         Slots = slots;
 
-        var nuclei = Slots.Count(s => s is VowelSlot);
+        var nuclei = Slots.Count(s => s is Slot.Vowel);
         if (nuclei != 1)
         {
             throw new ArgumentException($"{Name} has {nuclei} vowel slots, but a syllable needs exactly one.", nameof(slots));
         }
 
-        var codaSlots = Slots.Count - Slots.ToList().FindIndex(s => s is VowelSlot) - 1;
+        var codaSlots = Slots.Count - Slots.ToList().FindIndex(s => s is Slot.Vowel) - 1;
         if (codaSlots > 1)
         {
             throw new ArgumentException($"{Name} has {codaSlots} slots after the vowel, but a syllable only has room for one coda.", nameof(slots));
@@ -121,20 +127,16 @@ public class SyllableTemplate
     public override string ToString() => Name;
 }
 
-//templates don't depend on the inventory, so unlike rules they can be defined up front.
-//Every language has syllables with onsets, and most syllables have one: onsets are filled 85% of
-//the time, or about that in templates with two consonants that can start one. A guess, but
-//onsetless syllables are dispreferred everywhere, and at the even odds these once had, a quarter
-//of all syllables were a bare vowel, which made homophones of most of the short words
+//templates don't depend on the inventory, so unlike rules they can be defined up front
 public static class SyllableTemplates
 {
-    public static SyllableTemplate CV { get; } = new(new ConsonantSlot(0.85), new VowelSlot());
-    public static SyllableTemplate CVF { get; } = new(new ConsonantSlot(0.85), new VowelSlot(), new FinalSlot(0.5));
-    public static SyllableTemplate CLV { get; } = new(new ConsonantSlot(0.85), new LiquidSlot(0.3), new VowelSlot());
-    public static SyllableTemplate CLVF { get; } = new(new ConsonantSlot(0.85), new LiquidSlot(0.3), new VowelSlot(), new FinalSlot(0.5));
-    public static SyllableTemplate SCV { get; } = new(new SibilantSlot(0.5), new ConsonantSlot(0.7), new VowelSlot());
-    public static SyllableTemplate SCVF { get; } = new(new SibilantSlot(0.5), new ConsonantSlot(0.7), new VowelSlot(), new FinalSlot(0.5));
-    public static SyllableTemplate SCLVF { get; } = new(new SibilantSlot(0.5), new ConsonantSlot(0.7), new LiquidSlot(0.2), new VowelSlot(), new FinalSlot(0.5));
+    public static SyllableTemplate CV { get; } = new(Slot.Consonant, Slot.Vowel);
+    public static SyllableTemplate CVF { get; } = new(Slot.Consonant, Slot.Vowel, Slot.Final);
+    public static SyllableTemplate CLV { get; } = new(Slot.Consonant, Slot.Liquid, Slot.Vowel);
+    public static SyllableTemplate CLVF { get; } = new(Slot.Consonant, Slot.Liquid, Slot.Vowel, Slot.Final);
+    public static SyllableTemplate SCV { get; } = new(Slot.Sibilant, Slot.Consonant, Slot.Vowel);
+    public static SyllableTemplate SCVF { get; } = new(Slot.Sibilant, Slot.Consonant, Slot.Vowel, Slot.Final);
+    public static SyllableTemplate SCLVF { get; } = new(Slot.Sibilant, Slot.Consonant, Slot.Liquid, Slot.Vowel, Slot.Final);
 
     public static IReadOnlyList<SyllableTemplate> All { get; } = [CV, CVF, CLV, CLVF, SCV, SCVF, SCLVF];
 }
@@ -189,9 +191,9 @@ public class SyllableRule
 
     //whether these consonants can open, or close, a syllable of this shape
     public bool IsLegalOnset(IReadOnlyList<Consonant> consonants) =>
-        Fits(consonants, [.. Template.Slots.TakeWhile(s => s is not VowelSlot)]);
+        Fits(consonants, [.. Template.Slots.TakeWhile(s => s is not Slot.Vowel)]);
     public bool IsLegalCoda(IReadOnlyList<Consonant> consonants) =>
-        Fits(consonants, [.. Template.Slots.SkipWhile(s => s is not VowelSlot).Skip(1)]);
+        Fits(consonants, [.. Template.Slots.SkipWhile(s => s is not Slot.Vowel).Skip(1)]);
 
     //every slot is optional, so the consonants only have to fill some of the slots, in order
     private bool Fits(IReadOnlyList<Consonant> consonants, IReadOnlyList<Slot> slots)
@@ -202,7 +204,7 @@ public class SyllableRule
         }
         for (int i = 0; i < slots.Count; i++)
         {
-            if (Resolve(slots[i]).Phonemes.Contains(consonants[0]) && Fits([.. consonants.Skip(1)], [.. slots.Skip(i + 1)]))
+            if (Resolve(slots[i]).Contains(consonants[0]) && Fits([.. consonants.Skip(1)], [.. slots.Skip(i + 1)]))
             {
                 return true;
             }
@@ -210,17 +212,18 @@ public class SyllableRule
         return false;
     }
 
-    //which phonemes can fill a consonantal slot, and how often it's filled
-    public (NaturalClass<Consonant> Phonemes, double Chance) Resolve(Slot slot) => slot switch
+    //which phonemes can fill a consonantal slot
+    public NaturalClass<Consonant> Resolve(Slot slot) => slot switch
     {
-        ConsonantSlot c => (consonants, c.Chance),
-        SibilantSlot s => (sibilants, s.Chance),
-        LiquidSlot l => (liquids, l.Chance),
-        FinalSlot f => (finals, f.Chance),
-        VowelSlot => throw new ArgumentException("A vowel slot is the nucleus, not a consonant.", nameof(slot)),
+        Slot.Consonant => consonants,
+        Slot.Sibilant => sibilants,
+        Slot.Liquid => liquids,
+        Slot.Final => finals,
+        Slot.Vowel => throw new ArgumentException("A vowel slot is the nucleus, not a consonant.", nameof(slot)),
+        _ => throw new ArgumentOutOfRangeException(nameof(slot), slot, null),
     };
 
     public override string ToString() =>
-        $"{Template.Name}: " + string.Join(" ", Template.Slots.Select(s => s is VowelSlot ? $"V{Vowels}" : $"{s.Letter}{Resolve(s).Phonemes}"))
-        + (Codas != CodaRestriction.Any && Template.Slots.Any(s => s is FinalSlot) ? $" ({Codas} codas)" : "");
+        $"{Template.Name}: " + string.Join(" ", Template.Slots.Select(s => s is Slot.Vowel ? $"V{Vowels}" : $"{s.Letter}{Resolve(s)}"))
+        + (Codas != CodaRestriction.Any && Template.Slots.Any(s => s is Slot.Final) ? $" ({Codas} codas)" : "");
 }
