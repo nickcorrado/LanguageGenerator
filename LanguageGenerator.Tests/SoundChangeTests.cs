@@ -39,6 +39,36 @@ public class SoundChangeTests
         Assert.Equal("kaŋka", Surface(SyllableTemplates.CVF, SoundChange.NasalAssimilation, [.. Ka, Consonant.n], Ka));
     }
 
+    [Theory]
+    [InlineData(CodaRestriction.SingleNasal, "kanka")]
+    [InlineData(CodaRestriction.Nasals, "kaŋka")]
+    public void NasalAssimilation_WhereTheNewNasalCantCloseTheSyllable_KeepsTheOldOne(CodaRestriction codas, string expected)
+    {
+        //where only n can close a syllable, n before k stays n rather than becoming a ŋ that
+        //cluster repair would delete, which made kan-ka kaka
+        var phonology = TestData.Phonology(SyllableTemplates.CVF, ClusterRepair.Deletion, SoundChange.NasalAssimilation) with
+        {
+            SyllableRule = new SyllableRule(SyllableTemplates.CVF, TestData.Vowels, TestData.Consonants, codas),
+        };
+
+        Assert.Equal(expected, string.Concat(phonology.Realize(TestData.Word([.. Ka, Consonant.n], Ka)).Phonemes.Select(p => p.IpaSymbol)));
+    }
+
+    [Fact]
+    public void Realize_GeneratedLanguagesWithNasalAssimilation_NeverLoseANasalToIt()
+    {
+        //every nasal survives, assimilated or not. A nasal before another nasal can become its double
+        //and merge with it, as Latin in- + m- gave imm-, so roots with two nasals together are left out
+        bool IsNasal(Phoneme p) => p is Consonant { Manner: ConsonantManner.Nasal };
+        int Nasals(SurfaceForm form) => form.Phonemes.Count(IsNasal);
+        Assert.All(GeneratedLanguages.Sample.Where(l => l.Phonology.SoundChanges.Contains(SoundChange.NasalAssimilation)), l =>
+        {
+            var without = l.Phonology with { SoundChanges = [.. l.Phonology.SoundChanges.Where(c => c != SoundChange.NasalAssimilation)] };
+            var roots = l.Lexicon.Where(x => !x.Root.Form.Zip(x.Root.Form.Skip(1)).Any(pair => IsNasal(pair.First) && IsNasal(pair.Second)));
+            Assert.All(roots, x => Assert.Equal(Nasals(without.Realize(new Word([x.Root]))), Nasals(l.Phonology.Realize(new Word([x.Root])))));
+        });
+    }
+
     [Fact]
     public void Lenition_NotBetweenVowels_LeavesAStopAlone()
     {

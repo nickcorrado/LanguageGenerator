@@ -82,10 +82,17 @@ public sealed class SoundChange(string name, Func<Site, bool> when, Func<Site, P
         Nothing);
 
     /// <summary>A nasal takes the place of articulation of a following stop or nasal.</summary>
+    //only where the new nasal can still close its syllable. A language whose codas allow only n, like
+    //Japanese, would otherwise turn n before k into a ŋ it can't end a syllable with, and cluster
+    //repair would then delete it. Japanese's n does take the next consonant's place, but as one
+    //phoneme, which there's no way to say here, so the n stays n
     public static SoundChange NasalAssimilation { get; } = new("nasal assimilation (np → mp)",
         site => site.Sound is Consonant { Manner: ConsonantManner.Nasal } nasal
             && site.Next?.Phoneme is Consonant { Manner: ConsonantManner.Plosive or ConsonantManner.Nasal } next && next.Place != nasal.Place,
-        (site, phonology) => phonology.Counterpart((Consonant)site.Sound, place: ((Consonant)site.Next!.Phoneme).Place) ?? site.Sound);
+        (site, phonology) => phonology.Counterpart((Consonant)site.Sound, place: ((Consonant)site.Next!.Phoneme).Place) is { } assimilated
+            && phonology.SyllableRule.IsLegalCoda([assimilated])
+                ? assimilated
+                : site.Sound);
 
     /// <summary>An unvoiced consonant between vowels takes its voiced counterpart.</summary>
     public static SoundChange IntervocalicVoicing { get; } = new("intervocalic voicing (apa → aba)",
