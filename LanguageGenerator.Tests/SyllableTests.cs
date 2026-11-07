@@ -251,6 +251,22 @@ public class SyllableTests
         Assert.InRange(Share(CodaRestriction.SingleNasal), 0.08, 0.12);
     }
 
+    [Fact]
+    public void SelectSyllableRule_ManyDraws_MatchWalsSyllableComplexity()
+    {
+        var rand = new Random(1);
+        var templates = Enumerable.Range(0, 40000).Select(_ => Generator.SelectSyllableRule(rand, TestData.Vowels, TestData.Consonants).Template).ToList();
+
+        //WALS 12A: 61 simple, 274 moderately complex and 151 complex of 486. A sibilant slot makes a
+        //template complex, and anything else beyond CV moderately so
+        double Share(Func<SyllableTemplate, bool> which) => templates.Count(which) / 40000.0;
+        Assert.InRange(Share(t => t == SyllableTemplates.CV), 61 / 486.0 - 0.01, 61 / 486.0 + 0.01);
+        Assert.InRange(Share(t => t != SyllableTemplates.CV && !t.Slots.Contains(Slot.Sibilant)), 274 / 486.0 - 0.01, 274 / 486.0 + 0.01);
+        Assert.InRange(Share(t => t.Slots.Contains(Slot.Sibilant)), 151 / 486.0 - 0.01, 151 / 486.0 + 0.01);
+        //and every template comes up
+        Assert.Equal(SyllableTemplates.All.Count, templates.Distinct().Count());
+    }
+
     private static double ExtraSyllables(Phonology phonology, double noise = 1) =>
         Enumerable.Range(0, 20).Average(seed => Generator.SelectExtraSyllables(noise, seed, phonology, 0.15));
 

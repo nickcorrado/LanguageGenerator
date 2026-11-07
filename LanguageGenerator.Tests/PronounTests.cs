@@ -151,7 +151,10 @@ public class PronounTests
     [Fact]
     public void Generate_SecondPerson_NeverHasANeuter()
     {
-        var you = GeneratedLanguages.Sample.Where(l => l.Pronouns.GenderedPronouns == PronounGender.ThirdAndSecond && l.Pronouns.Genders.Contains(Gender.Neuter)).ToList();
+        //about one language in fifty, so the sample can miss it; more are generated past the sample if so
+        var you = GeneratedLanguages.Sample.Concat(Enumerable.Range(GeneratedLanguages.Sample.Count, 5000).Select(seed => Generator.Generate(new Random(seed))))
+            .Where(l => l.Pronouns.GenderedPronouns == PronounGender.ThirdAndSecond && l.Pronouns.Genders.Contains(Gender.Neuter))
+            .Take(3).ToList();
 
         Assert.NotEmpty(you);
         Assert.All(you, l =>

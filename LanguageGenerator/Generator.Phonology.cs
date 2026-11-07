@@ -255,11 +255,35 @@ public static partial class Generator
 
     public static SyllableRule SelectSyllableRule(Random rand, IReadOnlyList<Vowel> vowels, IReadOnlyList<Consonant> consonants)
     {
-        var template = SyllableTemplates.All[rand.Next(SyllableTemplates.All.Count)];
+        var template = Sampling.Categorical(rand, Sampling.Categorical(rand, SyllableComplexityBands));
         //a restriction only matters for templates with a coda
         var codas = template.Slots.Any(s => s is Slot.Final) ? Sampling.Categorical(rand, CodaRestrictionWeights) : CodaRestriction.Any;
         return new SyllableRule(template, vowels, consonants, codas);
     }
+
+    //WALS 12A sorts 486 languages by their largest syllable: 61 simple, at most CV; 274 moderately
+    //complex, with one coda or an onset of a consonant and a liquid or glide, or both; and 151
+    //complex, with freer clusters, like the s-clusters of English. Within each band, which template
+    //is a guess: one coda is commoner than an onset cluster, and English-like SCLVF the commonest
+    //of the complex ones
+    private static readonly (SyllableTemplate Template, int Weight)[] SimpleSyllables = [(SyllableTemplates.CV, 1)];
+
+    private static readonly (SyllableTemplate Template, int Weight)[] ModeratelyComplexSyllables =
+    [
+        (SyllableTemplates.CVF, 50),
+        (SyllableTemplates.CLV, 20),
+        (SyllableTemplates.CLVF, 30),
+    ];
+
+    private static readonly (SyllableTemplate Template, int Weight)[] ComplexSyllables =
+    [
+        (SyllableTemplates.SCV, 20),
+        (SyllableTemplates.SCVF, 30),
+        (SyllableTemplates.SCLVF, 50),
+    ];
+
+    private static readonly ((SyllableTemplate Template, int Weight)[] Templates, int Weight)[] SyllableComplexityBands =
+        [(SimpleSyllables, 61), (ModeratelyComplexSyllables, 274), (ComplexSyllables, 151)];
 
     //weights, and a guess: WALS's chapter on syllable structure counts how many consonants may close
     //a syllable but not which ones, and no survey of that turned up

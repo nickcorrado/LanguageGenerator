@@ -122,7 +122,8 @@ public class NumeralTests
         var decimalLanguage = GeneratedLanguages.Sample.First(l => l.Numerals.Base == NumeralBase.Decimal);
         var sentence = Syntax.Realize(decimalLanguage, new Clause("sleep", Tense.Past, Aspect.Perfective, new NounPhrase("dog", Number.Plural, Count: 37)), "x");
 
-        var glosses = sentence.Words.Select(w => w.Gloss).Where(g => g is "three" or "ten" or "seven").ToList();
+        //a language that marks the noun phrase at its edge can put the marking on a numeral, as in ten-PL-NOM
+        var glosses = sentence.Words.SelectMany(w => w.Gloss.Split('-', '[', ']')).Where(g => g is "three" or "ten" or "seven").ToList();
         Assert.Equal(decimalLanguage.Numerals.LargestFirst ? ["three", "ten", "seven"] : ["seven", "three", "ten"], glosses);
     }
 }
