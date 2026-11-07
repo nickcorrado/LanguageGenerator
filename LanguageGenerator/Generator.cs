@@ -20,6 +20,7 @@ public static partial class Generator
             SoundChanges = SelectSoundChanges(rand),
             ClusterRepair = rand.NextDouble() < 0.6 ? ClusterRepair.Epenthesis : ClusterRepair.Deletion,
             EpentheticVowel = SelectEpentheticVowel(vowels),
+            Stress = SelectStress(rand),
         };
 
         var orthography = SelectOrthography(rand, vowels, consonants);
@@ -52,7 +53,6 @@ public static partial class Generator
         {
             SoundChanges = [.. phonology.SoundChanges, .. SelectLaterSoundChanges(rand, syllableRule, vowels)],
             SyllableChanges = SelectSyllableChanges(rand, syllableRule, vowels),
-            Stress = SelectStress(rand),
         };
         var commands = GenerateCommands(rand, morphology, wordOrder, phonology, syllableDropoff);
         var extraSyllables = SelectExtraSyllables(rootLengthNoise, lexiconSeed, phonology, syllableDropoff);
@@ -115,5 +115,5 @@ public static partial class Generator
     //a short affix: a lone vowel 30% of the time, and otherwise a syllable
     private static List<Phoneme> VowelOrSyllable(Random rand, Phonology phonology, double dropoff) => rand.NextDouble() < 0.3
         ? [phonology.Vowels[Sampling.TruncatedGeometric(rand, phonology.Vowels.Count, dropoff)]]
-        : [.. GenerateSyllable(rand, phonology.SyllableRule, dropoff).Phonemes];
+        : [.. GenerateSyllable(rand, phonology.SyllableRule, dropoff, needsOnset: false).Phonemes];
 }

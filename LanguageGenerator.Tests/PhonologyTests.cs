@@ -44,6 +44,7 @@ public class PhonologyTests
             SoundChanges = [],
             ClusterRepair = ClusterRepair.Epenthesis,
             EpentheticVowel = Vowel.ə,
+            Stress = Stress.Penultimate,
         };
 
         //a nasal can close a syllable, but a stop needs a vowel after it, as with Japanese batto 'bat'
@@ -63,6 +64,7 @@ public class PhonologyTests
             SoundChanges = [],
             ClusterRepair = ClusterRepair.Epenthesis,
             EpentheticVowel = Vowel.ə,
+            Stress = Stress.Penultimate,
         };
 
         Assert.Equal("a.an", phonology.Realize(TestData.Word([Vowel.a, Consonant.t, Vowel.a, Consonant.n])).Syllabified(Orthography.Ipa));

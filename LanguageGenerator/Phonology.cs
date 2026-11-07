@@ -39,7 +39,7 @@ public record Phonology
     public required ClusterRepair ClusterRepair { get; init; }
     public required Vowel EpentheticVowel { get; init; }
     /// <summary>Which syllable of a word is stressed.</summary>
-    public Stress Stress { get; init; } = Stress.Penultimate;
+    public required Stress Stress { get; init; }
 
     /// <summary>
     /// The consonant in this inventory with these features, and the given one's for any not given.

@@ -216,7 +216,7 @@ public static partial class Generator
 
     //needsOnset fills the C slot if the onset would otherwise be empty, for a syllable that follows
     //another inside a root
-    public static Syllable GenerateSyllable(Random rand, SyllableRule rule, double dropoff, bool needsOnset = false)
+    public static Syllable GenerateSyllable(Random rand, SyllableRule rule, double dropoff, bool needsOnset)
     {
         var onset = new List<Consonant>();
         Vowel? nucleus = null;

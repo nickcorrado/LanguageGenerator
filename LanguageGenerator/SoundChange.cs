@@ -12,15 +12,16 @@ public enum SyllablePosition
 /// Where a sound sits in its syllable, whether that syllable ends in a consonant, and whether it's
 /// the stressed one.
 /// </summary>
-public readonly record struct SyllablePlace(SyllablePosition Position, bool Closed, bool Stressed = false);
+public readonly record struct SyllablePlace(SyllablePosition Position, bool Closed, bool Stressed);
 
 /// <summary>
 /// One sound as a sound change sees it: the sound before it, already changed, the one after it, not
 /// yet, and the whole word as it was before this change. Place is known only to changes that run on
 /// syllabified words.
 /// </summary>
-public readonly record struct Site(Segment Segment, Segment? Previous, Segment? Next, IReadOnlyList<Segment> Word, int Index, SyllablePlace? Place = null,
-    IReadOnlyList<SyllablePlace>? Places = null)
+//Place and Places are null for changes that run before the word has syllables
+public readonly record struct Site(Segment Segment, Segment? Previous, Segment? Next, IReadOnlyList<Segment> Word, int Index, SyllablePlace? Place,
+    IReadOnlyList<SyllablePlace>? Places)
 {
     /// <summary>The sound before this one as it was before this change, unlike Previous.</summary>
     public Phoneme? Before => Index > 0 ? Word[Index - 1].Phoneme : null;

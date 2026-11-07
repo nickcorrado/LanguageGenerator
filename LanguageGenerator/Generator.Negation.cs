@@ -51,5 +51,5 @@ public static partial class Generator
     //generator makes other affixes
     private static List<Phoneme> MarkerForm(Random rand, bool affix, Phonology phonology, double dropoff) => affix && rand.NextDouble() < 0.3
         ? [phonology.Consonants[Sampling.TruncatedGeometric(rand, phonology.Consonants.Count, dropoff)]]
-        : [.. GenerateSyllable(rand, phonology.SyllableRule, dropoff).Phonemes];
+        : [.. GenerateSyllable(rand, phonology.SyllableRule, dropoff, needsOnset: false).Phonemes];
 }

@@ -135,7 +135,7 @@ public static partial class Generator
             var bare = position is ExponentPosition.Prefix or ExponentPosition.Suffix && rand.NextDouble() < 0.3;
             var form = forms.Draw(() => bare
                 ? [phonology.Consonants[Sampling.TruncatedGeometric(rand, phonology.Consonants.Count, dropoff)]]
-                : [.. GenerateSyllable(rand, phonology.SyllableRule, dropoff).Phonemes]);
+                : [.. GenerateSyllable(rand, phonology.SyllableRule, dropoff, needsOnset: false).Phonemes]);
             Morpheme exponent = position is ExponentPosition.Prefix or ExponentPosition.Suffix ? new Affix(form, values) : new Particle(form, values);
             exponents.Add((values, exponent));
         }

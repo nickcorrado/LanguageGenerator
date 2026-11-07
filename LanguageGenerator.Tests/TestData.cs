@@ -17,6 +17,7 @@ internal static class TestData
         SoundChanges = [.. rules],
         ClusterRepair = repair,
         EpentheticVowel = Vowel.ə,
+        Stress = Stress.Penultimate,
     };
 
     //the first form is a root meaning "dog"; any after it are plural suffixes
