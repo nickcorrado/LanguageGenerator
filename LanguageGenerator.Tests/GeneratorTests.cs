@@ -217,6 +217,19 @@ public class GeneratorTests
             Assert.InRange(x.Root.Form.Count(p => p is Vowel), 1, Generator.MaxRootSyllables));
     }
 
+    [Fact]
+    public void GenerateLexicon_GeneratedLanguages_NeverPutTwoVowelsTogetherInsideARoot()
+    {
+        Assert.All(GeneratedLanguages.Sample.SelectMany(l => l.Lexicon), lexeme =>
+            Assert.DoesNotContain(lexeme.Root.Form.Zip(lexeme.Root.Form.Skip(1)), pair => pair.First is Vowel && pair.Second is Vowel));
+    }
+
+    [Fact]
+    public void Generate_EveryLanguage_MergesIdenticalVowels()
+    {
+        Assert.All(GeneratedLanguages.Sample, l => Assert.Contains(SoundChange.IdenticalVowelFusion, l.Phonology.SoundChanges));
+    }
+
     [Theory]
     [InlineData("", "ə")]
     [InlineData("ə", "ɨ")]

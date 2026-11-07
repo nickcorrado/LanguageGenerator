@@ -86,9 +86,11 @@ public static partial class Generator
         var form = new List<Phoneme>();
         var numberOfSyllables = Sampling.DisplacedPoisson(rand, extraSyllables, maxSyllables);
 
+        //only the first syllable can go without an onset, as in aloha: vowels meeting inside a
+        //root are rare in real languages, which mostly get hiatus where morphemes meet
         for (int i = 0; i < numberOfSyllables; i++)
         {
-            form.AddRange(GenerateSyllable(rand, rule, dropoff).Phonemes);
+            form.AddRange(GenerateSyllable(rand, rule, dropoff, needsOnset: i > 0).Phonemes);
         }
         return form;
     }

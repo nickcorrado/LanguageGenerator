@@ -58,6 +58,8 @@ public static partial class Generator
         {
             changes.Add(harmony);
         }
+        //every language merges the same vowel twice, after harmony, which can make two vowels alike
+        changes.Add(SoundChange.IdenticalVowelFusion);
         if (hiatus is not null)
         {
             changes.Add(hiatus);
@@ -134,7 +136,9 @@ public static partial class Generator
         return new Orthography(inventory.ToDictionary(p => p, p => p.IpaSymbol));
     }
 
-    public static Syllable GenerateSyllable(Random rand, SyllableRule rule, double dropoff)
+    //needsOnset fills the C slot if the onset would otherwise be empty, for a syllable that follows
+    //another inside a root
+    public static Syllable GenerateSyllable(Random rand, SyllableRule rule, double dropoff, bool needsOnset = false)
     {
         var onset = new List<Consonant>();
         Vowel? nucleus = null;
@@ -144,6 +148,11 @@ public static partial class Generator
         {
             if (slot is Slot.Vowel)
             {
+                if (needsOnset && onset.Count == 0 && rule.Template.Slots.Contains(Slot.Consonant)
+                    && Pick(rand, rule.Resolve(Slot.Consonant), 1, dropoff) is { } forced)
+                {
+                    onset.Add(forced);
+                }
                 nucleus = Pick(rand, rule.Vowels, 1, dropoff) ?? throw new InvalidOperationException("The inventory has no vowels.");
             }
             //an onset consonant has to be able to follow the one before it, so pl but not nl

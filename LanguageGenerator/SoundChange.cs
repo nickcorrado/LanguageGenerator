@@ -200,6 +200,23 @@ public sealed class SoundChange(string name, Func<Site, bool> when, Func<Site, P
             ? (phonology.Vowels.Contains(vowel.Lengthened!) ? vowel.Lengthened : vowel)
             : (phonology.Vowels.Contains(((Vowel)site.Before!).Lengthened!) ? null : site.Sound));
 
+    /// <summary>
+    /// The same vowel twice in a row merges into one, long where the language has long vowels, as
+    /// in Greek, where ε + ε gave long ει.
+    /// </summary>
+    //nearly every language does this, even ones that otherwise leave vowels side by side, so every
+    //language has it. The merged vowel keeps the first one's morpheme, so a suffix can be left with
+    //no sound of its own, and it runs before the language's own way with vowels that meet
+    public static SoundChange IdenticalVowelFusion { get; } = new("identical vowel fusion (ka-a → kaː)",
+        site => site.Sound is Vowel vowel
+            && (site.Next?.Phoneme is Vowel next && SameQuality(vowel, next) || site.Previous?.Phoneme is Vowel previous && SameQuality(vowel, previous)),
+        (site, phonology) => site.Previous?.Phoneme is Vowel previous && SameQuality((Vowel)site.Sound, previous)
+            ? null
+            : ((Vowel)site.Sound).Lengthened is { } lengthened && phonology.Vowels.Contains(lengthened) ? lengthened : site.Sound);
+
+    private static bool SameQuality(Vowel first, Vowel second) =>
+        first.Height == second.Height && first.Backness == second.Backness && first.Rounded == second.Rounded;
+
     /// <summary>The first of two vowels that meet at a morpheme boundary is lost.</summary>
     public static SoundChange VowelElision { get; } = new("vowel elision (ka-a → ka, ka-o → ko)",
         site => site.Sound is Vowel && site.Next is { Phoneme: Vowel } next && !next.Morpheme.Equals(site.Segment.Morpheme),

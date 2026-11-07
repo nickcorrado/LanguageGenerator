@@ -443,6 +443,29 @@ public class SoundChangeTests
     }
 
     [Fact]
+    public void IdenticalVowelFusion_SameVowelTwice_MergesIntoTheLongVowel()
+    {
+        Assert.Equal("kaː", Surface(SyllableTemplates.CV, SoundChange.IdenticalVowelFusion, Ka, [Vowel.a]));
+        Assert.Equal("kaː", Surface(SyllableTemplates.CV, SoundChange.IdenticalVowelFusion, Ka, [Vowel.aː]));
+        Assert.Equal("kaː", Surface(SyllableTemplates.CV, SoundChange.IdenticalVowelFusion, Ka, [Vowel.a, Vowel.a]));
+        Assert.Equal("liuː", Surface(SyllableTemplates.CV, SoundChange.IdenticalVowelFusion, [Consonant.l, Vowel.i, Vowel.u], [Vowel.u]));
+    }
+
+    [Fact]
+    public void IdenticalVowelFusion_WithoutLongVowels_LeavesOneShortVowel()
+    {
+        var phonology = TestData.Phonology(SyllableTemplates.CV, ClusterRepair.Epenthesis, SoundChange.IdenticalVowelFusion) with { Vowels = [Vowel.a, Vowel.i, Vowel.u] };
+
+        Assert.Equal("ka", string.Concat(phonology.Realize(TestData.Word(Ka, [Vowel.a])).Phonemes.Select(p => p.IpaSymbol)));
+    }
+
+    [Fact]
+    public void IdenticalVowelFusion_DifferentVowels_AreLeftAlone()
+    {
+        Assert.Equal("kai", Surface(SyllableTemplates.CV, SoundChange.IdenticalVowelFusion, Ka, [Vowel.i]));
+    }
+
+    [Fact]
     public void Lenition_AspiratesBetweenVowels_BecomeFricativesAsInGreek()
     {
         Assert.Equal("afa", Surface(SyllableTemplates.CV, SoundChange.Lenition, [Vowel.a, Consonant.pʰ, Vowel.a]));
