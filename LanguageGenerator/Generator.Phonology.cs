@@ -23,8 +23,8 @@ public static partial class Generator
     }
 
     //more sound changes, applied after the first ones, in this order. What a language does when vowels
-    //meet, elision, contraction or nothing, comes last, so that the vowels it removes still separate
-    //consonants for the changes before it, and still set a word's harmony. The odds are guesses, final
+    //meet comes last, so that the vowels it removes still separate consonants for the changes before
+    //it, and still set a word's harmony. The odds are guesses, final
     //devoicing is for languages whose syllables can end in a consonant, and harmony is for those with
     //vowels to pair. Harmony is drawn last, so that the changes before it stay as they were for each seed
     public static List<SoundChange> SelectLaterSoundChanges(Random rand, SyllableRule rule, IReadOnlyCollection<Vowel> vowels)
@@ -42,12 +42,7 @@ public static partial class Generator
         {
             changes.Add(SoundChange.FinalDevoicing);
         }
-        var hiatus = rand.NextDouble() switch
-        {
-            < 0.4 => SoundChange.VowelElision,
-            < 0.75 => SoundChange.VowelContraction,
-            _ => null,
-        };
+        var (hiatus, glideFormation) = SelectHiatusResolution(rand, rule.Resolve(Slot.Consonant));
         var harmony = rand.NextDouble() switch
         {
             < 0.15 => SoundChange.FrontBackHarmony,
@@ -60,12 +55,47 @@ public static partial class Generator
         }
         //every language merges the same vowel twice, after harmony, which can make two vowels alike
         changes.Add(SoundChange.IdenticalVowelFusion);
+        if (glideFormation)
+        {
+            changes.Add(SoundChange.GlideFormation);
+        }
         if (hiatus is not null)
         {
             changes.Add(hiatus);
         }
         return changes;
     }
+
+    //how a language deals with vowels that meet at a morpheme boundary, the only place they meet
+    //inside a word: one way for most cases, and maybe glide formation before it for close vowels.
+    //Casali's surveys find eliding the first vowel commonest, and glide formation common beside it;
+    //the rest of the weights are guesses. Coalescence always comes with glide formation, as in
+    //Sanskrit. A language without the consonant an insertion needs does the next best thing
+    public static (SoundChange? Main, bool GlideFormation) SelectHiatusResolution(Random rand, IReadOnlyCollection<Consonant> consonants)
+    {
+        var main = Sampling.Categorical(rand, HiatusResolutions);
+        var glides = rand.NextDouble() < 0.4;
+        var hasGlide = consonants.Contains(Consonant.j) || consonants.Contains(Consonant.w);
+        if (main == SoundChange.GlottalInsertion && !consonants.Contains(Consonant.ʔ) && !consonants.Contains(Consonant.h))
+        {
+            main = SoundChange.GlideInsertion;
+        }
+        if (main == SoundChange.GlideInsertion && !hasGlide)
+        {
+            main = null;
+        }
+        return (main, hasGlide && (glides || main == SoundChange.VowelCoalescence));
+    }
+
+    private static readonly (SoundChange? Change, int Weight)[] HiatusResolutions =
+    [
+        (SoundChange.VowelElision, 30),
+        (SoundChange.VowelCoalescence, 15),
+        (SoundChange.GreekContraction, 12),
+        (SoundChange.GlideInsertion, 12),
+        (SoundChange.GlottalInsertion, 8),
+        (null, 23),
+    ];
 
     //changes that depend on syllables, for languages whose syllables can end in a consonant. Devoicing
     //and weakening need obstruents in codas, which a coda restriction rules out, and lengthening needs

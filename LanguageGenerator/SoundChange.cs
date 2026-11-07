@@ -34,8 +34,12 @@ public readonly record struct Site(Segment Segment, Segment? Previous, Segment? 
 //each change is applied across a whole word, left to right, so it sees morpheme boundaries, and a
 //language applies its changes in order, so one can feed or bleed the next. Changes only ever use
 //phonemes from the language's own inventory; where it has no suitable phoneme, the sound is left
-//alone. A change is a value, so a language's are a list that can be drawn, compared or extended
-public sealed class SoundChange(string name, Func<Site, bool> when, Func<Site, Phonology, Phoneme?> becomes, (Vowel First, Vowel Second)[]? pairs = null)
+//alone. A change is a value, so a language's are a list that can be drawn, compared or extended.
+//Besides changing or deleting a sound, a change can insert one after it, which belongs to the
+//morpheme after it, as an inserted consonant starts the suffix it comes before. Only changes
+//that run before syllables can insert, since syllable places are counted by sound
+public sealed class SoundChange(string name, Func<Site, bool> when, Func<Site, Phonology, Phoneme?> becomes, (Vowel First, Vowel Second)[]? pairs = null,
+    Func<Site, Phonology, Phoneme?>? insertsAfter = null)
 {
     public override string ToString() => name;
 
@@ -53,9 +57,15 @@ public sealed class SoundChange(string name, Func<Site, bool> when, Func<Site, P
             {
                 result.Add(segments[i] with { Phoneme = sound });
             }
+            if (places is null && site.Next is { } next && insertsAfter?.Invoke(site, phonology) is { } inserted)
+            {
+                result.Add(new Segment(inserted, next.Morpheme));
+            }
         }
         return result;
     }
+
+    private static bool NeverChanges(Site site) => false;
 
     //for changes that delete what they apply to
     private static Phoneme? Nothing(Site site, Phonology phonology) => null;
@@ -217,17 +227,100 @@ public sealed class SoundChange(string name, Func<Site, bool> when, Func<Site, P
     private static bool SameQuality(Vowel first, Vowel second) =>
         first.Height == second.Height && first.Backness == second.Backness && first.Rounded == second.Rounded;
 
+    private static bool IsHigh(Vowel vowel) => vowel.Height == VowelHeight.Close;
+
+    //the glide each close vowel becomes, or is echoed by
+    private static readonly Dictionary<Phoneme, Consonant> Glides = new()
+    {
+        [Vowel.i] = Consonant.j, [Vowel.iː] = Consonant.j, [Vowel.u] = Consonant.w, [Vowel.uː] = Consonant.w,
+    };
+
+    /// <summary>
+    /// A close vowel before another vowel becomes a glide, i to j and u to w, as in Spanish or
+    /// Sanskrit, where i + a gives ya.
+    /// </summary>
+    //only where the syllable the glide joins is legal: the consonants before it have to split into
+    //a coda for the syllable before, if there is one, and an onset ending in the glide. Elsewhere the
+    //vowel stays, for whatever else the language does with vowels that meet. ɨ has no glide, so it
+    //stays too
+    public static SoundChange GlideFormation { get; } = new("glide formation (ki-a → kja)",
+        site => Glides.ContainsKey(site.Sound) && site.Next?.Phoneme is Vowel,
+        (site, phonology) => Glides[site.Sound] is var glide && phonology.Consonants.Contains(glide) && CanStartSyllable(glide, site, phonology.SyllableRule)
+            ? glide
+            : site.Sound);
+
+    private static bool CanStartSyllable(Consonant glide, Site site, SyllableRule rule)
+    {
+        var cluster = site.Word.Take(site.Index).Reverse().TakeWhile(s => s.Phoneme is Consonant).Select(s => (Consonant)s.Phoneme).Reverse().ToList();
+        //a coda needs a vowel before it; at the start of a word, the whole cluster is the onset
+        var codaLengths = site.Index > cluster.Count ? Enumerable.Range(0, cluster.Count + 1) : [0];
+        return codaLengths.Any(c => rule.IsLegalCoda(cluster[..c]) && rule.IsLegalOnset([.. cluster[c..], glide]));
+    }
+
+    /// <summary>
+    /// Two vowels that meet, neither of them close, merge into one long vowel, as in Attic Greek:
+    /// a rounded vowel wins, as e + o gave ō, and otherwise the first one does, as a + e gave ā.
+    /// </summary>
+    //close vowels don't contract, as Greek ι and υ didn't, so they're left for glide formation, or
+    //left alone. Schwa gives way to anything. The vowel is long where the language has it long
+    public static SoundChange GreekContraction { get; } = new("Greek contraction (ka-e → kaː, ke-o → koː)",
+        site => site.Sound is Vowel vowel && !IsHigh(vowel)
+            && (site.Before is Vowel before && !IsHigh(before) || site.Next?.Phoneme is Vowel next && !IsHigh(next)),
+        (site, phonology) =>
+        {
+            if (site.Before is Vowel before && !IsHigh(before))
+            {
+                return null;
+            }
+            var run = site.Word.Skip(site.Index).Select(s => s.Phoneme).TakeWhile(p => p is Vowel v && !IsHigh(v)).Cast<Vowel>().ToList();
+            var full = run.Where(v => v != Vowel.ə).DefaultIfEmpty(Vowel.ə).ToList();
+            var winner = full.FirstOrDefault(v => v.Rounded) ?? full[0];
+            return winner.Lengthened is { } lengthened && phonology.Vowels.Contains(lengthened) ? lengthened : winner;
+        });
+
+    /// <summary>
+    /// A glide comes between vowels that meet, the one that goes with the first vowel, as in many
+    /// languages of West Africa and the Pacific: j after a front vowel, w after a rounded one.
+    /// </summary>
+    //after a, ə or ɨ, which go with neither, the glide goes with the second vowel instead. A language
+    //without the glide leaves the vowels as they are
+    public static SoundChange GlideInsertion { get; } = new("glide insertion (ki-a → kija, ku-a → kuwa)",
+        NeverChanges, Nothing,
+        insertsAfter: (site, phonology) =>
+        {
+            if (site.Sound is not Vowel first || site.Next?.Phoneme is not Vowel second)
+            {
+                return null;
+            }
+            var glide = first.Rounded ? Consonant.w
+                : first.Backness == VowelFrontness.Front ? Consonant.j
+                : second.Rounded ? Consonant.w : Consonant.j;
+            return phonology.Consonants.Contains(glide) ? glide : null;
+        });
+
+    /// <summary>
+    /// A glottal stop comes between vowels that meet, or h where a language has no glottal stop, as
+    /// in Malay or Hawaiian.
+    /// </summary>
+    public static SoundChange GlottalInsertion { get; } = new("glottal insertion (ka-i → kaʔi)",
+        NeverChanges, Nothing,
+        insertsAfter: (site, phonology) => site.Sound is Vowel && site.Next?.Phoneme is Vowel
+            ? new[] { Consonant.ʔ, Consonant.h }.FirstOrDefault(phonology.Consonants.Contains)
+            : null);
+
     /// <summary>The first of two vowels that meet at a morpheme boundary is lost.</summary>
     public static SoundChange VowelElision { get; } = new("vowel elision (ka-a → ka, ka-o → ko)",
         site => site.Sound is Vowel && site.Next is { Phoneme: Vowel } next && !next.Morpheme.Equals(site.Segment.Morpheme),
         Nothing);
 
     /// <summary>
-    /// Vowels that meet merge into one, wherever they meet, as in Attic Greek or Sanskrit, where a + i
-    /// gives long e and a + u long o.
+    /// Vowels that meet merge into one halfway between them, wherever they meet, as in Sanskrit, where
+    /// a + i gives long e and a + u long o.
     /// </summary>
-    //the merged vowel keeps the first one's morpheme, so a suffix can be left with no sound of its own
-    public static SoundChange VowelContraction { get; } = new("vowel contraction (ka-a → kaː, ka-i → keː)",
+    //the merged vowel keeps the first one's morpheme, so a suffix can be left with no sound of its own.
+    //Languages that do this turn close vowels into glides first, as Sanskrit does, so it mostly
+    //merges vowels that glide formation couldn't
+    public static SoundChange VowelCoalescence { get; } = new("vowel coalescence (ka-i → keː, ka-u → koː)",
         site => site.Sound is Vowel && (site.Before is Vowel || site.Next?.Phoneme is Vowel),
         (site, phonology) => site.Before is Vowel
             ? null

@@ -182,8 +182,9 @@ public class SyllableRule
 
     /// <summary>Whether one consonant can come right before another in an onset.</summary>
     //sonority sequencing: sounds grow more vowel-like toward the vowel, stops, then fricatives,
-    //nasals, liquids and glides, and before a liquid or glide, by at least two steps, the commonest
-    //minimum distance. So pl, fr, mj and kw, but not nr or lw. On top of that, the commonest gaps:
+    //nasals, liquids and glides, and before a liquid, by at least two steps, the commonest minimum
+    //distance, or before a glide by one. So pl, fr, mj, lj and kw, but not nr or nl. On top of that,
+    //the commonest gaps:
     //labials before w and coronal stops before l, which English, Spanish and Greek all lack, and
     //no glottal stop or labialized consonant leading a cluster. Before anything else, only a
     //sibilant can stand, as in st, sk or sn, and only before a plain voiceless stop or m or n:
@@ -196,7 +197,10 @@ public class SyllableRule
         }
         if (second.Manner is ConsonantManner.Approximant or ConsonantManner.LateralApproximant or ConsonantManner.Trill or ConsonantManner.Flap)
         {
-            return Sonority(second) - Sonority(first) >= 2
+            //glides are freer than liquids: a liquid can come before one, as in Spanish lia or
+            //French loi, so glide formation has somewhere to go
+            var distance = Sonority(second) == 5 ? 1 : 2;
+            return Sonority(second) - Sonority(first) >= distance
                 && !(second == Consonant.w && first.Place is ConsonantPlace.Labial or ConsonantPlace.LabioDental)
                 && !(second == Consonant.l && first.Manner is ConsonantManner.Plosive && first.Place is ConsonantPlace.Dental);
         }
