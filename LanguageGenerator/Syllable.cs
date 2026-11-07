@@ -177,7 +177,43 @@ public class SyllableRule
 
     //whether these consonants can open, or close, a syllable of this shape
     public bool IsLegalOnset(IReadOnlyList<Consonant> consonants) =>
-        Fits(consonants, [.. Template.Slots.TakeWhile(s => s is not Slot.Vowel)]);
+        Fits(consonants, [.. Template.Slots.TakeWhile(s => s is not Slot.Vowel)])
+        && consonants.Zip(consonants.Skip(1)).All(pair => CanPrecede(pair.First, pair.Second));
+
+    /// <summary>Whether one consonant can come right before another in an onset.</summary>
+    //sonority sequencing: sounds grow more vowel-like toward the vowel, stops, then fricatives,
+    //nasals, liquids and glides, and before a liquid or glide, by at least two steps, the commonest
+    //minimum distance. So pl, fr, mj and kw, but not nr or lw. On top of that, the commonest gaps:
+    //labials before w and coronal stops before l, which English, Spanish and Greek all lack, and
+    //no glottal stop or labialized consonant leading a cluster. Before anything else, only a
+    //sibilant can stand, as in st, sk or sn, and only before a plain voiceless stop or m or n:
+    //English has no sth or sŋ, and its sp, st and sk are never aspirated
+    public static bool CanPrecede(Consonant first, Consonant second)
+    {
+        if (first == Consonant.ʔ || first.Labialized)
+        {
+            return false;
+        }
+        if (second.Manner is ConsonantManner.Approximant or ConsonantManner.LateralApproximant or ConsonantManner.Trill or ConsonantManner.Flap)
+        {
+            return Sonority(second) - Sonority(first) >= 2
+                && !(second == Consonant.w && first.Place is ConsonantPlace.Labial or ConsonantPlace.LabioDental)
+                && !(second == Consonant.l && first.Manner is ConsonantManner.Plosive && first.Place is ConsonantPlace.Dental);
+        }
+        return first.Manner == ConsonantManner.Sibilant && !first.Voiced
+            && (second is { Manner: ConsonantManner.Plosive, Voiced: false, Aspirated: false } && second != Consonant.ʔ
+                || second == Consonant.m || second == Consonant.n);
+    }
+
+    private static int Sonority(Consonant consonant) => consonant.Manner switch
+    {
+        ConsonantManner.Plosive or ConsonantManner.Affricate => 1,
+        ConsonantManner.Fricative or ConsonantManner.Sibilant => 2,
+        ConsonantManner.Nasal => 3,
+        ConsonantManner.LateralApproximant or ConsonantManner.Trill or ConsonantManner.Flap => 4,
+        ConsonantManner.Approximant => consonant == Consonant.ɹ ? 4 : 5,
+        _ => throw new ArgumentOutOfRangeException(nameof(consonant), consonant.Manner, null),
+    };
     public bool IsLegalCoda(IReadOnlyList<Consonant> consonants) =>
         Fits(consonants, [.. Template.Slots.SkipWhile(s => s is not Slot.Vowel).Skip(1)]);
 

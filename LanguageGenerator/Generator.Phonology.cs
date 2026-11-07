@@ -144,7 +144,11 @@ public static partial class Generator
             {
                 nucleus = Pick(rand, rule.Vowels, 1, dropoff) ?? throw new InvalidOperationException("The inventory has no vowels.");
             }
-            else if (Pick(rand, rule.Resolve(slot), FillChance(rule.Template, slot), dropoff) is { } consonant)
+            //an onset consonant has to be able to follow the one before it, so pl but not nl
+            else if (Pick(rand, nucleus is null && onset.Count > 0
+                    ? new NaturalClass<Consonant>(rule.Resolve(slot).Where(c => SyllableRule.CanPrecede(onset[^1], c)))
+                    : rule.Resolve(slot),
+                FillChance(rule.Template, slot), dropoff) is { } consonant)
             {
                 if (nucleus is null)
                 {

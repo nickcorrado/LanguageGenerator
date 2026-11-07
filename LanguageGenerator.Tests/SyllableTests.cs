@@ -65,6 +65,55 @@ public class SyllableTests
         Assert.InRange(syllables.Count(s => s.Coda is not null) / 20000.0, 0.48, 0.52);
     }
 
+    [Theory]
+    [InlineData("p", "l", true)]
+    [InlineData("t", "ɾ", true)]
+    [InlineData("f", "r", true)]
+    [InlineData("k", "w", true)]
+    [InlineData("m", "j", true)]
+    [InlineData("s", "t", true)]
+    [InlineData("s", "n", true)]
+    [InlineData("s", "kʷ", true)]
+    [InlineData("n", "ɹ", false)]
+    [InlineData("l", "ɹ", false)]
+    [InlineData("n", "l", false)]
+    [InlineData("l", "w", false)]
+    [InlineData("p", "w", false)]
+    [InlineData("t", "l", false)]
+    [InlineData("ʔ", "l", false)]
+    [InlineData("kʷ", "ɹ", false)]
+    [InlineData("s", "tʰ", false)]
+    [InlineData("s", "h", false)]
+    [InlineData("s", "ʔ", false)]
+    [InlineData("t", "k", false)]
+    public void CanPrecede_FollowsSonorityAndTheCommonGaps(string first, string second, bool expected)
+    {
+        Consonant Sound(string ipa) => Consonant.All.Single(c => c.IpaSymbol == ipa);
+
+        Assert.Equal(expected, SyllableRule.CanPrecede(Sound(first), Sound(second)));
+    }
+
+    [Fact]
+    public void IsLegalOnset_NasalBeforeLiquid_IsIllegalEvenWhereTheSlotsFit()
+    {
+        var rule = new SyllableRule(SyllableTemplates.CLV, TestData.Vowels, TestData.Consonants);
+
+        Assert.True(rule.IsLegalOnset([Consonant.p, Consonant.ɹ]));
+        Assert.False(rule.IsLegalOnset([Consonant.n, Consonant.ɹ]));
+    }
+
+    [Fact]
+    public void Realize_GeneratedLanguages_NeverHaveAnOnsetThatBreaksSonority()
+    {
+        Assert.All(GeneratedLanguages.Sample, language =>
+        {
+            var onsets = GeneratedLanguages.AllWords(language).Select(language.Phonology.Realize)
+                .SelectMany(f => f.Syllables).Select(s => s.Onset).Where(o => o.Count > 1);
+            Assert.All(onsets, o => Assert.True(o.Zip(o.Skip(1)).All(p => SyllableRule.CanPrecede(p.First, p.Second)),
+                string.Concat(o.Select(c => c.IpaSymbol))));
+        });
+    }
+
     [Fact]
     public void IsLegalCoda_AspiratedOrLabializedStop_IsNeverACoda()
     {
@@ -107,7 +156,8 @@ public class SyllableTests
     [InlineData("CLVF", "pl", true)]
     [InlineData("CLVF", "lp", false)]
     [InlineData("CLVF", "st", false)]
-    [InlineData("SCLVF", "stl", true)]
+    [InlineData("SCLVF", "spl", true)]
+    [InlineData("SCLVF", "stl", false)]
     [InlineData("SCLVF", "sl", true)]
     [InlineData("VF", "t", false)]
     [InlineData("VF", "", true)]
