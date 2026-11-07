@@ -219,9 +219,10 @@ public class GeneratorTests
 
     [Theory]
     [InlineData("", "ə")]
-    [InlineData("ə", "i")]
-    [InlineData("ə i", "u")]
-    [InlineData("ə i u", "a")]
+    [InlineData("ə", "ɨ")]
+    [InlineData("ə ɨ", "i")]
+    [InlineData("ə ɨ i", "u")]
+    [InlineData("ə ɨ i u", "a")]
     public void SelectEpentheticVowel_PrefersSchwaThenCloseVowelsThenTheCommonest(string missing, string expected)
     {
         var absent = missing.Split(' ', StringSplitOptions.RemoveEmptyEntries);
@@ -295,6 +296,7 @@ public class GeneratorTests
     [InlineData("gʷ", "g")]
     [InlineData("gʷ", "kʷ")]
     [InlineData("ʣ", "ʦ")]
+    [InlineData("q", "k")]
     public void GenerateConsonants_ManyDraws_NeverHaveAMarkedSoundWithoutTheOneItImplies(string marked, string implied)
     {
         Assert.All(ConsonantDraws.Value, c =>

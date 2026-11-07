@@ -23,19 +23,21 @@ public class Vowel : Phoneme
     public static Vowel e { get; } = new("e", VowelHeight.CloseMid, VowelFrontness.Front, false, false);
     public static Vowel ɛ { get; } = new("ɛ", VowelHeight.OpenMid, VowelFrontness.Front, false, false);
     public static Vowel æ { get; } = new("æ", VowelHeight.NearOpen, VowelFrontness.Front, false, false);
-    public static Vowel a { get; } = new("a", VowelHeight.Open, VowelFrontness.Front, false, false);
+    //the a of most languages, as in Spanish or Swahili, which is central, not front like æ
+    public static Vowel a { get; } = new("a", VowelHeight.Open, VowelFrontness.Central, false, false);
     public static Vowel ə { get; } = new("ə", VowelHeight.Mid, VowelFrontness.Central, false, false);
+    public static Vowel ɨ { get; } = new("ɨ", VowelHeight.Close, VowelFrontness.Central, false, false);
     public static Vowel ɔ { get; } = new("ɔ", VowelHeight.OpenMid, VowelFrontness.Back, true, false);
     public static Vowel o { get; } = new("o", VowelHeight.CloseMid, VowelFrontness.Back, true, false);
     public static Vowel oː { get; } = new("oː", VowelHeight.CloseMid, VowelFrontness.Back, true, true);
-    public static Vowel aː { get; } = new("aː", VowelHeight.Open, VowelFrontness.Front, false, true);
+    public static Vowel aː { get; } = new("aː", VowelHeight.Open, VowelFrontness.Central, false, true);
     public static Vowel eː { get; } = new("eː", VowelHeight.CloseMid, VowelFrontness.Front, false, true);
     public static Vowel u { get; } = new("u", VowelHeight.Close, VowelFrontness.Back, true, false);
     public static Vowel uː { get; } = new("uː", VowelHeight.Close, VowelFrontness.Back, true, true);
 
     /// <summary>Every vowel a language can have, from which the generator prunes.</summary>
     //declared after the vowels themselves, since static properties initialize in order
-    public static IReadOnlyList<Vowel> All { get; } = [a, e, i, æ, ɛ, ə, ɔ, o, iː, oː, aː, eː, u, uː];
+    public static IReadOnlyList<Vowel> All { get; } = [a, e, i, æ, ɛ, ə, ɨ, ɔ, o, iː, oː, aː, eː, u, uː];
 
     public VowelHeight Height { get; }
     public VowelFrontness Backness { get; }
@@ -71,12 +73,13 @@ public class Consonant : Phoneme
     public static Consonant ʒ { get; } = new("ʒ", ConsonantPlace.PostAlveolar, ConsonantManner.Sibilant, true);
     public static Consonant f { get; } = new("f", ConsonantPlace.LabioDental, ConsonantManner.Fricative, false);
     public static Consonant v { get; } = new("v", ConsonantPlace.LabioDental, ConsonantManner.Fricative, true);
-    public static Consonant ɹ { get; } = new("ɹ", ConsonantPlace.PostAlveolar, ConsonantManner.Approximant, true);
+    public static Consonant ɹ { get; } = new("ɹ", ConsonantPlace.Dental, ConsonantManner.Approximant, true);
     public static Consonant r { get; } = new("r", ConsonantPlace.Dental, ConsonantManner.Trill, true);
     public static Consonant ɾ { get; } = new("ɾ", ConsonantPlace.Dental, ConsonantManner.Flap, true);
     public static Consonant l { get; } = new("l", ConsonantPlace.Dental, ConsonantManner.LateralApproximant, true);
     public static Consonant j { get; } = new("j", ConsonantPlace.Palatal, ConsonantManner.Approximant, true);
-    public static Consonant w { get; } = new("w", ConsonantPlace.Velar, ConsonantManner.Approximant, true);
+    //made with both lips and the back of the tongue at once
+    public static Consonant w { get; } = new("w", ConsonantPlace.LabialVelar, ConsonantManner.Approximant, true);
     public static Consonant θ { get; } = new("θ", ConsonantPlace.Dental, ConsonantManner.Fricative, false);
     public static Consonant ð { get; } = new("ð", ConsonantPlace.Dental, ConsonantManner.Fricative, true);
     public static Consonant ŋ { get; } = new("ŋ", ConsonantPlace.Velar, ConsonantManner.Nasal, true);
@@ -89,6 +92,10 @@ public class Consonant : Phoneme
     public static Consonant ʣ { get; } = new("ʣ", ConsonantPlace.Dental, ConsonantManner.Affricate, true);
     public static Consonant ʔ { get; } = new("ʔ", ConsonantPlace.Glottal, ConsonantManner.Plosive, false);
     public static Consonant ɲ { get; } = new("ɲ", ConsonantPlace.Palatal, ConsonantManner.Nasal, true);
+    //a stop made at the hard palate, like the ty of Hungarian or the k of English keep pushed forward
+    public static Consonant c { get; } = new("c", ConsonantPlace.Palatal, ConsonantManner.Plosive, false);
+    //a k made further back, at the uvula, as in Arabic, Quechua or Inuktitut
+    public static Consonant q { get; } = new("q", ConsonantPlace.Uvular, ConsonantManner.Plosive, false);
     //a series of stops released with a puff of air, as in Mandarin, Hindi or Korean, where p and pʰ
     //are different sounds. English has them too, in pin against spin, but never to tell words apart
     public static Consonant pʰ { get; } = new("pʰ", ConsonantPlace.Labial, ConsonantManner.Plosive, false, aspirated: true);
@@ -101,7 +108,7 @@ public class Consonant : Phoneme
 
     /// <summary>Every consonant a language can have.</summary>
     public static IReadOnlyList<Consonant> All { get; } =
-        [b, d, g, k, m, n, p, s, t, z, ʃ, ʒ, f, v, ɹ, r, ɾ, l, j, w, θ, ð, ŋ, h, x, ʧ, ʤ, ʦ, ʣ, ʔ, ɲ, pʰ, tʰ, kʰ, kʷ, gʷ];
+        [b, d, g, k, m, n, p, s, t, z, ʃ, ʒ, f, v, ɹ, r, ɾ, l, j, w, θ, ð, ŋ, h, x, ʧ, ʤ, ʦ, ʣ, ʔ, ɲ, c, q, pʰ, tʰ, kʰ, kʷ, gʷ];
 
     public ConsonantPlace Place { get; }
     public ConsonantManner Manner { get; }
@@ -141,7 +148,7 @@ public enum ConsonantPlace
 {
     Labial, LabioDental, Dental, //more denti-alveolar
     PostAlveolar, Retroflex, Palatal,
-    Velar, Glottal
+    Velar, LabialVelar, Uvular, Glottal
 }
 
 public enum ConsonantManner

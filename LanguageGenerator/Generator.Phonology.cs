@@ -92,11 +92,11 @@ public static partial class Generator
         return changes;
     }
 
-    //schwa and the close vowels are the usual epenthetic vowels, i more than u, as in Japanese;
-    //failing those, the language's commonest vowel, which is the first one since picks are biased
-    //toward the front
+    //the central vowels are the usual epenthetic vowels, schwa and then ɨ, as in Korean, and after
+    //them the close ones, i more than u, as in Japanese; failing those, the language's commonest
+    //vowel, which is the first one since picks are biased toward the front
     public static Vowel SelectEpentheticVowel(IReadOnlyList<Vowel> vowels) =>
-        new[] { Vowel.ə, Vowel.i, Vowel.u }.FirstOrDefault(vowels.Contains) ?? vowels[0];
+        new[] { Vowel.ə, Vowel.ɨ, Vowel.i, Vowel.u }.FirstOrDefault(vowels.Contains) ?? vowels[0];
 
     //a set of conventions, applied to the whole inventory. Conventions that clash for this
     //inventory (acute long vowels beside acute close vowels both give ó, say) are drawn again as
@@ -122,7 +122,9 @@ public static partial class Generator
                 Pick(Enum.GetValues<DentalAffricateSpelling>()),
                 Pick(Enum.GetValues<AspirationSpelling>()),
                 Pick(OrthographicStyle.GlottalStopOptions),
-                Pick(OrthographicStyle.PalatalNasalOptions));
+                Pick(OrthographicStyle.PalatalNasalOptions),
+                Pick(OrthographicStyle.PalatalStopOptions),
+                Pick(OrthographicStyle.CloseCentralOptions));
             var spellings = style.Spell(inventory);
             if (Orthography.AreDistinct(spellings.Values))
             {
@@ -262,35 +264,39 @@ public static partial class Generator
     }
 
     //short vowels from commonest to rarest across languages, roughly as PHOIBLE counts them
-    private static readonly Vowel[] VowelMarkedness = [Vowel.a, Vowel.i, Vowel.u, Vowel.e, Vowel.o, Vowel.ə, Vowel.ɛ, Vowel.ɔ, Vowel.æ];
+    private static readonly Vowel[] VowelMarkedness = [Vowel.a, Vowel.i, Vowel.u, Vowel.e, Vowel.o, Vowel.ə, Vowel.ɛ, Vowel.ɔ, Vowel.ɨ, Vowel.æ];
 
     //WALS 2A counts languages by how many vowel qualities they have: 93 with 2 to 4, 287 with 5 or
     //6, and 184 with 7 to 14. Within each band, the systems and their weights are guesses at how
-    //common each shape is, five vowels being much the commonest size. Seven is as many as this
-    //inventory allows besides schwa and æ, so the large band tops out at nine
+    //common each shape is, five vowels being much the commonest size. This inventory has ten short
+    //vowels, so the large band tops out at ten
     private static readonly (Vowel[] Qualities, int Weight)[] SmallVowelSystems =
     [
         ([Vowel.a, Vowel.ə], 3),                                 //vertical, as in Kabardian
         ([Vowel.a, Vowel.i, Vowel.u], 50),                       //Arabic, Quechua
         ([Vowel.a, Vowel.i, Vowel.u, Vowel.e], 15),
         ([Vowel.a, Vowel.i, Vowel.u, Vowel.o], 15),
-        ([Vowel.a, Vowel.i, Vowel.u, Vowel.ə], 17),
+        ([Vowel.a, Vowel.i, Vowel.u, Vowel.ə], 12),
+        ([Vowel.a, Vowel.i, Vowel.u, Vowel.ɨ], 5),
     ];
 
     private static readonly (Vowel[] Qualities, int Weight)[] AverageVowelSystems =
     [
-        ([Vowel.a, Vowel.e, Vowel.i, Vowel.o, Vowel.u], 70),     //Spanish, Japanese, Swahili
-        ([Vowel.a, Vowel.e, Vowel.i, Vowel.o, Vowel.u, Vowel.ə], 20),
+        ([Vowel.a, Vowel.e, Vowel.i, Vowel.o, Vowel.u], 65),     //Spanish, Japanese, Swahili
+        ([Vowel.a, Vowel.e, Vowel.i, Vowel.o, Vowel.u, Vowel.ə], 15),
+        ([Vowel.a, Vowel.e, Vowel.i, Vowel.o, Vowel.u, Vowel.ɨ], 10),  //Guarani, common in the Americas
         ([Vowel.a, Vowel.e, Vowel.i, Vowel.o, Vowel.u, Vowel.ɛ], 5),
         ([Vowel.a, Vowel.e, Vowel.i, Vowel.o, Vowel.u, Vowel.æ], 5),
     ];
 
     private static readonly (Vowel[] Qualities, int Weight)[] LargeVowelSystems =
     [
-        ([Vowel.a, Vowel.e, Vowel.ɛ, Vowel.i, Vowel.o, Vowel.ɔ, Vowel.u], 50),                   //Italian, Yoruba
-        ([Vowel.a, Vowel.e, Vowel.i, Vowel.o, Vowel.u, Vowel.ə, Vowel.æ], 15),
-        ([Vowel.a, Vowel.e, Vowel.ɛ, Vowel.i, Vowel.o, Vowel.ɔ, Vowel.u, Vowel.ə], 25),          //Catalan
-        ([Vowel.a, Vowel.e, Vowel.ɛ, Vowel.i, Vowel.o, Vowel.ɔ, Vowel.u, Vowel.ə, Vowel.æ], 10),
+        ([Vowel.a, Vowel.e, Vowel.ɛ, Vowel.i, Vowel.o, Vowel.ɔ, Vowel.u], 45),                   //Italian, Yoruba
+        ([Vowel.a, Vowel.e, Vowel.i, Vowel.o, Vowel.u, Vowel.ə, Vowel.æ], 12),
+        ([Vowel.a, Vowel.e, Vowel.i, Vowel.o, Vowel.u, Vowel.ə, Vowel.ɨ], 10),                   //Mapudungun
+        ([Vowel.a, Vowel.e, Vowel.ɛ, Vowel.i, Vowel.o, Vowel.ɔ, Vowel.u, Vowel.ə], 23),          //Catalan
+        ([Vowel.a, Vowel.e, Vowel.ɛ, Vowel.i, Vowel.o, Vowel.ɔ, Vowel.u, Vowel.ə, Vowel.æ], 7),
+        ([Vowel.a, Vowel.e, Vowel.ɛ, Vowel.i, Vowel.o, Vowel.ɔ, Vowel.u, Vowel.ə, Vowel.ɨ, Vowel.æ], 3),
     ];
 
     private static readonly ((Vowel[] Qualities, int Weight)[] Systems, int Weight)[] VowelSystemBands =
@@ -353,6 +359,10 @@ public static partial class Generator
         Add(Consonant.kʷ, consonants.Contains(Consonant.k) && Optional(0.15));
         Add(Consonant.gʷ, consonants.Contains(Consonant.kʷ) && consonants.Contains(Consonant.g) && Likely(0.8));
         Add(Consonant.ʔ, Optional(0.38));
+        //a palatal stop, as in Hungarian, and a uvular one, which comes beside k, as in Quechua or
+        //Arabic: each in roughly one inventory in seven or eight in PHOIBLE
+        Add(Consonant.c, Optional(0.14));
+        Add(Consonant.q, consonants.Contains(Consonant.k) && Optional(0.13));
 
         Add(Consonant.m, Likely(0.97));
         Add(Consonant.n, Likely(0.98));
@@ -423,7 +433,7 @@ public static partial class Generator
         Consonant.t, Consonant.n, Consonant.k, Consonant.m, Consonant.s, Consonant.p, Consonant.l, Consonant.j,
         Consonant.w, Consonant.r, Consonant.ɾ, Consonant.h, Consonant.ʔ, Consonant.ɹ, Consonant.b, Consonant.d,
         Consonant.g, Consonant.ŋ, Consonant.ɲ, Consonant.f, Consonant.ʃ, Consonant.ʧ, Consonant.tʰ, Consonant.kʰ,
-        Consonant.pʰ, Consonant.ʦ, Consonant.z, Consonant.v, Consonant.ʤ, Consonant.kʷ, Consonant.x, Consonant.gʷ,
-        Consonant.ʣ, Consonant.ʒ, Consonant.θ, Consonant.ð,
+        Consonant.pʰ, Consonant.ʦ, Consonant.z, Consonant.v, Consonant.ʤ, Consonant.kʷ, Consonant.c, Consonant.x,
+        Consonant.q, Consonant.gʷ, Consonant.ʣ, Consonant.ʒ, Consonant.θ, Consonant.ð,
     ];
 }

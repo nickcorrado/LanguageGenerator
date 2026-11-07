@@ -80,7 +80,10 @@ public class GenderTests
         var system = System(genders, GenderAssignment.SemanticAndFormal);
 
         Assert.Equal(frontVowel, system.Of(Noun("stone", Consonant.t, Vowel.e))!.Gloss);
+        //a is central, but open, and goes with the front vowels, as Latin and Spanish -a does
+        Assert.Equal(frontVowel, system.Of(Noun("stone", Consonant.t, Vowel.a))!.Gloss);
         Assert.Equal(otherVowel, system.Of(Noun("stone", Consonant.t, Vowel.o))!.Gloss);
+        Assert.Equal(otherVowel, system.Of(Noun("stone", Consonant.t, Vowel.ɨ))!.Gloss);
         Assert.Equal(consonant, system.Of(Noun("stone", Consonant.t, Vowel.a, Consonant.k))!.Gloss);
     }
 

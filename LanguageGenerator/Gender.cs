@@ -66,7 +66,8 @@ public class GenderSystem
     };
 
     //a noun's gender, from what it means and, where assignment is formal, from how its root ends:
-    //a front vowel makes it feminine, another vowel masculine, and a consonant neuter, or masculine
+    //a front or open vowel makes it feminine, as -a does in Latin, Spanish or Russian, another vowel
+    //masculine, and a consonant neuter, or masculine
     //where there's no neuter. In an animacy system, a thing ending in a consonant is animate, as
     //some things are in Ojibwe. People of no particular sex are masculine, the usual default.
     //TODO variance: real systems stray from the semantic core (German Kind 'child' is neuter), so
@@ -87,7 +88,7 @@ public class GenderSystem
                 SemanticClass.Female => Gender.Feminine,
                 _ when formal => final switch
                 {
-                    Vowel { Backness: VowelFrontness.Front } => Gender.Feminine,
+                    Vowel { Backness: VowelFrontness.Front } or Vowel { Height: VowelHeight.Open } => Gender.Feminine,
                     Vowel => Gender.Masculine,
                     _ => Genders == NounGenders.MasculineFeminineNeuter ? Gender.Neuter : Gender.Masculine,
                 },

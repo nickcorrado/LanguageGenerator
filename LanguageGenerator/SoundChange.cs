@@ -120,7 +120,8 @@ public sealed class SoundChange(string name, Func<Site, bool> when, Func<Site, P
     /// Every vowel in a word agrees with the root's first harmonizing vowel in being front or back, as
     /// in Finnish talo-ssa 'in the house' but kylä-ssä 'in the village'.
     /// </summary>
-    //a pairs with æ as Finnish a does with ä, though it's a front vowel by its features
+    //a pairs with æ as Finnish a does with ä, being the language's back open vowel, though by its
+    //features it's central. ə and ɨ have no partner, so they're neutral
     public static SoundChange FrontBackHarmony { get; } = Harmony("front-back harmony (kæ-la → kælæ)",
         [(Vowel.æ, Vowel.a), (Vowel.e, Vowel.o), (Vowel.ɛ, Vowel.ɔ), (Vowel.i, Vowel.u), (Vowel.eː, Vowel.oː), (Vowel.iː, Vowel.uː)]);
 
@@ -227,6 +228,6 @@ public sealed class SoundChange(string name, Func<Site, bool> when, Func<Site, P
         var rounded = first.Rounded || second.Rounded;
         var height = ((int)first.Height + (int)second.Height) / 2.0;
         return phonology.Vowels.Where(v => v != Vowel.ə)
-            .MinBy(v => (v.Rounded != rounded, Math.Abs((int)v.Height - height), !v.Long))!;
+            .MinBy(v => (v.Rounded != rounded, Math.Abs((int)v.Height - height), !v.Long, v == Vowel.ɨ))!;
     }
 }

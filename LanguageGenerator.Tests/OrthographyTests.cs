@@ -86,6 +86,23 @@ public class OrthographyTests
         Assert.True(Orthography.AreDistinct(spellings.Values));
     }
 
+    [Fact]
+    public void Spell_PalatalStopAndCloseCentralVowel_TakeEachOfTheirSpellings()
+    {
+        var spelled = from palatalStop in OrthographicStyle.PalatalStopOptions
+                      from closeCentral in OrthographicStyle.CloseCentralOptions
+                      let style = new OrthographicStyle(PostalveolarSpelling.Digraph, LongVowelSpelling.Macron, MidVowelSpelling.GraveOnOpen, "ë", "ä", "k", "j",
+                          PalatalStop: palatalStop, CloseCentral: closeCentral)
+                      let spellings = style.Spell([Vowel.a, Vowel.ɨ, Consonant.c, Consonant.q, Consonant.t])
+                      select (palatalStop, closeCentral, spellings);
+
+        Assert.All(spelled, s =>
+        {
+            Assert.Equal([s.palatalStop, s.closeCentral, "q"], [s.spellings[Consonant.c], s.spellings[Vowel.ɨ], s.spellings[Consonant.q]]);
+            Assert.True(Orthography.AreDistinct(s.spellings.Values));
+        });
+    }
+
     [Theory]
     [InlineData("r", "r")]
     [InlineData("ɾ", "r")]

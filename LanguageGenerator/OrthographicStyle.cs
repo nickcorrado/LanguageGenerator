@@ -78,7 +78,9 @@ public record OrthographicStyle(
     DentalAffricateSpelling DentalAffricates = DentalAffricateSpelling.Digraph,
     AspirationSpelling Aspiration = AspirationSpelling.H,
     string GlottalStop = "'",
-    string PalatalNasal = "ñ")
+    string PalatalNasal = "ñ",
+    string PalatalStop = "ty",
+    string CloseCentral = "î")
 {
     //single sounds with a few established spellings each
     public static IReadOnlyList<string> SchwaOptions { get; } = ["ë", "ə", "e", "y"];
@@ -91,6 +93,10 @@ public record OrthographicStyle(
     public static IReadOnlyList<string> GlottalStopOptions { get; } = ["'", "ʻ"];
     //Spanish ñ, Swahili ny, Portuguese nh
     public static IReadOnlyList<string> PalatalNasalOptions { get; } = ["ñ", "ny", "nh"];
+    //Hungarian ty, Latvian ķ, or c, as in Albanian or the IPA
+    public static IReadOnlyList<string> PalatalStopOptions { get; } = ["ty", "ķ", "c"];
+    //Guarani and Polish y, Romanian î, or the IPA letter
+    public static IReadOnlyList<string> CloseCentralOptions { get; } = ["y", "î", "ɨ"];
 
     //each aspirated stop and its plain one
     private static readonly Dictionary<Phoneme, Consonant> Unaspirated = new() { [Consonant.pʰ] = Consonant.p, [Consonant.tʰ] = Consonant.t, [Consonant.kʰ] = Consonant.k };
@@ -207,6 +213,8 @@ public record OrthographicStyle(
             : phoneme == Vowel.æ ? NearOpenFront
             : phoneme == Consonant.ʔ ? GlottalStop
             : phoneme == Consonant.ɲ ? PalatalNasal
+            : phoneme == Consonant.c ? PalatalStop
+            : phoneme == Vowel.ɨ ? CloseCentral
             : phoneme == Consonant.ŋ ? VelarNasal
             : phoneme == Consonant.x ? VelarFricative
             : PlainStop(phoneme);
@@ -218,5 +226,5 @@ public record OrthographicStyle(
 
     public override string ToString() =>
         $"{Postalveolars} postalveolars, {LongVowels} long vowels, {MidVowels} mid vowels, {DentalFricatives} dental fricatives, schwa {Schwa}, æ {NearOpenFront}, k {VelarStop}, j {PalatalGlide}, ŋ {VelarNasal}, x {VelarFricative}, "
-        + $"{DentalAffricates} dental affricates, {Aspiration} aspirates, ʔ {GlottalStop}, ɲ {PalatalNasal}";
+        + $"{DentalAffricates} dental affricates, {Aspiration} aspirates, ʔ {GlottalStop}, ɲ {PalatalNasal}, c {PalatalStop}, ɨ {CloseCentral}";
 }
