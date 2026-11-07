@@ -19,6 +19,18 @@ public static class InflectionalCategories
 /// <summary>
 /// Where a marker of grammatical features, its exponent, goes relative to the word it marks.
 /// </summary>
+//TODO this only works because every exponent so far is a form put somewhere. Many aren't:
+//reduplication copies part of the root (Tagalog sulat 'write', su-sulat 'will write'), ablaut
+//changes its vowel (sing, sang), stress, tone or a mutation changes its sound (Welsh cath 'cat', ei
+//gath 'his cat'), and suppletion swaps the root for another (go, went). These hold different data,
+//not a different place, so the enum should become a union of how a feature is expressed, perhaps
+//Exponence, with position as data of the cases that have one. The name can wait for that, since
+//everything here now really is a position.
+//Clitics are a likelier place than infixes: bound like an affix but placed like a word, in second
+//position or at the edge of a phrase, as English 's is in the king of Spain's hat.
+//Meanwhile, bound and free markers want separate types: Gender and Possession can only take Prefix
+//or Suffix, and their Agree treats anything that isn't Prefix as Suffix, while Commands sends
+//anything it doesn't name after the verb as a particle, so a new value goes wrong quietly there
 public enum ExponentPosition
 {
     Prefix,
