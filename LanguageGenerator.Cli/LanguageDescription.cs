@@ -24,16 +24,17 @@ public static class LanguageDescription
         output.WriteLine($"Sound changes: {(phonology.SoundChanges.Count + phonology.SyllableChanges.Count == 0 ? "none" : string.Join(", ", phonology.SoundChanges.Concat(phonology.SyllableChanges)))}");
         var repair = phonology.ClusterRepair == ClusterRepair.Epenthesis ? $"epenthesis of {phonology.EpentheticVowel.IpaSymbol}" : "deletion";
         output.WriteLine($"Illegal clusters: {repair}");
+        output.WriteLine($"Stress: {phonology.Stress.Description}");
         var orthography = lang.Orthography;
         var unusual = orthography.Spellings.Where(s => s.Value != s.Key.IpaSymbol).Select(s => $"{s.Key.IpaSymbol} = {s.Value}");
         output.WriteLine($"Spelling: {orthography.Style?.ToString() ?? "IPA"}");
         output.WriteLine($"  {string.Join(", ", unusual)}");
-        //citation forms, spelled and then in IPA by syllable
+        //citation forms, spelled and then in IPA by syllable, with the stress marked
         foreach (var lexeme in lang.Lexicon)
         {
             var form = phonology.Realize(new Word([lexeme.Root]));
             var nounGender = lexeme.PartOfSpeech == PartOfSpeech.Noun && lang.GenderOf(lexeme) is { } g ? $", {g.Gloss}" : "";
-            output.WriteLine($"{lexeme.Root.Meaning} ({lexeme.PartOfSpeech}{nounGender}): {form.Spell(orthography)} [{form.Syllabified(Orthography.Ipa)}]");
+            output.WriteLine($"{lexeme.Root.Meaning} ({lexeme.PartOfSpeech}{nounGender}): {form.Spell(orthography)} [{form.Transcribed()}]");
         }
 
         var order = lang.WordOrder;

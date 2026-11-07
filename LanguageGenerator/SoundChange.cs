@@ -8,15 +8,19 @@ public enum SyllablePosition
     Coda,
 }
 
-/// <summary>Where a sound sits in its syllable, and whether that syllable ends in a consonant.</summary>
-public readonly record struct SyllablePlace(SyllablePosition Position, bool Closed);
+/// <summary>
+/// Where a sound sits in its syllable, whether that syllable ends in a consonant, and whether it's
+/// the stressed one.
+/// </summary>
+public readonly record struct SyllablePlace(SyllablePosition Position, bool Closed, bool Stressed = false);
 
 /// <summary>
 /// One sound as a sound change sees it: the sound before it, already changed, the one after it, not
 /// yet, and the whole word as it was before this change. Place is known only to changes that run on
 /// syllabified words.
 /// </summary>
-public readonly record struct Site(Segment Segment, Segment? Previous, Segment? Next, IReadOnlyList<Segment> Word, int Index, SyllablePlace? Place = null)
+public readonly record struct Site(Segment Segment, Segment? Previous, Segment? Next, IReadOnlyList<Segment> Word, int Index, SyllablePlace? Place = null,
+    IReadOnlyList<SyllablePlace>? Places = null)
 {
     /// <summary>The sound before this one as it was before this change, unlike Previous.</summary>
     public Phoneme? Before => Index > 0 ? Word[Index - 1].Phoneme : null;
@@ -48,7 +52,7 @@ public sealed class SoundChange(string name, Func<Site, bool> when, Func<Site, P
         var result = new List<Segment>();
         for (int i = 0; i < segments.Count; i++)
         {
-            var site = new Site(segments[i], result.LastOrDefault(), i + 1 < segments.Count ? segments[i + 1] : null, segments, i, places?[i]);
+            var site = new Site(segments[i], result.LastOrDefault(), i + 1 < segments.Count ? segments[i + 1] : null, segments, i, places?[i], places);
             if (!when(site))
             {
                 result.Add(segments[i]);
@@ -190,6 +194,59 @@ public sealed class SoundChange(string name, Func<Site, bool> when, Func<Site, P
     public static SoundChange ClosedSyllableLaxing { get; } = new("closed-syllable laxing (pet → pɛt)",
         site => site is { Place: { Position: SyllablePosition.Nucleus, Closed: true } } && Laxed.ContainsKey(site.Sound),
         (site, phonology) => phonology.Vowels.Contains(Laxed[site.Sound]) ? Laxed[site.Sound] : site.Sound);
+
+    private static bool Unstressed(Site site) => site.Place is { Position: SyllablePosition.Nucleus, Stressed: false };
+
+    /// <summary>
+    /// A long vowel loses its length outside the stressed syllable, as length followed stress in
+    /// Latin's daughters.
+    /// </summary>
+    public static SoundChange UnstressedShortening { get; } = new("unstressed shortening (paːˈta → paˈta)",
+        site => Unstressed(site) && site.Sound is Vowel { Long: true },
+        (site, phonology) => phonology.Vowels.FirstOrDefault(v => !v.Long && v.Lengthened == site.Sound) ?? site.Sound);
+
+    /// <summary>
+    /// A stressed vowel in an open syllable lengthens, as in Italian, where the first vowel of casa is
+    /// long but not that of carta.
+    /// </summary>
+    public static SoundChange OpenSyllableLengthening { get; } = new("open-syllable lengthening (ˈpata → ˈpaːta)",
+        site => site.Place is { Position: SyllablePosition.Nucleus, Stressed: true, Closed: false } && site.Sound is Vowel { Lengthened: not null },
+        (site, phonology) => phonology.Vowels.Contains(((Vowel)site.Sound).Lengthened!) ? ((Vowel)site.Sound).Lengthened : site.Sound);
+
+    /// <summary>
+    /// A short vowel right after the stressed syllable is lost between single consonants, as Latin
+    /// calidus became Italian caldo, so long as the consonants can then close one syllable and open
+    /// the next.
+    /// </summary>
+    //the vowel needs a vowel two sounds away on each side, the stressed one before it, so it's never
+    //in the last syllable, and only one vowel goes, leaving a cluster of two. The stress is found
+    //again afterwards, over the syllables that are left
+    public static SoundChange Syncope { get; } = new("syncope (ˈkalida → ˈkalda)",
+        site => Unstressed(site) && site.Sound is Vowel { Long: false } && site.Index >= 2 && site.Index + 2 < site.Word.Count
+            && site.Word[site.Index - 1].Phoneme is Consonant && site.Word[site.Index - 2].Phoneme is Vowel
+            && site.Places?[site.Index - 2].Stressed == true
+            && site.Word[site.Index + 1].Phoneme is Consonant && site.Word[site.Index + 2].Phoneme is Vowel,
+        (site, phonology) => phonology.SyllableRule.IsLegalCoda([(Consonant)site.Word[site.Index - 1].Phoneme]) ? null : site.Sound);
+
+    //how each unstressed vowel weakens
+    private static readonly Dictionary<Phoneme, Vowel> Raised = new()
+    {
+        [Vowel.e] = Vowel.i, [Vowel.ɛ] = Vowel.i, [Vowel.o] = Vowel.u, [Vowel.ɔ] = Vowel.u,
+    };
+
+    /// <summary>
+    /// An unstressed vowel other than a close one weakens to schwa, as in English or Catalan.
+    /// </summary>
+    public static SoundChange UnstressedReduction { get; } = new("unstressed reduction (ˈpata → ˈpatə)",
+        site => Unstressed(site) && site.Sound is Vowel { Long: false, Height: not VowelHeight.Close } vowel && vowel != Vowel.ə,
+        (site, phonology) => phonology.Vowels.Contains(Vowel.ə) ? Vowel.ə : site.Sound);
+
+    /// <summary>
+    /// An unstressed mid vowel rises to a close one, e to i and o to u, as in Portuguese or Bulgarian.
+    /// </summary>
+    public static SoundChange UnstressedRaising { get; } = new("unstressed raising (ˈpeto → ˈpetu)",
+        site => Unstressed(site) && Raised.ContainsKey(site.Sound),
+        (site, phonology) => phonology.Vowels.Contains(Raised[site.Sound]) ? Raised[site.Sound] : site.Sound);
 
     private static readonly Phoneme[] LostCodas = [Consonant.h, Consonant.ɹ, Consonant.r, Consonant.ɾ, Consonant.s];
 

@@ -121,8 +121,56 @@ public static partial class Generator
         {
             changes.Add(SoundChange.ClosedSyllableLaxing);
         }
+
+        //changes that follow the stress, drawn after the rest so that those stay as they were. The
+        //odds are guesses. Length can only follow stress in a language with long vowels, syncope
+        //needs codas for the consonants it brings together, and an unstressed vowel weakens to schwa
+        //where there is one, or else rises to a close vowel
+        var hasLong = vowels.Any(v => v.Long);
+        if (rand.NextDouble() < 0.12 && hasLong)
+        {
+            changes.Add(SoundChange.OpenSyllableLengthening);
+        }
+        if (rand.NextDouble() < 0.25 && hasLong)
+        {
+            changes.Add(SoundChange.UnstressedShortening);
+        }
+        if (rand.NextDouble() < 0.15 && codas)
+        {
+            changes.Add(SoundChange.Syncope);
+        }
+        var weakening = rand.NextDouble();
+        if (weakening < 0.2 && vowels.Contains(Vowel.ə))
+        {
+            changes.Add(SoundChange.UnstressedReduction);
+        }
+        else if (weakening < 0.35 && vowels.Any(v => v.Height is VowelHeight.CloseMid or VowelHeight.OpenMid) && vowels.Contains(Vowel.i) && vowels.Contains(Vowel.u))
+        {
+            changes.Add(SoundChange.UnstressedRaising);
+        }
         return changes;
     }
+
+    //WALS 14A counts 502 languages by where they fix stress: 92 on the first syllable, 16 the second,
+    //1 the third, 12 the antepenultimate, 110 the penultimate and 51 the last, and 220 with no fixed
+    //place. Those 220 include languages whose stress each word stores, which are left out here, so
+    //they're shared among the kinds of weight-sensitive stress, by guessed weights that follow WALS
+    //15A in making stress at the right edge of the word commoner than at the left
+    public static Stress SelectStress(Random rand) => Sampling.Categorical(rand, StressCounts);
+
+    private static readonly (Stress Value, int Languages)[] StressCounts =
+    [
+        (Stress.Initial, 92),
+        (Stress.Second, 16),
+        (Stress.Third, 1),
+        (Stress.Antepenultimate, 12),
+        (Stress.Penultimate, 110),
+        (Stress.Ultimate, 51),
+        (Stress.UltimateIfHeavy, 66),
+        (Stress.PenultimateIfHeavy, 66),
+        (Stress.InitialIfHeavy, 44),
+        (Stress.LastHeavy, 44),
+    ];
 
     //the central vowels are the usual epenthetic vowels, schwa and then ɨ, as in Korean, and after
     //them the close ones, i more than u, as in Japanese; failing those, the language's commonest

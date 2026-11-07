@@ -38,6 +38,8 @@ public record Phonology
     public IReadOnlyList<SoundChange> SyllableChanges { get; init; } = [];
     public required ClusterRepair ClusterRepair { get; init; }
     public required Vowel EpentheticVowel { get; init; }
+    /// <summary>Which syllable of a word is stressed.</summary>
+    public Stress Stress { get; init; } = Stress.Penultimate;
 
     /// <summary>
     /// The consonant in this inventory with these features, and the given one's for any not given.
@@ -48,10 +50,11 @@ public record Phonology
         Consonants.FirstOrDefault(c => c.Place == (place ?? consonant.Place) && c.Manner == (manner ?? consonant.Manner) && c.Voiced == (voiced ?? consonant.Voiced)
             && c.Aspirated == consonant.Aspirated && c.Labialized == consonant.Labialized);
 
-    //underlying morphemes, run together → sound changes → cluster repair → syllables → changes that
-    //depend on syllables, each followed by repair and syllables again, since it can leave a word
-    //that needs them. Every segment keeps track of its morpheme throughout, so the result can still
-    //be segmented
+    //underlying morphemes, run together → sound changes → cluster repair → syllables and stress →
+    //changes that depend on syllables, each followed by repair, syllables and stress again, since it
+    //can leave a word that needs them: a syllable lost to syncope moves the stress, as it would in a
+    //language that had lost it. Every segment keeps track of its morpheme throughout, so the result
+    //can still be segmented
     public SurfaceForm Realize(Word word)
     {
         var segments = new List<Segment>();
@@ -70,10 +73,10 @@ public record Phonology
         var syllables = Repaired(word, ref segments);
         foreach (var change in SyllableChanges)
         {
-            segments = change.Apply(segments, this, Places(syllables));
+            segments = change.Apply(segments, this, Places(syllables, this.Stress.StressedSyllable(syllables)));
             syllables = Repaired(word, ref segments);
         }
-        return new SurfaceForm(word, segments, syllables);
+        return new SurfaceForm(word, segments, syllables) { StressedSyllable = this.Stress.StressedSyllable(syllables) };
     }
 
     //the word's syllables, once it's been repaired until it has legal ones
@@ -93,14 +96,15 @@ public record Phonology
     }
 
     //where each sound sits, in the order of the word's segments
-    private static List<SyllablePlace> Places(IReadOnlyList<Syllable> syllables) =>
+    private static List<SyllablePlace> Places(IReadOnlyList<Syllable> syllables, int stressed) =>
     [
-        .. syllables.SelectMany(syllable =>
+        .. syllables.SelectMany((syllable, index) =>
         {
             var closed = syllable.Coda is not null;
-            return syllable.Onset.Select(_ => new SyllablePlace(SyllablePosition.Onset, closed))
-                .Append(new SyllablePlace(SyllablePosition.Nucleus, closed))
-                .Concat(closed ? [new SyllablePlace(SyllablePosition.Coda, closed)] : []);
+            var isStressed = index == stressed;
+            return syllable.Onset.Select(_ => new SyllablePlace(SyllablePosition.Onset, closed, isStressed))
+                .Append(new SyllablePlace(SyllablePosition.Nucleus, closed, isStressed))
+                .Concat(closed ? [new SyllablePlace(SyllablePosition.Coda, closed, isStressed)] : []);
         }),
     ];
 
@@ -191,8 +195,19 @@ public record SurfaceForm(Word Word, IReadOnlyList<Segment> Segments, IReadOnlyL
 {
     public IEnumerable<Phoneme> Phonemes => Segments.Select(s => s.Phoneme);
 
+    /// <summary>The index of the stressed syllable.</summary>
+    public int StressedSyllable { get; init; }
+
     public string Spell(Orthography orthography) => orthography.Spell(Phonemes);
     public string Syllabified(Orthography orthography) => string.Join(".", Syllables.Select(s => s.Spell(orthography)));
+
+    /// <summary>
+    /// The IPA by syllable, with ˈ before the stressed one in place of the dot, as in [paˈta.ma]. A
+    /// word of one syllable needs no mark.
+    /// </summary>
+    public string Transcribed() => Syllables.Count == 1
+        ? Syllables[0].Spell(Orthography.Ipa)
+        : string.Concat(Syllables.Select((s, i) => (i == StressedSyllable ? "ˈ" : i == 0 ? "" : ".") + s.Spell(Orthography.Ipa)));
 
     //the surface form split back into its morphemes, lining up with Gloss. A morpheme that lost
     //all of its sounds to a sound change or cluster repair shows as ∅

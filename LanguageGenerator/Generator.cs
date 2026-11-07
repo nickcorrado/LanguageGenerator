@@ -52,6 +52,7 @@ public static partial class Generator
         {
             SoundChanges = [.. phonology.SoundChanges, .. SelectLaterSoundChanges(rand, syllableRule, vowels)],
             SyllableChanges = SelectSyllableChanges(rand, syllableRule, vowels),
+            Stress = SelectStress(rand),
         };
         var commands = GenerateCommands(rand, morphology, wordOrder, phonology, syllableDropoff);
         var extraSyllables = SelectExtraSyllables(rootLengthNoise, lexiconSeed, phonology, syllableDropoff);

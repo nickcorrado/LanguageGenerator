@@ -521,12 +521,17 @@ public class SoundChangeTests
     }
 
     [Fact]
-    public void SelectSyllableChanges_WithoutCodas_DrawsNone()
+    public void SelectSyllableChanges_WithoutCodas_DrawsNoneThatNeedThem()
     {
         var rand = new Random(1);
         var rule = new SyllableRule(SyllableTemplates.CV, TestData.Vowels, TestData.Consonants);
+        SoundChange[] needCodas = [SoundChange.CodaDevoicing, SoundChange.CodaWeakening, SoundChange.CompensatoryLengthening, SoundChange.ClosedSyllableLaxing, SoundChange.Syncope];
 
-        Assert.Empty(Enumerable.Range(0, 500).SelectMany(_ => Generator.SelectSyllableChanges(rand, rule, TestData.Vowels)));
+        var drawn = Enumerable.Range(0, 500).SelectMany(_ => Generator.SelectSyllableChanges(rand, rule, TestData.Vowels)).ToList();
+
+        Assert.DoesNotContain(drawn, needCodas.Contains);
+        //the changes that follow stress need no codas
+        Assert.Contains(SoundChange.UnstressedReduction, drawn);
     }
 
     [Fact]
