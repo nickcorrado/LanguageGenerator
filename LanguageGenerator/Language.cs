@@ -26,6 +26,8 @@ public class Language
     public required Possession Possession { get; init; }
     public required Commands Commands { get; init; }
 
+    public Gender? GenderOf(Lexeme noun) => Genders.Of(noun, Lexicon.ClassOf(noun.Root.Meaning));
+
     /// <summary>
     /// What the language calls itself: its word for 'people', spelled its own way and capitalized
     /// like a name.

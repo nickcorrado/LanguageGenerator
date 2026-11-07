@@ -47,6 +47,65 @@ public class ProgramTests
         }
     }
 
+    //a clause, and the same language with and without its noun file, whose only difference can be
+    //the gender on the adjective and verb
+    private static readonly string Clause = "marta slept\n  sleep.PST  subject:(marta big)\n";
+
+    [Fact]
+    public void Translate_FindsTheNounFileBesideTheClauses()
+    {
+        var folder = Directory.CreateTempSubdirectory().FullName;
+        var clauses = Path.Combine(folder, "tale.clauses.txt");
+        File.WriteAllText(clauses, Clause);
+
+        var seed = Enumerable.Range(0, 200).Select(s => s.ToString()).First(s =>
+        {
+            File.Delete(Path.Combine(folder, "tale.nouns.txt"));
+            var without = Run("translate", clauses, s).Output;
+            File.WriteAllText(Path.Combine(folder, "tale.nouns.txt"), "marta F");
+            return without != Run("translate", clauses, s).Output;
+        });
+
+        Assert.Contains("F", Run("translate", clauses, seed).Output);
+    }
+
+    [Fact]
+    public void Translate_NounsOption_NamesAnyFile_AndMustExist()
+    {
+        var folder = Directory.CreateTempSubdirectory().FullName;
+        var clauses = Path.Combine(folder, "tale.clauses.txt");
+        File.WriteAllText(clauses, Clause);
+        var shared = Path.Combine(folder, "world.txt");
+        File.WriteAllText(shared, "marta F");
+
+        Assert.Equal(0, Run("translate", clauses, "11", "--nouns", shared).ExitCode);
+        Assert.Equal(1, Run("translate", clauses, "11", "--nouns", Path.Combine(folder, "missing.txt")).ExitCode);
+    }
+
+    [Fact]
+    public void Translate_ABadNounFile_NamesItself()
+    {
+        var folder = Directory.CreateTempSubdirectory().FullName;
+        var clauses = Path.Combine(folder, "tale.clauses.txt");
+        File.WriteAllText(clauses, Clause);
+        var nouns = Path.Combine(folder, "tale.nouns.txt");
+        File.WriteAllText(nouns, "marta WOMAN");
+
+        var (exitCode, output) = Run("translate", clauses, "11");
+
+        Assert.Equal(1, exitCode);
+        Assert.Contains(nouns, output);
+        Assert.Contains("'WOMAN' isn't a tag", output);
+    }
+
+    [Theory]
+    [InlineData("hollow.clauses.txt", "hollow.nouns.txt")]
+    [InlineData("hollow.txt", "hollow.nouns.txt")]
+    public void NounsPathFor_SitsBesideTheClauses(string clauses, string nouns)
+    {
+        Assert.Equal(Path.Combine("examples", nouns), GlossCommand.NounsPathFor(Path.Combine("examples", clauses)));
+    }
+
     [Fact]
     public void Main_TranslatingTheExampleScene_GlossesEveryClause()
     {

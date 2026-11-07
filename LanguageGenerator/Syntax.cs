@@ -188,7 +188,7 @@ public static class Syntax
     //A pronoun with no gender given has none to agree with, since what it refers to isn't known
     private static Gender? GenderOf(Language language, Argument argument) => argument.Value switch
     {
-        NounPhrase n => language.Genders.Of(language.Lexicon.Noun(n.Noun)),
+        NounPhrase n => language.GenderOf(language.Lexicon.Noun(n.Noun)),
         Pronoun { Gender: { } g } when language.Genders.Values.Contains(g) => g,
         _ => null,
     };
@@ -273,7 +273,7 @@ public static class Syntax
         {
             var lexeme = language.Lexicon.Adjective(a.Meaning);
             return agreement == AdjectiveAgreement.Agreement
-                ? AgreeingAdjective(language, lexeme, features, language.Genders.Of(nounLexeme))
+                ? AgreeingAdjective(language, lexeme, features, language.GenderOf(nounLexeme))
                 : new Word([lexeme.Root]);
         }).ToList();
 

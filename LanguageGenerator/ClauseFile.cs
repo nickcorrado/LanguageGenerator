@@ -71,6 +71,27 @@ public static class ClauseFile
         return entries;
     }
 
+    //each noun these clauses use, with the English of the first clause to use it
+    public static IReadOnlyList<(string Noun, string Translation)> Nouns(IEnumerable<Entry> entries) =>
+        [.. entries.SelectMany(e => ArgumentsOf(e.Statement).SelectMany(NounsIn).Select(n => (Noun: n, e.Translation))).DistinctBy(n => n.Noun)];
+
+    private static IEnumerable<Argument> ArgumentsOf(Statement statement) => statement switch
+    {
+        Clause c => [c.Subject, .. Given(c.Object), .. c.Obliques.Select(o => o.Argument)],
+        CopularClause { Complement: NounPhrase noun } c => [c.Subject, noun],
+        CopularClause { Complement: Oblique location } c => [c.Subject, location.Argument],
+        CopularClause c => [c.Subject],
+        Command c => [.. Given(c.Object), .. c.Obliques.Select(o => o.Argument)],
+    };
+
+    private static IEnumerable<Argument> Given(Argument? argument) => argument.HasValue ? [argument.GetValueOrDefault()] : [];
+
+    private static IEnumerable<string> NounsIn(Argument argument) => argument switch
+    {
+        NounPhrase n => [n.Noun, .. Given(n.Possessor).SelectMany(NounsIn)],
+        Pronoun => [],
+    };
+
     //the roles a clause can have now, and the rest of the Role enum's, which it can't yet. An oblique
     //role is written as its name in lowercase. A noun or adjective is what be says its subject is
     private static readonly Dictionary<string, Role> ObliqueRoles = Oblique.Roles.ToDictionary(r => r.ToString().ToLowerInvariant());
@@ -463,11 +484,12 @@ public static class ClauseFile
     //a role with its article, as in 'an instrument'
     private static string A(string role) => ("aeiou".Contains(role[0]) ? "an " : "a ") + role;
 
-    //a meaning and the glosses after it, as in dog.PL
+    //a meaning and the glosses after it, as in dog.PL. Case doesn't matter in a meaning, so Marta and
+    //marta are one word
     private static (string Meaning, List<Grammeme> Features) ParseWord(string token, int number)
     {
         var parts = token.Split('.');
-        var meaning = parts[0];
+        var meaning = parts[0].ToLowerInvariant();
         if (meaning.Length == 0)
         {
             throw new ClauseFormatException($"'{token}' needs a word before its glosses.", number);

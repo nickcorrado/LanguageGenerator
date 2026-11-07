@@ -31,7 +31,7 @@ public static class LanguageDescription
         foreach (var lexeme in lang.Lexicon)
         {
             var form = phonology.Realize(new Word([lexeme.Root]));
-            var nounGender = lexeme.PartOfSpeech == PartOfSpeech.Noun && lang.Genders.Of(lexeme) is { } g ? $", {g.Gloss}" : "";
+            var nounGender = lexeme.PartOfSpeech == PartOfSpeech.Noun && lang.GenderOf(lexeme) is { } g ? $", {g.Gloss}" : "";
             output.WriteLine($"{lexeme.Root.Meaning} ({lexeme.PartOfSpeech}{nounGender}): {form.Spell(orthography)} [{form.Syllabified(Orthography.Ipa)}]");
         }
 

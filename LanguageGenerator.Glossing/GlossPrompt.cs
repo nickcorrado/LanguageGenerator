@@ -24,7 +24,7 @@ public static class GlossPrompt
               the hunter saw the wolves
                 see.PST.PFV  subject:hunter  object:wolf.PL
 
-            Words are English meanings in dictionary form, lowercase: wolf, not wolves; see, not saw.
+            Words are English meanings in dictionary form, lowercase even for names: wolf, not wolves; see, not saw; marta, not Marta.
             Features follow a word after periods, in Leipzig glossing style.
             - Verb features: {Values<Tense>()}; {Values<Aspect>()}; {Values<Polarity>()}.
             - Noun features: {Values<Number>()}.
@@ -83,6 +83,34 @@ public static class GlossPrompt
               {CantExpress} (question): Where did they go?
             """;
     }
+
+    //what a noun file needs, as a job of its own: each noun is asked about once, for the whole text,
+    //so a word can't come out differently from one sentence to the next
+    public const string NounSystem = """
+        You sort nouns by what they name, for a language generator. Each noun comes with an English
+        sentence that uses it. Reply with one line for each noun that names a person or an animal,
+        the noun and then its tag, and nothing else:
+
+          marta F
+          king M
+          hunter HUM
+          crow ANIM
+
+        M and F are for a word that itself means a male or a female being, and for personal names:
+        'king', 'mother', 'marta'. The sentence can tell you what a name's bearer is, but not a
+        word's: 'hunter' is HUM even in a sentence about a woman, since a hunter can be either.
+        HUM is any other word for a person: 'child', 'friend', 'miller'.
+        ANIM is any other living creature: 'crow', 'rat'.
+
+        Leave out every other noun, like 'river', 'fire' or 'harvest'. If that's all of them, reply
+        with just NONE.
+        """;
+
+    public static string Nouns(IReadOnlyList<(string Noun, string Translation)> nouns) =>
+        string.Join("\n", nouns.Select(n => $"{n.Noun}: {n.Translation}"));
+
+    public static string NounRetry(IReadOnlyList<(string Noun, string Translation)> nouns, string attempt, string error) =>
+        $"{Nouns(nouns)}\n\nYour reply was:\n{attempt}\n\nThat can't be used: {error}\nReply again, with only the nouns above.";
 
     //the sentences to gloss, numbered, after a few before them for context, like who 'she' is
     public static string Batch(IReadOnlyList<string> context, IReadOnlyList<string> sentences)

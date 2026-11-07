@@ -13,14 +13,17 @@ public static class GlossCommand
 {
     public const string Usage = """
         Usage: LanguageGenerator.Cli gloss <english.txt> [output] [--provider anthropic|openai] [--model name]
-                 [--base-url url] [--effort low|medium|high|max] [--batch sentences] [--again]
+                 [--base-url url] [--effort low|medium|high|max] [--batch sentences] [--nouns file] [--again]
           Sentences already glossed in the output are kept; --again glosses them all afresh.
+          Nouns go in a list of their own, by default beside the output as <name>.nouns.txt. Its
+          lines are always kept, so a noun's class only changes if you change it.
           anthropic (the default) uses Claude, with ANTHROPIC_API_KEY or an ant auth login profile.
           openai is any OpenAI-compatible server: OpenAI with OPENAI_API_KEY, or a local one like
           Ollama with --base-url http://localhost:11434/v1. It needs --model.
         """;
 
     private const string DefaultAnthropicModel = "claude-opus-5-5";
+    private const string NounHeader = "# What each noun names: M, F, HUM, ANIM or THING. Gender follows from this in languages that\n# have it. Edit freely: glossing again keeps every line here.\n\n";
 
     public static async Task<int> Run(IReadOnlyList<string> args)
     {
@@ -50,7 +53,7 @@ public static class GlossCommand
         {
             return Fail(positional.Count == 0 ? "" : "gloss takes an input file and at most one output file.");
         }
-        if (options.Keys.Except(["provider", "model", "base-url", "effort", "batch"]).FirstOrDefault() is { } unknown)
+        if (options.Keys.Except(["provider", "model", "base-url", "effort", "batch", "nouns"]).FirstOrDefault() is { } unknown)
         {
             return Fail($"--{unknown} isn't an option.");
         }
@@ -86,22 +89,25 @@ public static class GlossCommand
 
         var input = positional[0];
         var output = positional.ElementAtOrDefault(1) ?? Path.Combine(Path.GetDirectoryName(input) ?? "", Path.GetFileNameWithoutExtension(input) + ".clauses.txt");
+        var nounsPath = options.GetValueOrDefault("nouns") ?? NounsPathFor(output);
         string english;
         string? previous;
+        Dictionary<string, SemanticClass> knownNouns;
         try
         {
             english = await File.ReadAllTextAsync(input);
             previous = !again && File.Exists(output) ? await File.ReadAllTextAsync(output) : null;
+            knownNouns = File.Exists(nounsPath) ? NounFile.Parse(await File.ReadAllTextAsync(nounsPath)) : [];
         }
-        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or ClauseFormatException)
         {
             return Fail($"{e.Message}", usage: false);
         }
 
-        var result = await new Glosser(model, batchSize).Gloss(english, previous, Console.Error.WriteLine);
+        var glosser = new Glosser(model, batchSize);
+        var result = await glosser.Gloss(english, previous, Console.Error.WriteLine);
         var header = $"# Glossed from {Path.GetFileName(input)} by {model.Name}. Glossing it again keeps the sentences here that\n# still parse, so edit those freely; delete one to have it glossed again.\n\n";
         await File.WriteAllTextAsync(output, header + result.Text);
-        (model as IDisposable)?.Dispose();
 
         Console.Error.WriteLine($"Wrote {output}: {result.Sentences} sentences, {result.Reused} kept from before, " +
             $"{result.Unexpressible} that can't be expressed yet, {result.Failed} that didn't parse.");
@@ -110,9 +116,28 @@ public static class GlossCommand
         {
             var reason = error is ChatModelException or HttpRequestException or AnthropicException ? error.Message : error.ToString();
             Console.Error.WriteLine($"Stopped with {result.Missing} sentences left, which glossing again will pick up: {reason}");
+            (model as IDisposable)?.Dispose();
             return 1;
         }
+
+        var nouns = await glosser.ClassifyNouns(ClauseFile.Parse(result.Text), knownNouns, Console.Error.WriteLine);
+        (model as IDisposable)?.Dispose();
+        if (nouns.Error is { } nounError)
+        {
+            Console.Error.WriteLine($"The clauses are saved but the new nouns aren't, which glossing again will pick up: {nounError.Message}");
+            return 1;
+        }
+        await File.WriteAllTextAsync(nounsPath, NounHeader + NounFile.Write(nouns.Nouns));
+        Console.Error.WriteLine($"Wrote {nounsPath}: {nouns.Nouns.Count} nouns, {nouns.Asked} of them new, using {nouns.Usage}.");
         return 0;
+    }
+
+    //where a clause file's nouns go, or are looked for: hollow.clauses.txt has hollow.nouns.txt
+    public static string NounsPathFor(string clauses)
+    {
+        var name = Path.GetFileName(clauses);
+        var stem = name.EndsWith(".clauses.txt") ? name[..^".clauses.txt".Length] : Path.GetFileNameWithoutExtension(name);
+        return Path.Combine(Path.GetDirectoryName(clauses) ?? "", stem + ".nouns.txt");
     }
 
     private static int Fail(string message, bool usage = true)

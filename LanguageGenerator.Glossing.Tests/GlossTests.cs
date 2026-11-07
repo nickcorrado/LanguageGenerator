@@ -34,6 +34,105 @@ public partial class GlossTests
 
     private static readonly string Text = "The dog slept. The cat slept. The bird slept. The fish slept. The wolf slept.";
 
+    //replies to noun requests in turn, and records them
+    private sealed class NounModel(params string[] replies) : IChatModel
+    {
+        public List<string> Requests { get; } = [];
+        public string Name => "fake";
+
+        public Task<ChatReply> Complete(string system, string user, CancellationToken cancellationToken = default)
+        {
+            Requests.Add(user);
+            return Task.FromResult(new ChatReply(replies[Requests.Count - 1], new TokenUsage(100, 0, 20)));
+        }
+    }
+
+    private static IReadOnlyList<ClauseFile.Entry> Clauses(params string[] nouns) =>
+        ClauseFile.Parse(string.Join("\n", nouns.Select(n => $"the {n} slept\n  sleep.PST  subject:{n}")));
+
+    private static readonly Dictionary<string, SemanticClass> NoNouns = [];
+
+    [Fact]
+    public async Task ClassifyNouns_TagsWhatTheModelListsAndLeavesTheRestToTheGenerator()
+    {
+        var model = new NounModel("marta F\nmiller HUM");
+
+        var result = await new Glosser(model).ClassifyNouns(Clauses("marta", "miller", "river", "dog"), NoNouns);
+
+        Assert.Null(result.Error);
+        Assert.Equal(SemanticClass.Female, result.Nouns["marta"]);
+        Assert.Equal(SemanticClass.Human, result.Nouns["miller"]);
+        Assert.Equal(SemanticClass.Thing, result.Nouns["river"]);
+        Assert.Equal(SemanticClass.Animal, result.Nouns["dog"]);
+        Assert.Contains("marta: the marta slept", model.Requests[0]);
+    }
+
+    [Fact]
+    public async Task ClassifyNouns_KnownNouns_AreKeptAndNotAskedAbout()
+    {
+        var model = new NounModel("miller HUM");
+        var known = new Dictionary<string, SemanticClass> { ["marta"] = SemanticClass.Male, ["old"] = SemanticClass.Thing };
+
+        var result = await new Glosser(model).ClassifyNouns(Clauses("marta", "miller"), known);
+
+        Assert.DoesNotContain("marta", model.Requests[0]);
+        Assert.Equal(SemanticClass.Male, result.Nouns["marta"]);
+        Assert.Equal(SemanticClass.Human, result.Nouns["miller"]);
+        Assert.Contains("old", result.Nouns.Keys);
+    }
+
+    [Fact]
+    public async Task ClassifyNouns_NothingNew_AsksNothing()
+    {
+        var model = new NounModel();
+        var known = new Dictionary<string, SemanticClass> { ["marta"] = SemanticClass.Female };
+
+        var result = await new Glosser(model).ClassifyNouns(Clauses("marta"), known);
+
+        Assert.Empty(model.Requests);
+        Assert.Equal(known, result.Nouns);
+    }
+
+    [Fact]
+    public async Task ClassifyNouns_None_MeansThingsAndFences_AreIgnored()
+    {
+        Assert.Equal(SemanticClass.Thing, (await new Glosser(new NounModel("NONE")).ClassifyNouns(Clauses("river"), NoNouns)).Nouns["river"]);
+        Assert.Equal(SemanticClass.Female, (await new Glosser(new NounModel("```\nmarta F\n```")).ClassifyNouns(Clauses("marta"), NoNouns)).Nouns["marta"]);
+    }
+
+    [Theory]
+    [InlineData("marta WOMAN")]
+    [InlineData("marta is female")]
+    [InlineData("river THING\nsomeone F")]
+    public async Task ClassifyNouns_ABadReply_IsRetriedWithWhatsWrong(string bad)
+    {
+        var model = new NounModel(bad, "marta F");
+
+        var result = await new Glosser(model).ClassifyNouns(Clauses("marta", "river"), NoNouns);
+
+        Assert.Null(result.Error);
+        Assert.Equal(2, model.Requests.Count);
+        Assert.Contains(bad, model.Requests[1]);
+        Assert.Equal(SemanticClass.Female, result.Nouns["marta"]);
+    }
+
+    [Fact]
+    public async Task ClassifyNouns_RepliesThatNeverParse_GiveUpAndKeepWhatWasKnown()
+    {
+        var known = new Dictionary<string, SemanticClass> { ["king"] = SemanticClass.Male };
+
+        var result = await new Glosser(new NounModel("what", "what", "what"), retries: 2).ClassifyNouns(Clauses("marta"), known);
+
+        Assert.NotNull(result.Error);
+        Assert.Equal(known, result.Nouns);
+    }
+
+    [Fact]
+    public void NounPrompt_ShowsEveryTagButThing()
+    {
+        Assert.All(NounFile.TagNames.Where(t => t != "THING"), tag => Assert.Contains(tag, GlossPrompt.NounSystem));
+    }
+
     [Fact]
     public void Sentences_SplitAtSentenceEndsAndParagraphs()
     {

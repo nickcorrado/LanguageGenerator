@@ -62,6 +62,75 @@ public sealed partial class Glosser(IChatModel model, int batchSize = 20, int re
             interrupted);
     }
 
+    //Error is what stopped it, and then Nouns is only what was already known
+    public record NounResult(IReadOnlyDictionary<string, SemanticClass> Nouns, TokenUsage Usage, int Asked, Exception? Error);
+
+    //a noun file for these clauses: everything in known, which is kept so that a word's class can't
+    //change from one run to the next, and the nouns it doesn't have yet. A noun the model leaves out
+    //gets what the generator knows of it, which for most is that it's a thing
+    public async Task<NounResult> ClassifyNouns(IEnumerable<ClauseFile.Entry> clauses, IReadOnlyDictionary<string, SemanticClass> known,
+        Action<string>? progress = null, CancellationToken cancellationToken = default)
+    {
+        var nouns = new Dictionary<string, SemanticClass>(known);
+        var usage = TokenUsage.None;
+        var pending = ClauseFile.Nouns(clauses).Where(n => !known.ContainsKey(n.Noun)).ToList();
+        if (pending.Count == 0)
+        {
+            return new NounResult(nouns, usage, 0, null);
+        }
+
+        progress?.Invoke($"Sorting {pending.Count} nouns...");
+        try
+        {
+            var request = GlossPrompt.Nouns(pending);
+            for (int round = 0; ; round++)
+            {
+                var reply = await model.Complete(GlossPrompt.NounSystem, request, cancellationToken);
+                usage += reply.Usage;
+                var error = ReadNouns(reply.Text, pending, out var classified);
+                if (error is null)
+                {
+                    foreach (var (noun, _) in pending)
+                    {
+                        nouns[noun] = classified.TryGetValue(noun, out var meaning) ? meaning : Semantics.Of(noun);
+                    }
+                    return new NounResult(nouns, usage, pending.Count, null);
+                }
+                if (round >= retries)
+                {
+                    throw new ChatModelException($"The nouns couldn't be sorted: {error}");
+                }
+                progress?.Invoke("Retrying the nouns...");
+                request = GlossPrompt.NounRetry(pending, reply.Text, error);
+            }
+        }
+        catch (Exception e) when (e is not OperationCanceledException)
+        {
+            return new NounResult(known, usage, pending.Count, e);
+        }
+    }
+
+    //what's wrong with a reply listing nouns, if anything
+    private static string? ReadNouns(string reply, IReadOnlyList<(string Noun, string Translation)> asked, out Dictionary<string, SemanticClass> nouns)
+    {
+        nouns = [];
+        var lines = reply.ReplaceLineEndings("\n").Split('\n').Where(l => !l.TrimStart().StartsWith("```"));
+        var text = string.Join("\n", lines);
+        if (text.Trim() == "NONE")
+        {
+            return null;
+        }
+        try
+        {
+            nouns = NounFile.Parse(text);
+        }
+        catch (ClauseFormatException e)
+        {
+            return e.Message;
+        }
+        return nouns.Keys.FirstOrDefault(n => !asked.Any(a => a.Noun == n)) is { } stray ? $"'{stray}' wasn't one of the nouns." : null;
+    }
+
     //one batch's glosses, into glossed, with the ones that don't parse retried on their own and
     //left as comments if they still don't. Returns what it cost
     private async Task<TokenUsage> GlossBatch(IReadOnlyList<string> batch, IReadOnlyList<string> context, Dictionary<string, string> glossed,

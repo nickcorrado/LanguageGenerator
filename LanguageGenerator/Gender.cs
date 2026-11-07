@@ -37,9 +37,8 @@ public enum SemanticClass
     Thing,
 }
 
-/// <summary>What the generator knows of what nouns mean.</summary>
-//anything not here is taken to be a thing, which a front end could do better at, from a resource
-//like WordNet
+/// <summary>What the generator knows of what nouns mean, with no noun file to say.</summary>
+//the common nouns, for text with no front end. Anything else is taken to be a thing
 public static class Semantics
 {
     private static readonly Dictionary<string, SemanticClass> Classes = new()
@@ -91,10 +90,13 @@ public class GenderSystem
     //a noun's gender, from what it means and, where assignment is formal, from how its root ends:
     //a front vowel makes it feminine, another vowel masculine, and a consonant neuter, or masculine
     //where there's no neuter. In an animacy system, a thing ending in a consonant is animate, as
-    //some things are in Ojibwe. People of no particular sex are masculine, the usual default
-    public Gender? Of(Lexeme noun)
+    //some things are in Ojibwe. People of no particular sex are masculine, the usual default.
+    //TODO variance: real systems stray from the semantic core (German Kind 'child' is neuter), so
+    //with a small chance, seeded from the language and the meaning, a Human noun could follow its
+    //form where assignment is formal. Kin terms and names shouldn't stray, and M and F can't tell
+    //those from other words, so Mädchen 'girl' would need more than this
+    public Gender? Of(Lexeme noun, SemanticClass meaning)
     {
-        var meaning = Semantics.Of(noun.Root.Meaning);
         var final = noun.Root.Form.LastOrDefault();
         var formal = Assignment == GenderAssignment.SemanticAndFormal;
         return Genders switch

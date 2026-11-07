@@ -116,7 +116,7 @@ public class GenderTests
         {
             foreach (var noun in new[] { "sun", "person", "dog" })
             {
-                var gender = language.Genders.Of(language.Lexicon.Noun(noun))!;
+                var gender = language.GenderOf(language.Lexicon.Noun(noun))!;
                 var sentence = Syntax.Realize(language, new Clause("sleep", Tense.Present, Aspect.Imperfective, new NounPhrase(noun, Number.Singular, [new("big")])), "x");
                 var big = sentence.Words.Single(w => w.Word.Root?.Meaning == "big").Word;
 
@@ -148,7 +148,7 @@ public class GenderTests
         {
             foreach (var subject in new Argument[] { new NounPhrase("person", Number.Singular), new NounPhrase("sun", Number.Singular), new Pronoun(Person.Third, Number.Singular, Gender: l.Genders.Values[^1]) })
             {
-                var gender = subject.Value is NounPhrase n ? l.Genders.Of(l.Lexicon.Noun(n.Noun))! : l.Genders.Values[^1];
+                var gender = subject.Value is NounPhrase n ? l.GenderOf(l.Lexicon.Noun(n.Noun))! : l.Genders.Values[^1];
                 var sentence = Syntax.Realize(l, new Clause("sleep", Tense.Present, Aspect.Imperfective, subject), "x");
                 var sleep = sentence.Words.Single(w => w.Word.Root?.Meaning == "sleep").Word;
 
@@ -163,4 +163,10 @@ public class GenderTests
         Assert.All(GeneratedLanguages.Sample.Where(l => l.Genders.VerbsAgree), l =>
             Assert.Contains(l.Paradigms.Verbs.Categories, c => c.Is<Person>()));
     }
+}
+
+//what these tests mostly ask: the gender of a noun for what the generator knows of it
+internal static class GenderSystemExtensions
+{
+    public static Gender? Of(this GenderSystem system, Lexeme noun) => system.Of(noun, Semantics.Of(noun.Root.Meaning));
 }

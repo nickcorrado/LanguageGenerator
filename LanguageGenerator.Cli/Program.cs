@@ -3,12 +3,24 @@ using LanguageGenerator.Cli;
 
 //pass a seed to regenerate the same language; without one, a fresh seed is picked and printed.
 //"translate <file> [seed]" translates a file of clauses (see ClauseFile) instead of describing
-//the language, and "gloss <english.txt>" writes such a file from English (see Glosser)
+//the language, with the noun file (see NounFile) that --nouns names or else the one beside it, and
+//"gloss <english.txt>" writes such files from English (see Glosser)
 if (args is ["gloss", .. var glossArguments])
 {
     return await GlossCommand.Run(glossArguments);
 }
-const string Usage = "Usage: LanguageGenerator.Cli [seed], or LanguageGenerator.Cli translate <file> [seed], where the seed is an integer, or LanguageGenerator.Cli gloss <english.txt>.";
+const string Usage = "Usage: LanguageGenerator.Cli [seed], or LanguageGenerator.Cli translate <file> [seed] [--nouns file], where the seed is an integer, or LanguageGenerator.Cli gloss <english.txt>.";
+string? nounsArgument = null;
+if (Array.IndexOf(args, "--nouns") is >= 0 and var nounsAt)
+{
+    if (nounsAt + 1 >= args.Length)
+    {
+        Console.Error.WriteLine(Usage);
+        return 1;
+    }
+    nounsArgument = args[nounsAt + 1];
+    args = [.. args[..nounsAt], .. args[(nounsAt + 2)..]];
+}
 var translating = args.Length > 0 && args[0] == "translate";
 if (translating && args.Length < 2)
 {
@@ -28,12 +40,19 @@ else if (!int.TryParse(seedArgument, out seed))
 }
 
 IReadOnlyList<ClauseFile.Entry> script = [];
+IReadOnlyDictionary<string, SemanticClass> nouns = new Dictionary<string, SemanticClass>();
 if (translating)
 {
     var path = args[1];
+    var nounsPath = nounsArgument ?? GlossCommand.NounsPathFor(path);
     try
     {
         script = ClauseFile.Parse(File.ReadAllText(path));
+        path = nounsPath;
+        if (nounsArgument is not null || File.Exists(nounsPath))
+        {
+            nouns = NounFile.Parse(File.ReadAllText(nounsPath));
+        }
     }
     catch (Exception e) when (e is IOException or UnauthorizedAccessException or ClauseFormatException)
     {
@@ -49,6 +68,7 @@ var lang = Generator.Generate(rand);
 
 if (translating)
 {
+    lang.Lexicon.Classify(nouns);
     foreach (var entry in script)
     {
         Console.WriteLine();

@@ -125,7 +125,7 @@ public class CopulaTests
                 var sentence = Syntax.Realize(l, new CopularClause(new Adjective("big"), Tense.Past, Aspect.Imperfective, new NounPhrase(noun, number)), "x");
                 var subject = sentence.Words[IndexOf(sentence, noun)].Word;
                 var big = sentence.Words[IndexOf(sentence, "big")].Word;
-                var gender = l.Genders.Of(l.Lexicon.Noun(noun));
+                var gender = l.GenderOf(l.Lexicon.Noun(noun));
 
                 Assert.Equal(Affixes(subject), Affixes(big));
                 Assert.Equal(gender is not null && l.Genders.Markers?[gender].Form.Count > 0 ? [gender.Gloss] : [], GenderGlosses(big));
