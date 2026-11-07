@@ -378,7 +378,9 @@ public static partial class Generator
             Add(Consonant.f, Optional(0.45));
             Add(Consonant.ʃ, consonants.Contains(Consonant.s) && Optional(0.45));
             Add(Consonant.x, Optional(0.2));
-            Add(Consonant.θ, Optional(0.05));
+            //θ hardly ever comes without s, as in English, Greek or Castilian Spanish. Its odds
+            //given s keep it in about one language in twenty overall
+            Add(Consonant.θ, consonants.Contains(Consonant.s) && Optional(0.06));
             if (voicedFricatives)
             {
                 Add(Consonant.z, consonants.Contains(Consonant.s));

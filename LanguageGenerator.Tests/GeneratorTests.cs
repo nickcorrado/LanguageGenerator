@@ -289,6 +289,7 @@ public class GeneratorTests
     [InlineData("g", "k")]
     [InlineData("ŋ", "k")]
     [InlineData("ʃ", "s")]
+    [InlineData("θ", "s")]
     [InlineData("pʰ", "p")]
     [InlineData("tʰ", "t")]
     [InlineData("kʰ", "k")]
