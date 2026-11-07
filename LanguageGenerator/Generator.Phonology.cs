@@ -94,10 +94,11 @@ public static partial class Generator
         return changes;
     }
 
-    //schwa and i are the usual epenthetic vowels; failing those, the language's commonest vowel,
-    //which is the first one since picks are biased toward the front
+    //schwa and the close vowels are the usual epenthetic vowels, i more than u, as in Japanese;
+    //failing those, the language's commonest vowel, which is the first one since picks are biased
+    //toward the front
     public static Vowel SelectEpentheticVowel(IReadOnlyList<Vowel> vowels) =>
-        vowels.Contains(Vowel.ə) ? Vowel.ə : vowels.Contains(Vowel.i) ? Vowel.i : vowels[0];
+        new[] { Vowel.ə, Vowel.i, Vowel.u }.FirstOrDefault(vowels.Contains) ?? vowels[0];
 
     //a set of conventions, applied to the whole inventory. Conventions that clash for this
     //inventory (acute long vowels beside acute close vowels both give ó, say) are drawn again as
@@ -223,31 +224,71 @@ public static partial class Generator
         (CodaRestriction.SingleNasal, 10),
     ];
 
-    public static List<Vowel> GenerateVowels(Random rand, double chanceOfPhonemePruning, double chanceOfCategoryPruning)
+    //a vowel system is built, not pruned: how many qualities it has, then which, then whether they
+    //come long too. Vowels spread out to fill the space (Liljencrants and Lindblom's dispersion), so
+    //each size has its usual shapes, and a three-vowel language has a i u rather than any three
+    public static List<Vowel> GenerateVowels(Random rand)
     {
-        var vowels = new List<Vowel>(Vowel.All);
+        var qualities = Sampling.Categorical(rand, Sampling.Categorical(rand, VowelSystemBands));
 
-        for (int i = vowels.Count - 1; i >= 0; i--)
+        //length is a property of the system, as in Finnish or Japanese, where it doubles every
+        //vowel, so a long vowel never comes without its short one. Mid vowels are the likeliest to
+        //miss out, as in Classical Arabic's long ā ī ū. Both odds are guesses: WALS has no chapter
+        //on length
+        var longs = new List<Vowel>();
+        if (rand.NextDouble() < 0.35)
         {
-            Vowel vowel = vowels[i];
-            if (rand.NextDouble() < chanceOfPhonemePruning)
-            {
-                vowels.Remove(vowel);
-            }
+            var dropLongMids = rand.NextDouble() < 0.25;
+            longs.AddRange(qualities
+                .Where(v => !(dropLongMids && v.Height is VowelHeight.CloseMid))
+                .Select(v => v.Lengthened)
+                .OfType<Vowel>());
         }
 
-        //chance of removing longs
-        //TODO make this a little more sophisticated? meh
-        if (rand.NextDouble() < chanceOfCategoryPruning)
-        {
-            vowels.RemoveAll(v => v.Long);
-        }
-
-        //the order is a frequency ranking: Pick draws earlier phonemes more often
-        rand.Shuffle(CollectionsMarshal.AsSpan(vowels));
-
-        return vowels;
+        //the order is a frequency ranking: Pick draws earlier phonemes more often. Unmarked vowels
+        //are the commonest in words as they are across languages, so the ranking follows
+        //VowelMarkedness, jittered so that languages don't all share it, and long vowels, which
+        //are rarer in words than short ones, come after them
+        return [.. qualities.Concat(longs)
+            .Select(v => (Vowel: v, Rank: Array.IndexOf(VowelMarkedness, v) + (v.Long ? VowelMarkedness.Length : 0) + rand.NextDouble() * 2))
+            .OrderBy(x => x.Rank)
+            .Select(x => x.Vowel)];
     }
+
+    //short vowels from commonest to rarest across languages, roughly as PHOIBLE counts them
+    private static readonly Vowel[] VowelMarkedness = [Vowel.a, Vowel.i, Vowel.u, Vowel.e, Vowel.o, Vowel.ə, Vowel.ɛ, Vowel.ɔ, Vowel.æ];
+
+    //WALS 2A counts languages by how many vowel qualities they have: 93 with 2 to 4, 287 with 5 or
+    //6, and 184 with 7 to 14. Within each band, the systems and their weights are guesses at how
+    //common each shape is, five vowels being much the commonest size. Seven is as many as this
+    //inventory allows besides schwa and æ, so the large band tops out at nine
+    private static readonly (Vowel[] Qualities, int Weight)[] SmallVowelSystems =
+    [
+        ([Vowel.a, Vowel.ə], 3),                                 //vertical, as in Kabardian
+        ([Vowel.a, Vowel.i, Vowel.u], 50),                       //Arabic, Quechua
+        ([Vowel.a, Vowel.i, Vowel.u, Vowel.e], 15),
+        ([Vowel.a, Vowel.i, Vowel.u, Vowel.o], 15),
+        ([Vowel.a, Vowel.i, Vowel.u, Vowel.ə], 17),
+    ];
+
+    private static readonly (Vowel[] Qualities, int Weight)[] AverageVowelSystems =
+    [
+        ([Vowel.a, Vowel.e, Vowel.i, Vowel.o, Vowel.u], 70),     //Spanish, Japanese, Swahili
+        ([Vowel.a, Vowel.e, Vowel.i, Vowel.o, Vowel.u, Vowel.ə], 20),
+        ([Vowel.a, Vowel.e, Vowel.i, Vowel.o, Vowel.u, Vowel.ɛ], 5),
+        ([Vowel.a, Vowel.e, Vowel.i, Vowel.o, Vowel.u, Vowel.æ], 5),
+    ];
+
+    private static readonly (Vowel[] Qualities, int Weight)[] LargeVowelSystems =
+    [
+        ([Vowel.a, Vowel.e, Vowel.ɛ, Vowel.i, Vowel.o, Vowel.ɔ, Vowel.u], 50),                   //Italian, Yoruba
+        ([Vowel.a, Vowel.e, Vowel.i, Vowel.o, Vowel.u, Vowel.ə, Vowel.æ], 15),
+        ([Vowel.a, Vowel.e, Vowel.ɛ, Vowel.i, Vowel.o, Vowel.ɔ, Vowel.u, Vowel.ə], 25),          //Catalan
+        ([Vowel.a, Vowel.e, Vowel.ɛ, Vowel.i, Vowel.o, Vowel.ɔ, Vowel.u, Vowel.ə, Vowel.æ], 10),
+    ];
+
+    private static readonly ((Vowel[] Qualities, int Weight)[] Systems, int Weight)[] VowelSystemBands =
+        [(SmallVowelSystems, 93), (AverageVowelSystems, 287), (LargeVowelSystems, 184)];
 
     public static List<Consonant> GenerateConsonants(Random rand, double chanceofPhonemePruning, double chanceOfCategoryPruning)
     {

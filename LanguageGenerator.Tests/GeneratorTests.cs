@@ -218,13 +218,56 @@ public class GeneratorTests
     }
 
     [Theory]
-    [InlineData(true, true, "ə")]
-    [InlineData(false, true, "i")]
-    [InlineData(false, false, "a")]
-    public void SelectEpentheticVowel_PrefersSchwaThenI(bool hasSchwa, bool hasI, string expected)
+    [InlineData("", "ə")]
+    [InlineData("ə", "i")]
+    [InlineData("ə i", "u")]
+    [InlineData("ə i u", "a")]
+    public void SelectEpentheticVowel_PrefersSchwaThenCloseVowelsThenTheCommonest(string missing, string expected)
     {
-        var vowels = Vowel.All.Where(v => (hasSchwa || v != Vowel.ə) && (hasI || v != Vowel.i)).ToList();
+        var absent = missing.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        var vowels = Vowel.All.Where(v => !absent.Contains(v.IpaSymbol)).ToList();
 
         Assert.Equal(expected, Generator.SelectEpentheticVowel(vowels).IpaSymbol);
+    }
+
+    [Fact]
+    public void GenerateVowels_ManyDraws_MatchWalsVowelQualityCounts()
+    {
+        var rand = new Random(1);
+        var sizes = Enumerable.Range(0, 100000).Select(_ => Generator.GenerateVowels(rand).Count(v => !v.Long)).ToList();
+
+        //WALS 2A: 93 small (2 to 4), 287 average (5 or 6) and 184 large (7 or more) of 564
+        double Share(Func<int, bool> which) => sizes.Count(which) / 100000.0;
+        Assert.InRange(Share(n => n <= 4), 93 / 564.0 - 0.005, 93 / 564.0 + 0.005);
+        Assert.InRange(Share(n => n is 5 or 6), 287 / 564.0 - 0.005, 287 / 564.0 + 0.005);
+        Assert.InRange(Share(n => n >= 7), 184 / 564.0 - 0.005, 184 / 564.0 + 0.005);
+    }
+
+    [Fact]
+    public void GenerateVowels_EveryLanguage_HasTheShortVowelOfEachLongOne()
+    {
+        Assert.All(GeneratedLanguages.Sample.Select(l => l.Phonology.Vowels), vowels =>
+            Assert.All(vowels.Where(v => v.Long), v => Assert.Contains(vowels, s => s.Lengthened == v)));
+    }
+
+    [Fact]
+    public void GenerateVowels_EveryLanguage_HasAAndAContrastingVowel()
+    {
+        //dispersion: every system has an open vowel and something to set against it
+        Assert.All(GeneratedLanguages.Sample.Select(l => l.Phonology.Vowels), vowels =>
+        {
+            Assert.Contains(Vowel.a, vowels);
+            Assert.True(vowels.Contains(Vowel.i) || vowels.Contains(Vowel.ə));
+        });
+    }
+
+    [Fact]
+    public void GenerateVowels_ManyDraws_PutUnmarkedVowelsFirstMostOfTheTime()
+    {
+        var rand = new Random(1);
+        var firsts = Enumerable.Range(0, 10000).Select(_ => Generator.GenerateVowels(rand)[0]).ToList();
+
+        Assert.True(firsts.Count(v => v == Vowel.a || v == Vowel.i) > 0.8 * firsts.Count);
+        Assert.DoesNotContain(firsts, v => v.Long);
     }
 }
