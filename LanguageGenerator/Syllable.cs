@@ -156,15 +156,18 @@ public class SyllableRule
         Vowels = new(vowels);
         this.consonants = new(consonants);
         //natural classes, by feature: S is a voiceless sibilant, as in s-clusters like st or šp, and
-        //L is any approximant, liquids and glides alike, as in pl, kw or by
+        //L is any liquid or glide, as in pl, pr, kw or by
         sibilants = new(consonants.Where(c => c.Manner == ConsonantManner.Sibilant && !c.Voiced));
-        liquids = new(consonants.Where(c => c.Manner is ConsonantManner.Approximant or ConsonantManner.LateralApproximant));
+        liquids = new(consonants.Where(c => c.Manner is ConsonantManner.Approximant or ConsonantManner.LateralApproximant or ConsonantManner.Trill or ConsonantManner.Flap));
         //generation, legality and cluster repair all read this one class, so restricting it
         //restricts codas everywhere. A restriction can leave nothing (a nasals-only language that
-        //lost both nasals to pruning), and then syllables simply have no codas
+        //lost both nasals to pruning), and then syllables simply have no codas. Aspiration and
+        //labialization are lost at the end of a syllable, as in Thai or Korean, where a final
+        //stop is never aspirated, so neither ever closes one
+        var unreleased = consonants.Where(c => !c.Aspirated && !c.Labialized);
         finals = new(codas switch
         {
-            CodaRestriction.Any => consonants,
+            CodaRestriction.Any => unreleased,
             CodaRestriction.Sonorants => consonants.Where(c => c.Manner is ConsonantManner.Nasal or ConsonantManner.Approximant or ConsonantManner.LateralApproximant or ConsonantManner.Flap or ConsonantManner.Trill),
             CodaRestriction.Nasals => consonants.Where(c => c.Manner == ConsonantManner.Nasal),
             CodaRestriction.SingleNasal => consonants.Contains(Consonant.n) ? new[] { Consonant.n } : consonants.Where(c => c.Manner == ConsonantManner.Nasal).Take(1),

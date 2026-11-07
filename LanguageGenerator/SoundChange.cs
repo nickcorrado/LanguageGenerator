@@ -89,6 +89,14 @@ public sealed class SoundChange(string name, Func<Site, bool> when, Func<Site, P
         [Consonant.g] = [Consonant.w],
         [Consonant.ʧ] = [Consonant.ʃ],
         [Consonant.ʤ] = [Consonant.ʒ],
+        [Consonant.ʦ] = [Consonant.s],
+        [Consonant.ʣ] = [Consonant.z],
+        //aspirates weaken to fricatives as they did from Ancient to Modern Greek, pʰ to f, tʰ to θ
+        //and kʰ to x, and labialized gʷ to w, as in Latin
+        [Consonant.pʰ] = [Consonant.f],
+        [Consonant.tʰ] = [Consonant.θ, Consonant.s],
+        [Consonant.kʰ] = [Consonant.x],
+        [Consonant.gʷ] = [Consonant.w],
     };
 
     /// <summary>A stop between vowels weakens to a continuant, as in Spanish or Tuscan.</summary>
@@ -172,7 +180,7 @@ public sealed class SoundChange(string name, Func<Site, bool> when, Func<Site, P
         site => site is { Place: { Position: SyllablePosition.Nucleus, Closed: true } } && Laxed.ContainsKey(site.Sound),
         (site, phonology) => phonology.Vowels.Contains(Laxed[site.Sound]) ? Laxed[site.Sound] : site.Sound);
 
-    private static readonly Phoneme[] LostCodas = [Consonant.h, Consonant.ɹ, Consonant.s];
+    private static readonly Phoneme[] LostCodas = [Consonant.h, Consonant.ɹ, Consonant.r, Consonant.ɾ, Consonant.s];
 
     /// <summary>
     /// A coda is lost and the vowel before it lengthens to make up for it, as English car lost its r

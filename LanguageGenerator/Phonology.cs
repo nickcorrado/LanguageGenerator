@@ -42,8 +42,11 @@ public record Phonology
     /// <summary>
     /// The consonant in this inventory with these features, and the given one's for any not given.
     /// </summary>
+    //aspiration and labialization always carry over, so a pʰ has no voiced counterpart unless the
+    //language has a voiced aspirate, and never turns into a plain b
     public Consonant? Counterpart(Consonant consonant, ConsonantPlace? place = null, ConsonantManner? manner = null, bool? voiced = null) =>
-        Consonants.FirstOrDefault(c => c.Place == (place ?? consonant.Place) && c.Manner == (manner ?? consonant.Manner) && c.Voiced == (voiced ?? consonant.Voiced));
+        Consonants.FirstOrDefault(c => c.Place == (place ?? consonant.Place) && c.Manner == (manner ?? consonant.Manner) && c.Voiced == (voiced ?? consonant.Voiced)
+            && c.Aspirated == consonant.Aspirated && c.Labialized == consonant.Labialized);
 
     //underlying morphemes, run together → sound changes → cluster repair → syllables → changes that
     //depend on syllables, each followed by repair and syllables again, since it can leave a word

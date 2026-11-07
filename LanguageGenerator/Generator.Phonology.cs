@@ -118,7 +118,11 @@ public static partial class Generator
                 Pick(OrthographicStyle.PalatalGlideOptions),
                 Pick(Enum.GetValues<DentalFricativeSpelling>()),
                 Pick(OrthographicStyle.VelarNasalOptions),
-                Pick(OrthographicStyle.VelarFricativeOptions));
+                Pick(OrthographicStyle.VelarFricativeOptions),
+                Pick(Enum.GetValues<DentalAffricateSpelling>()),
+                Pick(Enum.GetValues<AspirationSpelling>()),
+                Pick(OrthographicStyle.GlottalStopOptions),
+                Pick(OrthographicStyle.PalatalNasalOptions));
             var spellings = style.Spell(inventory);
             if (Orthography.AreDistinct(spellings.Values))
             {
@@ -295,9 +299,10 @@ public static partial class Generator
     //on. Each sound's odds are roughly the share of PHOIBLE's inventories that have it, counting
     //dental and alveolar as one place, as this inventory does, except where WALS has a closer figure.
     //
-    //Real inventories run larger than these, from 6 to over 80 (WALS 1A), mostly by stacking series
-    //this inventory doesn't have yet, like ejectives, palatals or labialized consonants, so sizes
-    //here can't match WALS's counts; what they can match is which sounds a language has
+    //Real inventories run larger than these, from 6 to over 80 (WALS 1A), partly by stacking series
+    //left out here, like ejectives, implosives or clicks, since a player has to be able to say a
+    //language to learn it. So sizes here run smaller than WALS's counts, but which sounds a language
+    //has should look like a real one
     public static List<Consonant> GenerateConsonants(Random rand)
     {
         //some languages have more of everything optional than others. Without this, every
@@ -331,10 +336,24 @@ public static partial class Generator
             Add(Consonant.d, Likely(0.97));
             Add(Consonant.g, consonants.Contains(Consonant.k) && Likely(1 - 41 / 347.0));
         }
+        //a series of aspirates, as in Mandarin or Korean, where voicing doesn't matter, or beside
+        //voiced stops, as in Hindi or Thai. WALS doesn't count it; roughly a quarter of PHOIBLE's
+        //inventories have kʰ
+        if (Optional(0.25))
+        {
+            Add(Consonant.pʰ, consonants.Contains(Consonant.p) && Likely(0.95));
+            Add(Consonant.tʰ, consonants.Contains(Consonant.t));
+            Add(Consonant.kʰ, consonants.Contains(Consonant.k) && Likely(0.95));
+        }
+        //labialized velars, as in Hausa or Amharic, in perhaps one inventory in seven
+        Add(Consonant.kʷ, consonants.Contains(Consonant.k) && Optional(0.15));
+        Add(Consonant.gʷ, consonants.Contains(Consonant.kʷ) && consonants.Contains(Consonant.g) && Likely(0.8));
+        Add(Consonant.ʔ, Optional(0.38));
 
         Add(Consonant.m, Likely(0.97));
         Add(Consonant.n, Likely(0.98));
         Add(Consonant.ŋ, consonants.Contains(Consonant.k) && Optional(0.6));
+        Add(Consonant.ɲ, Optional(0.4));
 
         //fricatives. Some languages have none at all, as is usual in Australia, and s is much
         //the commonest where there are any. Voiced fricatives come with their voiceless partners
@@ -358,13 +377,23 @@ public static partial class Generator
         //affricates voice along with the stops, as English ʧ ʤ do with p b
         Add(Consonant.ʧ, Optional(0.4));
         Add(Consonant.ʤ, voicedStops && consonants.Contains(Consonant.ʧ) && Likely(0.85));
+        Add(Consonant.ʦ, Optional(0.2));
+        Add(Consonant.ʣ, voicedStops && consonants.Contains(Consonant.ʦ) && Likely(0.7));
 
         Add(Consonant.j, Likely(0.9));
         Add(Consonant.w, Likely(0.82));
-        //WALS 8A: 95 of 567 languages have no lateral at all. ɹ stands in for every rhotic, of
-        //which a trill or tap is far commoner, until the inventory has them
+        //WALS 8A: 95 of 567 languages have no lateral at all
         Add(Consonant.l, Likely(0.75));
-        Add(Consonant.ɹ, Likely(0.75));
+        //most languages have one rhotic, a trill or a tap far more often than English's ɹ. Some,
+        //like Spanish, have both a trill and a tap, but English speakers struggle to hear them
+        //apart, so the weights, which are guesses, keep that rare
+        if (Likely(0.75))
+        {
+            foreach (var rhotic in Sampling.Categorical(rand, Rhotics))
+            {
+                consonants.Add(rhotic);
+            }
+        }
 
         //the order is a frequency ranking: Pick draws earlier phonemes more often. Unmarked
         //consonants are the commonest in words as they are across languages, so the ranking
@@ -375,13 +404,22 @@ public static partial class Generator
             .Select(x => x.Consonant)];
     }
 
+    private static readonly (Consonant[] Rhotics, int Weight)[] Rhotics =
+    [
+        ([Consonant.r], 42),
+        ([Consonant.ɾ], 38),
+        ([Consonant.ɹ], 12),
+        ([Consonant.r, Consonant.ɾ], 8),
+    ];
+
     //consonants from commonest to rarest in words: coronals first, as in most lexicons, then roughly
     //by how many languages have them
     private static readonly Consonant[] ConsonantMarkedness =
     [
         Consonant.t, Consonant.n, Consonant.k, Consonant.m, Consonant.s, Consonant.p, Consonant.l, Consonant.j,
-        Consonant.w, Consonant.h, Consonant.ɹ, Consonant.b, Consonant.d, Consonant.g, Consonant.ŋ, Consonant.f,
-        Consonant.ʃ, Consonant.ʧ, Consonant.z, Consonant.v, Consonant.ʤ, Consonant.x, Consonant.ʒ, Consonant.θ,
-        Consonant.ð,
+        Consonant.w, Consonant.r, Consonant.ɾ, Consonant.h, Consonant.ʔ, Consonant.ɹ, Consonant.b, Consonant.d,
+        Consonant.g, Consonant.ŋ, Consonant.ɲ, Consonant.f, Consonant.ʃ, Consonant.ʧ, Consonant.tʰ, Consonant.kʰ,
+        Consonant.pʰ, Consonant.ʦ, Consonant.z, Consonant.v, Consonant.ʤ, Consonant.kʷ, Consonant.x, Consonant.gʷ,
+        Consonant.ʣ, Consonant.ʒ, Consonant.θ, Consonant.ð,
     ];
 }

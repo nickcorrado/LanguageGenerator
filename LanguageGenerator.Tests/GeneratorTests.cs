@@ -288,6 +288,13 @@ public class GeneratorTests
     [InlineData("g", "k")]
     [InlineData("ŋ", "k")]
     [InlineData("ʃ", "s")]
+    [InlineData("pʰ", "p")]
+    [InlineData("tʰ", "t")]
+    [InlineData("kʰ", "k")]
+    [InlineData("kʷ", "k")]
+    [InlineData("gʷ", "g")]
+    [InlineData("gʷ", "kʷ")]
+    [InlineData("ʣ", "ʦ")]
     public void GenerateConsonants_ManyDraws_NeverHaveAMarkedSoundWithoutTheOneItImplies(string marked, string implied)
     {
         Assert.All(ConsonantDraws.Value, c =>
@@ -310,6 +317,26 @@ public class GeneratorTests
         Assert.InRange(Share(Consonant.θ), 0.02, 0.08);
         //every consonant turns up in some language
         Assert.Equal(Consonant.All.Count, draws.SelectMany(c => c).Distinct().Count());
+    }
+
+    [Fact]
+    public void GenerateConsonants_ManyDraws_HaveOneRhoticMostlyAndNeverɹBesideAnother()
+    {
+        var rhoticCounts = ConsonantDraws.Value.Select(c => c.Count(x => x.IsRhotic)).ToList();
+
+        Assert.All(ConsonantDraws.Value.Where(c => c.Contains(Consonant.ɹ)), c => Assert.Equal(1, c.Count(x => x.IsRhotic)));
+        Assert.True(rhoticCounts.Count(n => n == 2) < 0.1 * rhoticCounts.Count);
+        Assert.True(rhoticCounts.Count(n => n == 1) > 0.6 * rhoticCounts.Count);
+    }
+
+    [Fact]
+    public void GenerateConsonants_ManyDraws_AspirateAWholeSeriesAtOnce()
+    {
+        var aspirating = ConsonantDraws.Value.Where(c => c.Any(x => x.Aspirated)).ToList();
+
+        Assert.InRange(aspirating.Count / (double)ConsonantDraws.Value.Count, 0.18, 0.32);
+        //nearly every plain stop beside an aspirate has its own aspirate too
+        Assert.True(aspirating.Count(c => c.Contains(Consonant.tʰ) && c.Contains(Consonant.kʰ)) > 0.85 * aspirating.Count);
     }
 
     [Fact]

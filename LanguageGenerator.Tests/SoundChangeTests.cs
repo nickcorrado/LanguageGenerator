@@ -442,6 +442,25 @@ public class SoundChangeTests
         Assert.DoesNotContain(SoundChange.CodaWeakening, drawn);
     }
 
+    [Fact]
+    public void Lenition_AspiratesBetweenVowels_BecomeFricativesAsInGreek()
+    {
+        Assert.Equal("afa", Surface(SyllableTemplates.CV, SoundChange.Lenition, [Vowel.a, Consonant.pʰ, Vowel.a]));
+        Assert.Equal("axa", Surface(SyllableTemplates.CV, SoundChange.Lenition, [Vowel.a, Consonant.kʰ, Vowel.a]));
+    }
+
+    [Fact]
+    public void IntervocalicVoicing_Aspirate_KeepsItsAspirationAndHasNoVoicedCounterpart()
+    {
+        Assert.Equal("apʰa", Surface(SyllableTemplates.CV, SoundChange.IntervocalicVoicing, [Vowel.a, Consonant.pʰ, Vowel.a]));
+    }
+
+    [Fact]
+    public void FinalDevoicing_LabializedVelar_StaysLabialized()
+    {
+        Assert.Equal("akʷ", Surface(SyllableTemplates.CVF, SoundChange.FinalDevoicing, [Vowel.a, Consonant.gʷ]).Replace("ə", ""));
+    }
+
     private static readonly Phoneme[] La = [Consonant.l, Vowel.a];
     private static readonly Phoneme[] Læ = [Consonant.l, Vowel.æ];
 

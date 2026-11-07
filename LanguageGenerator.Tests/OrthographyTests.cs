@@ -57,7 +57,12 @@ public class OrthographyTests
         from dentalFricatives in Enum.GetValues<DentalFricativeSpelling>()
         from velarNasal in OrthographicStyle.VelarNasalOptions
         from velarFricative in OrthographicStyle.VelarFricativeOptions
-        select new OrthographicStyle(postalveolars, longVowels, midVowels, schwa, nearOpenFront, velarStop, palatalGlide, dentalFricatives, velarNasal, velarFricative);
+        from dentalAffricates in Enum.GetValues<DentalAffricateSpelling>()
+        from aspiration in Enum.GetValues<AspirationSpelling>()
+        from glottalStop in OrthographicStyle.GlottalStopOptions
+        from palatalNasal in OrthographicStyle.PalatalNasalOptions
+        select new OrthographicStyle(postalveolars, longVowels, midVowels, schwa, nearOpenFront, velarStop, palatalGlide, dentalFricatives, velarNasal, velarFricative,
+            dentalAffricates, aspiration, glottalStop, palatalNasal);
 
     [Fact]
     public void Spell_EveryStyle_SpellsTheWholeInventory()
@@ -75,8 +80,42 @@ public class OrthographyTests
         Assert.Equal(["š", "ž"], [spellings[Consonant.ʃ], spellings[Consonant.ʒ]]);
         Assert.Equal(["ī", "ō"], [spellings[Vowel.iː], spellings[Vowel.oː]]);
         Assert.Equal(["e", "è", "o", "ò"], [spellings[Vowel.e], spellings[Vowel.ɛ], spellings[Vowel.o], spellings[Vowel.ɔ]]);
-        Assert.Equal(["ë", "ä", "k", "y", "r"], [spellings[Vowel.ə], spellings[Vowel.æ], spellings[Consonant.k], spellings[Consonant.j], spellings[Consonant.ɹ]]);
+        Assert.Equal(["ë", "ä", "k", "y"], [spellings[Vowel.ə], spellings[Vowel.æ], spellings[Consonant.k], spellings[Consonant.j]]);
+        Assert.Equal(["ph", "th", "kh", "kw", "gw"], [spellings[Consonant.pʰ], spellings[Consonant.tʰ], spellings[Consonant.kʰ], spellings[Consonant.kʷ], spellings[Consonant.gʷ]]);
+        Assert.Equal(["ts", "dz", "'", "ñ"], [spellings[Consonant.ʦ], spellings[Consonant.ʣ], spellings[Consonant.ʔ], spellings[Consonant.ɲ]]);
         Assert.True(Orthography.AreDistinct(spellings.Values));
+    }
+
+    [Theory]
+    [InlineData("r", "r")]
+    [InlineData("ɾ", "r")]
+    [InlineData("ɹ", "r")]
+    [InlineData("r ɾ", "rr r")]
+    public void Spell_Rhotics_AreROnTheirOwnAndRrForATrillBesideATap(string rhotics, string expected)
+    {
+        var style = new OrthographicStyle(PostalveolarSpelling.Digraph, LongVowelSpelling.Macron, MidVowelSpelling.GraveOnOpen, "ë", "ä", "k", "y");
+        var present = rhotics.Split(' ').Select(ipa => Consonant.All.Single(c => c.IpaSymbol == ipa)).ToList();
+
+        var spellings = style.Spell([Vowel.a, Consonant.t, .. present]);
+
+        Assert.Equal(expected, string.Join(" ", present.Select(r => spellings[r])));
+    }
+
+    [Theory]
+    [InlineData(AspirationSpelling.H, "p ph t th c ch")]
+    [InlineData(AspirationSpelling.Apostrophe, "p p' t t' c c'")]
+    [InlineData(AspirationSpelling.VoicedLetters, "b p d t g c")]
+    public void Spell_Aspirates_FollowTheConventionAndVoicedLettersOnlyWorkWithoutVoicedStops(AspirationSpelling aspiration, string expected)
+    {
+        var style = new OrthographicStyle(PostalveolarSpelling.Digraph, LongVowelSpelling.Macron, MidVowelSpelling.GraveOnOpen, "ë", "ä", "c", "y", Aspiration: aspiration);
+        List<Phoneme> stops = [Consonant.p, Consonant.pʰ, Consonant.t, Consonant.tʰ, Consonant.k, Consonant.kʰ];
+
+        var plain = style.Spell([Vowel.a, .. stops]);
+        var withVoiced = style.Spell([Vowel.a, .. stops, Consonant.b, Consonant.d, Consonant.g]);
+
+        Assert.Equal(expected, string.Join(" ", stops.Select(s => plain[s])));
+        Assert.True(Orthography.AreDistinct(plain.Values));
+        Assert.Equal(aspiration != AspirationSpelling.VoicedLetters, Orthography.AreDistinct(withVoiced.Values));
     }
 
     [Theory]

@@ -72,7 +72,9 @@ public class Consonant : Phoneme
     public static Consonant f { get; } = new("f", ConsonantPlace.LabioDental, ConsonantManner.Fricative, false);
     public static Consonant v { get; } = new("v", ConsonantPlace.LabioDental, ConsonantManner.Fricative, true);
     public static Consonant ɹ { get; } = new("ɹ", ConsonantPlace.PostAlveolar, ConsonantManner.Approximant, true);
-    public static Consonant l { get; } = new("l", ConsonantPlace.PostAlveolar, ConsonantManner.LateralApproximant, true);
+    public static Consonant r { get; } = new("r", ConsonantPlace.Dental, ConsonantManner.Trill, true);
+    public static Consonant ɾ { get; } = new("ɾ", ConsonantPlace.Dental, ConsonantManner.Flap, true);
+    public static Consonant l { get; } = new("l", ConsonantPlace.Dental, ConsonantManner.LateralApproximant, true);
     public static Consonant j { get; } = new("j", ConsonantPlace.Palatal, ConsonantManner.Approximant, true);
     public static Consonant w { get; } = new("w", ConsonantPlace.Velar, ConsonantManner.Approximant, true);
     public static Consonant θ { get; } = new("θ", ConsonantPlace.Dental, ConsonantManner.Fricative, false);
@@ -83,23 +85,44 @@ public class Consonant : Phoneme
     //the IPA ligatures, since a spelled tʃ couldn't be told from t and ʃ
     public static Consonant ʧ { get; } = new("ʧ", ConsonantPlace.PostAlveolar, ConsonantManner.Affricate, false);
     public static Consonant ʤ { get; } = new("ʤ", ConsonantPlace.PostAlveolar, ConsonantManner.Affricate, true);
+    public static Consonant ʦ { get; } = new("ʦ", ConsonantPlace.Dental, ConsonantManner.Affricate, false);
+    public static Consonant ʣ { get; } = new("ʣ", ConsonantPlace.Dental, ConsonantManner.Affricate, true);
+    public static Consonant ʔ { get; } = new("ʔ", ConsonantPlace.Glottal, ConsonantManner.Plosive, false);
+    public static Consonant ɲ { get; } = new("ɲ", ConsonantPlace.Palatal, ConsonantManner.Nasal, true);
+    //a series of stops released with a puff of air, as in Mandarin, Hindi or Korean, where p and pʰ
+    //are different sounds. English has them too, in pin against spin, but never to tell words apart
+    public static Consonant pʰ { get; } = new("pʰ", ConsonantPlace.Labial, ConsonantManner.Plosive, false, aspirated: true);
+    public static Consonant tʰ { get; } = new("tʰ", ConsonantPlace.Dental, ConsonantManner.Plosive, false, aspirated: true);
+    public static Consonant kʰ { get; } = new("kʰ", ConsonantPlace.Velar, ConsonantManner.Plosive, false, aspirated: true);
+    //velars said with rounded lips, as in English queen, but as single sounds, the commonest
+    //labialized consonants by far
+    public static Consonant kʷ { get; } = new("kʷ", ConsonantPlace.Velar, ConsonantManner.Plosive, false, labialized: true);
+    public static Consonant gʷ { get; } = new("gʷ", ConsonantPlace.Velar, ConsonantManner.Plosive, true, labialized: true);
 
-    /// <summary>Every consonant a language can have, from which the generator prunes.</summary>
-    public static IReadOnlyList<Consonant> All { get; } = [b, d, g, k, m, n, p, s, t, z, ʃ, ʒ, f, v, ɹ, l, j, w, θ, ð, ŋ, h, x, ʧ, ʤ];
+    /// <summary>Every consonant a language can have.</summary>
+    public static IReadOnlyList<Consonant> All { get; } =
+        [b, d, g, k, m, n, p, s, t, z, ʃ, ʒ, f, v, ɹ, r, ɾ, l, j, w, θ, ð, ŋ, h, x, ʧ, ʤ, ʦ, ʣ, ʔ, ɲ, pʰ, tʰ, kʰ, kʷ, gʷ];
 
     public ConsonantPlace Place { get; }
     public ConsonantManner Manner { get; }
     public bool Voiced { get; }
+    public bool Aspirated { get; }
+    public bool Labialized { get; }
 
     /// <summary>Whether the airflow is obstructed: a stop, an affricate or a fricative, sibilant or not.</summary>
     public bool IsObstruent => Manner is ConsonantManner.Plosive or ConsonantManner.Affricate or ConsonantManner.Sibilant or ConsonantManner.Fricative;
 
-    private Consonant(string ipaSymbol, ConsonantPlace consonantPlace, ConsonantManner consonantManner, bool voiced)
+    /// <summary>Whether this is a trill, flap or approximant r.</summary>
+    public bool IsRhotic => this == r || this == ɾ || this == ɹ;
+
+    private Consonant(string ipaSymbol, ConsonantPlace consonantPlace, ConsonantManner consonantManner, bool voiced, bool aspirated = false, bool labialized = false)
         : base(ipaSymbol)
     {
         Place = consonantPlace;
         Manner = consonantManner;
         Voiced = voiced;
+        Aspirated = aspirated;
+        Labialized = labialized;
     }
 }
 

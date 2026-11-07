@@ -66,11 +66,22 @@ public class SyllableTests
     }
 
     [Fact]
+    public void IsLegalCoda_AspiratedOrLabializedStop_IsNeverACoda()
+    {
+        var rule = new SyllableRule(SyllableTemplates.CVF, TestData.Vowels, TestData.Consonants);
+
+        Assert.True(rule.IsLegalCoda([Consonant.k]));
+        Assert.False(rule.IsLegalCoda([Consonant.kʰ]));
+        Assert.False(rule.IsLegalCoda([Consonant.kʷ]));
+        Assert.True(rule.IsLegalOnset([Consonant.kʰ]));
+    }
+
+    [Fact]
     public void GenerateSyllable_TwoConsonantOnsetInCLV_EndsInALiquid()
     {
         var twoConsonants = Generate(SyllableTemplates.CLV, TestData.Consonants, 20000).Where(s => s.Onset.Count == 2).ToList();
 
-        Assert.All(twoConsonants, s => Assert.True(s.Onset.Last().Manner is ConsonantManner.Approximant or ConsonantManner.LateralApproximant));
+        Assert.All(twoConsonants, s => Assert.True(s.Onset.Last().Manner is ConsonantManner.Approximant or ConsonantManner.LateralApproximant or ConsonantManner.Trill or ConsonantManner.Flap));
         //C fills 85% of the time and L 30% of the time
         Assert.InRange(twoConsonants.Count / 20000.0, 0.24, 0.27);
     }

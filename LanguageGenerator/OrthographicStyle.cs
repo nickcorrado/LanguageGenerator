@@ -21,6 +21,26 @@ public enum DentalFricativeSpelling
     Digraph,
 }
 
+public enum DentalAffricateSpelling
+{
+    //ts dz, as in Japanese romanization or Albanian x's neighbor dz
+    Digraph,
+    //c dz, as in Czech, Polish or Hungarian
+    SingleLetter,
+}
+
+/// <summary>How a language with aspirated stops tells them from plain ones.</summary>
+public enum AspirationSpelling
+{
+    //ph th kh, as Hindi and Thai are romanized
+    H,
+    //p' t' k', as in Wade–Giles
+    Apostrophe,
+    //p t k for the aspirates and b d g for the plain stops, as in Pinyin, which only works in a
+    //language without voiced stops for b d g to mean
+    VoicedLetters,
+}
+
 public enum LongVowelSpelling
 {
     //ī ō, as in Latvian
@@ -54,7 +74,11 @@ public record OrthographicStyle(
     string PalatalGlide,
     DentalFricativeSpelling DentalFricatives = DentalFricativeSpelling.Thorn,
     string VelarNasal = "ŋ",
-    string VelarFricative = "x")
+    string VelarFricative = "x",
+    DentalAffricateSpelling DentalAffricates = DentalAffricateSpelling.Digraph,
+    AspirationSpelling Aspiration = AspirationSpelling.H,
+    string GlottalStop = "'",
+    string PalatalNasal = "ñ")
 {
     //single sounds with a few established spellings each
     public static IReadOnlyList<string> SchwaOptions { get; } = ["ë", "ə", "e", "y"];
@@ -63,6 +87,14 @@ public record OrthographicStyle(
     public static IReadOnlyList<string> PalatalGlideOptions { get; } = ["y", "j"];
     public static IReadOnlyList<string> VelarNasalOptions { get; } = ["ŋ", "ng"];
     public static IReadOnlyList<string> VelarFricativeOptions { get; } = ["x", "kh"];
+    //an apostrophe, or the Hawaiian ʻokina, since a glottal stop has no Latin letter
+    public static IReadOnlyList<string> GlottalStopOptions { get; } = ["'", "ʻ"];
+    //Spanish ñ, Swahili ny, Portuguese nh
+    public static IReadOnlyList<string> PalatalNasalOptions { get; } = ["ñ", "ny", "nh"];
+
+    //each aspirated stop and its plain one
+    private static readonly Dictionary<Phoneme, Consonant> Unaspirated = new() { [Consonant.pʰ] = Consonant.p, [Consonant.tʰ] = Consonant.t, [Consonant.kʰ] = Consonant.k };
+    private static readonly Dictionary<Phoneme, string> VoicedLetters = new() { [Consonant.p] = "b", [Consonant.t] = "d", [Consonant.k] = "g" };
 
     private static readonly Dictionary<string, string> Macrons = new() { ["a"] = "ā", ["e"] = "ē", ["i"] = "ī", ["o"] = "ō", ["u"] = "ū" };
     private static readonly Dictionary<string, string> Acutes = new() { ["a"] = "á", ["e"] = "é", ["i"] = "í", ["o"] = "ó", ["u"] = "ú" };
@@ -137,16 +169,54 @@ public record OrthographicStyle(
             var voiced = phoneme == Consonant.ð;
             return DentalFricatives == DentalFricativeSpelling.Thorn ? (voiced ? "ð" : "þ") : (voiced ? "dh" : "th");
         }
+        if (Unaspirated.TryGetValue(phoneme, out var plain))
+        {
+            return Aspiration switch
+            {
+                AspirationSpelling.H => PlainStop(plain) + "h",
+                AspirationSpelling.Apostrophe => PlainStop(plain) + "'",
+                AspirationSpelling.VoicedLetters => PlainStop(plain),
+                _ => throw new ArgumentOutOfRangeException(nameof(Aspiration), Aspiration, null),
+            };
+        }
+        //with VoicedLetters, a plain stop beside its aspirate takes the voiced letter
+        if (Aspiration == AspirationSpelling.VoicedLetters && VoicedLetters.TryGetValue(phoneme, out var voicedLetter)
+            && Unaspirated.Any(u => u.Value == phoneme && inventory.Contains(u.Key)))
+        {
+            return voicedLetter;
+        }
+        if (phoneme == Consonant.kʷ || phoneme == Consonant.gʷ)
+        {
+            return Spell(phoneme == Consonant.kʷ ? Consonant.k : Consonant.g, inventory) + "w";
+        }
+        if (phoneme == Consonant.ʦ || phoneme == Consonant.ʣ)
+        {
+            return phoneme == Consonant.ʣ ? "dz" : DentalAffricates == DentalAffricateSpelling.Digraph ? "ts" : "c";
+        }
+        //a single rhotic is r. Beside a tap, a trill is rr, as in Spanish pero 'but' and perro 'dog'.
+        //English's ɹ is r too, unless it's beside another rhotic, which no generated language is
+        if (phoneme is Consonant { IsRhotic: true } rhotic)
+        {
+            var others = inventory.OfType<Consonant>().Count(c => c.IsRhotic && c != rhotic);
+            return others == 0 ? "r"
+                : rhotic == Consonant.r && inventory.Contains(Consonant.ɾ) ? "rr"
+                : rhotic == Consonant.ɾ ? "r"
+                : rhotic.IpaSymbol;
+        }
         return phoneme == Vowel.ə ? Schwa
             : phoneme == Vowel.æ ? NearOpenFront
-            : phoneme == Consonant.k ? VelarStop
-            : phoneme == Consonant.j ? PalatalGlide
-            : phoneme == Consonant.ɹ ? "r"
+            : phoneme == Consonant.ʔ ? GlottalStop
+            : phoneme == Consonant.ɲ ? PalatalNasal
             : phoneme == Consonant.ŋ ? VelarNasal
             : phoneme == Consonant.x ? VelarFricative
-            : phoneme.IpaSymbol;
+            : PlainStop(phoneme);
     }
 
+    //a phoneme's own letter, which for k is the language's letter for it
+    private string PlainStop(Phoneme phoneme) =>
+        phoneme == Consonant.k ? VelarStop : phoneme == Consonant.j ? PalatalGlide : phoneme.IpaSymbol;
+
     public override string ToString() =>
-        $"{Postalveolars} postalveolars, {LongVowels} long vowels, {MidVowels} mid vowels, {DentalFricatives} dental fricatives, schwa {Schwa}, æ {NearOpenFront}, k {VelarStop}, j {PalatalGlide}, ŋ {VelarNasal}, x {VelarFricative}";
+        $"{Postalveolars} postalveolars, {LongVowels} long vowels, {MidVowels} mid vowels, {DentalFricatives} dental fricatives, schwa {Schwa}, æ {NearOpenFront}, k {VelarStop}, j {PalatalGlide}, ŋ {VelarNasal}, x {VelarFricative}, "
+        + $"{DentalAffricates} dental affricates, {Aspiration} aspirates, ʔ {GlottalStop}, ɲ {PalatalNasal}";
 }
