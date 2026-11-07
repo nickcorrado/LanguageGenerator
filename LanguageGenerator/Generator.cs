@@ -10,7 +10,7 @@ public static partial class Generator
         var syllableDropoff = 0.15;
 
         var vowels = GenerateVowels(rand);
-        var consonants = GenerateConsonants(rand, 0.15, 0.50);
+        var consonants = GenerateConsonants(rand);
         var syllableRule = SelectSyllableRule(rand, vowels, consonants);
         var phonology = new Phonology
         {

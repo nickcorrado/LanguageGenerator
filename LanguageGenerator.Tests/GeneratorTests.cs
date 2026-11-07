@@ -261,6 +261,65 @@ public class GeneratorTests
         });
     }
 
+    private static readonly Lazy<List<List<Consonant>>> ConsonantDraws = new(() =>
+    {
+        var rand = new Random(1);
+        return [.. Enumerable.Range(0, 20000).Select(_ => Generator.GenerateConsonants(rand))];
+    });
+
+    [Fact]
+    public void GenerateConsonants_ManyDraws_MatchWalsVoicingCounts()
+    {
+        var draws = ConsonantDraws.Value;
+        double Share(Func<List<Consonant>, bool> which) => draws.Count(which) / (double)draws.Count;
+        bool VoicedStops(List<Consonant> c) => c.Any(x => x.Manner is ConsonantManner.Plosive && x.Voiced);
+
+        //WALS 4A: 189 + 158 of 567 contrast voicing in stops. Fricatives can fall short of their
+        //38 + 158, since a language needs a voiceless fricative to voice, so only stops are checked
+        Assert.InRange(Share(VoicedStops), 347 / 567.0 - 0.015, 347 / 567.0 + 0.015);
+    }
+
+    [Theory]
+    [InlineData("z", "s")]
+    [InlineData("v", "f")]
+    [InlineData("ʒ", "ʃ")]
+    [InlineData("ð", "θ")]
+    [InlineData("ʤ", "ʧ")]
+    [InlineData("g", "k")]
+    [InlineData("ŋ", "k")]
+    [InlineData("ʃ", "s")]
+    public void GenerateConsonants_ManyDraws_NeverHaveAMarkedSoundWithoutTheOneItImplies(string marked, string implied)
+    {
+        Assert.All(ConsonantDraws.Value, c =>
+        {
+            if (c.Any(x => x.IpaSymbol == marked))
+            {
+                Assert.Contains(c, x => x.IpaSymbol == implied);
+            }
+        });
+    }
+
+    [Fact]
+    public void GenerateConsonants_ManyDraws_KeepCommonSoundsCommonAndRareOnesRare()
+    {
+        var draws = ConsonantDraws.Value;
+        double Share(Consonant consonant) => draws.Count(c => c.Contains(consonant)) / (double)draws.Count;
+
+        Assert.True(draws.Count(c => c.Contains(Consonant.m) || c.Contains(Consonant.p) || c.Contains(Consonant.b)) > 0.99 * draws.Count);
+        Assert.True(Share(Consonant.t) > 0.95 && Share(Consonant.n) > 0.95);
+        Assert.InRange(Share(Consonant.θ), 0.02, 0.08);
+        //every consonant turns up in some language
+        Assert.Equal(Consonant.All.Count, draws.SelectMany(c => c).Distinct().Count());
+    }
+
+    [Fact]
+    public void GenerateConsonants_ManyDraws_PutUnmarkedConsonantsFirstMostOfTheTime()
+    {
+        var firsts = ConsonantDraws.Value.Select(c => c[0]).ToList();
+
+        Assert.True(firsts.Count(c => c == Consonant.t || c == Consonant.n || c == Consonant.k) > 0.8 * firsts.Count);
+    }
+
     [Fact]
     public void GenerateVowels_ManyDraws_PutUnmarkedVowelsFirstMostOfTheTime()
     {

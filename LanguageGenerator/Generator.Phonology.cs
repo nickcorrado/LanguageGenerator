@@ -1,6 +1,4 @@
-﻿using System.Runtime.InteropServices;
-
-namespace LanguageGenerator;
+﻿namespace LanguageGenerator;
 
 //inventories, syllables, sandhi and spelling
 public static partial class Generator
@@ -290,35 +288,100 @@ public static partial class Generator
     private static readonly ((Vowel[] Qualities, int Weight)[] Systems, int Weight)[] VowelSystemBands =
         [(SmallVowelSystems, 93), (AverageVowelSystems, 287), (LargeVowelSystems, 184)];
 
-    public static List<Consonant> GenerateConsonants(Random rand, double chanceofPhonemePruning, double chanceOfCategoryPruning)
+    //a consonant inventory is built, not pruned. Common sounds are near-certain and rare ones
+    //unlikely, a voicing contrast is decided for a whole series at once (Clements's feature
+    //economy: a language that voices its stops voices them across the board, b d g, not just d),
+    //and marked sounds come only with the sounds they imply: z with s, ʒ with ʃ, ŋ with k, and so
+    //on. Each sound's odds are roughly the share of PHOIBLE's inventories that have it, counting
+    //dental and alveolar as one place, as this inventory does, except where WALS has a closer figure.
+    //
+    //Real inventories run larger than these, from 6 to over 80 (WALS 1A), mostly by stacking series
+    //this inventory doesn't have yet, like ejectives, palatals or labialized consonants, so sizes
+    //here can't match WALS's counts; what they can match is which sounds a language has
+    public static List<Consonant> GenerateConsonants(Random rand)
     {
-        var consonants = new List<Consonant>(Consonant.All);
+        //some languages have more of everything optional than others. Without this, every
+        //inventory would come out near the same size. Its range is a guess
+        var richness = 0.6 + rand.NextDouble() * 0.8;
+        bool Likely(double chance) => rand.NextDouble() < chance;
+        bool Optional(double chance) => rand.NextDouble() < Math.Min(1, chance * richness);
 
-        for (int i = consonants.Count - 1; i >= 0; i--)
+        //WALS 4A: of 567 languages, 182 contrast voicing in neither stops nor fricatives, 189 in
+        //stops alone, 38 in fricatives alone and 158 in both
+        var (voicedStops, voicedFricatives) = Sampling.Categorical(rand,
+            [((false, false), 182), ((true, false), 189), ((false, true), 38), ((true, true), 158)]);
+
+        var consonants = new HashSet<Consonant>();
+        void Add(Consonant consonant, bool present)
         {
-            Consonant consonant = consonants[i];
-            if (rand.NextDouble() < chanceofPhonemePruning)
+            if (present)
             {
-                consonants.Remove(consonant);
+                consonants.Add(consonant);
             }
         }
 
-        //picked some more disposable categories; this could use work
-        if (rand.NextDouble() < chanceOfCategoryPruning)
+        //stops. WALS 5A: 40 of 567 languages lack p, mostly ones with b, like Arabic, and 41 of the
+        //347 with voiced stops lack g. Some languages lack t or k, like Hawaiian
+        Add(Consonant.p, Likely(1 - 40 / 567.0));
+        Add(Consonant.t, Likely(0.98));
+        Add(Consonant.k, Likely(0.98) || !consonants.Contains(Consonant.t));
+        if (voicedStops)
         {
-            consonants.RemoveAll(c => c.Place == ConsonantPlace.Labial);
-        }
-        if (rand.NextDouble() < chanceOfCategoryPruning)
-        {
-            consonants.RemoveAll(c => c.Place == ConsonantPlace.Palatal);
-        }
-        if (rand.NextDouble() < chanceOfCategoryPruning)
-        {
-            consonants.RemoveAll(c => c.Place == ConsonantPlace.Retroflex);
+            Add(Consonant.b, Likely(0.95));
+            Add(Consonant.d, Likely(0.97));
+            Add(Consonant.g, consonants.Contains(Consonant.k) && Likely(1 - 41 / 347.0));
         }
 
-        rand.Shuffle(CollectionsMarshal.AsSpan(consonants));
+        Add(Consonant.m, Likely(0.97));
+        Add(Consonant.n, Likely(0.98));
+        Add(Consonant.ŋ, consonants.Contains(Consonant.k) && Optional(0.6));
 
-        return consonants;
+        //fricatives. Some languages have none at all, as is usual in Australia, and s is much
+        //the commonest where there are any. Voiced fricatives come with their voiceless partners
+        if (Likely(0.9))
+        {
+            Add(Consonant.s, Likely(0.9));
+            Add(Consonant.h, Optional(0.6));
+            Add(Consonant.f, Optional(0.45));
+            Add(Consonant.ʃ, consonants.Contains(Consonant.s) && Optional(0.45));
+            Add(Consonant.x, Optional(0.2));
+            Add(Consonant.θ, Optional(0.05));
+            if (voicedFricatives)
+            {
+                Add(Consonant.z, consonants.Contains(Consonant.s));
+                Add(Consonant.v, consonants.Contains(Consonant.f) && Likely(0.85));
+                Add(Consonant.ʒ, consonants.Contains(Consonant.ʃ) && Likely(0.7));
+                Add(Consonant.ð, consonants.Contains(Consonant.θ) && Likely(0.8));
+            }
+        }
+
+        //affricates voice along with the stops, as English ʧ ʤ do with p b
+        Add(Consonant.ʧ, Optional(0.4));
+        Add(Consonant.ʤ, voicedStops && consonants.Contains(Consonant.ʧ) && Likely(0.85));
+
+        Add(Consonant.j, Likely(0.9));
+        Add(Consonant.w, Likely(0.82));
+        //WALS 8A: 95 of 567 languages have no lateral at all. ɹ stands in for every rhotic, of
+        //which a trill or tap is far commoner, until the inventory has them
+        Add(Consonant.l, Likely(0.75));
+        Add(Consonant.ɹ, Likely(0.75));
+
+        //the order is a frequency ranking: Pick draws earlier phonemes more often. Unmarked
+        //consonants are the commonest in words as they are across languages, so the ranking
+        //follows ConsonantMarkedness, jittered so that languages don't all share it
+        return [.. consonants
+            .Select(c => (Consonant: c, Rank: Array.IndexOf(ConsonantMarkedness, c) + rand.NextDouble() * 3))
+            .OrderBy(x => x.Rank)
+            .Select(x => x.Consonant)];
     }
+
+    //consonants from commonest to rarest in words: coronals first, as in most lexicons, then roughly
+    //by how many languages have them
+    private static readonly Consonant[] ConsonantMarkedness =
+    [
+        Consonant.t, Consonant.n, Consonant.k, Consonant.m, Consonant.s, Consonant.p, Consonant.l, Consonant.j,
+        Consonant.w, Consonant.h, Consonant.ɹ, Consonant.b, Consonant.d, Consonant.g, Consonant.ŋ, Consonant.f,
+        Consonant.ʃ, Consonant.ʧ, Consonant.z, Consonant.v, Consonant.ʤ, Consonant.x, Consonant.ʒ, Consonant.θ,
+        Consonant.ð,
+    ];
 }
