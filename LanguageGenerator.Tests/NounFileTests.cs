@@ -105,15 +105,14 @@ public class NounFileTests
     }
 
     [Fact]
-    public void ClassOf_PrefersTheFileToWhatTheGeneratorKnows()
+    public void ClassOf_IsWhatTheFileSays_OrElseAThing()
     {
         var lexicon = new Lexicon((meaning, _) => new Root([], meaning));
 
-        lexicon.Classify(new Dictionary<string, SemanticClass> { ["marta"] = SemanticClass.Female, ["dog"] = SemanticClass.Thing });
+        lexicon.Classify(new Dictionary<string, SemanticClass> { ["marta"] = SemanticClass.Female, ["dog"] = SemanticClass.Animal });
 
         Assert.Equal(SemanticClass.Female, lexicon.ClassOf("marta"));
-        Assert.Equal(SemanticClass.Thing, lexicon.ClassOf("dog"));
-        Assert.Equal(SemanticClass.Male, lexicon.ClassOf("king"));
+        Assert.Equal(SemanticClass.Animal, lexicon.ClassOf("dog"));
         Assert.Equal(SemanticClass.Thing, lexicon.ClassOf("river"));
     }
 

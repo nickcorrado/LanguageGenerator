@@ -37,28 +37,6 @@ public enum SemanticClass
     Thing,
 }
 
-/// <summary>What the generator knows of what nouns mean, with no noun file to say.</summary>
-//the common nouns, for text with no front end. Anything else is taken to be a thing
-public static class Semantics
-{
-    private static readonly Dictionary<string, SemanticClass> Classes = new()
-    {
-        ["man"] = SemanticClass.Male, ["boy"] = SemanticClass.Male, ["king"] = SemanticClass.Male, ["father"] = SemanticClass.Male,
-        ["son"] = SemanticClass.Male, ["brother"] = SemanticClass.Male, ["husband"] = SemanticClass.Male, ["prince"] = SemanticClass.Male,
-        ["woman"] = SemanticClass.Female, ["girl"] = SemanticClass.Female, ["queen"] = SemanticClass.Female, ["mother"] = SemanticClass.Female,
-        ["daughter"] = SemanticClass.Female, ["sister"] = SemanticClass.Female, ["wife"] = SemanticClass.Female, ["princess"] = SemanticClass.Female,
-        ["person"] = SemanticClass.Human, ["child"] = SemanticClass.Human, ["friend"] = SemanticClass.Human, ["enemy"] = SemanticClass.Human,
-        ["hunter"] = SemanticClass.Human, ["soldier"] = SemanticClass.Human, ["guard"] = SemanticClass.Human, ["stranger"] = SemanticClass.Human,
-        ["fool"] = SemanticClass.Human, ["warrior"] = SemanticClass.Human, ["merchant"] = SemanticClass.Human, ["god"] = SemanticClass.Human,
-        ["dog"] = SemanticClass.Animal, ["cat"] = SemanticClass.Animal, ["fish"] = SemanticClass.Animal, ["bird"] = SemanticClass.Animal,
-        ["wolf"] = SemanticClass.Animal, ["horse"] = SemanticClass.Animal, ["cow"] = SemanticClass.Animal, ["sheep"] = SemanticClass.Animal,
-        ["pig"] = SemanticClass.Animal, ["snake"] = SemanticClass.Animal, ["bear"] = SemanticClass.Animal, ["deer"] = SemanticClass.Animal,
-        ["mouse"] = SemanticClass.Animal, ["goat"] = SemanticClass.Animal, ["lion"] = SemanticClass.Animal, ["dragon"] = SemanticClass.Animal,
-    };
-
-    public static SemanticClass Of(string meaning) => Classes.GetValueOrDefault(meaning, SemanticClass.Thing);
-}
-
 /// <summary>
 /// A language's noun genders: which there are, how a noun gets one, and how words agree with it.
 /// </summary>

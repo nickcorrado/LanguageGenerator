@@ -67,7 +67,7 @@ public sealed partial class Glosser(IChatModel model, int batchSize = 20, int re
 
     //a noun file for these clauses: everything in known, which is kept so that a word's class can't
     //change from one run to the next, and the nouns it doesn't have yet. A noun the model leaves out
-    //gets what the generator knows of it, which for most is that it's a thing
+    //is a thing
     public async Task<NounResult> ClassifyNouns(IEnumerable<ClauseFile.Entry> clauses, IReadOnlyDictionary<string, SemanticClass> known,
         Action<string>? progress = null, CancellationToken cancellationToken = default)
     {
@@ -92,7 +92,7 @@ public sealed partial class Glosser(IChatModel model, int batchSize = 20, int re
                 {
                     foreach (var (noun, _) in pending)
                     {
-                        nouns[noun] = classified.TryGetValue(noun, out var meaning) ? meaning : Semantics.Of(noun);
+                        nouns[noun] = classified.GetValueOrDefault(noun, SemanticClass.Thing);
                     }
                     return new NounResult(nouns, usage, pending.Count, null);
                 }

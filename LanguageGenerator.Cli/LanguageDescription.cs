@@ -10,6 +10,7 @@ public static class LanguageDescription
 {
     public static void Write(Language lang, TextWriter output)
     {
+        lang.Lexicon.Classify(ExampleNouns);
         WriteFeatures(lang, output);
         WriteParadigms(lang, output);
         WriteExamples(lang, output);
@@ -135,6 +136,9 @@ public static class LanguageDescription
             }
         }
     }
+
+    private static readonly IReadOnlyDictionary<string, SemanticClass> ExampleNouns =
+        NounFile.Parse("woman F\nperson HUM\ndog ANIM\ncat ANIM\nbird ANIM\nfish ANIM");
 
     private static void WriteExamples(Language lang, TextWriter output)
     {

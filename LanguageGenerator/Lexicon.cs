@@ -80,12 +80,12 @@ public class Lexicon : IEnumerable<Lexeme>
         }
     }
 
-    //what a noun names, from a noun file or else from what the generator knows
+    //what a noun names, which is a thing unless a noun file says otherwise
     public SemanticClass ClassOf(string meaning)
     {
         lock (gate)
         {
-            return classes.TryGetValue(meaning, out var known) ? known : Semantics.Of(meaning);
+            return classes.GetValueOrDefault(meaning, SemanticClass.Thing);
         }
     }
 

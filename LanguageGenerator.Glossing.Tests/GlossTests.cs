@@ -53,17 +53,16 @@ public partial class GlossTests
     private static readonly Dictionary<string, SemanticClass> NoNouns = [];
 
     [Fact]
-    public async Task ClassifyNouns_TagsWhatTheModelListsAndLeavesTheRestToTheGenerator()
+    public async Task ClassifyNouns_TagsWhatTheModelListsAndTheRestAreThings()
     {
         var model = new NounModel("marta F\nmiller HUM");
 
-        var result = await new Glosser(model).ClassifyNouns(Clauses("marta", "miller", "river", "dog"), NoNouns);
+        var result = await new Glosser(model).ClassifyNouns(Clauses("marta", "miller", "river"), NoNouns);
 
         Assert.Null(result.Error);
         Assert.Equal(SemanticClass.Female, result.Nouns["marta"]);
         Assert.Equal(SemanticClass.Human, result.Nouns["miller"]);
         Assert.Equal(SemanticClass.Thing, result.Nouns["river"]);
-        Assert.Equal(SemanticClass.Animal, result.Nouns["dog"]);
         Assert.Contains("marta: the marta slept", model.Requests[0]);
     }
 

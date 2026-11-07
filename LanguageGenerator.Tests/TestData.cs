@@ -37,6 +37,14 @@ internal static class Sentences
     public static int IndexOf(Sentence sentence, Root root) => sentence.Words.ToList().FindIndex(w => w.Word.Root == root);
 }
 
+//what the tests' people and animals are, as a noun file would say
+internal static class TestNouns
+{
+    public static IReadOnlyDictionary<string, SemanticClass> All { get; } = NounFile.Parse("woman F\nking M\nperson HUM\nhunter HUM\ndog ANIM\ncat ANIM");
+
+    public static SemanticClass Of(string meaning) => All.GetValueOrDefault(meaning, SemanticClass.Thing);
+}
+
 //generated languages, shared between tests since generating them is the slow part. Seeds are
 //fixed, so tests over them are deterministic. Their lexicons are frozen, since a test that coined
 //a word into one would change what every other test sees; a test that needs new words generates
@@ -46,6 +54,7 @@ internal static class GeneratedLanguages
     private static readonly Lazy<IReadOnlyList<Language>> sample = new(() => [.. Enumerable.Range(0, 300).Select(seed =>
     {
         var language = Generator.Generate(new Random(seed));
+        language.Lexicon.Classify(TestNouns.All);
         language.Lexicon.Freeze();
         return language;
     })]);

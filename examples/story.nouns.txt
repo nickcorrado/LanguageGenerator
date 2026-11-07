@@ -1,0 +1,12 @@
+# What each noun names: M, F, HUM, ANIM or THING. Gender follows from this in languages that
+# have it. Edit freely: glossing again keeps every line here.
+
+dog ANIM
+fish ANIM
+home THING
+house THING
+hunter HUM
+queen F
+river THING
+tree THING
+wolf ANIM

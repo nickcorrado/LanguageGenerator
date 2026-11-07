@@ -165,8 +165,8 @@ public class GenderTests
     }
 }
 
-//what these tests mostly ask: the gender of a noun for what the generator knows of it
+//what these tests mostly ask: the gender of a noun, going by the test nouns
 internal static class GenderSystemExtensions
 {
-    public static Gender? Of(this GenderSystem system, Lexeme noun) => system.Of(noun, Semantics.Of(noun.Root.Meaning));
+    public static Gender? Of(this GenderSystem system, Lexeme noun) => system.Of(noun, TestNouns.Of(noun.Root.Meaning));
 }
