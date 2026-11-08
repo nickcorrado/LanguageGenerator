@@ -1,4 +1,4 @@
-namespace LanguageGenerator;
+﻿namespace LanguageGenerator;
 
 /// <summary>
 /// Roles that share one marker, a case or an adposition, named for the highest ranked of them.
@@ -8,8 +8,11 @@ public record RoleRegion(IReadOnlyList<Role> Roles)
 {
     public Role Head => Roles[0];
 
-    /// <summary>The case the region would have, named for its head, as a dative covering goals is still DAT.</summary>
-    public Case Case => RoleMap.CaseFor(Head);
+    /// <summary>
+    /// The case the region would have, named for its head, as a dative covering goals is still DAT.
+    /// Null for a region of agents alone, which only an adposition marks.
+    /// </summary>
+    public Case? Case => RoleMap.CaseFor(Head);
 
     /// <summary>The English gloss of the adposition the region would have.</summary>
     //'with' covers instruments along with companions, as English with does, and 'using' them alone
@@ -32,7 +35,7 @@ public static class RoleMap
     /// tends to have the ones above it, and a region is named for its highest.
     /// </summary>
     public static IReadOnlyList<Role> Roles { get; } =
-        [Role.Possessor, Role.Recipient, Role.Location, Role.Source, Role.Instrument, Role.Companion, Role.Goal];
+        [Role.Possessor, Role.Recipient, Role.Location, Role.Source, Role.Instrument, Role.Companion, Role.Goal, Role.Agent];
 
     /// <summary>
     /// Each pair of roles languages mark alike, with the chance that a language does. Only the first
@@ -56,13 +59,20 @@ public static class RoleMap
         (Role.Location, Role.Source, 0.1),
         //an ablative of means, as in Latin
         (Role.Instrument, Role.Source, 0.1),
+        //a passive's agent is marked like an instrument, as in Russian, like a source, as German von
+        //and Latin ab mark it, or like a place, as Japanese ni does
+        (Role.Agent, Role.Instrument, 0.3),
+        (Role.Agent, Role.Source, 0.3),
+        (Role.Agent, Role.Location, 0.15),
     ];
 
     public static int Rank(Role role) => Roles.ToList().IndexOf(role) is var rank and >= 0
         ? rank
         : throw new ArgumentOutOfRangeException(nameof(role), role, "Only oblique roles are on the map.");
 
-    public static Case CaseFor(Role head) => head switch
+    //an agent has no case of its own here: an agentive case is rare, and a passive's agent alone in
+    //its region is marked by an adposition, as English by is
+    public static Case? CaseFor(Role head) => head switch
     {
         Role.Possessor => Case.Genitive,
         Role.Recipient => Case.Dative,
@@ -71,6 +81,7 @@ public static class RoleMap
         Role.Instrument => Case.Instrumental,
         Role.Companion => Case.Comitative,
         Role.Goal => Case.Allative,
+        Role.Agent => null,
         _ => throw new ArgumentOutOfRangeException(nameof(head), head, "Only oblique roles are on the map."),
     };
 
@@ -83,6 +94,7 @@ public static class RoleMap
         Role.Instrument => "using",
         Role.Companion => "with",
         Role.Goal => "toward",
+        Role.Agent => "by",
         _ => throw new ArgumentOutOfRangeException(nameof(head), head, "Only oblique roles are on the map."),
     };
 

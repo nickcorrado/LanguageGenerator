@@ -3,22 +3,17 @@
 //alignment, cases, adpositions, and how each role is marked
 public static partial class Generator
 {
-    public static MorphosyntacticAlignment SelectAlignment(Random rand, double nominativeChance, double ergativeChance)
-    {
-        if (rand.NextDouble() < nominativeChance)
-        {
-            return MorphosyntacticAlignment.NominativeAccusative;
-        }
-        else if (rand.NextDouble() < ergativeChance)
-        {
-            return MorphosyntacticAlignment.ErgativeAbsolutive;
-        }
-        //iffy
-        else
-        {
-            return MorphosyntacticAlignment.None;
-        }
-    }
+    //WALS 98A, by how full noun phrases are case-marked: 98 languages neutral, with no core cases, 46
+    //nominative-accusative and 6 more with a marked nominative, and 32 ergative-absolutive. Its 4
+    //tripartite and 4 active-inactive languages are left out
+    private static readonly (MorphosyntacticAlignment Value, int Languages)[] AlignmentCounts =
+    [
+        (MorphosyntacticAlignment.None, 98),
+        (MorphosyntacticAlignment.NominativeAccusative, 52),
+        (MorphosyntacticAlignment.ErgativeAbsolutive, 32),
+    ];
+
+    public static MorphosyntacticAlignment SelectAlignment(Random rand) => Sampling.Categorical(rand, AlignmentCounts);
 
     /// <summary>
     /// How the role map falls into regions, one marker each: each of its edges joins its two roles
@@ -57,9 +52,9 @@ public static partial class Generator
         };
 
         var (least, most) = Sampling.Categorical(rand, cases.Count > 0 ? ObliqueCaseCountsWithCore : ObliqueCaseCountsWithoutCore);
-        var top = Math.Min(most, regions.Count);
+        var left = regions.Where(r => r.Case is not null).ToList();
+        var top = Math.Min(most, left.Count);
         var count = least >= top ? top : least + rand.Next(top - least + 1);
-        var left = regions.ToList();
         var chosen = new List<RoleRegion>();
         for (int i = 0; i < count; i++)
         {
@@ -67,7 +62,7 @@ public static partial class Generator
             left.Remove(region);
             chosen.Add(region);
         }
-        cases.AddRange(chosen.OrderBy(r => RoleMap.Rank(r.Head)).Select(r => r.Case));
+        cases.AddRange(chosen.OrderBy(r => RoleMap.Rank(r.Head)).Select(r => r.Case!));
 
         if (rand.NextDouble() < vocativeChance)
         {
@@ -86,7 +81,7 @@ public static partial class Generator
     {
         var words = new Dictionary<Role, Lexeme>();
         var forms = new DistinctForms(draws: 11);
-        foreach (var region in regions.Where(r => !cases.Contains(r.Case)))
+        foreach (var region in regions.Where(r => r.Case is not { } @case || !cases.Contains(@case)))
         {
             var word = new Lexeme(new Root(forms.Draw(() => GenerateForm(rand, phonology, dropoff, 0, maxSyllables: 1)), region.Gloss), PartOfSpeech.Adposition);
             foreach (var role in region.Roles)
@@ -116,7 +111,7 @@ public static partial class Generator
             MorphosyntacticAlignment.ErgativeAbsolutive => ergativeAbsolutive,
             _ => new Unmarked(),
         };
-        RoleMarker Oblique(Role role) => regions.First(r => r.Contains(role)).Case is var @case && cases.Contains(@case)
+        RoleMarker Oblique(Role role) => regions.First(r => r.Contains(role)).Case is { } @case && cases.Contains(@case)
             ? @case
             : new Adposition(adpositions[role], type, governs);
 

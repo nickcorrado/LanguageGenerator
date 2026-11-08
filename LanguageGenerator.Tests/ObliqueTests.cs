@@ -25,7 +25,7 @@ public class ObliqueTests
 
             Assert.All(regions, r =>
             {
-                if (cases.Contains(r.Case))
+                if (r.Case is { } @case && cases.Contains(@case))
                 {
                     Assert.All(r.Roles, role => Assert.False(words.ContainsKey(role)));
                 }

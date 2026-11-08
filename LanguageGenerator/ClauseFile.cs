@@ -29,7 +29,8 @@ namespace LanguageGenerator;
 //drink.IMP.NEG object:wine, with no tense or aspect and no subject but subject:2PL to tell several
 //people, and be.IMP says what or where to be, as in be.IMP adjective:careful. be with an adjective
 //can compare its subject with a standard: be subject:marta adjective:tall standard:(man.PL) is
-//'Marta is taller than the men'. Any clause can have an addressee, who it's said to, a bare noun as in addressee:marta, and
+//'Marta is taller than the men'. A verb with PASS is passive: its subject is what's done to, and
+//agent: is who does it, if anyone says, as in carry.PASS subject:light.DEF agent:(figure.NDF small). Any clause can have an addressee, who it's said to, a bare noun as in addressee:marta, and
 //a command to a plural addressee is to all of them. Anything not given takes its unmarked value: present, imperfective, singular, exclusive for
 //'we' and masculine for a gendered pronoun. Whatever the generator can't express yet is an error,
 //never dropped
@@ -83,6 +84,7 @@ public static class ClauseFile
     private static IEnumerable<Argument> ArgumentsOf(Statement statement) => statement switch
     {
         Clause c => [c.Subject, .. Given(c.Object), .. c.Obliques.Select(o => o.Argument)],
+        PassiveClause c => [c.Patient, .. Given(c.Agent), .. c.Obliques.Select(o => o.Argument)],
         CopularClause { Complement: NounPhrase noun } c => [c.Subject, noun],
         CopularClause { Complement: Oblique location } c => [c.Subject, location.Argument],
         CopularClause c => [c.Subject],
@@ -106,7 +108,7 @@ public static class ClauseFile
     //adjective is what be says its subject is, a standard what an adjective compares it with, and an
     //addressee who the clause is said to
     private static readonly Dictionary<string, Role> ObliqueRoles = Oblique.Roles.ToDictionary(r => r.ToString().ToLowerInvariant());
-    private static readonly string[] Roles = ["subject", "object", "noun", "adjective", "standard", .. ObliqueRoles.Keys, "addressee"];
+    private static readonly string[] Roles = ["subject", "object", "noun", "adjective", "standard", .. ObliqueRoles.Keys, "agent", "addressee"];
 
     //what the format can say, for describing it elsewhere, as the glosser's prompt does
     public static IReadOnlyList<string> RoleNames => Roles;
@@ -124,6 +126,14 @@ public static class ClauseFile
         var roles = ParseRoles(verb, tokens.Skip(1), number);
         var addressee = roles.Arguments.TryGetValue("addressee", out var called) ? ToAddressee(called, number) : null;
         Argument? standard = roles.Arguments.TryGetValue("standard", out var than) ? than : (Argument?)null;
+        if (roles.Arguments.ContainsKey("agent") && !features.Passive)
+        {
+            throw new ClauseFormatException($"Only a passive verb takes an agent:, as in {verb}.PASS subject:light agent:figure for 'the light is {verb}ed by a figure'.", number);
+        }
+        if (features.Passive && (features.Imperative || verb == "be"))
+        {
+            throw new ClauseFormatException(verb == "be" ? "be can't be passive." : "A command can't be passive yet.", number);
+        }
         if (standard.HasValue && (verb != "be" || features.Imperative))
         {
             throw new ClauseFormatException(features.Imperative
@@ -144,6 +154,10 @@ public static class ClauseFile
         {
             var clause = ToCopularClause(features, roles, subject, number);
             statement = standard.HasValue ? ToComparative(clause, standard.GetValueOrDefault(), number) : clause;
+        }
+        else if (features.Passive)
+        {
+            statement = ToPassiveClause(verb, features, roles, subject, number);
         }
         else
         {
@@ -174,7 +188,7 @@ public static class ClauseFile
         _ => throw new ClauseFormatException("An addressee is a noun, as in addressee:marta. A clause said to 'you' needs none.", number),
     };
 
-    private record VerbFeatures(Tense? Tense, Aspect? Aspect, bool Negative, bool Imperative);
+    private record VerbFeatures(Tense? Tense, Aspect? Aspect, bool Negative, bool Imperative, bool Passive);
 
     //the obliques keep the role they were written with, which is how be finds its location:
     private record ClauseRoles(Dictionary<string, Argument> Arguments, List<(string Role, Oblique Oblique)> Obliques, Complement? Complement)
@@ -184,7 +198,7 @@ public static class ClauseFile
 
     private static VerbFeatures ParseVerbFeatures(string verb, IReadOnlyList<Grammeme> glosses, int number)
     {
-        if (glosses.FirstOrDefault(g => g is not (Tense or Aspect or Polarity) && g != Mood.Imperative) is { } unsupported)
+        if (glosses.FirstOrDefault(g => g is not (Tense or Aspect or Polarity) && g != Mood.Imperative && g != Voice.Passive) is { } unsupported)
         {
             throw Unsupported(verb, unsupported, number);
         }
@@ -196,14 +210,15 @@ public static class ClauseFile
             glosses.OfType<Tense>().SingleOrDefault(),
             glosses.OfType<Aspect>().SingleOrDefault(),
             glosses.Contains(Polarity.Negative),
-            glosses.Contains(Mood.Imperative));
+            glosses.Contains(Mood.Imperative),
+            glosses.Contains(Voice.Passive));
     }
 
     private static ClauseFormatException Unsupported(string verb, Grammeme feature, int number) => feature switch
     {
         Mood m when m == Mood.Prohibitive => new($"Write a command not to do something as {verb}.IMP.NEG, not {verb}.{m.Gloss}.", number),
         Person or Number => new($"'{verb}' can't take {feature.Gloss}: a verb agrees with its subject.", number),
-        _ => new($"'{verb}' can't take {feature.Gloss} ({feature.Name}) yet: verbs have only tense, aspect, polarity and the imperative.", number),
+        _ => new($"'{verb}' can't take {feature.Gloss} ({feature.Name}) yet: verbs have only tense, aspect, polarity, the imperative and the passive.", number),
     };
 
     private static ClauseRoles ParseRoles(string verb, IEnumerable<string> tokens, int number)
@@ -303,6 +318,19 @@ public static class ClauseFile
             throw new ClauseFormatException("be needs a noun, adjective or location saying what or where its subject is, as in noun:fool, adjective:big or location:house.", number);
         }
         return complement.GetValueOrDefault();
+    }
+
+    //a passive's subject is its patient, so it has no object
+    private static PassiveClause ToPassiveClause(string verb, VerbFeatures features, ClauseRoles roles, Argument subject, int number)
+    {
+        RejectComplement(verb, roles, number);
+        if (roles.Object.HasValue)
+        {
+            throw new ClauseFormatException($"A passive has no object: what's done to is its subject, as in {verb}.PASS subject:light.", number);
+        }
+        var agent = roles.Arguments.TryGetValue("agent", out var by) ? by : (Argument?)null;
+        return new PassiveClause(verb, features.Tense ?? Tense.Present, features.Aspect ?? Aspect.Imperfective, subject, agent, features.Negative,
+            [.. roles.Obliques.Select(o => o.Oblique)]);
     }
 
     private static Clause ToClause(string verb, VerbFeatures features, ClauseRoles roles, Argument subject, int number)

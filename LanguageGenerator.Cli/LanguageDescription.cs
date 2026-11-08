@@ -120,6 +120,14 @@ public static class LanguageDescription
         output.WriteLine(predication.LocationalCopula is { } locational
             ? $"Locational copula: {phonology.Realize(new Word([locational.Root])).Spell(orthography)}"
             : "Locations take the copula too");
+        output.WriteLine(lang.Passive switch
+        {
+            null => "No passive",
+            { Position: ExponentPosition.Prefix } p => $"Passive: prefix {p.Marker.Spell(orthography)}-",
+            { Position: ExponentPosition.Suffix } p => $"Passive: suffix -{p.Marker.Spell(orthography)}",
+            { Position: ExponentPosition.PrecedingParticle } p => $"Passive: {p.Marker.Spell(orthography)} before the verb",
+            var p => $"Passive: {p.Marker.Spell(orthography)} after the verb",
+        });
         output.WriteLine("Comparison: " + lang.Comparison switch
         {
             LocationalComparison l => $"the standard is marked like a place, as the {l.Role.ToString().ToLowerInvariant()} is",
@@ -238,13 +246,18 @@ public static class LanguageDescription
             (new(new Command("walk", Number.Plural, Obliques: [new(Role.Goal, Phrase("water", Number.Singular))]), new NounPhrase("person", Number.Plural)),
                 "people, go to the water"),
         ];
+        (PassiveClause Clause, string Translation)[] passives =
+        [
+            (new("eat", Tense.Past, Aspect.Perfective, Phrase("fish", Number.Singular), Phrase("cat", Number.Singular), false, []), "the fish was eaten by the cat"),
+            (new("see", Tense.Past, Aspect.Perfective, Phrase("dog", Number.Plural), null, false, []), "the dogs were seen"),
+        ];
         (Comparative Clause, string Translation)[] comparatives =
         [
             (new(new CopularClause(new Adjective("big"), Tense.Present, Aspect.Imperfective, Phrase("dog", Number.Singular)), Phrase("cat", Number.Plural)),
                 "the dog is bigger than the cats"),
         ];
         foreach (var (clause, translation) in examples.Select(e => ((Statement)e.Clause, e.Translation)).Concat(copular.Select(e => ((Statement)e.Clause, e.Translation)))
-            .Concat(commands.Select(e => ((Statement)e.Clause, e.Translation))).Concat(copularCommands.Select(e => ((Statement)e.Clause, e.Translation))).Concat(comparatives.Select(e => ((Statement)e.Clause, e.Translation))).Concat(addressed.Select(e => ((Statement)e.Clause, e.Translation))))
+            .Concat(commands.Select(e => ((Statement)e.Clause, e.Translation))).Concat(copularCommands.Select(e => ((Statement)e.Clause, e.Translation))).Concat(passives.Select(e => ((Statement)e.Clause, e.Translation))).Concat(comparatives.Select(e => ((Statement)e.Clause, e.Translation))).Concat(addressed.Select(e => ((Statement)e.Clause, e.Translation))))
         {
             output.WriteLine();
             output.WriteLine(Syntax.Realize(lang, clause, translation).Interlinear());

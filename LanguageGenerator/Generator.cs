@@ -34,7 +34,7 @@ public static partial class Generator
         var wordOrder = SelectWordOrder(rand);
         var morphology = SelectMorphologicalProfile(rand, wordOrder.ConstituentWordOrder);
 
-        var alignment = SelectAlignment(rand, 0.5, 0.25);
+        var alignment = SelectAlignment(rand);
         var regions = SelectRegions(rand);
         var cases = SelectCases(rand, alignment, regions, 0.65);
         var paradigms = GenerateParadigms(rand, morphology, wordOrder, alignment, cases, phonology, syllableDropoff);
@@ -58,6 +58,7 @@ public static partial class Generator
         };
         var commands = GenerateCommands(rand, morphology, wordOrder, phonology, syllableDropoff);
         var comparison = GenerateComparison(rand, wordOrder, phonology, syllableDropoff);
+        var passive = GeneratePassive(rand, alignment, morphology, phonology, syllableDropoff);
         var extraSyllables = SelectExtraSyllables(rootLengthNoise, lexiconSeed, phonology, syllableDropoff);
         var lexicon = GenerateLexicon(lexiconSeed, extraSyllables, phonology, syllableDropoff, new Dictionary<PartOfSpeech, IEnumerable<Lexeme>>
         {
@@ -87,6 +88,7 @@ public static partial class Generator
             Possession = possession,
             Commands = commands,
             Comparison = comparison,
+            Passive = passive,
         };
     }
 

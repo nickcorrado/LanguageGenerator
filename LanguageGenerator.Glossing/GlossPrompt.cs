@@ -26,7 +26,10 @@ public static class GlossPrompt
 
             Words are English meanings in dictionary form, lowercase even for names: wolf, not wolves; see, not saw; marta, not Marta.
             Features follow a word after periods, in Leipzig glossing style.
-            - Verb features: {Values<Tense>()}; {Values<Aspect>()}; {Values<Polarity>()}.
+            - Verb features: {Values<Tense>()}; {Values<Aspect>()}; {Values<Polarity>()}; PASS (passive).
+            - A passive verb has PASS, its subject is what's done to, and agent: is who does it, if the
+              sentence says: 'each light is carried by a small figure' is
+              carry.PASS  subject:(light each)  agent:(figure.NDF small). Keep a passive passive.
             - Noun features: {Values<Number>()}; {Values<Definiteness>()}.
             - A noun with 'the' is DEF, and with 'a' or 'an' NDF. A noun with neither is bare, as 'wolves',
               'water' or 'his dogs' are, and so is a possessed noun: 'the king's house' is

@@ -100,7 +100,8 @@ public enum Role
     Source,
     Companion,
     Instrument,
-    //maybe Likeness?
+    //who does what a passive verb says is done, as in 'carried by a figure'
+    Agent,
 }
 
 /// <summary>

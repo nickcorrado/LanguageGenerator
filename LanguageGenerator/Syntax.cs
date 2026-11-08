@@ -57,13 +57,14 @@ public record CopularCommand(Complement Complement, Number Number, bool Negative
 public record Addressed(Statement Statement, NounPhrase Addressee);
 
 /// <summary>Anything a sentence can say.</summary>
-public union Statement(Clause, CopularClause, Command, CopularCommand, Comparative, Addressed);
+public union Statement(Clause, PassiveClause, CopularClause, Command, CopularCommand, Comparative, Addressed);
 
 public static class Syntax
 {
     public static Sentence Realize(Language language, Statement statement, string translation) => statement switch
     {
         Clause c => Realize(language, c, translation),
+        PassiveClause c => Realize(language, c, translation),
         CopularClause c => Realize(language, c, translation),
         Command c => Realize(language, c, translation),
         CopularCommand c => Realize(language, c, translation),
@@ -133,6 +134,24 @@ public static class Syntax
         var verb = Verb(language, language.Lexicon.Verb(clause.Verb), clause.Tense, clause.Aspect, clause.Subject, clause.Negative);
         var obliques = clause.Obliques.SelectMany(o => Oblique(language, o)).ToList();
         return Sentence(language, Order(language.WordOrder, subject, verb, @object, obliques), translation);
+    }
+
+    //the patient takes the case of an intransitive subject, which in an ergative language is the one
+    //it had already, and the verb agrees with it; the agent, if there is one, goes before the other
+    //obliques, marked for its role. A language without a passive says the active instead, as real
+    //ones do, with the agent as its subject, or 'they' where nobody says who
+    public static Sentence Realize(Language language, PassiveClause clause, string translation)
+    {
+        if (language.Passive is not { } passive)
+        {
+            var doer = clause.Agent.HasValue ? clause.Agent.GetValueOrDefault() : new Pronoun(Person.Third, Number.Plural);
+            return Realize(language, new Clause(clause.Verb, clause.Tense, clause.Aspect, doer, clause.Patient, clause.Negative, clause.Obliques), translation);
+        }
+        var subject = Subject(language, clause.Patient, Role.IntransitiveSubject);
+        var verb = passive.Apply(Verb(language, language.Lexicon.Verb(clause.Verb), clause.Tense, clause.Aspect, clause.Patient, clause.Negative));
+        IReadOnlyList<Word> agent = clause.Agent.HasValue ? Marked(language, clause.Agent.GetValueOrDefault(), Role.Agent) : [];
+        var obliques = agent.Concat(clause.Obliques.SelectMany(o => Oblique(language, o))).ToList();
+        return Sentence(language, Order(language.WordOrder, subject, verb, null, obliques), translation);
     }
 
     //an oblique takes its role's case, and its adposition, if the role has one, before or after it
