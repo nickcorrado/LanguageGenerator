@@ -96,3 +96,9 @@ he walked to the river with his two dogs
 
 the wolves weren't in the village
   be.PST.NEG  subject:wolf.PL.DEF  location:village.DEF
+
+hunter, the wolves are coming
+  walk  subject:wolf.PL.DEF  addressee:hunter
+
+go home, children
+  walk.IMP  goal:house  addressee:child.PL

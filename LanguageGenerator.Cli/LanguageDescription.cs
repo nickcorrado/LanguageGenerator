@@ -221,7 +221,15 @@ public static class LanguageDescription
             (new("walk", Number.Plural, Obliques: [new(Role.Goal, Phrase("house", Number.Singular))]), "go to the house, all of you"),
             (new("eat", Number.Singular, Phrase("fish", Number.Singular), Negative: true), "don't eat the fish"),
         ];
-        foreach (var (clause, translation) in examples.Select(e => ((Statement)e.Clause, e.Translation)).Concat(copular.Select(e => ((Statement)e.Clause, e.Translation))).Concat(commands.Select(e => ((Statement)e.Clause, e.Translation))))
+        (Addressed Clause, string Translation)[] addressed =
+        [
+            (new(new CopularClause(new Oblique(Role.Location, Phrase("house", Number.Singular)), Tense.Present, Aspect.Imperfective, Phrase("dog", Number.Singular)),
+                new NounPhrase("woman", Number.Singular, [new("old")])), "old woman, the dog is in the house"),
+            (new(new Command("walk", Number.Plural, Obliques: [new(Role.Goal, Phrase("water", Number.Singular))]), new NounPhrase("person", Number.Plural)),
+                "people, go to the water"),
+        ];
+        foreach (var (clause, translation) in examples.Select(e => ((Statement)e.Clause, e.Translation)).Concat(copular.Select(e => ((Statement)e.Clause, e.Translation)))
+            .Concat(commands.Select(e => ((Statement)e.Clause, e.Translation))).Concat(addressed.Select(e => ((Statement)e.Clause, e.Translation))))
         {
             output.WriteLine();
             output.WriteLine(Syntax.Realize(lang, clause, translation).Interlinear());

@@ -2,6 +2,7 @@
 # have it. Edit freely: glossing again keeps every line here.
 
 bird ANIM
+child HUM
 deer ANIM
 dog ANIM
 fish ANIM

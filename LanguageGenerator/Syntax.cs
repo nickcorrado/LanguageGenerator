@@ -42,8 +42,16 @@ public record CopularClause(Complement Complement, Tense Tense, Aspect Aspect, A
 /// </summary>
 public record Command(string Verb, Number Number, Argument? Object = null, bool Negative = false, ValueList<Oblique> Obliques = default);
 
+/// <summary>
+/// A statement said to someone called by name or by what they are, as in 'Marta, come here' or 'old
+/// man, the wolves are in the village'.
+/// </summary>
+//the addressee is a noun phrase, never a pronoun, and bare, since a vocative takes no article in
+//nearly every language
+public record Addressed(Statement Statement, NounPhrase Addressee);
+
 /// <summary>Anything a sentence can say.</summary>
-public union Statement(Clause, CopularClause, Command);
+public union Statement(Clause, CopularClause, Command, Addressed);
 
 public static class Syntax
 {
@@ -52,7 +60,18 @@ public static class Syntax
         Clause c => Realize(language, c, translation),
         CopularClause c => Realize(language, c, translation),
         Command c => Realize(language, c, translation),
+        Addressed a => Realize(language, a, translation),
     };
+
+    //the addressee comes first, in the addressee's case: the vocative, where the language has one,
+    //and otherwise the case a noun is cited in. Where a vocative goes is a matter of discourse more
+    //than grammar, which WALS doesn't count, and first is the commonest place
+    public static Sentence Realize(Language language, Addressed addressed, string translation)
+    {
+        var sentence = Realize(language, addressed.Statement, translation);
+        var addressee = Marked(language, addressed.Addressee, Role.Addressee).Select(language.Phonology.Realize);
+        return sentence with { Words = [.. addressee, .. sentence.Words] };
+    }
 
     //the verb takes the language's imperative, or its ordinary second person where it has none for
     //this number or doesn't use it to forbid, and only its prohibitive negator says 'don't', if it

@@ -27,7 +27,8 @@ namespace LanguageGenerator;
 //with whom and with what, as location:house, goal:river, source:(village old), recipient:dog,
 //companion:1PL and instrument:knife, in the order they're said. A verb with IMP is a command, as in
 //drink.IMP.NEG object:wine, with no tense or aspect and no subject but subject:2PL to tell several
-//people. Anything not given takes its unmarked value: present, imperfective, singular, exclusive for
+//people. Any clause can have an addressee, who it's said to, a bare noun as in addressee:marta, and
+//a command to a plural addressee is to all of them. Anything not given takes its unmarked value: present, imperfective, singular, exclusive for
 //'we' and masculine for a gendered pronoun. Whatever the generator can't express yet is an error,
 //never dropped
 public static class ClauseFile
@@ -84,6 +85,7 @@ public static class ClauseFile
         CopularClause { Complement: Oblique location } c => [c.Subject, location.Argument],
         CopularClause c => [c.Subject],
         Command c => [.. Given(c.Object), .. c.Obliques.Select(o => o.Argument)],
+        Addressed a => [.. ArgumentsOf(a.Statement), a.Addressee],
     };
 
     private static IEnumerable<Argument> Given(Argument? argument) => argument.HasValue ? [argument.GetValueOrDefault()] : [];
@@ -94,15 +96,13 @@ public static class ClauseFile
         Pronoun => [],
     };
 
-    //the roles a clause can have now, and the rest of the Role enum's, which it can't yet. An oblique
-    //role is written as its name in lowercase. A noun or adjective is what be says its subject is
+    //the roles a clause can have. An oblique role is written as its name in lowercase. A noun or
+    //adjective is what be says its subject is, and an addressee who the clause is said to
     private static readonly Dictionary<string, Role> ObliqueRoles = Oblique.Roles.ToDictionary(r => r.ToString().ToLowerInvariant());
-    private static readonly string[] Roles = ["subject", "object", "noun", "adjective", .. ObliqueRoles.Keys];
-    private static readonly string[] FutureRoles = ["addressee"];
+    private static readonly string[] Roles = ["subject", "object", "noun", "adjective", .. ObliqueRoles.Keys, "addressee"];
 
     //what the format can say, for describing it elsewhere, as the glosser's prompt does
     public static IReadOnlyList<string> RoleNames => Roles;
-    public static IReadOnlyList<string> UnsupportedRoleNames => FutureRoles;
     public static IReadOnlyList<T> ValuesOf<T>() where T : Grammeme => [.. Glosses.Values.OfType<T>()];
 
     private static Statement ParseClause(string line, int number)
@@ -115,21 +115,35 @@ public static class ClauseFile
         var (verb, glosses) = ParseWord(tokens[0], number);
         var features = ParseVerbFeatures(verb, glosses, number);
         var roles = ParseRoles(verb, tokens.Skip(1), number);
+        var addressee = roles.Arguments.TryGetValue("addressee", out var called) ? ToAddressee(called, number) : null;
 
+        Statement statement;
         if (features.Imperative)
         {
-            return ToCommand(verb, features, roles, number);
+            statement = ToCommand(verb, features, roles, addressee, number);
         }
-        if (!roles.Arguments.TryGetValue("subject", out var subject))
+        else if (!roles.Arguments.TryGetValue("subject", out var subject))
         {
             throw new ClauseFormatException("The clause needs a subject, as in subject:dog.", number);
         }
-        if (verb == "be")
+        else if (verb == "be")
         {
-            return ToCopularClause(features, roles, subject, number);
+            statement = ToCopularClause(features, roles, subject, number);
         }
-        return ToClause(verb, features, roles, subject, number);
+        else
+        {
+            statement = ToClause(verb, features, roles, subject, number);
+        }
+        return addressee is null ? statement : new Addressed(statement, addressee);
     }
+
+    //who a clause is said to: a noun phrase, bare, since vocatives take no article
+    private static NounPhrase ToAddressee(Argument argument, int number) => argument.Value switch
+    {
+        NounPhrase { Definiteness: { } } noun => throw new ClauseFormatException($"An addressee takes no article: write addressee:{noun.Noun}, not {noun.Definiteness.Gloss}.", number),
+        NounPhrase noun => noun,
+        _ => throw new ClauseFormatException("An addressee is a noun, as in addressee:marta. A clause said to 'you' needs none.", number),
+    };
 
     private record VerbFeatures(Tense? Tense, Aspect? Aspect, bool Negative, bool Imperative);
 
@@ -180,10 +194,6 @@ public static class ClauseFile
             {
                 throw new ClauseFormatException($"A possessor goes inside its noun's parentheses, as in object:(house possessor:{token[(colon + 1)..]}).", number);
             }
-            if (FutureRoles.Contains(role))
-            {
-                throw new ClauseFormatException($"Clauses can't have {A(role)} yet, only {string.Join(", ", Roles)}.", number);
-            }
             if (!Roles.Contains(role))
             {
                 throw new ClauseFormatException($"'{role}' isn't a role. The roles are {string.Join(", ", Roles)}.", number);
@@ -217,7 +227,9 @@ public static class ClauseFile
         return new ClauseRoles(arguments, obliques, complement);
     }
 
-    private static Command ToCommand(string verb, VerbFeatures features, ClauseRoles roles, int number)
+    //a command is said to one person or several: as many as its subject says, or as its addressee
+    //is, as 'children, come' tells several
+    private static Command ToCommand(string verb, VerbFeatures features, ClauseRoles roles, NounPhrase? addressee, int number)
     {
         if (verb == "be")
         {
@@ -228,10 +240,10 @@ public static class ClauseFile
             throw new ClauseFormatException($"'{verb}' can't take {(features.Tense as Grammeme ?? features.Aspect)!.Gloss}: a command has no tense or aspect.", number);
         }
         RejectComplement(verb, roles, number);
-        var told = Number.Singular;
-        if (roles.Arguments.TryGetValue("subject", out var addressee))
+        var told = addressee is { Number: var called } && called != Number.Singular ? Number.Plural : Number.Singular;
+        if (roles.Arguments.TryGetValue("subject", out var subject))
         {
-            told = addressee.Value is Pronoun { Person: var person, Number: var count } && person == Person.Second ? count
+            told = subject.Value is Pronoun { Person: var person, Number: var count } && person == Person.Second ? count
                 : throw new ClauseFormatException("A command is said to 'you', so its subject can only be 2SG or 2PL, as in subject:2PL.", number);
         }
         return new Command(verb, told, roles.Object, features.Negative, [.. roles.Obliques.Select(o => o.Oblique)]);

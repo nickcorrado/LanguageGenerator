@@ -261,7 +261,6 @@ public class ClauseFileTests
     [InlineData("x\n  sleep dog", 2, "needs a role")]
     [InlineData("x\n  sleep subject:dog subject:cat", 2, "more than one subject")]
     [InlineData("x\n  sleep agent:dog", 2, "'agent' isn't a role")]
-    [InlineData("x\n  sleep subject:dog addressee:cat", 2, "can't have an addressee yet")]
     [InlineData("x\n  walk subject:dog goal:house goal:tree", 2, "more than one goal")]
     [InlineData("x\n  be subject:dog goal:house", 2, "be can't take a goal yet")]
     [InlineData("x\n  sleep subject:dog location:house.ACC", 2, "case comes from its role")]

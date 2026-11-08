@@ -47,7 +47,10 @@ public static class GlossPrompt
             ordinal, in digits with its English ending, as in object:(door.DEF 2nd) for 'the second door',
             and 'last' and 'next' are adjectives, not ordinals. So does a
             possessor, a noun or pronoun, as in object:(house possessor:king) for 'the king's house' or
-            companion:(dog.PL possessor:3SG.M) for 'his dogs'. Roles not supported yet: {string.Join(", ", ClauseFile.UnsupportedRoleNames)}.
+            companion:(dog.PL possessor:3SG.M) for 'his dogs'. An addressee is who a clause is said to,
+            called by name or by what they are, a bare noun with no DEF or NDF, as in addressee:marta
+            for 'Marta, the wolves are coming' or addressee:(man old) for 'old man, ...'. A command to
+            an addressee in the plural, as in addressee:child.PL, is to all of them.
 
             The verb be says what its subject is, with noun: or adjective: in place of an object, or
             where it is, with location:, and nothing else:

@@ -144,7 +144,7 @@ public partial class GlossTests
     {
         var prompt = GlossPrompt.System;
 
-        Assert.All(ClauseFile.RoleNames.Concat(ClauseFile.UnsupportedRoleNames), role => Assert.Contains(role, prompt));
+        Assert.All(ClauseFile.RoleNames, role => Assert.Contains(role, prompt));
         Assert.All(ClauseFile.ValuesOf<Tense>().Concat<Grammeme>(ClauseFile.ValuesOf<Aspect>()).Concat(ClauseFile.ValuesOf<Polarity>()).Concat(ClauseFile.ValuesOf<Number>()),
             value => Assert.Contains($"{value.Gloss} ({value.Name.ToLowerInvariant()})", prompt));
     }
