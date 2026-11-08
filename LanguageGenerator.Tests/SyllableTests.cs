@@ -302,7 +302,7 @@ public class SyllableTests
             return forms.GroupBy(form => form).Sum(same => same.Count() * (same.Count() - 1) / 2);
         }
 
-        var homophones = Enumerable.Range(0, 40).Select(seed => Homophones(Generator.Generate(new Random(seed)))).ToList();
+        var homophones = Enumerable.Range(0, 40).Select(seed => Homophones(Generator.Generate(seed))).ToList();
 
         Assert.InRange(homophones.Average(), 3, 20);
     }

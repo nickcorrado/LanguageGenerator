@@ -5,61 +5,59 @@
 //are in the Generator file named for it
 public static partial class Generator
 {
-    public static Language Generate(Random rand)
+    //each stage draws from its own Random, so it doesn't matter what order they run in, or how much
+    //any of them draws. They're in this order only because each needs what's above it
+    public static Language Generate(int seed)
     {
+        var stages = new Stages(seed);
         var syllableDropoff = 0.15;
 
-        var vowels = GenerateVowels(rand);
-        var consonants = GenerateConsonants(rand);
-        var syllableRule = SelectSyllableRule(rand, vowels, consonants);
+        var vowels = GenerateVowels(stages.For("vowels"));
+        var consonants = GenerateConsonants(stages.For("consonants"));
+        var syllableRule = SelectSyllableRule(stages.For("syllable rule"), vowels, consonants);
+        var syllableContact = SelectSyllableContact(stages.For("syllable contact"), syllableRule);
         var phonology = new Phonology
         {
             Vowels = vowels,
             Consonants = consonants,
             SyllableRule = syllableRule,
-            SoundChanges = SelectSoundChanges(rand),
-            ClusterRepair = rand.NextDouble() < 0.6 ? ClusterRepair.Epenthesis : ClusterRepair.Deletion,
+            SoundChanges = SelectSoundChanges(stages.For("sound changes"), syllableRule, vowels),
+            SyllableChanges = SelectSyllableChanges(stages.For("syllable changes"), syllableRule, vowels, syllableContact),
+            ClusterRepair = stages.For("cluster repair").NextDouble() < 0.6 ? ClusterRepair.Epenthesis : ClusterRepair.Deletion,
             EpentheticVowel = SelectEpentheticVowel(vowels),
-            Stress = SelectStress(rand),
-            SyllableContact = SelectSyllableContact(rand, syllableRule),
+            Stress = SelectStress(stages.For("stress")),
+            SyllableContact = syllableContact,
         };
-
-        var orthography = SelectOrthography(rand, vowels, consonants);
-        //the lexicon's seed and root length noise are drawn here, so that the draws after them stay
-        //where they were; the lexicon itself is built last, once the sound changes that decide how
-        //long its roots must be are known, and there are closed classes for it to avoid
-        var (lexiconSeed, rootLengthNoise) = (rand.Next(), SelectRootLengthNoise(rand));
+        var orthography = SelectOrthography(stages.For("orthography"), vowels, consonants);
 
         //word order comes first because how isolating a language is, and how much it prefixes, depend on it
-        var wordOrder = SelectWordOrder(rand);
-        var morphology = SelectMorphologicalProfile(rand, wordOrder.ConstituentWordOrder);
+        var wordOrder = SelectWordOrder(stages.For("word order"));
+        var morphology = SelectMorphologicalProfile(stages.For("morphology"), wordOrder.ConstituentWordOrder);
 
-        var alignment = SelectAlignment(rand);
-        var regions = SelectRegions(rand);
-        var cases = SelectCases(rand, alignment, regions, 0.65);
-        var paradigms = GenerateParadigms(rand, morphology, wordOrder, alignment, cases, phonology, syllableDropoff);
-        //last, so that adding these left everything before them as it was for each seed
-        var pronouns = GeneratePronouns(rand, paradigms, morphology, wordOrder, phonology, syllableDropoff);
-        var negation = GenerateNegation(rand, morphology, phonology, syllableDropoff);
-        var predication = GeneratePredication(rand, phonology, syllableDropoff);
-        var adjectiveAgreement = SelectAdjectiveAgreement(rand, predication);
-        var genders = GenerateGenders(rand, morphology, paradigms, phonology, syllableDropoff);
-        var adpositions = GenerateAdpositions(rand, regions, cases, phonology, syllableDropoff);
-        wordOrder = wordOrder with { ObliquePosition = SelectObliquePosition(rand, wordOrder.ConstituentWordOrder) };
+        var alignment = SelectAlignment(stages.For("alignment"));
+        var regions = SelectRegions(stages.For("role regions"));
+        var cases = SelectCases(stages.For("cases"), alignment, regions, 0.65);
+        var paradigms = new Paradigms(
+            GenerateNounParadigm(stages.For("noun paradigm"), morphology, wordOrder, alignment, cases, phonology, syllableDropoff),
+            GenerateVerbParadigm(stages.For("verb paradigm"), morphology, wordOrder, phonology, syllableDropoff));
+        var pronouns = GeneratePronouns(stages.For("pronouns"), paradigms, morphology, wordOrder, phonology, syllableDropoff);
+        var negation = GenerateNegation(stages.For("negation"), morphology, phonology, syllableDropoff);
+        var predication = GenerateLocationalPredication(stages.For("locational copula"),
+            GeneratePredication(stages.For("predication"), phonology, syllableDropoff), phonology, syllableDropoff);
+        var adjectiveAgreement = SelectAdjectiveAgreement(stages.For("adjective agreement"), predication);
+        var genders = GenerateGenders(stages.For("genders"), morphology, paradigms, phonology, syllableDropoff);
+        var adpositions = GenerateAdpositions(stages.For("adpositions"), regions, cases, phonology, syllableDropoff);
         var roleMarkers = SelectRoleMarkers(alignment, cases, regions, wordOrder, adpositions);
-        predication = GenerateLocationalPredication(rand, predication, phonology, syllableDropoff);
-        var numerals = GenerateNumerals(rand, morphology, phonology, syllableDropoff);
-        var articles = GenerateArticles(rand, morphology, genders, numerals, phonology, syllableDropoff);
-        var possession = GeneratePossession(rand, morphology, wordOrder, phonology, syllableDropoff);
-        phonology = phonology with
-        {
-            SoundChanges = [.. phonology.SoundChanges, .. SelectLaterSoundChanges(rand, syllableRule, vowels)],
-            SyllableChanges = SelectSyllableChanges(rand, syllableRule, vowels, phonology.SyllableContact),
-        };
-        var commands = GenerateCommands(rand, morphology, wordOrder, phonology, syllableDropoff);
-        var comparison = GenerateComparison(rand, wordOrder, phonology, syllableDropoff);
-        var passive = GeneratePassive(rand, alignment, morphology, phonology, syllableDropoff);
-        var extraSyllables = SelectExtraSyllables(rootLengthNoise, lexiconSeed, phonology, syllableDropoff);
+        var numerals = GenerateNumerals(stages.For("numerals"), morphology, phonology, syllableDropoff);
+        var articles = GenerateArticles(stages.For("articles"), morphology, genders, numerals, phonology, syllableDropoff);
+        var possession = GeneratePossession(stages.For("possession"), morphology, wordOrder, phonology, syllableDropoff);
+        var commands = GenerateCommands(stages.For("commands"), morphology, wordOrder, phonology, syllableDropoff);
+        var comparison = GenerateComparison(stages.For("comparison"), wordOrder, phonology, syllableDropoff);
+        var passive = GeneratePassive(stages.For("passive"), alignment, morphology, phonology, syllableDropoff);
+
+        //the lexicon comes last, once there are closed classes for it to avoid
+        var lexiconSeed = stages.For("lexicon").Next();
+        var extraSyllables = SelectExtraSyllables(SelectRootLengthNoise(stages.For("root length noise")), lexiconSeed, phonology, syllableDropoff);
         var lexicon = GenerateLexicon(lexiconSeed, extraSyllables, phonology, syllableDropoff, new Dictionary<PartOfSpeech, IEnumerable<Lexeme>>
         {
             [PartOfSpeech.Noun] = pronouns.Forms.Values,
@@ -90,6 +88,17 @@ public static partial class Generator
             Comparison = comparison,
             Passive = passive,
         };
+    }
+
+    //a Random for each stage of generating a language, from the language's seed and the stage's name.
+    //A name can only be used once, since two stages sharing one would draw the very same numbers
+    private sealed class Stages(int seed)
+    {
+        private readonly HashSet<string> used = [];
+
+        public Random For(string stage) => used.Add(stage)
+            ? Sampling.For(seed, stage)
+            : throw new ArgumentException($"The stage '{stage}' was named twice.", nameof(stage));
     }
 
     //short forms for a closed class of words or affixes, kept distinct from each other where the

@@ -39,6 +39,7 @@ public static partial class Generator
             AdpositionalPhraseDirectionality = Sampling.Categorical(rand, objectFirst ? ObjectVerbAdpositionCounts : VerbObjectAdpositionCounts),
             NounPhraseDirectionality = Sampling.Categorical(rand, objectFirst ? ObjectVerbNounPhraseCounts : VerbObjectNounPhraseCounts),
             AdjectivePhraseDirectionality = Sampling.Categorical(rand, objectFirst ? ObjectVerbAdjectivePhraseCounts : VerbObjectAdjectivePhraseCounts),
+            ObliquePosition = SelectObliquePosition(rand, order),
         };
     }
 

@@ -3,33 +3,25 @@
 //inventories, syllables, sandhi and spelling
 public static partial class Generator
 {
-    //each rule is independent of the others, and they apply in this order
-    public static List<SoundChange> SelectSoundChanges(Random rand)
+    //each rule is independent of the others, and they apply in this order. What a language does when
+    //vowels meet comes last, so that the vowels it removes still separate consonants for the changes
+    //before it, and still set a word's harmony. The odds are guesses, final devoicing is for languages
+    //whose syllables can end in a consonant, and harmony is for those with vowels to pair
+    public static List<SoundChange> SelectSoundChanges(Random rand, SyllableRule rule, IReadOnlyCollection<Vowel> vowels)
     {
-        var rules = new List<SoundChange>();
+        var changes = new List<SoundChange>();
         if (rand.NextDouble() < 0.5)
         {
-            rules.Add(SoundChange.NasalAssimilation);
+            changes.Add(SoundChange.NasalAssimilation);
         }
         if (rand.NextDouble() < 0.5)
         {
-            rules.Add(SoundChange.Degemination);
+            changes.Add(SoundChange.Degemination);
         }
         if (rand.NextDouble() < 0.3)
         {
-            rules.Add(SoundChange.IntervocalicVoicing);
+            changes.Add(SoundChange.IntervocalicVoicing);
         }
-        return rules;
-    }
-
-    //more sound changes, applied after the first ones, in this order. What a language does when vowels
-    //meet comes last, so that the vowels it removes still separate consonants for the changes before
-    //it, and still set a word's harmony. The odds are guesses, final
-    //devoicing is for languages whose syllables can end in a consonant, and harmony is for those with
-    //vowels to pair. Harmony is drawn last, so that the changes before it stay as they were for each seed
-    public static List<SoundChange> SelectLaterSoundChanges(Random rand, SyllableRule rule, IReadOnlyCollection<Vowel> vowels)
-    {
-        var changes = new List<SoundChange>();
         if (rand.NextDouble() < 0.25)
         {
             changes.Add(SoundChange.Lenition);
@@ -42,7 +34,6 @@ public static partial class Generator
         {
             changes.Add(SoundChange.FinalDevoicing);
         }
-        var (hiatus, glideFormation) = SelectHiatusResolution(rand, rule.Resolve(Slot.Consonant));
         var harmony = rand.NextDouble() switch
         {
             < 0.15 => SoundChange.FrontBackHarmony,
@@ -55,6 +46,7 @@ public static partial class Generator
         }
         //every language merges the same vowel twice, after harmony, which can make two vowels alike
         changes.Add(SoundChange.IdenticalVowelFusion);
+        var (hiatus, glideFormation) = SelectHiatusResolution(rand, rule.Resolve(Slot.Consonant));
         if (glideFormation)
         {
             changes.Add(SoundChange.GlideFormation);
@@ -99,7 +91,7 @@ public static partial class Generator
 
     //changes that depend on syllables, for languages whose syllables can end in a consonant. Devoicing
     //and weakening need obstruents in codas, which a coda restriction rules out, and lengthening needs
-    //long vowels. It's drawn last, so that the others stay as they were. The odds are guesses
+    //long vowels. The odds are guesses
     public static List<SoundChange> SelectSyllableChanges(Random rand, SyllableRule rule, IReadOnlyCollection<Vowel> vowels, SyllableContact contact)
     {
         var changes = new List<SoundChange>();
@@ -112,20 +104,18 @@ public static partial class Generator
         {
             changes.Add(SoundChange.CodaWeakening);
         }
-        var laxes = rand.NextDouble() < 0.15 && codas;
         if (rand.NextDouble() < 0.12 && codas && vowels.Any(v => v.Long))
         {
             changes.Add(SoundChange.CompensatoryLengthening);
         }
-        if (laxes)
+        if (rand.NextDouble() < 0.15 && codas)
         {
             changes.Add(SoundChange.ClosedSyllableLaxing);
         }
 
-        //changes that follow the stress, drawn after the rest so that those stay as they were. The
-        //odds are guesses. Length can only follow stress in a language with long vowels, syncope
-        //needs codas for the consonants it brings together, and an unstressed vowel weakens to schwa
-        //where there is one, or else rises to a close vowel
+        //changes that follow the stress. The odds are guesses. Length can only follow stress in a
+        //language with long vowels, syncope needs codas for the consonants it brings together, and an
+        //unstressed vowel weakens to schwa where there is one, or else rises to a close vowel
         var hasLong = vowels.Any(v => v.Long);
         if (rand.NextDouble() < 0.12 && hasLong)
         {

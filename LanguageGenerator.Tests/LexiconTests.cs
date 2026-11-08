@@ -4,7 +4,7 @@
 //words adds to a lexicon, and the sample is shared
 public class LexiconTests
 {
-    private static Language Fresh(int seed) => Generator.Generate(new Random(seed));
+    private static Language Fresh(int seed) => Generator.Generate(seed);
 
     [Fact]
     public void Coin_SameMeaning_GivesTheSameRootWhateverWasCoinedFirst()

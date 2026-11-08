@@ -241,11 +241,11 @@ public class SoundChangeTests
     }
 
     [Fact]
-    public void SelectLaterSoundChanges_ManyDraws_EachComeUp()
+    public void SelectSoundChanges_ManyDraws_EachComeUp()
     {
         var rand = new Random(1);
         var rule = new SyllableRule(SyllableTemplates.CVF, TestData.Vowels, TestData.Consonants);
-        var drawn = Enumerable.Range(0, 2000).SelectMany(_ => Generator.SelectLaterSoundChanges(rand, rule, TestData.Vowels)).ToList();
+        var drawn = Enumerable.Range(0, 2000).SelectMany(_ => Generator.SelectSoundChanges(rand, rule, TestData.Vowels)).ToList();
 
         Assert.InRange(drawn.Count(c => c == SoundChange.Lenition) / 2000.0, 0.22, 0.28);
         Assert.InRange(drawn.Count(c => c == SoundChange.VoicingAssimilation) / 2000.0, 0.27, 0.33);
@@ -262,11 +262,11 @@ public class SoundChangeTests
     }
 
     [Fact]
-    public void SelectLaterSoundChanges_WithoutVowelsToPair_DrawsNoHarmony()
+    public void SelectSoundChanges_WithoutVowelsToPair_DrawsNoHarmony()
     {
         var rand = new Random(1);
         var rule = new SyllableRule(SyllableTemplates.CVF, TestData.Vowels, TestData.Consonants);
-        var drawn = Enumerable.Range(0, 2000).SelectMany(_ => Generator.SelectLaterSoundChanges(rand, rule, [Vowel.a, Vowel.i, Vowel.ə])).ToList();
+        var drawn = Enumerable.Range(0, 2000).SelectMany(_ => Generator.SelectSoundChanges(rand, rule, [Vowel.a, Vowel.i, Vowel.ə])).ToList();
 
         Assert.DoesNotContain(SoundChange.FrontBackHarmony, drawn);
         Assert.DoesNotContain(SoundChange.TongueRootHarmony, drawn);

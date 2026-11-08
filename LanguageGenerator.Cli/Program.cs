@@ -62,9 +62,8 @@ if (translating)
 }
 
 Console.WriteLine($"Seed: {seed}");
-var rand = new Random(seed);
 
-var lang = Generator.Generate(rand);
+var lang = Generator.Generate(seed);
 
 if (translating)
 {

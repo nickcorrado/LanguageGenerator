@@ -68,8 +68,7 @@ public static partial class Generator
         var agrees = paradigms.Verbs.Categories.Has<Person>();
         var dropsSubjects = Sampling.Categorical(rand, agrees ? AgreeingSubjectDropCounts : NonAgreeingSubjectDropCounts);
 
-        //gender comes last, so that adding it left every other pronoun as it was for each seed: an
-        //ungendered pronoun's form becomes the masculine, and the other genders get forms of their own
+        //an ungendered pronoun's form becomes the masculine, and the other genders get forms of their own
         var gendered = Sampling.Categorical(rand, PronounGenderCounts);
         List<Gender> genders = gendered == PronounGender.None ? []
             : rand.NextDouble() < 0.6 ? [Gender.Masculine, Gender.Feminine]

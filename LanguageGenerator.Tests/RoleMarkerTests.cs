@@ -8,6 +8,7 @@ public class RoleMarkerTests
         NounPhraseDirectionality = HeadDirectionality.Final,
         AdjectivePhraseDirectionality = HeadDirectionality.Final,
         AdpositionalPhraseDirectionality = HeadDirectionality.Final,
+        ObliquePosition = ObliquePosition.AfterVerbAndObject,
     };
 
     //every oblique role in a region of its own

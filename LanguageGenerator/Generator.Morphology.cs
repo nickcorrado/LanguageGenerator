@@ -3,13 +3,12 @@
 //how words are built: fusion, affixation, zero marking and paradigms
 public static partial class Generator
 {
-    public static Paradigms GenerateParadigms(Random rand, MorphologicalProfile morphology, WordOrder wordOrder, MorphosyntacticAlignment alignment, IReadOnlyList<Case> cases, Phonology phonology, double dropoff)
-    {
-        //case and number particles on nouns behave like adpositions, so they follow the same directionality
-        var nouns = GenerateParadigm(rand, PartOfSpeech.Noun, SelectNounCategories(rand, alignment, cases), morphology, wordOrder.AdpositionalPhraseDirectionality, phonology, dropoff);
-        var verbs = GenerateParadigm(rand, PartOfSpeech.Verb, SelectVerbCategories(rand), morphology, wordOrder.VerbPhraseDirectionality, phonology, dropoff);
-        return new Paradigms(nouns, verbs);
-    }
+    //case and number particles on nouns behave like adpositions, so they follow the same directionality
+    public static Paradigm GenerateNounParadigm(Random rand, MorphologicalProfile morphology, WordOrder wordOrder, MorphosyntacticAlignment alignment, IReadOnlyList<Case> cases, Phonology phonology, double dropoff) =>
+        GenerateParadigm(rand, PartOfSpeech.Noun, SelectNounCategories(rand, alignment, cases), morphology, wordOrder.AdpositionalPhraseDirectionality, phonology, dropoff);
+
+    public static Paradigm GenerateVerbParadigm(Random rand, MorphologicalProfile morphology, WordOrder wordOrder, Phonology phonology, double dropoff) =>
+        GenerateParadigm(rand, PartOfSpeech.Verb, SelectVerbCategories(rand), morphology, wordOrder.VerbPhraseDirectionality, phonology, dropoff);
 
     //innermost first: number sits closer to the root than case, as it overwhelmingly does.
     //gender isn't here because a noun doesn't inflect for it; it has one, and adjectives and

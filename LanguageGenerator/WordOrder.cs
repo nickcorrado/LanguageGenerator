@@ -10,8 +10,7 @@ public record WordOrder
     public required HeadDirectionality NounPhraseDirectionality { get; init; }
     public required HeadDirectionality AdjectivePhraseDirectionality { get; init; }
     public required HeadDirectionality AdpositionalPhraseDirectionality { get; init; }
-    //drawn after the rest, so it isn't required; a language with no say in it puts obliques last
-    public ObliquePosition ObliquePosition { get; init; } = ObliquePosition.AfterVerbAndObject;
+    public required ObliquePosition ObliquePosition { get; init; }
     //we don't necessarily have this as a part of speech, so it's out for now
     //public HeadDirectionality DeterminerPhraseDirectionality { get; init; }
 

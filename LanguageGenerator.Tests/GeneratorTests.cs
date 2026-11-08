@@ -19,13 +19,13 @@ public class GeneratorTests
     [Fact]
     public void Generate_SameSeed_GivesTheSameLanguageEvenAfterGeneratingOthers()
     {
-        var first = Fingerprint(Generator.Generate(new Random(7)));
+        var first = Fingerprint(Generator.Generate(7));
         foreach (var seed in Enumerable.Range(100, 20))
         {
-            Generator.Generate(new Random(seed));
+            Generator.Generate(seed);
         }
 
-        Assert.Equal(first, Fingerprint(Generator.Generate(new Random(7))));
+        Assert.Equal(first, Fingerprint(Generator.Generate(7)));
     }
 
     [Fact]
@@ -191,7 +191,7 @@ public class GeneratorTests
     [InlineData(ConstituentWordOrder.SVO, HeadDirectionality.Final, HeadDirectionality.Final, HeadDirectionality.Initial, HeadDirectionality.Initial)]
     public void HeadDirectionality_IsWhicheverWayMostPhrasesGo(ConstituentWordOrder order, HeadDirectionality noun, HeadDirectionality adjective, HeadDirectionality adposition, HeadDirectionality expected)
     {
-        var wordOrder = new WordOrder { ConstituentWordOrder = order, NounPhraseDirectionality = noun, AdjectivePhraseDirectionality = adjective, AdpositionalPhraseDirectionality = adposition };
+        var wordOrder = new WordOrder { ConstituentWordOrder = order, NounPhraseDirectionality = noun, AdjectivePhraseDirectionality = adjective, AdpositionalPhraseDirectionality = adposition, ObliquePosition = ObliquePosition.AfterVerbAndObject };
 
         Assert.Equal(expected, wordOrder.HeadDirectionality);
     }
