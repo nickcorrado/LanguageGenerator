@@ -21,7 +21,7 @@ namespace LanguageGenerator;
 //A number is in digits, and gives the noun its number when the noun doesn't: two is dual and a few
 //paucal. An ordinal is in digits too, with its English ending, as in subject:(day 3rd), and leaves
 //the noun's number alone. A possessor goes in the parentheses too, as possessor:king or possessor:3SG.F, for 'the
-//king's' or 'her'. A noun is definite with DEF, as 'the dog' is dog.DEF, indefinite with NDF, as 'a
+//king's' or 'her', or a phrase of its own, as possessor:(sister possessor:1SG) for 'my sister's'. A noun is definite with DEF, as 'the dog' is dog.DEF, indefinite with NDF, as 'a
 //dog' is dog.NDF, and bare with neither, as 'dogs', 'water' and 'my dog' are. The verb be says what its subject is, with noun:fool or adjective:locked in place of an
 //object, or where it is, with location:house. Obliques say where, to where, from where, to whom,
 //with whom and with what, as location:house, goal:river, source:(village old), recipient:dog,
@@ -287,15 +287,21 @@ public static class ClauseFile
         }
     }
 
-    //a noun and its adjectives, in parentheses, as in (dog.PL big old)
+    //a noun and its adjectives, in parentheses, as in (dog.PL big old). A possessor can be a noun
+    //phrase in parentheses of its own, as in (son possessor:(sister possessor:1SG)) for 'my sister's
+    //son', and nothing else can
     private static NounPhrase ParseModifiedNounPhrase(string token, int number)
     {
         if (!token.EndsWith(')'))
         {
             throw new ClauseFormatException($"'{token}' has to end at its ), as in (dog big).", number);
         }
-        var words = token[1..^1].Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
-        if (words.Length == 0)
+        var words = Tokenize(token[1..^1], number);
+        if (words.Find(w => w.Contains('(') && !w.StartsWith("possessor:(")) is { } nested)
+        {
+            throw new ClauseFormatException($"Only a possessor can be a noun phrase of its own inside parentheses, as in (son possessor:(sister possessor:1SG)), not '{nested}'.", number);
+        }
+        if (words.Count == 0)
         {
             throw new ClauseFormatException("A noun phrase in parentheses needs a noun.", number);
         }
@@ -430,10 +436,6 @@ public static class ClauseFile
             if (depth < 0)
             {
                 throw new ClauseFormatException("There's a ) without a ( before it.", number);
-            }
-            if (depth > 1)
-            {
-                throw new ClauseFormatException("Noun phrases can't be nested yet.", number);
             }
             token.Append(c);
         }

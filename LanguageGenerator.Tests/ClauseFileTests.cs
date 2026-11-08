@@ -216,18 +216,27 @@ public class ClauseFileTests
     [Theory]
     [InlineData("x\n  sleep subject:(dog big", "isn't closed")]
     [InlineData("x\n  sleep subject:dog big)", "without a ( before it")]
-    [InlineData("x\n  sleep subject:(dog (big))", "can't be nested")]
+    [InlineData("x\n  sleep subject:(dog (big))", "Only a possessor")]
     [InlineData("x\n  sleep subject:()", "needs a noun")]
     [InlineData("x\n  sleep subject:(1SG big)", "pronouns don't")]
     [InlineData("x\n  sleep subject:(cat owner:king)", "can't have an owner yet")]
     [InlineData("x\n  sleep subject:(cat possessor:king possessor:queen)", "more than one possessor")]
-    [InlineData("x\n  sleep subject:(cat possessor:(king old))", "can't be nested yet")]
     [InlineData("x\n  sleep subject:cat possessor:king", "goes inside its noun's parentheses")]
     [InlineData("x\n  sleep subject:(dog big.PL)", "adjectives have no features yet")]
     [InlineData("x\n  sleep subject:(dog.ACC big)", "case comes from its role")]
     public void Parse_NounPhraseMistakes_SayWhat(string text, string message)
     {
         Assert.Contains(message, Error(text).Message);
+    }
+
+    [Fact]
+    public void Parse_PossessorOfAPossessor_Nests()
+    {
+        var subject = Assert.IsType<NounPhrase>(Verbal(Single("my sister's son came home\n  walk.PST  subject:(son possessor:(sister possessor:1SG))")).Subject.Value);
+
+        var sister = Assert.IsType<NounPhrase>(subject.Possessor!.Value.Value);
+        Assert.Equal("sister", sister.Noun);
+        Assert.Equal(new Pronoun(Person.First, Number.Singular), sister.Possessor!.Value.Value);
     }
 
     [Fact]

@@ -62,6 +62,19 @@ public class PossessionTests
     }
 
     [Fact]
+    public void Realize_PossessorOfAPossessor_NestsOnTheSameSide()
+    {
+        Assert.All(GeneratedLanguages.Sample, l =>
+        {
+            //'the person's cat's dog', with the cat's owner inside the cat's phrase
+            var sentence = Slept(l, new NounPhrase("cat", Number.Singular, Possessor: ThePerson));
+            var (person, cat, dog) = (IndexOf(sentence, "person"), IndexOf(sentence, "cat"), IndexOf(sentence, "dog"));
+
+            Assert.True(l.Possession.PossessorFirst ? person < cat && cat < dog : dog < cat && cat < person);
+        });
+    }
+
+    [Fact]
     public void Realize_PronounPossessor_IsJustTheAffixWhereOnlyTheNounIsMarked()
     {
         foreach (var language in GeneratedLanguages.Sample)
