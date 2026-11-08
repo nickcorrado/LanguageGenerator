@@ -22,12 +22,15 @@ public static class GlossPrompt
             indented line glossing it: the verb, then its arguments as role:word, separated by two spaces.
 
               the hunter saw the wolves
-                see.PST.PFV  subject:hunter  object:wolf.PL
+                see.PST.PFV  subject:hunter.DEF  object:wolf.PL.DEF
 
             Words are English meanings in dictionary form, lowercase even for names: wolf, not wolves; see, not saw; marta, not Marta.
             Features follow a word after periods, in Leipzig glossing style.
             - Verb features: {Values<Tense>()}; {Values<Aspect>()}; {Values<Polarity>()}.
-            - Noun features: {Values<Number>()}.
+            - Noun features: {Values<Number>()}; {Values<Definiteness>()}.
+            - A noun with 'the' is DEF, and with 'a' or 'an' NDF. A noun with neither is bare, as 'wolves',
+              'water' or 'his dogs' are, and so is a possessed noun: 'the king's house' is
+              (house possessor:king.DEF), since 'the' goes with 'king'.
             - Unmarked defaults: present, imperfective, affirmative, singular. Leave defaults out.
 
             Pronouns are a person and number instead of a word, as in subject:1SG or object:3PL, then
@@ -39,9 +42,9 @@ public static class GlossPrompt
             Roles: {string.Join(", ", roles)}. A recipient is who something is given or said to, a
             goal where something goes, a source where it comes from, a companion who it's done with,
             and an instrument what it's done with. A noun with adjectives goes in parentheses, noun
-            first, as in object:(wolf.PL big gray). So does a number, in digits from 1 to {NumeralSystem.Largest}, as in
+            first, as in object:(wolf.PL.DEF big gray). So does a number, in digits from 1 to {NumeralSystem.Largest}, as in
             subject:(wolf 3 gray); it gives the noun its number, so leave that out. So does an
-            ordinal, in digits with its English ending, as in object:(door 2nd) for 'the second door',
+            ordinal, in digits with its English ending, as in object:(door.DEF 2nd) for 'the second door',
             and 'last' and 'next' are adjectives, not ordinals. So does a
             possessor, a noun or pronoun, as in object:(house possessor:king) for 'the king's house' or
             companion:(dog.PL possessor:3SG.M) for 'his dogs'. Roles not supported yet: {string.Join(", ", ClauseFile.UnsupportedRoleNames)}.
@@ -50,23 +53,23 @@ public static class GlossPrompt
             where it is, with location:, and nothing else:
 
               the gate was locked
-                be.PST  subject:gate  adjective:locked
+                be.PST  subject:gate.DEF  adjective:locked
               the queen is in the house
-                be  subject:queen  location:house
+                be  subject:queen.DEF  location:house.DEF
 
             A command to 'you' has IMP on its verb, with no tense or aspect, NEG for 'don't', and no
             subject, unless it's to several people, which is subject:2PL:
 
               don't drink the red wine
-                drink.IMP.NEG  object:(wine red)
+                drink.IMP.NEG  object:(wine.DEF red)
               go to the inn, all of you
-                go.IMP  subject:2PL  goal:inn
+                go.IMP  subject:2PL  goal:inn.DEF
 
             Rules:
             - One clause per verb. Split a sentence with several verbs into several clauses, each with
               its own English line, as in 'the hunter saw the wolves' and 'he ran'.
-            - Articles, demonstratives, adverbs and conjunctions have no gloss: leave them
-              out of the gloss line when the meaning mostly survives. The English line is natural
+            - Demonstratives, adverbs and conjunctions have no gloss: leave them out of the gloss
+              line when the meaning mostly survives, and gloss 'this' or 'that' with a noun as DEF. The English line is natural
               English saying what the gloss does, so 'the' stays, but a dropped adverb goes.
             - Paraphrase into what the format can say when that keeps the meaning, as with 'went' for
               walk.PST, or 'lives in' for be with location:.
@@ -80,7 +83,7 @@ public static class GlossPrompt
 
               [1]
               the two dogs slept in the old house
-                sleep.PST  subject:(dog 2)  location:(house old)
+                sleep.PST  subject:(dog.DEF 2)  location:(house.DEF old)
               [2]
               {CantExpress} (question): Where did they go?
             """;

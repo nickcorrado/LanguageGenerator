@@ -9,7 +9,8 @@ public class GeneratorTests
         string.Join(",", GeneratedLanguages.AllWords(l).Select(w => $"{l.Phonology.Realize(w).Segmented(l.Orthography)}={w.Gloss}")),
         l.MorphologicalType, l.WordOrder.ConstituentWordOrder, l.WordOrder.HeadDirectionality, l.WordOrder.VerbPhraseDirectionality,
         l.WordOrder.NounPhraseDirectionality, l.WordOrder.AdjectivePhraseDirectionality, l.WordOrder.AdpositionalPhraseDirectionality,
-        l.HasArticles, l.MorphosyntacticAlignment, string.Join(",", l.Cases.Select(c => c.Gloss)),
+        l.Articles.Definite?.Marker.Spell(l.Orthography), l.Articles.Definite?.Position,
+        l.Articles.Indefinite?.Marker.Spell(l.Orthography), l.Articles.Indefinite?.Position, l.MorphosyntacticAlignment, string.Join(",", l.Cases.Select(c => c.Gloss)),
         string.Join(",", l.RoleMarkers.Select(kv => $"{kv.Key}={kv.Value}")));
 
     [Fact]
@@ -190,12 +191,6 @@ public class GeneratorTests
         var wordOrder = new WordOrder { ConstituentWordOrder = order, NounPhraseDirectionality = noun, AdjectivePhraseDirectionality = adjective, AdpositionalPhraseDirectionality = adposition };
 
         Assert.Equal(expected, wordOrder.HeadDirectionality);
-    }
-
-    [Fact]
-    public void Generate_Articles_AppearInAboutSeventyPercentOfLanguages()
-    {
-        Assert.InRange(GeneratedLanguages.Sample.Count(l => l.HasArticles) / 300.0, 0.62, 0.78);
     }
 
     [Fact]

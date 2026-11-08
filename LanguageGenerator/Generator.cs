@@ -37,7 +37,6 @@ public static partial class Generator
         var alignment = SelectAlignment(rand, 0.5, 0.25);
         var cases = SelectCases(rand, alignment, 0.75, 0.6, 0.35, 0.65, 0.25, 0.2);
         var paradigms = GenerateParadigms(rand, morphology, wordOrder, alignment, cases, phonology, syllableDropoff);
-        var hasArticles = rand.NextDouble() < 0.7;
         //last, so that adding these left everything before them as it was for each seed
         var pronouns = GeneratePronouns(rand, paradigms, morphology, wordOrder, phonology, syllableDropoff);
         var negation = GenerateNegation(rand, morphology, phonology, syllableDropoff);
@@ -49,6 +48,7 @@ public static partial class Generator
         var roleMarkers = SelectRoleMarkers(alignment, cases, wordOrder, adpositions);
         predication = GenerateLocationalPredication(rand, predication, phonology, syllableDropoff);
         var numerals = GenerateNumerals(rand, morphology, phonology, syllableDropoff);
+        var articles = GenerateArticles(rand, morphology, numerals, phonology, syllableDropoff);
         var possession = GeneratePossession(rand, morphology, wordOrder, phonology, syllableDropoff);
         phonology = phonology with
         {
@@ -72,7 +72,7 @@ public static partial class Generator
             Paradigms = paradigms,
             MorphologicalProfile = morphology,
             WordOrder = wordOrder,
-            HasArticles = hasArticles,
+            Articles = articles,
             MorphosyntacticAlignment = alignment,
             Cases = cases,
             RoleMarkers = roleMarkers,

@@ -3,12 +3,14 @@
 //what a sentence means, independent of any language: words are meanings, like "dog", which each
 //language's lexicon turns into its own roots. Realizing one in a language is where all of that
 //language's choices (word order, role markers, paradigms, phonology) come together
-//TODO definiteness: there are no articles in the lexicon yet, so "the" only shows in translations
 /// <summary>
 /// A noun with any adjectives modifying it, in English order, how many of it there are if a numeral
-/// says, as in 'three wolves', and whose it is, as in 'the king's house'.
+/// says, as in 'three wolves', whose it is, as in 'the king's house', which one it is, as in 'the
+/// third', and whether it's definite, as 'the dog' is and 'a dog' isn't.
 /// </summary>
-public record NounPhrase(string Noun, Number Number, ValueList<Adjective> Adjectives = default, int? Count = null, Argument? Possessor = null, int? Ordinal = null);
+//no definiteness is a bare noun, as English has for 'dogs', 'water' or 'my dog'
+public record NounPhrase(string Noun, Number Number, ValueList<Adjective> Adjectives = default, int? Count = null, Argument? Possessor = null, int? Ordinal = null,
+    Definiteness? Definiteness = null);
 /// <summary>What fills a role: a noun phrase or a pronoun.</summary>
 //what agrees with one depends on the language, so that's Syntax.AgreementOf's to say
 public union Argument(NounPhrase, Pronoun);
@@ -219,7 +221,8 @@ public static class Syntax
         var pronouns = language.Pronouns.Paradigm;
         return argument switch
         {
-            NounPhrase phrase => Possessed(language, phrase, Modified(language, phrase, Features(nouns, [NumberOf(language, phrase), @case]))),
+            NounPhrase phrase => Possessed(language, phrase, language.Articles.Apply(Modified(language, phrase, Features(nouns, [NumberOf(language, phrase), @case])),
+                language.Lexicon.Noun(phrase.Noun).Root, phrase.Definiteness, phrase.Number)),
             Pronoun pronoun => pronouns.Inflect(language.Pronouns.For(pronoun), Features(pronouns, [@case])),
         };
     }

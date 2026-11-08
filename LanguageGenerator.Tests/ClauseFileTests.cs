@@ -121,6 +121,22 @@ public class ClauseFileTests
     }
 
     [Theory]
+    [InlineData("dog.DEF", "Definite")]
+    [InlineData("dog.PL.NDF", "Indefinite")]
+    [InlineData("(dog.DEF big 3)", "Definite")]
+    [InlineData("dog", null)]
+    public void Parse_Definiteness_IsKept(string phrase, string? definiteness)
+    {
+        var subject = Assert.IsType<NounPhrase>(Verbal(Single($"x\n  sleep subject:{phrase}")).Subject.Value);
+
+        Assert.Equal(definiteness, subject.Definiteness?.Name);
+    }
+
+    [Fact]
+    public void Parse_DefiniteAndIndefinite_SaysWhy() =>
+        Assert.Contains("either DEF or NDF", Error("x\n  sleep subject:dog.DEF.NDF").Message);
+
+    [Theory]
     [InlineData("(door 2nd)", 2, "Singular")]
     [InlineData("(door.PL 3rd old)", 3, "Plural")]
     [InlineData("(door 21st)", 21, "Singular")]

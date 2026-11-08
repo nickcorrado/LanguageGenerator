@@ -21,7 +21,8 @@ namespace LanguageGenerator;
 //A number is in digits, and gives the noun its number when the noun doesn't: two is dual and a few
 //paucal. An ordinal is in digits too, with its English ending, as in subject:(day 3rd), and leaves
 //the noun's number alone. A possessor goes in the parentheses too, as possessor:king or possessor:3SG.F, for 'the
-//king's' or 'her'. The verb be says what its subject is, with noun:fool or adjective:locked in place of an
+//king's' or 'her'. A noun is definite with DEF, as 'the dog' is dog.DEF, indefinite with NDF, as 'a
+//dog' is dog.NDF, and bare with neither, as 'dogs', 'water' and 'my dog' are. The verb be says what its subject is, with noun:fool or adjective:locked in place of an
 //object, or where it is, with location:house. Obliques say where, to where, from where, to whom,
 //with whom and with what, as location:house, goal:river, source:(village old), recipient:dog,
 //companion:1PL and instrument:knife, in the order they're said. A verb with IMP is a command, as in
@@ -447,6 +448,7 @@ public static class ClauseFile
         }
         var (noun, features) = ParseWord(token, number);
         Number? count = null;
+        Definiteness? definiteness = null;
         foreach (var feature in features)
         {
             switch (feature)
@@ -456,15 +458,20 @@ public static class ClauseFile
                     break;
                 case Number:
                     throw new ClauseFormatException($"'{noun}' has more than one number.", number);
+                case Definiteness d when definiteness is null:
+                    definiteness = d;
+                    break;
+                case Definiteness:
+                    throw new ClauseFormatException($"'{noun}' is either DEF or NDF, not both.", number);
                 case Case:
                     throw new ClauseFormatException($"'{noun}' can't take {feature.Gloss}: a noun's case comes from its role.", number);
                 case Polarity:
                     throw new ClauseFormatException($"'{noun}' can't take {feature.Gloss}: it's the verb that's negated.", number);
                 default:
-                    throw new ClauseFormatException($"'{noun}' can't take {feature.Gloss} ({feature.Name}) yet: nouns have only number.", number);
+                    throw new ClauseFormatException($"'{noun}' can't take {feature.Gloss} ({feature.Name}) yet: nouns have only number and definiteness.", number);
             }
         }
-        return new NounPhrase(noun, count ?? Number.Singular);
+        return new NounPhrase(noun, count ?? Number.Singular, Definiteness: definiteness);
     }
 
     //a person and number, as in 3PL, and maybe a clusivity after them. Null if it isn't a pronoun

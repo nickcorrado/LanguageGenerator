@@ -54,7 +54,16 @@ public static class LanguageDescription
         output.WriteLine($"{lang.MorphologicalType} ({lang.MorphologicalProfile})");
         output.WriteLine(order.ConstituentWordOrder);
         output.WriteLine($"{order.HeadDirectionality}, {order.VerbPhraseDirectionality}, {order.NounPhraseDirectionality}, {order.AdjectivePhraseDirectionality}, {order.AdpositionalPhraseDirectionality}");
-        output.WriteLine(lang.HasArticles ? "Has articles" : "No articles");
+        string DescribeArticle(Article? article, string name) => article switch
+        {
+            null => $"no {name} article",
+            { Marker.Value: Root } => $"'one' as the {name} article",
+            { Position: ExponentPosition.Prefix } => $"{name} prefix {article.Marker.Spell(lang.Orthography)}-",
+            { Position: ExponentPosition.Suffix } => $"{name} suffix -{article.Marker.Spell(lang.Orthography)}",
+            { Position: ExponentPosition.PrecedingParticle } => $"{name} article {article.Marker.Spell(lang.Orthography)} before the noun",
+            _ => $"{name} article {article.Marker.Spell(lang.Orthography)} after the noun",
+        };
+        output.WriteLine($"Articles: {DescribeArticle(lang.Articles.Definite, "definite")}; {DescribeArticle(lang.Articles.Indefinite, "indefinite")}");
 
         output.WriteLine(lang.MorphosyntacticAlignment);
         output.WriteLine($"Cases: {string.Join(", ", lang.Cases.Select(c => c.Gloss))}");
@@ -175,28 +184,29 @@ public static class LanguageDescription
     private static void WriteExamples(Language lang, TextWriter output)
     {
         //a few sentences, glossed
-        NounPhrase Phrase(string noun, Number number) => new(noun, number);
+        NounPhrase Phrase(string noun, Number number) => new(noun, number, Definiteness: Definiteness.Definite);
         (Clause Clause, string Translation)[] examples =
         [
             (new("see", Tense.Past, Aspect.Perfective, Phrase("dog", Number.Singular), Phrase("cat", Number.Singular)), "the dog saw the cat"),
             (new("sleep", Tense.Present, Aspect.Imperfective, Phrase("bird", Number.Plural)), "the birds are sleeping"),
+            (new("see", Tense.Past, Aspect.Perfective, new NounPhrase("dog", Number.Singular, Definiteness: Definiteness.Indefinite), new NounPhrase("cat", Number.Plural)), "a dog saw cats"),
             (new("see", Tense.Present, Aspect.Imperfective, Phrase("person", Number.Singular), Phrase("dog", Number.Plural)), "the person sees the dogs"),
             (new("see", Tense.Present, Aspect.Imperfective, new Pronoun(Person.First, Number.Singular), new Pronoun(Person.Second, Number.Singular)), "I see you"),
             (new("sleep", Tense.Past, Aspect.Imperfective, new Pronoun(Person.First, Number.Plural)), "we were sleeping"),
             (new("see", Tense.Past, Aspect.Perfective, Phrase("dog", Number.Singular), Phrase("cat", Number.Singular), Negative: true), "the dog didn't see the cat"),
-            (new("see", Tense.Past, Aspect.Perfective, new NounPhrase("dog", Number.Singular, [new("big")]), new NounPhrase("cat", Number.Plural, [new("small")])), "the big dog saw the small cats"),
-            (new("see", Tense.Past, Aspect.Perfective, new NounPhrase("woman", Number.Singular, [new("old")]), new NounPhrase("sun", Number.Singular, [new("big")])), "the old woman saw the big sun"),
-            (new("sleep", Tense.Past, Aspect.Imperfective, Phrase("dog", Number.Singular), Obliques: [new(Role.Location, new NounPhrase("house", Number.Singular, [new("big")]))]), "the dog was sleeping in the big house"),
+            (new("see", Tense.Past, Aspect.Perfective, new NounPhrase("dog", Number.Singular, [new("big")], Definiteness: Definiteness.Definite), new NounPhrase("cat", Number.Plural, [new("small")], Definiteness: Definiteness.Definite)), "the big dog saw the small cats"),
+            (new("see", Tense.Past, Aspect.Perfective, new NounPhrase("woman", Number.Singular, [new("old")], Definiteness: Definiteness.Definite), new NounPhrase("sun", Number.Singular, [new("big")], Definiteness: Definiteness.Definite)), "the old woman saw the big sun"),
+            (new("sleep", Tense.Past, Aspect.Imperfective, Phrase("dog", Number.Singular), Obliques: [new(Role.Location, new NounPhrase("house", Number.Singular, [new("big")], Definiteness: Definiteness.Definite))]), "the dog was sleeping in the big house"),
             (new("give", Tense.Past, Aspect.Perfective, Phrase("person", Number.Singular), Phrase("fish", Number.Singular), Obliques: [new(Role.Recipient, Phrase("cat", Number.Plural))]), "the person gave the fish to the cats"),
             (new("walk", Tense.Past, Aspect.Perfective, new Pronoun(Person.First, Number.Singular), Obliques: [new(Role.Source, Phrase("tree", Number.Singular)), new(Role.Goal, Phrase("water", Number.Singular)), new(Role.Companion, new Pronoun(Person.Second, Number.Singular))]), "I walked from the tree to the water with you"),
             (new("see", Tense.Past, Aspect.Perfective, Phrase("person", Number.Singular), new NounPhrase("dog", ClauseFile.NumberFor(3), [new("big")], Count: 3)), "the person saw three big dogs"),
-            (new("sleep", Tense.Past, Aspect.Imperfective, new NounPhrase("dog", Number.Singular, Ordinal: 3), Obliques: [new(Role.Location, new NounPhrase("house", Number.Singular, Ordinal: 1))]), "the third dog was sleeping in the first house"),
+            (new("sleep", Tense.Past, Aspect.Imperfective, new NounPhrase("dog", Number.Singular, Ordinal: 3, Definiteness: Definiteness.Definite), Obliques: [new(Role.Location, new NounPhrase("house", Number.Singular, Ordinal: 1, Definiteness: Definiteness.Definite))]), "the third dog was sleeping in the first house"),
             (new("see", Tense.Past, Aspect.Perfective, new NounPhrase("dog", Number.Singular, Possessor: Phrase("person", Number.Singular)), new NounPhrase("cat", Number.Plural, Possessor: new Pronoun(Person.First, Number.Singular))), "the person's dog saw my cats"),
         ];
         (CopularClause Clause, string Translation)[] copular =
         [
             (new(new Adjective("big"), Tense.Present, Aspect.Imperfective, Phrase("dog", Number.Singular)), "the dog is big"),
-            (new(Phrase("bird", Number.Singular), Tense.Present, Aspect.Imperfective, new Pronoun(Person.Second, Number.Singular)), "you are a bird"),
+            (new(new NounPhrase("bird", Number.Singular, Definiteness: Definiteness.Indefinite), Tense.Present, Aspect.Imperfective, new Pronoun(Person.Second, Number.Singular)), "you are a bird"),
             (new(new Oblique(Role.Location, Phrase("house", Number.Singular)), Tense.Present, Aspect.Imperfective, Phrase("dog", Number.Singular)), "the dog is in the house"),
         ];
         (Command Clause, string Translation)[] commands =

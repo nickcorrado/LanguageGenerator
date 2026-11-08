@@ -13,7 +13,7 @@ public class Language
     public required Paradigms Paradigms { get; init; }
     public required MorphologicalProfile MorphologicalProfile { get; init; }
     public required WordOrder WordOrder { get; init; }
-    public required bool HasArticles { get; init; }
+    public required Articles Articles { get; init; }
     public required MorphosyntacticAlignment MorphosyntacticAlignment { get; init; }
     public required IReadOnlyList<Case> Cases { get; init; }
     public required IReadOnlyDictionary<Role, RoleMarker> RoleMarkers { get; init; }
