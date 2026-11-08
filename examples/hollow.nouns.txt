@@ -1,7 +1,6 @@
 # What each noun names: M, F, HUM, ANIM or THING. Gender follows from this in languages that
 # have it. Edit freely: glossing again keeps every line here.
 
-Marta F
 answer THING
 anyone HUM
 anything THING
@@ -19,6 +18,7 @@ branch THING
 bread THING
 bridge THING
 brother M
+button THING
 camp THING
 chair THING
 chest THING
@@ -27,7 +27,9 @@ chimney THING
 circle THING
 clearing THING
 clothes THING
+clothing THING
 crow ANIM
+current THING
 decision THING
 dog ANIM
 door THING
@@ -51,6 +53,7 @@ footprint THING
 footstep THING
 forest THING
 fork THING
+fur THING
 gate THING
 hand THING
 harvest THING
@@ -87,6 +90,7 @@ purse THING
 river THING
 road THING
 room THING
+root THING
 shoe THING
 side THING
 sky THING
@@ -97,6 +101,7 @@ stair THING
 stew THING
 stone THING
 story THING
+stranger HUM
 sun THING
 sword THING
 table THING
@@ -119,3 +124,4 @@ wine THING
 woman F
 wood THING
 word THING
+yew THING
