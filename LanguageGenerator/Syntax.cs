@@ -57,7 +57,7 @@ public record CopularCommand(Complement Complement, Number Number, bool Negative
 public record Addressed(Statement Statement, NounPhrase Addressee);
 
 /// <summary>Anything a sentence can say.</summary>
-public union Statement(Clause, CopularClause, Command, CopularCommand, Addressed);
+public union Statement(Clause, CopularClause, Command, CopularCommand, Comparative, Addressed);
 
 public static class Syntax
 {
@@ -67,6 +67,7 @@ public static class Syntax
         CopularClause c => Realize(language, c, translation),
         Command c => Realize(language, c, translation),
         CopularCommand c => Realize(language, c, translation),
+        Comparative c => Realize(language, c, translation),
         Addressed a => Realize(language, a, translation),
     };
 
@@ -156,10 +157,13 @@ public static class Syntax
         };
     }
 
+    public static Sentence Realize(Language language, CopularClause clause, string translation) => Copular(language, clause, [], translation);
+
     //a copular clause's complement goes where an object would, so it precedes the copula in an OV
     //language, as in Turkish and Japanese, and follows it in a VO one. Where adjectives are verbal,
-    //the adjective takes the verb's place instead, with no copula
-    public static Sentence Realize(Language language, CopularClause clause, string translation)
+    //the adjective takes the verb's place instead, with no copula. A standard of comparison, if the
+    //clause has one, goes where obliques go
+    private static Sentence Copular(Language language, CopularClause clause, IReadOnlyList<Word> standard, string translation)
     {
         var predication = language.Predication;
         var subject = Subject(language, clause.Subject, Role.IntransitiveSubject);
@@ -168,7 +172,7 @@ public static class Syntax
             //a property word inflects as a verb in a language whose adjectives are verbs
             var adjective = language.Lexicon.Adjective(verbal.Meaning) with { PartOfSpeech = PartOfSpeech.Verb };
             var predicate = Verb(language, adjective, clause.Tense, clause.Aspect, clause.Subject, clause.Negative);
-            return Sentence(language, Order(language.WordOrder, subject, predicate, null, []), translation);
+            return Sentence(language, Order(language.WordOrder, subject, predicate, null, standard), translation);
         }
 
         //a location is an oblique, and goes where obliques go, with the language's locational copula
@@ -177,6 +181,10 @@ public static class Syntax
             if (location.Role != Role.Location)
             {
                 throw new ArgumentException($"A copular clause can say where its subject is, but not its {location.Role}.", nameof(clause));
+            }
+            if (standard.Count > 0)
+            {
+                throw new ArgumentException("Only an adjective can be compared.", nameof(clause));
             }
             var be = predication.Drops(clause.Tense, clause.Negative, locational: true)
                 ? []
@@ -191,7 +199,30 @@ public static class Syntax
         var copula = predication.Drops(clause.Tense, clause.Negative)
             ? []
             : Verb(language, predication.Copula, clause.Tense, clause.Aspect, clause.Subject, clause.Negative);
-        return Sentence(language, Order(language.WordOrder, subject, copula, complement, []), translation);
+        return Sentence(language, Order(language.WordOrder, subject, copula, complement, standard), translation);
+    }
+
+    //a locational standard takes its role's case or adposition, and a particle's standard the plain
+    //case a subject takes, with the particle on its side. A conjoined comparison is two clauses,
+    //the second denying the property of the standard, as in 'Marta is tall, the men are not tall'
+    public static Sentence Realize(Language language, Comparative comparative, string translation)
+    {
+        var clause = comparative.Clause;
+        if (clause.Complement.Value is not Adjective)
+        {
+            throw new ArgumentException("Only an adjective can be compared.", nameof(comparative));
+        }
+        return language.Comparison switch
+        {
+            LocationalComparison locational => Copular(language, clause, Marked(language, comparative.Standard, locational.Role), translation),
+            ParticleComparison particle => Copular(language, clause, Than(particle, Inflect(language, comparative.Standard, Role.IntransitiveSubject)), translation),
+            ConjoinedComparison => Joined(Realize(language, clause, translation),
+                Realize(language, clause with { Subject = comparative.Standard, Negative = !clause.Negative }, translation)),
+        };
+
+        static IReadOnlyList<Word> Than(ParticleComparison particle, IReadOnlyList<Word> standard) =>
+            particle.BeforeStandard ? [new Word([particle.Than.Root]), .. standard] : [.. standard, new Word([particle.Than.Root])];
+        static Sentence Joined(Sentence first, Sentence second) => first with { Words = [.. first.Words, .. second.Words] };
     }
 
     //a predicate noun or adjective, said of this subject

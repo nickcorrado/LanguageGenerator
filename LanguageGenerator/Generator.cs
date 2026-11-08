@@ -56,6 +56,7 @@ public static partial class Generator
             SyllableChanges = SelectSyllableChanges(rand, syllableRule, vowels, phonology.SyllableContact),
         };
         var commands = GenerateCommands(rand, morphology, wordOrder, phonology, syllableDropoff);
+        var comparison = GenerateComparison(rand, wordOrder, phonology, syllableDropoff);
         var extraSyllables = SelectExtraSyllables(rootLengthNoise, lexiconSeed, phonology, syllableDropoff);
         var lexicon = GenerateLexicon(lexiconSeed, extraSyllables, phonology, syllableDropoff, new Dictionary<PartOfSpeech, IEnumerable<Lexeme>>
         {
@@ -84,6 +85,7 @@ public static partial class Generator
             Numerals = numerals,
             Possession = possession,
             Commands = commands,
+            Comparison = comparison,
         };
     }
 

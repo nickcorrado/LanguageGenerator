@@ -25,6 +25,7 @@ public class Language
     public required NumeralSystem Numerals { get; init; }
     public required Possession Possession { get; init; }
     public required Commands Commands { get; init; }
+    public required Comparison Comparison { get; init; }
 
     public Gender? GenderOf(Lexeme noun) => Genders.Of(noun, Lexicon.ClassOf(noun.Root.Meaning));
 

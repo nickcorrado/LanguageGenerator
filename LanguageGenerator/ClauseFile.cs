@@ -27,7 +27,9 @@ namespace LanguageGenerator;
 //with whom and with what, as location:house, goal:river, source:(village old), recipient:dog,
 //companion:1PL and instrument:knife, in the order they're said. A verb with IMP is a command, as in
 //drink.IMP.NEG object:wine, with no tense or aspect and no subject but subject:2PL to tell several
-//people, and be.IMP says what or where to be, as in be.IMP adjective:careful. Any clause can have an addressee, who it's said to, a bare noun as in addressee:marta, and
+//people, and be.IMP says what or where to be, as in be.IMP adjective:careful. be with an adjective
+//can compare its subject with a standard: be subject:marta adjective:tall standard:(man.PL) is
+//'Marta is taller than the men'. Any clause can have an addressee, who it's said to, a bare noun as in addressee:marta, and
 //a command to a plural addressee is to all of them. Anything not given takes its unmarked value: present, imperfective, singular, exclusive for
 //'we' and masculine for a gendered pronoun. Whatever the generator can't express yet is an error,
 //never dropped
@@ -88,6 +90,7 @@ public static class ClauseFile
         CopularCommand { Complement: NounPhrase noun } => [noun],
         CopularCommand { Complement: Oblique location } => [location.Argument],
         CopularCommand => [],
+        Comparative c => [.. ArgumentsOf(c.Clause), c.Standard],
         Addressed a => [.. ArgumentsOf(a.Statement), a.Addressee],
     };
 
@@ -100,9 +103,10 @@ public static class ClauseFile
     };
 
     //the roles a clause can have. An oblique role is written as its name in lowercase. A noun or
-    //adjective is what be says its subject is, and an addressee who the clause is said to
+    //adjective is what be says its subject is, a standard what an adjective compares it with, and an
+    //addressee who the clause is said to
     private static readonly Dictionary<string, Role> ObliqueRoles = Oblique.Roles.ToDictionary(r => r.ToString().ToLowerInvariant());
-    private static readonly string[] Roles = ["subject", "object", "noun", "adjective", .. ObliqueRoles.Keys, "addressee"];
+    private static readonly string[] Roles = ["subject", "object", "noun", "adjective", "standard", .. ObliqueRoles.Keys, "addressee"];
 
     //what the format can say, for describing it elsewhere, as the glosser's prompt does
     public static IReadOnlyList<string> RoleNames => Roles;
@@ -119,6 +123,13 @@ public static class ClauseFile
         var features = ParseVerbFeatures(verb, glosses, number);
         var roles = ParseRoles(verb, tokens.Skip(1), number);
         var addressee = roles.Arguments.TryGetValue("addressee", out var called) ? ToAddressee(called, number) : null;
+        Argument? standard = roles.Arguments.TryGetValue("standard", out var than) ? than : (Argument?)null;
+        if (standard.HasValue && (verb != "be" || features.Imperative))
+        {
+            throw new ClauseFormatException(features.Imperative
+                ? "A command can't compare yet."
+                : $"Only be takes a standard:, as in be subject:marta adjective:tall standard:(man.PL) for 'Marta is taller than the men'.", number);
+        }
 
         Statement statement;
         if (features.Imperative)
@@ -131,13 +142,28 @@ public static class ClauseFile
         }
         else if (verb == "be")
         {
-            statement = ToCopularClause(features, roles, subject, number);
+            var clause = ToCopularClause(features, roles, subject, number);
+            statement = standard.HasValue ? ToComparative(clause, standard.GetValueOrDefault(), number) : clause;
         }
         else
         {
             statement = ToClause(verb, features, roles, subject, number);
         }
         return addressee is null ? statement : new Addressed(statement, addressee);
+    }
+
+    //'Marta is taller than the men': an adjective, said of the subject more than of the standard
+    private static Comparative ToComparative(CopularClause clause, Argument standard, int number)
+    {
+        if (clause.Complement.Value is not Adjective)
+        {
+            throw new ClauseFormatException("A standard: compares an adjective:, as in adjective:tall standard:(man.PL) for 'taller than the men'.", number);
+        }
+        if (clause.Negative)
+        {
+            throw new ClauseFormatException("A comparison can't be negated yet.", number);
+        }
+        return new Comparative(clause, standard);
     }
 
     //who a clause is said to: a noun phrase, bare, since vocatives take no article

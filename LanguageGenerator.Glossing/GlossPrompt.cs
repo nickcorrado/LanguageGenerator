@@ -61,6 +61,12 @@ public static class GlossPrompt
               the queen is in the house
                 be  subject:queen.DEF  location:house.DEF
 
+            With adjective:, be can also say what its subject is compared with, as standard:, with the
+            adjective in its plain form, tall and not taller:
+
+              Marta is taller than the men
+                be  subject:marta  adjective:tall  standard:man.PL.DEF
+
             A command to 'you' has IMP on its verb, with no tense or aspect, NEG for 'don't', and no
             subject, unless it's to several people, which is subject:2PL:
 
@@ -81,8 +87,8 @@ public static class GlossPrompt
               walk.PST, or 'lives in' for be with location:.
             - Never drop a modal, like must, can, should or want to: 'you must go' doesn't say 'you go'.
             - When a sentence can't be said even loosely, as with a question, a modal, a relative
-              clause, a comparison, or a command to anyone but 'you', like 'let's
-              go', write instead one line: {CantExpress} (what's missing): the sentence.
+              clause, a comparison other than an adjective with be (like 'runs faster than' or
+              'stronger arms than yours'), or a command to anyone but 'you', like 'let's go', write instead one line: {CantExpress} (what's missing): the sentence.
               This is better than a gloss that changes what the sentence means.
 
             Reply with each numbered sentence's lines after its number in brackets, and nothing else:
