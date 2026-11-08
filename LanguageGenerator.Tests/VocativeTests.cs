@@ -1,4 +1,4 @@
-using static LanguageGenerator.Tests.Sentences;
+﻿using static LanguageGenerator.Tests.Sentences;
 
 namespace LanguageGenerator.Tests;
 
@@ -44,10 +44,6 @@ public class VocativeTests
     [InlineData("sleep subject:dog addressee:man.DEF", "takes no article")]
     [InlineData("sleep subject:dog addressee:man addressee:woman", "more than one addressee")]
     public void Parse_BadAddressees_SayWhy(string gloss, string message) => Assert.Contains(message, Error(gloss).Message);
-
-    [Fact]
-    public void Nouns_IncludeTheAddressee() =>
-        Assert.Contains("marta", ClauseFile.Nouns(ClauseFile.Parse("Marta, the dog sleeps\n  sleep subject:dog.DEF addressee:marta")).Select(n => n.Noun));
 
     [Fact]
     public void Realize_Addressee_ComesFirstInTheVocativeWhereThereIsOne()

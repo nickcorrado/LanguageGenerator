@@ -280,7 +280,7 @@ public static partial class Generator
         }
 
         //the template guarantees exactly one vowel slot
-        return ElideDuplicates(new Syllable([.. onset], nucleus!, coda));
+        return new Syllable([.. onset], nucleus!, coda);
     }
 
     //how often a consonantal slot is filled. Every language has syllables with onsets, and most
@@ -303,31 +303,12 @@ public static partial class Generator
 
     private static T? Pick<T>(Random rand, NaturalClass<T> phonemes, double chance, double dropoff) where T : Phoneme
     {
-        //pruning can empty a category (say, both sibilants); then the slot just goes unfilled
+        //an inventory can lack a slot's whole class (say, sibilants); then the slot just goes unfilled
         if (!phonemes.Any() || rand.NextDouble() >= chance)
         {
             return null;
         }
         return phonemes[Sampling.TruncatedGeometric(rand, phonemes.Count, dropoff)];
-    }
-
-    //if a word has doubled phonemes in the onset, like ppa or nokks,
-    //collapse them to one phoneme
-    //n.b. this has no effect on geminates, which occur between syllables
-    public static Syllable ElideDuplicates(Syllable syllable)
-    {
-        var onset = syllable.Onset;
-        var onsetResult = new List<Consonant>();
-        foreach (var c in onset)
-        {
-            if (onsetResult.Count == 0 || onsetResult.Last() != c)
-            {
-                onsetResult.Add(c);
-            }
-        }
-
-        var result = new Syllable([.. onsetResult], syllable.Nucleus, syllable.Coda);
-        return result;
     }
 
     public static SyllableRule SelectSyllableRule(Random rand, IReadOnlyList<Vowel> vowels, IReadOnlyList<Consonant> consonants)

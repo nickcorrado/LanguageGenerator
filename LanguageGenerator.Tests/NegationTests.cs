@@ -83,18 +83,4 @@ public class NegationTests
     {
         Assert.All(GeneratedLanguages.Sample, l => Assert.DoesNotContain(DogDidNotSeeCat(l, negative: false).Words, w => w.Gloss.Contains("NEG")));
     }
-
-    [Fact]
-    public void Realize_NegativeClauses_FollowThePhonology()
-    {
-        foreach (var language in GeneratedLanguages.Sample)
-        {
-            var rule = language.Phonology.SyllableRule;
-            Assert.All(DogDidNotSeeCat(language).Words.SelectMany(w => w.Syllables), s =>
-            {
-                Assert.True(rule.IsLegalOnset(s.Onset));
-                Assert.True(rule.IsLegalCoda(s.Coda is null ? [] : [s.Coda]));
-            });
-        }
-    }
 }

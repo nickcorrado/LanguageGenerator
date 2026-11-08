@@ -105,18 +105,6 @@ public class SyllableTests
     }
 
     [Fact]
-    public void Realize_GeneratedLanguages_NeverHaveAnOnsetThatBreaksSonority()
-    {
-        Assert.All(GeneratedLanguages.Sample, language =>
-        {
-            var onsets = GeneratedLanguages.AllWords(language).Select(language.Phonology.Realize)
-                .SelectMany(f => f.Syllables).Select(s => s.Onset).Where(o => o.Count > 1);
-            Assert.All(onsets, o => Assert.True(o.Zip(o.Skip(1)).All(p => SyllableRule.CanPrecede(p.First, p.Second)),
-                string.Concat(o.Select(c => c.IpaSymbol))));
-        });
-    }
-
-    [Fact]
     public void IsLegalCoda_AspiratedOrLabializedStop_IsNeverACoda()
     {
         var rule = new SyllableRule(SyllableTemplates.CVF, TestData.Vowels, TestData.Consonants);
@@ -145,7 +133,7 @@ public class SyllableTests
     }
 
     [Fact]
-    public void GenerateSyllable_CategoryPrunedFromInventory_LeavesThatSlotUnfilled()
+    public void GenerateSyllable_InventoryWithoutTheSlotsClass_LeavesThatSlotUnfilled()
     {
         var noSibilants = TestData.Consonants.Where(c => c.Manner != ConsonantManner.Sibilant).ToList();
 

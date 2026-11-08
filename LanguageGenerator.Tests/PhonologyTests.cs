@@ -157,22 +157,6 @@ public class PhonologyTests
         Assert.Equal("kabək-əs", surface.Segmented(Orthography.Ipa));
     }
 
-    [Fact]
-    public void ElideDuplicates_DoubledOnsetConsonant_Collapses()
-    {
-        var syllable = Generator.ElideDuplicates(new Syllable([Consonant.s, Consonant.s, Consonant.t], Vowel.a, Consonant.k));
-
-        Assert.Equal("stak", syllable.Spell(Orthography.Ipa));
-    }
-
-    [Fact]
-    public void ElideDuplicates_DistinctOnsetConsonants_AreKept()
-    {
-        var syllable = Generator.ElideDuplicates(new Syllable([Consonant.ʃ, Consonant.s], Vowel.a, null));
-
-        Assert.Equal("ʃsa", syllable.Spell(Orthography.Ipa));
-    }
-
     //segments tell morphemes apart by comparing them, so a morpheme that came twice in a word would
     //have no boundary between its two copies, and each would be segmented as both. One with no sounds
     //has no segments to confuse. Sentences are here because some affixes only join a word there
@@ -235,25 +219,27 @@ public class PhonologyTests
         }
     }
 
+    //every generated language has some sound change, at least identical vowel fusion, so seeing what
+    //repair alone does means taking them away
+    private static Phonology WithoutSoundChanges(Language language) => language.Phonology with { SoundChanges = [], SyllableChanges = [] };
+
     [Fact]
-    public void Realize_RootsInLanguagesWithoutSoundChanges_AreUnchanged()
+    public void Realize_RootsWithoutSoundChanges_AreUnchanged()
     {
         //roots are built from legal syllables, so only morpheme boundaries can need repair
-        foreach (var language in GeneratedLanguages.Sample.Where(l => l.Phonology.SoundChanges.Count + l.Phonology.SyllableChanges.Count == 0))
+        Assert.All(GeneratedLanguages.Sample, language =>
         {
-            foreach (var lexeme in language.Lexicon)
-            {
-                var root = new Word([lexeme.Root]);
-                Assert.Equal(lexeme.Root.Form, language.Phonology.Realize(root).Phonemes);
-            }
-        }
+            var phonology = WithoutSoundChanges(language);
+            Assert.All(language.Lexicon, lexeme => Assert.Equal(lexeme.Root.Form, phonology.Realize(new Word([lexeme.Root])).Phonemes));
+        });
     }
 
     [Fact]
-    public void Realize_GeneratedLanguages_ChangesSomeWordsUnderEachRepairStrategy()
+    public void Realize_WithoutSoundChanges_EachRepairStrategyChangesSomeWords()
     {
         var changedBy = GeneratedLanguages.Sample
-            .SelectMany(l => GeneratedLanguages.AllWords(l).Select(w => (l.Phonology.ClusterRepair, Changed: !l.Phonology.Realize(w).Phonemes.SequenceEqual(w.Morphemes.SelectMany(m => m.Form)))))
+            .SelectMany(l => GeneratedLanguages.AllWords(l).Select(w =>
+                (l.Phonology.ClusterRepair, Changed: !WithoutSoundChanges(l).Realize(w).Phonemes.SequenceEqual(w.Morphemes.SelectMany(m => m.Form)))))
             .Where(x => x.Changed)
             .Select(x => x.ClusterRepair)
             .Distinct();

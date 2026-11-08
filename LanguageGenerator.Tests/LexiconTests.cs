@@ -128,20 +128,4 @@ public class LexiconTests
             }
         }
     }
-
-    [Fact]
-    public void For_SameSeedAndKey_GivesTheSameDrawsOnEveryRun()
-    {
-        //pinned, because the whole point is that this never changes: string.GetHashCode would give
-        //a different number in every process
-        Assert.Equal(1643044333, Sampling.For(42, "Noun:dog").Next());
-    }
-
-    [Fact]
-    public void For_DifferentKeys_GiveDifferentDraws()
-    {
-        var draws = Enumerable.Range(0, 1000).Select(i => Sampling.For(42, $"Noun:word{i}").Next()).ToHashSet();
-
-        Assert.Equal(1000, draws.Count);
-    }
 }

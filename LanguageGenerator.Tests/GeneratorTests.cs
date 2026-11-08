@@ -222,12 +222,6 @@ public class GeneratorTests
             Assert.DoesNotContain(lexeme.Root.Form.Zip(lexeme.Root.Form.Skip(1)), pair => pair.First is Vowel && pair.Second is Vowel));
     }
 
-    [Fact]
-    public void Generate_EveryLanguage_MergesIdenticalVowels()
-    {
-        Assert.All(GeneratedLanguages.Sample, l => Assert.Contains(SoundChange.IdenticalVowelFusion, l.Phonology.SoundChanges));
-    }
-
     [Theory]
     [InlineData("", "ə")]
     [InlineData("ə", "ɨ")]

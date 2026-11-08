@@ -1,4 +1,4 @@
-namespace LanguageGenerator.Tests;
+﻿namespace LanguageGenerator.Tests;
 
 public class NounFileTests
 {
@@ -96,11 +96,13 @@ public class NounFileTests
               drink.IMP  object:wine  source:well
             six
               see  subject:hunter
+            seven
+              sleep  subject:dog  addressee:marta
             """);
 
         var nouns = ClauseFile.Nouns(entries);
 
-        Assert.Equal(["hunter", "king", "wolf", "house", "smith", "fool", "cat", "barn", "wine", "well"], nouns.Select(n => n.Noun));
+        Assert.Equal(["hunter", "king", "wolf", "house", "smith", "fool", "cat", "barn", "wine", "well", "dog", "marta"], nouns.Select(n => n.Noun));
         Assert.Equal("one", nouns[0].Translation);
     }
 

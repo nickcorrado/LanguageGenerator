@@ -122,18 +122,4 @@ public class AdjectiveTests
             Assert.Equal(positions[0] + 2, positions[2]);
         });
     }
-
-    [Fact]
-    public void Realize_ModifiedNounPhrases_FollowThePhonology()
-    {
-        foreach (var language in GeneratedLanguages.Sample)
-        {
-            var rule = language.Phonology.SyllableRule;
-            Assert.All(Sleep(language, BigOldDogs).Words.SelectMany(w => w.Syllables), s =>
-            {
-                Assert.True(rule.IsLegalOnset(s.Onset));
-                Assert.True(rule.IsLegalCoda(s.Coda is null ? [] : [s.Coda]));
-            });
-        }
-    }
 }

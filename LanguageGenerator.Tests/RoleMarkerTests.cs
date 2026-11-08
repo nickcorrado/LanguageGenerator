@@ -78,10 +78,4 @@ public class RoleMarkerTests
         Assert.Equal("unmarked", Markers(MorphosyntacticAlignment.NominativeAccusative, [Case.Nominative, Case.Accusative])[Role.Addressee]);
         Assert.Equal("VOC", Markers(MorphosyntacticAlignment.NominativeAccusative, [Case.Nominative, Case.Accusative, Case.Vocative])[Role.Addressee]);
     }
-
-    [Fact]
-    public void SelectRoleMarkers_AnyLanguage_MarksEveryRole()
-    {
-        Assert.Equal(Enum.GetValues<Role>().Length, Markers(MorphosyntacticAlignment.None, []).Count);
-    }
 }

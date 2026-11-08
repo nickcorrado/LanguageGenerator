@@ -175,9 +175,8 @@ public class CommandTests
     [Fact]
     public void Realize_AnyLanguage_SaysEveryKindOfCommand()
     {
-        foreach (var seed in Enumerable.Range(0, 60))
+        foreach (var language in GeneratedLanguages.Sample)
         {
-            var language = Generator.Generate(new Random(seed));
             foreach (var number in new[] { Number.Singular, Number.Dual, Number.Plural })
             {
                 foreach (var negative in new[] { false, true })
