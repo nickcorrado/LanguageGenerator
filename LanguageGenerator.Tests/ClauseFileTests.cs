@@ -120,6 +120,37 @@ public class ClauseFileTests
         Assert.Contains(message, Error(text).Message);
     }
 
+    [Theory]
+    [InlineData("(door 2nd)", 2, "Singular")]
+    [InlineData("(door.PL 3rd old)", 3, "Plural")]
+    [InlineData("(door 21st)", 21, "Singular")]
+    public void Parse_Ordinal_LeavesTheNounsNumberAlone(string phrase, int ordinal, string number)
+    {
+        var subject = Assert.IsType<NounPhrase>(Verbal(Single($"x\n  sleep subject:{phrase}")).Subject.Value);
+
+        Assert.Equal(ordinal, subject.Ordinal);
+        Assert.Null(subject.Count);
+        Assert.Equal(number, subject.Number.Name);
+    }
+
+    [Fact]
+    public void Parse_OrdinalAndNumber_BothCount()
+    {
+        var subject = Assert.IsType<NounPhrase>(Verbal(Single("x\n  sleep subject:(wolf 1st 3)")).Subject.Value);
+
+        Assert.Equal((1, 3), (subject.Ordinal, subject.Count));
+    }
+
+    [Theory]
+    [InlineData("x\n  sleep subject:(wolf third)", "Write ordinals in digits")]
+    [InlineData("x\n  sleep subject:(wolf 1st 2nd)", "more than one ordinal")]
+    [InlineData("x\n  sleep subject:(wolf 0th)", "from 1st to 999th")]
+    [InlineData("x\n  sleep subject:(wolf 1000th)", "from 1st to 999th")]
+    public void Parse_BadOrdinals_SayWhy(string text, string message)
+    {
+        Assert.Contains(message, Error(text).Message);
+    }
+
     [Fact]
     public void Parse_NegativeVerb_NegatesTheClause()
     {

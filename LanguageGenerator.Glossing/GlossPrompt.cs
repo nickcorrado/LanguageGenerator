@@ -40,7 +40,9 @@ public static class GlossPrompt
             goal where something goes, a source where it comes from, a companion who it's done with,
             and an instrument what it's done with. A noun with adjectives goes in parentheses, noun
             first, as in object:(wolf.PL big gray). So does a number, in digits from 1 to {NumeralSystem.Largest}, as in
-            subject:(wolf 3 gray); it gives the noun its number, so leave that out. So does a
+            subject:(wolf 3 gray); it gives the noun its number, so leave that out. So does an
+            ordinal, in digits with its English ending, as in object:(door 2nd) for 'the second door',
+            and 'last' and 'next' are adjectives, not ordinals. So does a
             possessor, a noun or pronoun, as in object:(house possessor:king) for 'the king's house' or
             companion:(dog.PL possessor:3SG.M) for 'his dogs'. Roles not supported yet: {string.Join(", ", ClauseFile.UnsupportedRoleNames)}.
 

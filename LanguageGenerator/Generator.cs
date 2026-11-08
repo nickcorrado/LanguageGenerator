@@ -48,7 +48,7 @@ public static partial class Generator
         wordOrder = wordOrder with { ObliquePosition = SelectObliquePosition(rand, wordOrder.ConstituentWordOrder) };
         var roleMarkers = SelectRoleMarkers(alignment, cases, wordOrder, adpositions);
         predication = GenerateLocationalPredication(rand, predication, phonology, syllableDropoff);
-        var numerals = GenerateNumerals(rand, phonology, syllableDropoff);
+        var numerals = GenerateNumerals(rand, morphology, phonology, syllableDropoff);
         var possession = GeneratePossession(rand, morphology, wordOrder, phonology, syllableDropoff);
         phonology = phonology with
         {
@@ -60,7 +60,7 @@ public static partial class Generator
         var lexicon = GenerateLexicon(lexiconSeed, extraSyllables, phonology, syllableDropoff, new Dictionary<PartOfSpeech, IEnumerable<Lexeme>>
         {
             [PartOfSpeech.Noun] = pronouns.Forms.Values,
-            [PartOfSpeech.Adjective] = [.. numerals.Words.Values, .. numerals.Many is { } many ? [many] : Array.Empty<Lexeme>()],
+            [PartOfSpeech.Adjective] = [.. numerals.Words.Values, .. new[] { numerals.Many, numerals.Ordinals.First, numerals.Ordinals.Second }.OfType<Lexeme>()],
             [PartOfSpeech.Verb] = [predication.Copula, .. predication.LocationalCopula is { } locational ? [locational] : Array.Empty<Lexeme>()],
         });
 

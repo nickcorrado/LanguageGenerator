@@ -8,7 +8,7 @@
 /// A noun with any adjectives modifying it, in English order, how many of it there are if a numeral
 /// says, as in 'three wolves', and whose it is, as in 'the king's house'.
 /// </summary>
-public record NounPhrase(string Noun, Number Number, ValueList<Adjective> Adjectives = default, int? Count = null, Argument? Possessor = null);
+public record NounPhrase(string Noun, Number Number, ValueList<Adjective> Adjectives = default, int? Count = null, Argument? Possessor = null, int? Ordinal = null);
 /// <summary>What fills a role: a noun phrase or a pronoun.</summary>
 //what agrees with one depends on the language, so that's Syntax.AgreementOf's to say
 public union Argument(NounPhrase, Pronoun);
@@ -256,12 +256,14 @@ public static class Syntax
     //the noun's words with its adjectives placed around it: after the noun in a language whose noun
     //phrases are head-initial, before it in one whose are head-final, in the order given either way.
     //A numeral goes outside them, before or after, as the language puts numerals, so that 'three big
-    //wolves' is either three big wolf or wolf big three. The noun's particles stay outside it all
+    //wolves' is either three big wolf or wolf big three. An ordinal goes like the outermost
+    //adjective, inside the numeral, as in 'the first three big wolves', but never agrees, even where
+    //adjectives do. The noun's particles stay outside it all
     private static IReadOnlyList<Word> Modified(Language language, NounPhrase phrase, IReadOnlyList<Grammeme> features)
     {
         var nounLexeme = language.Lexicon.Noun(phrase.Noun);
         var noun = language.Paradigms.Nouns.Inflect(nounLexeme, features);
-        if (phrase.Adjectives.Count == 0 && phrase.Count is null)
+        if (phrase.Adjectives.Count == 0 && phrase.Count is null && phrase.Ordinal is null)
         {
             return noun;
         }
@@ -278,7 +280,8 @@ public static class Syntax
         }).ToList();
 
         var headFirst = language.WordOrder.NounPhraseDirectionality == HeadDirectionality.Initial;
-        List<Word> words = headFirst ? [head, .. adjectives] : [.. adjectives, head];
+        IReadOnlyList<Word> ordinal = phrase.Ordinal is { } nth ? language.Numerals.SayOrdinal(nth) : [];
+        List<Word> words = headFirst ? [head, .. adjectives, .. ordinal] : [.. ordinal, .. adjectives, head];
         var at = headFirst ? 0 : words.Count - 1;
         if (phrase.Count is { } count)
         {

@@ -170,6 +170,12 @@ public record Possessive(string Name, string Gloss) : Grammeme(Name, Gloss)
     public static Possessive Possessed { get; } = new("Possessed", "POSS");
 }
 
+/// <summary>Marks a numeral as an ordinal, as English -th makes seventh of seven.</summary>
+public record Ordinality(string Name, string Gloss) : Grammeme(Name, Gloss)
+{
+    public static Ordinality Ordinal { get; } = new("Ordinal", "ORD");
+}
+
 public record Definiteness(string Name, string Gloss) : Grammeme(Name, Gloss)
 {
     public static Definiteness Definite { get; } = new("Definite", "DEF");

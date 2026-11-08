@@ -19,7 +19,8 @@ namespace LanguageGenerator;
 //number instead, as in subject:1SG, object:1PL.INCL or subject:3SG.F, and a noun with adjectives
 //or a number is in parentheses, noun first, as in object:(dog.PL big old) or subject:(wolf 3 gray).
 //A number is in digits, and gives the noun its number when the noun doesn't: two is dual and a few
-//paucal. A possessor goes in the parentheses too, as possessor:king or possessor:3SG.F, for 'the
+//paucal. An ordinal is in digits too, with its English ending, as in subject:(day 3rd), and leaves
+//the noun's number alone. A possessor goes in the parentheses too, as possessor:king or possessor:3SG.F, for 'the
 //king's' or 'her'. The verb be says what its subject is, with noun:fool or adjective:locked in place of an
 //object, or where it is, with location:house. Obliques say where, to where, from where, to whom,
 //with whom and with what, as location:house, goal:river, source:(village old), recipient:dog,
@@ -291,11 +292,12 @@ public static class ClauseFile
         }
         foreach (var word in words.Skip(1).Where(w => w.Contains(':') && !w.StartsWith("possessor:")))
         {
-            throw new ClauseFormatException($"Noun phrases can't have {A(word[..word.IndexOf(':')])} yet, only adjectives, a number and a possessor.", number);
+            throw new ClauseFormatException($"Noun phrases can't have {A(word[..word.IndexOf(':')])} yet, only adjectives, a number, an ordinal and a possessor.", number);
         }
         var noun = (NounPhrase)ParseArgument(words[0], number).Value!;
 
         int? count = null;
+        int? ordinal = null;
         Argument? possessor = null;
         var adjectives = new List<Adjective>();
         foreach (var word in words.Skip(1))
@@ -320,9 +322,25 @@ public static class ClauseFile
                     throw new ClauseFormatException($"Numbers go from 1 to {NumeralSystem.Largest} for now, not {word}.", number);
                 }
             }
+            else if (word.Length > 2 && word[..^2].All(char.IsAsciiDigit) && word[^2..] is "st" or "nd" or "rd" or "th")
+            {
+                if (ordinal is not null)
+                {
+                    throw new ClauseFormatException($"'{words[0]}' has more than one ordinal.", number);
+                }
+                ordinal = int.Parse(word[..^2]);
+                if (ordinal is < 1 or > NumeralSystem.Largest)
+                {
+                    throw new ClauseFormatException($"Ordinals go from 1st to {NumeralSystem.Largest}th for now, not {word}.", number);
+                }
+            }
             else if (NumberWords.Contains(word.Split('.')[0]))
             {
                 throw new ClauseFormatException($"Write numbers in digits, as in ({words[0]} 3), not '{word}'.", number);
+            }
+            else if (OrdinalWords.Contains(word.Split('.')[0]))
+            {
+                throw new ClauseFormatException($"Write ordinals in digits, as in ({words[0]} 3rd), not '{word}'.", number);
             }
             else
             {
@@ -335,6 +353,7 @@ public static class ClauseFile
         {
             Adjectives = [.. adjectives],
             Count = count,
+            Ordinal = ordinal,
             Possessor = possessor,
             Number = given || count is not { } n ? noun.Number : NumberFor(n),
         };
@@ -355,6 +374,15 @@ public static class ClauseFile
         "zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve",
         "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen", "twenty", "thirty",
         "forty", "fifty", "sixty", "seventy", "eighty", "ninety", "hundred", "thousand", "dozen",
+    ];
+
+    //English ordinals, which should be written in digits too. Second isn't here, since it's also a
+    //noun, and last isn't, since it's no ordinal
+    private static readonly HashSet<string> OrdinalWords =
+    [
+        "first", "third", "fourth", "fifth", "sixth", "seventh", "eighth", "ninth", "tenth", "eleventh", "twelfth",
+        "thirteenth", "fourteenth", "fifteenth", "sixteenth", "seventeenth", "eighteenth", "nineteenth", "twentieth",
+        "thirtieth", "fortieth", "fiftieth", "sixtieth", "seventieth", "eightieth", "ninetieth", "hundredth",
     ];
 
     //an adjective, which has no features of its own yet

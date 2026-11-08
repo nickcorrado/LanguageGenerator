@@ -4,11 +4,18 @@ namespace LanguageGenerator.Tests;
 
 public class NumeralTests
 {
+    private static Lexeme Formless(string meaning) => new(new Root([], meaning), PartOfSpeech.Numeral);
+
+    private static readonly Ordinals CardinalOrdinals = new(OrdinalType.Cardinal, null, null, null);
+
     //formless words glossed with their number, enough for any base
-    private static NumeralSystem System(NumeralBase numeralBase, bool largestFirst = true, int limit = NumeralSystem.Largest) => new(
+    private static NumeralSystem System(NumeralBase numeralBase, bool largestFirst = true, int limit = NumeralSystem.Largest) =>
+        System(numeralBase, CardinalOrdinals, largestFirst, limit);
+
+    private static NumeralSystem System(NumeralBase numeralBase, Ordinals ordinals, bool largestFirst = true, int limit = NumeralSystem.Largest) => new(
         numeralBase, limit,
-        new[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 20, 100, 400 }.ToDictionary(n => n, n => new Lexeme(new Root([], n.ToString()), PartOfSpeech.Numeral)),
-        new Lexeme(new Root([], "many"), PartOfSpeech.Numeral), BeforeNoun: true, NounStaysSingular: false, largestFirst);
+        new[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 20, 100, 400 }.ToDictionary(n => n, n => Formless(n.ToString())),
+        Formless("many"), BeforeNoun: true, NounStaysSingular: false, largestFirst, ordinals);
 
     private static string Say(NumeralSystem system, int n) => string.Join(" ", system.Say(n).Select(w => w.Root.Meaning));
 
@@ -59,7 +66,7 @@ public class NumeralTests
         var phonology = GeneratedLanguages.Sample[0].Phonology;
         var rand = new Random(1);
 
-        var drawn = Enumerable.Range(0, 3000).Select(_ => Generator.GenerateNumerals(rand, phonology, 0.15)).ToList();
+        var drawn = Enumerable.Range(0, 3000).Select(_ => Generator.GenerateNumerals(rand, GeneratedLanguages.Sample[0].MorphologicalProfile, phonology, 0.15)).ToList();
 
         //WALS 131A: 125, 42 and 20 of 187 languages modeled; 89A: 479 of 1,086 put the numeral first
         Assert.InRange(drawn.Count(s => s.Base == NumeralBase.Decimal) / 3000.0, 0.64, 0.70);
@@ -125,5 +132,90 @@ public class NumeralTests
         //a language that marks the noun phrase at its edge can put the marking on a numeral, as in ten-PL-NOM
         var glosses = sentence.Words.SelectMany(w => w.Gloss.Split('-', '[', ']')).Where(g => g is "three" or "ten" or "seven").ToList();
         Assert.Equal(decimalLanguage.Numerals.LargestFirst ? ["three", "ten", "seven"] : ["seven", "three", "ten"], glosses);
+    }
+
+    private static readonly Affix OrdinalSuffix = new([], [Ordinality.Ordinal]);
+    private static readonly Particle OrdinalParticle = new([], [Ordinality.Ordinal]);
+
+    private static string SayOrdinal(NumeralSystem system, int n) => string.Join(" ", system.SayOrdinal(n).Select(w => w.Gloss));
+
+    [Theory]
+    [InlineData(1, "first")]
+    [InlineData(2, "second")]
+    [InlineData(3, "3-ORD")]
+    [InlineData(21, "2 10 1-ORD")]
+    [InlineData(37, "3 10 7-ORD")]
+    public void SayOrdinal_FirstSecondThenSuffix_IsSuppletiveOnlyAlone(int n, string words) =>
+        Assert.Equal(words, SayOrdinal(System(NumeralBase.Decimal,
+            new Ordinals(OrdinalType.FirstSecondThenDerived, Formless("first"), Formless("second"), (ExponentPosition.Suffix, OrdinalSuffix))), n));
+
+    [Theory]
+    [InlineData(ExponentPosition.Prefix, "ORD-3 10 7")]
+    [InlineData(ExponentPosition.Suffix, "3 10 7-ORD")]
+    [InlineData(ExponentPosition.PrecedingParticle, "ORD 3 10 7")]
+    [InlineData(ExponentPosition.FollowingParticle, "3 10 7 ORD")]
+    public void SayOrdinal_Derived_MarksTheWholeNumeral(ExponentPosition position, string words)
+    {
+        Morpheme marker = position is ExponentPosition.Prefix or ExponentPosition.Suffix ? OrdinalSuffix : OrdinalParticle;
+        var system = System(NumeralBase.Decimal, new Ordinals(OrdinalType.Derived, null, null, (position, marker)));
+
+        Assert.Equal(words, SayOrdinal(system, 37));
+        Assert.Equal(words.Replace("3 10 7", "1"), SayOrdinal(system, 1));
+    }
+
+    [Fact]
+    public void SayOrdinal_Cardinal_IsTheCardinal()
+    {
+        Assert.Equal("1", SayOrdinal(System(NumeralBase.Decimal), 1));
+        Assert.Equal("3 10 7", SayOrdinal(System(NumeralBase.Decimal), 37));
+        var firstOnly = System(NumeralBase.Decimal, new Ordinals(OrdinalType.FirstThenCardinal, Formless("first"), null, null));
+        Assert.Equal("first", SayOrdinal(firstOnly, 1));
+        Assert.Equal("2", SayOrdinal(firstOnly, 2));
+    }
+
+    [Fact]
+    public void GenerateNumerals_ManyDraws_MatchTheWalsOrdinalCounts()
+    {
+        var phonology = GeneratedLanguages.Sample[0].Phonology;
+        var morphology = GeneratedLanguages.Sample.First(l => l.MorphologicalProfile.Fusion != Fusion.Isolating).MorphologicalProfile;
+        var rand = new Random(1);
+
+        var drawn = Enumerable.Range(0, 3000).Select(_ => Generator.GenerateNumerals(rand, morphology, phonology, 0.15).Ordinals).ToList();
+
+        //WALS 53A: 46, 7, 62, 110 and 61 of the 286 languages modeled
+        Assert.InRange(drawn.Count(o => o.Type == OrdinalType.Cardinal) / 3000.0, 0.13, 0.19);
+        Assert.InRange(drawn.Count(o => o.Type == OrdinalType.FirstThenCardinal) / 3000.0, 0.015, 0.035);
+        Assert.InRange(drawn.Count(o => o.Type == OrdinalType.Derived) / 3000.0, 0.19, 0.25);
+        Assert.InRange(drawn.Count(o => o.Type == OrdinalType.FirstThenDerived) / 3000.0, 0.35, 0.42);
+        Assert.InRange(drawn.Count(o => o.Type == OrdinalType.FirstSecondThenDerived) / 3000.0, 0.18, 0.25);
+        Assert.All(drawn, o =>
+        {
+            Assert.Equal(o.Type is not (OrdinalType.Cardinal or OrdinalType.Derived), o.First is not null);
+            Assert.Equal(o.Type == OrdinalType.FirstSecondThenDerived, o.Second is not null);
+            Assert.Equal(o.Type is OrdinalType.Derived or OrdinalType.FirstThenDerived or OrdinalType.FirstSecondThenDerived, o.Marking is not null);
+            Assert.True(o.Marking is null or (ExponentPosition.Prefix or ExponentPosition.Suffix, Affix));
+        });
+    }
+
+    [Fact]
+    public void Generate_IsolatingLanguages_MarkOrdinalsWithWords()
+    {
+        Assert.All(GeneratedLanguages.Sample.Where(l => l.MorphologicalProfile.Fusion == Fusion.Isolating && l.Numerals.Ordinals.Marking is not null),
+            l => Assert.True(l.Numerals.Ordinals.Marking is (ExponentPosition.PrecedingParticle or ExponentPosition.FollowingParticle, Particle)));
+    }
+
+    [Fact]
+    public void Realize_Ordinal_GoesOutsideTheAdjectivesInsideTheNumeral()
+    {
+        Assert.All(GeneratedLanguages.Sample, l =>
+        {
+            var sentence = Syntax.Realize(l, new Clause("sleep", Tense.Past, Aspect.Perfective,
+                new NounPhrase("dog", Number.Dual, [new("big")], Count: 2, Ordinal: 3)), "x");
+            var (two, third, big, dog) = (IndexOf(sentence, "two"), IndexOf(sentence, "three"), IndexOf(sentence, "big"), IndexOf(sentence, "dog"));
+            var headFirst = l.WordOrder.NounPhraseDirectionality == HeadDirectionality.Initial;
+
+            Assert.True(headFirst ? dog < big && big < third : third < big && big < dog);
+            Assert.True(l.Numerals.BeforeNoun ? two < Math.Min(third, dog) : two > Math.Max(third, dog));
+        });
     }
 }

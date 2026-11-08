@@ -16,6 +16,15 @@ public static class LanguageDescription
         WriteExamples(lang, output);
     }
 
+    //English's ending for an ordinal written in digits, as in 1st, 12th or 22nd
+    private static string OrdinalEnding(int n) => (n % 100 / 10 == 1 ? 0 : n % 10) switch
+    {
+        1 => "st",
+        2 => "nd",
+        3 => "rd",
+        _ => "th",
+    };
+
     private static void WriteFeatures(Language lang, TextWriter output)
     {
         output.WriteLine($"{lang.Name}, 'the people' ({lang.Endonym.Gloss})");
@@ -103,6 +112,24 @@ public static class LanguageDescription
             : $"{numerals.Base.ToString().ToLowerInvariant()}, {(numerals.LargestFirst ? "largest" : "units")} first";
         output.WriteLine($"Numerals ({counting}; {(numerals.BeforeNoun ? "before" : "after")} the noun{(numerals.NounStaysSingular ? ", which stays singular" : "")}):");
         output.WriteLine("  " + string.Join(", ", ((int[])[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 20, 37, 100]).Select(n => $"{n} {Say(n)}")));
+        var ordinals = numerals.Ordinals;
+        var marking = ordinals.Marking switch
+        {
+            (ExponentPosition.Prefix, var marker) => $"{marker.Spell(orthography)}- before the numeral",
+            (ExponentPosition.Suffix, var marker) => $"-{marker.Spell(orthography)} after the numeral",
+            (ExponentPosition.PrecedingParticle, var marker) => $"{marker.Spell(orthography)} before the numeral",
+            (ExponentPosition.FollowingParticle, var marker) => $"{marker.Spell(orthography)} after the numeral",
+            _ => "the cardinal",
+        };
+        string SayOrdinal(int n) => string.Join(" ", numerals.SayOrdinal(n).Select(w => phonology.Realize(w).Spell(orthography)));
+        var suppletive = ordinals.Type switch
+        {
+            OrdinalType.FirstThenCardinal or OrdinalType.FirstThenDerived => "a word for 'first', then ",
+            OrdinalType.FirstSecondThenDerived => "words for 'first' and 'second', then ",
+            _ => "",
+        };
+        output.WriteLine($"Ordinals ({suppletive}{marking}):");
+        output.WriteLine("  " + string.Join(", ", ((int[])[1, 2, 3, 4, 10, 37]).Select(n => $"{n}{OrdinalEnding(n)} {SayOrdinal(n)}")));
         var possession = lang.Possession;
         var possessedMarkers = possession.Affixes is null ? ""
             : $" ({string.Join(", ", possession.Affixes.Select(a => $"{Grammeme.JoinGlosses(a.Value.Grammemes)} {(possession.AffixPosition == ExponentPosition.Prefix ? $"{((Morpheme)a.Value).Spell(orthography)}-" : $"-{((Morpheme)a.Value).Spell(orthography)}")}"))})";
@@ -163,6 +190,7 @@ public static class LanguageDescription
             (new("give", Tense.Past, Aspect.Perfective, Phrase("person", Number.Singular), Phrase("fish", Number.Singular), Obliques: [new(Role.Recipient, Phrase("cat", Number.Plural))]), "the person gave the fish to the cats"),
             (new("walk", Tense.Past, Aspect.Perfective, new Pronoun(Person.First, Number.Singular), Obliques: [new(Role.Source, Phrase("tree", Number.Singular)), new(Role.Goal, Phrase("water", Number.Singular)), new(Role.Companion, new Pronoun(Person.Second, Number.Singular))]), "I walked from the tree to the water with you"),
             (new("see", Tense.Past, Aspect.Perfective, Phrase("person", Number.Singular), new NounPhrase("dog", ClauseFile.NumberFor(3), [new("big")], Count: 3)), "the person saw three big dogs"),
+            (new("sleep", Tense.Past, Aspect.Imperfective, new NounPhrase("dog", Number.Singular, Ordinal: 3), Obliques: [new(Role.Location, new NounPhrase("house", Number.Singular, Ordinal: 1))]), "the third dog was sleeping in the first house"),
             (new("see", Tense.Past, Aspect.Perfective, new NounPhrase("dog", Number.Singular, Possessor: Phrase("person", Number.Singular)), new NounPhrase("cat", Number.Plural, Possessor: new Pronoun(Person.First, Number.Singular))), "the person's dog saw my cats"),
         ];
         (CopularClause Clause, string Translation)[] copular =
