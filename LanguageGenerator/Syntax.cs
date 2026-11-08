@@ -222,7 +222,7 @@ public static class Syntax
         return argument switch
         {
             NounPhrase phrase => Possessed(language, phrase, language.Articles.Apply(Modified(language, phrase, Features(nouns, [NumberOf(language, phrase), @case])),
-                language.Lexicon.Noun(phrase.Noun).Root, phrase.Definiteness, phrase.Number)),
+                language.Lexicon.Noun(phrase.Noun).Root, phrase.Definiteness, phrase.Number, language.GenderOf(language.Lexicon.Noun(phrase.Noun)))),
             Pronoun pronoun => pronouns.Inflect(language.Pronouns.For(pronoun), Features(pronouns, [@case])),
         };
     }

@@ -1,4 +1,4 @@
-namespace LanguageGenerator;
+﻿namespace LanguageGenerator;
 
 //articles
 public static partial class Generator
@@ -28,28 +28,45 @@ public static partial class Generator
 
     //an isolating language has no affixes to make articles of, so it uses a word where an affix would
     //go. An affix goes on the side the language puts its others. The indefinite article that's the
-    //word for 'one' stands where numerals do
-    public static Articles GenerateArticles(Random rand, MorphologicalProfile morphology, NumeralSystem numerals, Phonology phonology, double dropoff)
+    //word for 'one' stands where numerals do, and agrees in nothing. Other articles agree with their
+    //noun's gender in most languages that have gender, as in the Romance and Germanic languages and
+    //Greek, though Arabic al- doesn't, and a definite article agrees in number in some, as French le
+    //and les do but English the doesn't. WALS doesn't count either, so the odds are guesses. An
+    //indefinite article is for one thing only, so it never agrees in number
+    public static Articles GenerateArticles(Random rand, MorphologicalProfile morphology, GenderSystem genders, NumeralSystem numerals, Phonology phonology, double dropoff)
     {
         var definiteType = Sampling.Categorical(rand, DefiniteCounts);
         var hasIndefinite = rand.NextDouble() < (definiteType == DefiniteType.None ? IndefiniteWithoutDefinite : IndefiniteGivenDefinite);
         IndefiniteType? indefiniteType = hasIndefinite ? Sampling.Categorical(rand, IndefiniteCounts) : null;
         var wordFirst = Sampling.Categorical(rand, ArticleBeforeNounCounts);
         var isolating = morphology.Fusion == Fusion.Isolating;
+        var agreesInGender = genders.Values.Count > 0 && rand.NextDouble() < 0.8;
+        var agreesInNumber = rand.NextDouble() < 0.5;
 
         var forms = new DistinctForms();
         foreach (var word in numerals.Words.Values)
         {
             forms.Take(word.Root.Form);
         }
-        Article Marker(bool affix, Grammeme meaning)
+        Article Marker(bool affix, Definiteness meaning)
         {
             var position = affix && !isolating
                 ? (rand.NextDouble() < PrefixChance(morphology) ? ExponentPosition.Prefix : ExponentPosition.Suffix)
                 : (wordFirst ? ExponentPosition.PrecedingParticle : ExponentPosition.FollowingParticle);
             var isAffix = position is ExponentPosition.Prefix or ExponentPosition.Suffix;
-            var form = forms.Draw(() => MarkerForm(rand, isAffix, phonology, dropoff));
-            return new Article(isAffix ? new Affix(form, [meaning]) : new Particle(form, [meaning]), position);
+            Gender?[] genderValues = agreesInGender ? [.. genders.Values] : [null];
+            Number?[] numberValues = agreesInNumber && meaning == Definiteness.Definite ? [Number.Singular, Number.Plural] : [null];
+            var cells = new Dictionary<(Gender?, Number?), Morpheme>();
+            foreach (var gender in genderValues)
+            {
+                foreach (var number in numberValues)
+                {
+                    var form = forms.Draw(() => MarkerForm(rand, isAffix, phonology, dropoff));
+                    List<Grammeme> grammemes = [meaning, .. new Grammeme?[] { gender, number }.OfType<Grammeme>()];
+                    cells[(gender, number)] = isAffix ? new Affix(form, grammemes) : new Particle(form, grammemes);
+                }
+            }
+            return new Article(position, cells);
         }
 
         var definite = definiteType switch
@@ -62,7 +79,8 @@ public static partial class Generator
         {
             IndefiniteType.Word => Marker(false, Definiteness.Indefinite),
             IndefiniteType.Affix => Marker(true, Definiteness.Indefinite),
-            IndefiniteType.One => new Article(numerals.Words[1].Root, numerals.BeforeNoun ? ExponentPosition.PrecedingParticle : ExponentPosition.FollowingParticle),
+            IndefiniteType.One => new Article(numerals.BeforeNoun ? ExponentPosition.PrecedingParticle : ExponentPosition.FollowingParticle,
+                new Dictionary<(Gender?, Number?), Morpheme> { [(null, null)] = numerals.Words[1].Root }),
             _ => null,
         };
         return new Articles(definite, indefinite);

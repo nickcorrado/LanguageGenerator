@@ -48,7 +48,7 @@ public static partial class Generator
         var roleMarkers = SelectRoleMarkers(alignment, cases, wordOrder, adpositions);
         predication = GenerateLocationalPredication(rand, predication, phonology, syllableDropoff);
         var numerals = GenerateNumerals(rand, morphology, phonology, syllableDropoff);
-        var articles = GenerateArticles(rand, morphology, numerals, phonology, syllableDropoff);
+        var articles = GenerateArticles(rand, morphology, genders, numerals, phonology, syllableDropoff);
         var possession = GeneratePossession(rand, morphology, wordOrder, phonology, syllableDropoff);
         phonology = phonology with
         {

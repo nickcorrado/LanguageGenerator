@@ -54,14 +54,20 @@ public static class LanguageDescription
         output.WriteLine($"{lang.MorphologicalType} ({lang.MorphologicalProfile})");
         output.WriteLine(order.ConstituentWordOrder);
         output.WriteLine($"{order.HeadDirectionality}, {order.VerbPhraseDirectionality}, {order.NounPhraseDirectionality}, {order.AdjectivePhraseDirectionality}, {order.AdpositionalPhraseDirectionality}");
+        //each form with what it agrees in, as in "ta (M), la (F)"
+        string Forms(Article article, string prefix, string suffix) => string.Join(", ", article.Forms.Select(f =>
+        {
+            var agreement = string.Join(".", new Grammeme?[] { f.Key.Gender, f.Key.Number }.OfType<Grammeme>().Select(g => g.Gloss));
+            return $"{prefix}{f.Value.Spell(lang.Orthography)}{suffix}{(agreement.Length > 0 ? $" ({agreement})" : "")}";
+        }));
         string DescribeArticle(Article? article, string name) => article switch
         {
             null => $"no {name} article",
-            { Marker.Value: Root } => $"'one' as the {name} article",
-            { Position: ExponentPosition.Prefix } => $"{name} prefix {article.Marker.Spell(lang.Orthography)}-",
-            { Position: ExponentPosition.Suffix } => $"{name} suffix -{article.Marker.Spell(lang.Orthography)}",
-            { Position: ExponentPosition.PrecedingParticle } => $"{name} article {article.Marker.Spell(lang.Orthography)} before the noun",
-            _ => $"{name} article {article.Marker.Spell(lang.Orthography)} after the noun",
+            _ when article.Forms.Values.Any(f => f.Value is Root) => $"'one' as the {name} article",
+            { Position: ExponentPosition.Prefix } => $"{name} prefix {Forms(article, "", "-")}",
+            { Position: ExponentPosition.Suffix } => $"{name} suffix {Forms(article, "-", "")}",
+            { Position: ExponentPosition.PrecedingParticle } => $"{name} article {Forms(article, "", "")} before the noun",
+            _ => $"{name} article {Forms(article, "", "")} after the noun",
         };
         output.WriteLine($"Articles: {DescribeArticle(lang.Articles.Definite, "definite")}; {DescribeArticle(lang.Articles.Indefinite, "indefinite")}");
 

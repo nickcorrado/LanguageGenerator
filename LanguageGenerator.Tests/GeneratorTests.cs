@@ -9,9 +9,12 @@ public class GeneratorTests
         string.Join(",", GeneratedLanguages.AllWords(l).Select(w => $"{l.Phonology.Realize(w).Segmented(l.Orthography)}={w.Gloss}")),
         l.MorphologicalType, l.WordOrder.ConstituentWordOrder, l.WordOrder.HeadDirectionality, l.WordOrder.VerbPhraseDirectionality,
         l.WordOrder.NounPhraseDirectionality, l.WordOrder.AdjectivePhraseDirectionality, l.WordOrder.AdpositionalPhraseDirectionality,
-        l.Articles.Definite?.Marker.Spell(l.Orthography), l.Articles.Definite?.Position,
-        l.Articles.Indefinite?.Marker.Spell(l.Orthography), l.Articles.Indefinite?.Position, l.MorphosyntacticAlignment, string.Join(",", l.Cases.Select(c => c.Gloss)),
+        ArticleForms(l, l.Articles.Definite), l.Articles.Definite?.Position,
+        ArticleForms(l, l.Articles.Indefinite), l.Articles.Indefinite?.Position, l.MorphosyntacticAlignment, string.Join(",", l.Cases.Select(c => c.Gloss)),
         string.Join(",", l.RoleMarkers.Select(kv => $"{kv.Key}={kv.Value}")));
+
+    private static string ArticleForms(Language l, Article? article) =>
+        article is null ? "" : string.Join(",", article.Forms.Select(f => $"{f.Key}={f.Value.Spell(l.Orthography)}"));
 
     [Fact]
     public void Generate_SameSeed_GivesTheSameLanguageEvenAfterGeneratingOthers()
