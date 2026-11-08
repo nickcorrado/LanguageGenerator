@@ -209,7 +209,8 @@ public class SyllableRule
                 || second == Consonant.m || second == Consonant.n);
     }
 
-    private static int Sonority(Consonant consonant) => consonant.Manner switch
+    /// <summary>How vowel-like a consonant is, from stops at 1 to glides at 5.</summary>
+    public static int Sonority(Consonant consonant) => consonant.Manner switch
     {
         ConsonantManner.Plosive or ConsonantManner.Affricate => 1,
         ConsonantManner.Fricative or ConsonantManner.Sibilant => 2,

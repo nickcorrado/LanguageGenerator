@@ -21,6 +21,7 @@ public static partial class Generator
             ClusterRepair = rand.NextDouble() < 0.6 ? ClusterRepair.Epenthesis : ClusterRepair.Deletion,
             EpentheticVowel = SelectEpentheticVowel(vowels),
             Stress = SelectStress(rand),
+            SyllableContact = SelectSyllableContact(rand, syllableRule),
         };
 
         var orthography = SelectOrthography(rand, vowels, consonants);
@@ -52,7 +53,7 @@ public static partial class Generator
         phonology = phonology with
         {
             SoundChanges = [.. phonology.SoundChanges, .. SelectLaterSoundChanges(rand, syllableRule, vowels)],
-            SyllableChanges = SelectSyllableChanges(rand, syllableRule, vowels),
+            SyllableChanges = SelectSyllableChanges(rand, syllableRule, vowels, phonology.SyllableContact),
         };
         var commands = GenerateCommands(rand, morphology, wordOrder, phonology, syllableDropoff);
         var extraSyllables = SelectExtraSyllables(rootLengthNoise, lexiconSeed, phonology, syllableDropoff);

@@ -42,7 +42,7 @@ public static partial class Generator
 
         var forms = new Dictionary<Pronoun, Lexeme>();
         var distinct = new DistinctForms();
-        List<Phoneme> NewForm() => distinct.Draw(() => GenerateForm(rand, phonology.SyllableRule, dropoff, 0.15, maxSyllables: 2));
+        List<Phoneme> NewForm() => distinct.Draw(() => GenerateForm(rand, phonology, dropoff, 0.15, maxSyllables: 2));
         foreach (var meaning in meanings)
         {
             var form = NewForm();

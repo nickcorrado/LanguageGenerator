@@ -256,6 +256,54 @@ public sealed class SoundChange(string name, Func<Site, bool> when, Func<Site, P
         site => Unstressed(site) && Raised.ContainsKey(site.Sound),
         (site, phonology) => phonology.Vowels.Contains(Raised[site.Sound]) ? Raised[site.Sound] : site.Sound);
 
+    //a coda and the onset consonant right after it, as they met before this change
+    private static (Consonant Coda, Consonant Onset)? ContactAfter(Site site) =>
+        site is { Place.Position: SyllablePosition.Coda, Sound: Consonant coda, Next.Phoneme: Consonant onset } ? (coda, onset) : null;
+
+    private static (Consonant Coda, Consonant Onset)? ContactBefore(Site site) =>
+        site is { Place.Position: SyllablePosition.Onset, Sound: Consonant onset, Before: Consonant coda }
+            && site.Places![site.Index - 1].Position == SyllablePosition.Coda
+            ? (coda, onset)
+            : null;
+
+    //the contact repairs below change only what the language's syllable contact doesn't allow, so
+    //where morphemes meet, a coda and an onset that roots would never put together are brought
+    //into line, as each language does it
+
+    /// <summary>
+    /// An obstruent closing a syllable becomes a nasal before a nasal, as Korean kuk-mul 'soup' is
+    /// said kuŋmul.
+    /// </summary>
+    public static SoundChange CodaNasalization { get; } = new("coda nasalization (ak.ma → aŋ.ma)",
+        site => ContactAfter(site) is ({ IsObstruent: true }, { Manner: ConsonantManner.Nasal }),
+        (site, phonology) => ContactAfter(site) is (var coda, var onset) && !phonology.SyllableContact.Allows(coda, onset)
+            && phonology.Counterpart(coda, manner: ConsonantManner.Nasal, voiced: true) is { } nasal && phonology.SyllableRule.IsLegalCoda([nasal])
+                ? nasal
+                : site.Sound);
+
+    /// <summary>
+    /// A sonorant starting a syllable becomes a stop after a less sonorous coda, as the Kazakh plural
+    /// -lar is -dar after a nasal and -tar after a voiceless stop.
+    /// </summary>
+    //the stop takes the coda's voicing where the language has the choice
+    public static SoundChange OnsetHardening { get; } = new("onset hardening (at.la → at.ta)",
+        site => ContactBefore(site) is (_, { IsObstruent: false }),
+        (site, phonology) => ContactBefore(site) is (var coda, var onset) && !phonology.SyllableContact.Allows(coda, onset)
+            ? phonology.Counterpart(onset, manner: ConsonantManner.Plosive, voiced: coda.Voiced)
+                ?? phonology.Counterpart(onset, manner: ConsonantManner.Plosive, voiced: !coda.Voiced)
+                ?? site.Sound
+            : site.Sound);
+
+    /// <summary>
+    /// A coda becomes the onset after it, doubling it, as Korean sin-la is said silla.
+    /// </summary>
+    public static SoundChange CodaAssimilation { get; } = new("coda assimilation (an.la → al.la)",
+        site => ContactAfter(site) is not null,
+        (site, phonology) => ContactAfter(site) is (var coda, var onset) && !phonology.SyllableContact.Allows(coda, onset)
+            && phonology.SyllableRule.IsLegalCoda([onset])
+                ? onset
+                : site.Sound);
+
     private static readonly Phoneme[] LostCodas = [Consonant.h, Consonant.ɹ, Consonant.r, Consonant.ɾ, Consonant.s];
 
     /// <summary>

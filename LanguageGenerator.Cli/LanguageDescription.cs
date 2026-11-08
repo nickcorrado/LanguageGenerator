@@ -25,6 +25,10 @@ public static class LanguageDescription
         var repair = phonology.ClusterRepair == ClusterRepair.Epenthesis ? $"epenthesis of {phonology.EpentheticVowel.IpaSymbol}" : "deletion";
         output.WriteLine($"Illegal clusters: {repair}");
         output.WriteLine($"Stress: {phonology.Stress.Description}");
+        if (phonology.SyllableContact != SyllableContact.Any)
+        {
+            output.WriteLine($"Syllable contact: {phonology.SyllableContact.Description}");
+        }
         var orthography = lang.Orthography;
         var unusual = orthography.Spellings.Where(s => s.Value != s.Key.IpaSymbol).Select(s => $"{s.Key.IpaSymbol} = {s.Value}");
         output.WriteLine($"Spelling: {orthography.Style?.ToString() ?? "IPA"}");

@@ -18,6 +18,7 @@ internal static class TestData
         ClusterRepair = repair,
         EpentheticVowel = Vowel.ə,
         Stress = Stress.Penultimate,
+        SyllableContact = SyllableContact.Any,
     };
 
     //the first form is a root meaning "dog"; any after it are plural suffixes

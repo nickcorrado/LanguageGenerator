@@ -82,7 +82,7 @@ public static partial class Generator
         {
             if (!words.TryGetValue(meaning, out var lexeme))
             {
-                var form = forms.Draw(() => GenerateForm(rand, phonology.SyllableRule, dropoff, 0, maxSyllables: 1));
+                var form = forms.Draw(() => GenerateForm(rand, phonology, dropoff, 0, maxSyllables: 1));
                 lexeme = words[meaning] = new Lexeme(new Root(form, meaning), PartOfSpeech.Adposition);
             }
             return lexeme;

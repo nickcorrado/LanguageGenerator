@@ -100,7 +100,7 @@ public static partial class Generator
     //changes that depend on syllables, for languages whose syllables can end in a consonant. Devoicing
     //and weakening need obstruents in codas, which a coda restriction rules out, and lengthening needs
     //long vowels. It's drawn last, so that the others stay as they were. The odds are guesses
-    public static List<SoundChange> SelectSyllableChanges(Random rand, SyllableRule rule, IReadOnlyCollection<Vowel> vowels)
+    public static List<SoundChange> SelectSyllableChanges(Random rand, SyllableRule rule, IReadOnlyCollection<Vowel> vowels, SyllableContact contact)
     {
         var changes = new List<SoundChange>();
         var codas = rule.Template.Slots.Any(s => s is Slot.Final);
@@ -148,8 +148,24 @@ public static partial class Generator
         {
             changes.Add(SoundChange.UnstressedRaising);
         }
+
+        //a language that restricts syllable contact may also repair the contacts its affixes and
+        //sound changes make, last, so that it repairs those syncope leaves too. The weights are
+        //guesses; without a repair, the restriction holds only inside roots
+        if (contact != SyllableContact.Any && Sampling.Categorical(rand, ContactRepairs) is { } repair)
+        {
+            changes.Add(repair);
+        }
         return changes;
     }
+
+    private static readonly (SoundChange? Value, int Weight)[] ContactRepairs =
+    [
+        (SoundChange.CodaAssimilation, 25),
+        (SoundChange.OnsetHardening, 20),
+        (SoundChange.CodaNasalization, 15),
+        (null, 40),
+    ];
 
     //WALS 14A counts 502 languages by where they fix stress: 92 on the first syllable, 16 the second,
     //1 the third, 12 the antepenultimate, 110 the penultimate and 51 the last, and 220 with no fixed
@@ -170,6 +186,19 @@ public static partial class Generator
         (Stress.PenultimateIfHeavy, 66),
         (Stress.InitialIfHeavy, 44),
         (Stress.LastHeavy, 44),
+    ];
+
+    //how strictly a language polices syllable contact, which only matters where syllables have codas.
+    //WALS has no chapter on it, so the weights are guesses: the law is a tendency nearly everywhere,
+    //and a rule in fewer languages
+    public static SyllableContact SelectSyllableContact(Random rand, SyllableRule rule) =>
+        rule.Template.Slots.Contains(Slot.Final) ? Sampling.Categorical(rand, SyllableContactWeights) : SyllableContact.Any;
+
+    private static readonly (SyllableContact Value, int Weight)[] SyllableContactWeights =
+    [
+        (SyllableContact.Any, 40),
+        (SyllableContact.NoSteepRise, 35),
+        (SyllableContact.NoRise, 25),
     ];
 
     //the central vowels are the usual epenthetic vowels, schwa and then ɨ, as in Korean, and after

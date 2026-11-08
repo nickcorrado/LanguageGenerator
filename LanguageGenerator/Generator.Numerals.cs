@@ -24,7 +24,7 @@ public static partial class Generator
 
         var forms = new DistinctForms();
         Lexeme Word(string meaning) =>
-            new(new Root(forms.Draw(() => GenerateForm(rand, phonology.SyllableRule, dropoff, 0.15, maxSyllables: 2)), meaning), PartOfSpeech.Numeral);
+            new(new Root(forms.Draw(() => GenerateForm(rand, phonology, dropoff, 0.15, maxSyllables: 2)), meaning), PartOfSpeech.Numeral);
 
         var numbers = numeralBase switch
         {

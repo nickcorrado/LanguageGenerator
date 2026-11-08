@@ -19,14 +19,13 @@ public static partial class Generator
     {
         string Surface(Root root) => string.Concat(phonology.Realize(new Word([root])).Phonemes.Select(p => p.IpaSymbol));
         var taken = closedClasses.ToDictionary(c => c.Key, c => c.Value.Select(l => Surface(l.Root)).ToHashSet());
-        var rule = phonology.SyllableRule;
         var lexicon = new Lexicon((meaning, partOfSpeech) =>
         {
             var rand = Sampling.For(seed, $"{partOfSpeech}:{meaning}");
-            var root = new Root(GenerateForm(rand, rule, dropoff, extraSyllables), meaning);
+            var root = new Root(GenerateForm(rand, phonology, dropoff, extraSyllables), meaning);
             for (int attempt = 0; attempt < 10 && taken.TryGetValue(partOfSpeech, out var forms) && forms.Contains(Surface(root)); attempt++)
             {
-                root = new Root(GenerateForm(rand, rule, dropoff, extraSyllables), meaning);
+                root = new Root(GenerateForm(rand, phonology, dropoff, extraSyllables), meaning);
             }
             return root;
         });
@@ -67,7 +66,7 @@ public static partial class Generator
         {
             var rand = Sampling.For(seed, "root length");
             var forms = Enumerable.Range(0, RootsToSample)
-                .Select(_ => string.Concat(phonology.Realize(new Word([new Root(GenerateForm(rand, phonology.SyllableRule, dropoff, extraSyllables), "")])).Phonemes.Select(p => p.IpaSymbol)));
+                .Select(_ => string.Concat(phonology.Realize(new Word([new Root(GenerateForm(rand, phonology, dropoff, extraSyllables), "")])).Phonemes.Select(p => p.IpaSymbol)));
             var pairs = forms.GroupBy(form => form).Sum(same => same.Count() * (same.Count() - 1L) / 2);
             return pairs / (RootsToSample * (RootsToSample - 1) / 2.0);
         }
@@ -81,16 +80,30 @@ public static partial class Generator
         return Math.Clamp(high * noise, 0.2, MostExtraSyllables);
     }
 
-    public static List<Phoneme> GenerateForm(Random rand, SyllableRule rule, double dropoff, double extraSyllables, int maxSyllables = MaxRootSyllables)
+    //how many times a syllable is drawn again for a contact the language doesn't allow. One with a
+    //stop for its onset always fits, so this only runs out in an inventory with no stops left
+    private const int ContactDraws = 20;
+
+    public static List<Phoneme> GenerateForm(Random rand, Phonology phonology, double dropoff, double extraSyllables, int maxSyllables = MaxRootSyllables)
     {
         var form = new List<Phoneme>();
         var numberOfSyllables = Sampling.DisplacedPoisson(rand, extraSyllables, maxSyllables);
 
         //only the first syllable can go without an onset, as in aloha: vowels meeting inside a
-        //root are rare in real languages, which mostly get hiatus where morphemes meet
+        //root are rare in real languages, which mostly get hiatus where morphemes meet. A syllable
+        //after a coda is drawn again until the two meet as the language allows, so roots keep to
+        //its syllable contact
+        Consonant? coda = null;
         for (int i = 0; i < numberOfSyllables; i++)
         {
-            form.AddRange(GenerateSyllable(rand, rule, dropoff, needsOnset: i > 0).Phonemes);
+            var syllable = GenerateSyllable(rand, phonology.SyllableRule, dropoff, needsOnset: i > 0);
+            for (int draw = 1; draw < ContactDraws && coda is not null && syllable.Onset.Count > 0
+                && !phonology.SyllableContact.Allows(coda, syllable.Onset[0]); draw++)
+            {
+                syllable = GenerateSyllable(rand, phonology.SyllableRule, dropoff, needsOnset: true);
+            }
+            form.AddRange(syllable.Phonemes);
+            coda = syllable.Coda;
         }
         return form;
     }
