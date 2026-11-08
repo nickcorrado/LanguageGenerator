@@ -102,3 +102,6 @@ hunter, the wolves are coming
 
 go home, children
   walk.IMP  goal:house  addressee:child.PL
+
+be careful
+  be.IMP  adjective:careful

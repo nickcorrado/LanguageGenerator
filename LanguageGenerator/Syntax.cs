@@ -43,6 +43,12 @@ public record CopularClause(Complement Complement, Tense Tense, Aspect Aspect, A
 public record Command(string Verb, Number Number, Argument? Object = null, bool Negative = false, ValueList<Oblique> Obliques = default);
 
 /// <summary>
+/// Telling one person or more what or where to be, as in 'be careful', 'don't be a fool' or 'be in
+/// the house'.
+/// </summary>
+public record CopularCommand(Complement Complement, Number Number, bool Negative);
+
+/// <summary>
 /// A statement said to someone called by name or by what they are, as in 'Marta, come here' or 'old
 /// man, the wolves are in the village'.
 /// </summary>
@@ -51,7 +57,7 @@ public record Command(string Verb, Number Number, Argument? Object = null, bool 
 public record Addressed(Statement Statement, NounPhrase Addressee);
 
 /// <summary>Anything a sentence can say.</summary>
-public union Statement(Clause, CopularClause, Command, Addressed);
+public union Statement(Clause, CopularClause, Command, CopularCommand, Addressed);
 
 public static class Syntax
 {
@@ -60,6 +66,7 @@ public static class Syntax
         Clause c => Realize(language, c, translation),
         CopularClause c => Realize(language, c, translation),
         Command c => Realize(language, c, translation),
+        CopularCommand c => Realize(language, c, translation),
         Addressed a => Realize(language, a, translation),
     };
 
@@ -78,19 +85,43 @@ public static class Syntax
     //has one. The subject goes unsaid even in a language that says its pronouns, as in English
     public static Sentence Realize(Language language, Command command, string translation)
     {
-        var commands = language.Commands;
-        var verb = language.Lexicon.Verb(command.Verb);
-        var imperative = command.Negative && !commands.ProhibitiveUsesImperative ? null : commands.MarkerFor(command.Number);
-        var words = imperative.HasValue
-            ? commands.Imperative(verb, imperative.GetValueOrDefault())
-            : Verb(language, verb, Tense.Present, Aspect.Imperfective, new Pronoun(Person.Second, command.Number), negative: false);
-        if (command.Negative)
-        {
-            words = (commands.Prohibitive ?? language.Negation).Apply(words);
-        }
+        var words = CommandVerb(language, language.Lexicon.Verb(command.Verb), command.Number, command.Negative);
         var @object = command.Object.HasValue ? Inflect(language, command.Object.GetValueOrDefault(), Role.DirectObject) : null;
         var obliques = command.Obliques.SelectMany(o => Oblique(language, o)).ToList();
         return Sentence(language, Order(language.WordOrder, [], words, @object, obliques), translation);
+    }
+
+    private static IReadOnlyList<Word> CommandVerb(Language language, Lexeme verb, Number number, bool negative)
+    {
+        var commands = language.Commands;
+        var imperative = negative && !commands.ProhibitiveUsesImperative ? null : commands.MarkerFor(number);
+        var words = imperative.HasValue
+            ? commands.Imperative(verb, imperative.GetValueOrDefault())
+            : Verb(language, verb, Tense.Present, Aspect.Imperfective, new Pronoun(Person.Second, number), negative: false);
+        return negative ? (commands.Prohibitive ?? language.Negation).Apply(words) : words;
+    }
+
+    //the copula takes the imperative as any verb would, even in a language that drops it in the
+    //present, since a command isn't a statement about the present: Russian has no copula in 'you are
+    //careful' but has one in bud' ostorozhen 'be careful'. A verbal adjective takes the imperative
+    //itself, a location takes the locational copula, and a predicate noun or adjective is what it
+    //would be said of 'you'
+    public static Sentence Realize(Language language, CopularCommand command, string translation)
+    {
+        var predication = language.Predication;
+        if (command.Complement.Value is Adjective verbal && predication.Adjectives == PredicativeAdjectives.Verbal)
+        {
+            var adjective = language.Lexicon.Adjective(verbal.Meaning) with { PartOfSpeech = PartOfSpeech.Verb };
+            return Sentence(language, Order(language.WordOrder, [], CommandVerb(language, adjective, command.Number, command.Negative), null, []), translation);
+        }
+        if (command.Complement.Value is Oblique location)
+        {
+            var be = CommandVerb(language, predication.CopulaFor(locational: true), command.Number, command.Negative);
+            return Sentence(language, Order(language.WordOrder, [], be, null, Oblique(language, location)), translation);
+        }
+        var complement = PredicateComplement(language, command.Complement, new Pronoun(Person.Second, command.Number));
+        var copula = CommandVerb(language, predication.Copula, command.Number, command.Negative);
+        return Sentence(language, Order(language.WordOrder, [], copula, complement, []), translation);
     }
 
     public static Sentence Realize(Language language, Clause clause, string translation)
@@ -156,21 +187,24 @@ public static class Syntax
         //a predicate noun takes the same case as an intransitive subject. A predicate adjective, in a
         //language whose adjectives agree, agrees with the subject in number, gender and that case,
         //as in Latin canis magnus est 'the dog is big'; otherwise it's just its root
-        IReadOnlyList<Word> complement = clause.Complement.Value switch
-        {
-            NounPhrase noun => Inflect(language, noun, Role.IntransitiveSubject),
-            Adjective adjective when language.AdjectiveAgreement == AdjectiveAgreement.Agreement =>
-                [AgreeingAdjective(language, language.Lexicon.Adjective(adjective.Meaning),
-                    Features(language.Paradigms.Nouns, [AgreementOf(language, clause.Subject).Number, CaseFor(language, language.RoleMarkers[Role.IntransitiveSubject])]),
-                    GenderOf(language, clause.Subject))],
-            Adjective adjective => [new Word([language.Lexicon.Adjective(adjective.Meaning).Root])],
-            _ => throw new ArgumentException("A copular clause needs a complement.", nameof(clause)),
-        };
+        var complement = PredicateComplement(language, clause.Complement, clause.Subject);
         var copula = predication.Drops(clause.Tense, clause.Negative)
             ? []
             : Verb(language, predication.Copula, clause.Tense, clause.Aspect, clause.Subject, clause.Negative);
         return Sentence(language, Order(language.WordOrder, subject, copula, complement, []), translation);
     }
+
+    //a predicate noun or adjective, said of this subject
+    private static IReadOnlyList<Word> PredicateComplement(Language language, Complement complement, Argument subject) => complement.Value switch
+    {
+        NounPhrase noun => Inflect(language, noun, Role.IntransitiveSubject),
+        Adjective adjective when language.AdjectiveAgreement == AdjectiveAgreement.Agreement =>
+            [AgreeingAdjective(language, language.Lexicon.Adjective(adjective.Meaning),
+                Features(language.Paradigms.Nouns, [AgreementOf(language, subject).Number, CaseFor(language, language.RoleMarkers[Role.IntransitiveSubject])]),
+                GenderOf(language, subject))],
+        Adjective adjective => [new Word([language.Lexicon.Adjective(adjective.Meaning).Root])],
+        _ => throw new ArgumentException("A predicate is a noun or an adjective.", nameof(complement)),
+    };
 
     //a language that drops subject pronouns leaves the verb's agreement, if any, to say who
     private static IReadOnlyList<Word> Subject(Language language, Argument subject, Role role) =>

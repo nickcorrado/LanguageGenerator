@@ -27,7 +27,7 @@ namespace LanguageGenerator;
 //with whom and with what, as location:house, goal:river, source:(village old), recipient:dog,
 //companion:1PL and instrument:knife, in the order they're said. A verb with IMP is a command, as in
 //drink.IMP.NEG object:wine, with no tense or aspect and no subject but subject:2PL to tell several
-//people. Any clause can have an addressee, who it's said to, a bare noun as in addressee:marta, and
+//people, and be.IMP says what or where to be, as in be.IMP adjective:careful. Any clause can have an addressee, who it's said to, a bare noun as in addressee:marta, and
 //a command to a plural addressee is to all of them. Anything not given takes its unmarked value: present, imperfective, singular, exclusive for
 //'we' and masculine for a gendered pronoun. Whatever the generator can't express yet is an error,
 //never dropped
@@ -85,6 +85,9 @@ public static class ClauseFile
         CopularClause { Complement: Oblique location } c => [c.Subject, location.Argument],
         CopularClause c => [c.Subject],
         Command c => [.. Given(c.Object), .. c.Obliques.Select(o => o.Argument)],
+        CopularCommand { Complement: NounPhrase noun } => [noun],
+        CopularCommand { Complement: Oblique location } => [location.Argument],
+        CopularCommand => [],
         Addressed a => [.. ArgumentsOf(a.Statement), a.Addressee],
     };
 
@@ -228,28 +231,32 @@ public static class ClauseFile
     }
 
     //a command is said to one person or several: as many as its subject says, or as its addressee
-    //is, as 'children, come' tells several
-    private static Command ToCommand(string verb, VerbFeatures features, ClauseRoles roles, NounPhrase? addressee, int number)
+    //is, as 'children, come' tells several. A command with be says what or where to be
+    private static Statement ToCommand(string verb, VerbFeatures features, ClauseRoles roles, NounPhrase? addressee, int number)
     {
-        if (verb == "be")
-        {
-            throw new ClauseFormatException("be can't be a command yet.", number);
-        }
         if (features.Tense is not null || features.Aspect is not null)
         {
             throw new ClauseFormatException($"'{verb}' can't take {(features.Tense as Grammeme ?? features.Aspect)!.Gloss}: a command has no tense or aspect.", number);
         }
-        RejectComplement(verb, roles, number);
         var told = addressee is { Number: var called } && called != Number.Singular ? Number.Plural : Number.Singular;
         if (roles.Arguments.TryGetValue("subject", out var subject))
         {
             told = subject.Value is Pronoun { Person: var person, Number: var count } && person == Person.Second ? count
                 : throw new ClauseFormatException("A command is said to 'you', so its subject can only be 2SG or 2PL, as in subject:2PL.", number);
         }
+        if (verb == "be")
+        {
+            return new CopularCommand(CopularComplement(roles, number), told, features.Negative);
+        }
+        RejectComplement(verb, roles, number);
         return new Command(verb, told, roles.Object, features.Negative, [.. roles.Obliques.Select(o => o.Oblique)]);
     }
 
-    private static CopularClause ToCopularClause(VerbFeatures features, ClauseRoles roles, Argument subject, int number)
+    private static CopularClause ToCopularClause(VerbFeatures features, ClauseRoles roles, Argument subject, int number) =>
+        new(CopularComplement(roles, number), features.Tense ?? Tense.Present, features.Aspect ?? Aspect.Imperfective, subject, features.Negative);
+
+    //what be says its subject is, or where it is
+    private static Complement CopularComplement(ClauseRoles roles, int number)
     {
         if (roles.Arguments.ContainsKey("object"))
         {
@@ -269,7 +276,7 @@ public static class ClauseFile
         {
             throw new ClauseFormatException("be needs a noun, adjective or location saying what or where its subject is, as in noun:fool, adjective:big or location:house.", number);
         }
-        return new CopularClause(complement.GetValueOrDefault(), features.Tense ?? Tense.Present, features.Aspect ?? Aspect.Imperfective, subject, features.Negative);
+        return complement.GetValueOrDefault();
     }
 
     private static Clause ToClause(string verb, VerbFeatures features, ClauseRoles roles, Argument subject, int number)

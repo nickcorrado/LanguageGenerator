@@ -68,6 +68,8 @@ public static class GlossPrompt
                 drink.IMP.NEG  object:(wine.DEF red)
               go to the inn, all of you
                 go.IMP  subject:2PL  goal:inn.DEF
+              be careful
+                be.IMP  adjective:careful
 
             Rules:
             - One clause per verb. Split a sentence with several verbs into several clauses, each with
@@ -79,7 +81,7 @@ public static class GlossPrompt
               walk.PST, or 'lives in' for be with location:.
             - Never drop a modal, like must, can, should or want to: 'you must go' doesn't say 'you go'.
             - When a sentence can't be said even loosely, as with a question, a modal, a relative
-              clause, a comparison, a command with be, or a command to anyone but 'you', like 'let's
+              clause, a comparison, or a command to anyone but 'you', like 'let's
               go', write instead one line: {CantExpress} (what's missing): the sentence.
               This is better than a gloss that changes what the sentence means.
 

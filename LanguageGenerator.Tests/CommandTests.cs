@@ -1,4 +1,4 @@
-namespace LanguageGenerator.Tests;
+﻿namespace LanguageGenerator.Tests;
 
 public class CommandTests
 {
@@ -185,5 +185,60 @@ public class CommandTests
                 }
             }
         }
+    }
+
+    private static Statement Parsed(string gloss) => Assert.Single(ClauseFile.Parse($"x\n  {gloss}")).Statement;
+
+    [Fact]
+    public void Parse_CommandWithBe_SaysWhatOrWhereToBe()
+    {
+        Assert.Equal(new CopularCommand(new Adjective("careful"), Number.Singular, false), Parsed("be.IMP  adjective:careful").Value);
+        Assert.Equal(new CopularCommand(new NounPhrase("fool", Number.Singular, Definiteness: Definiteness.Indefinite), Number.Plural, true),
+            Parsed("be.IMP.NEG  subject:2PL  noun:fool.NDF").Value);
+        Assert.Equal(new CopularCommand(new Oblique(Role.Location, new NounPhrase("house", Number.Singular, Definiteness: Definiteness.Definite)), Number.Singular, false),
+            Parsed("be.IMP  location:house.DEF").Value);
+    }
+
+    [Fact]
+    public void Realize_CommandWithBe_KeepsTheCopulaEvenWhereThePresentDropsIt()
+    {
+        Assert.All(Sample, l =>
+        {
+            var sentence = Syntax.Realize(l, new CopularCommand(new Adjective("big"), Number.Singular, false), "");
+            var roots = sentence.Words.Select(w => w.Word.Root).ToList();
+
+            Assert.Contains(l.Lexicon.Adjective("big").Root, roots);
+            Assert.Equal(l.Predication.Adjectives != PredicativeAdjectives.Verbal, roots.Contains(l.Predication.Copula.Root));
+            Assert.DoesNotContain(sentence.Words, w => w.Word.Root is { } r && l.Pronouns.Forms.Values.Any(p => p.Root == r));
+        });
+    }
+
+    [Fact]
+    public void Realize_CommandWithBe_IsTheSameImperativeAsAnyVerbs()
+    {
+        Assert.All(Sample.Where(l => l.Predication.Adjectives != PredicativeAdjectives.Verbal), l =>
+        {
+            foreach (var negative in new[] { false, true })
+            {
+                //leaving out the adjective, the copula's words are what any verb's command makes of it
+                var be = Syntax.Realize(l, new CopularCommand(new Adjective("big"), Number.Plural, negative), "");
+                var copula = be.Words.Where(w => w.Word.Root != l.Lexicon.Adjective("big").Root).Select(w => w.Gloss);
+                var eat = Syntax.Realize(l, new Command("eat", Number.Plural, Negative: negative), "").Words
+                    .Select(w => w.Gloss.Replace("eat", l.Predication.Copula.Root.Meaning));
+
+                Assert.Equal(eat, copula);
+            }
+        });
+    }
+
+    [Fact]
+    public void Realize_CommandToBeSomewhere_TakesTheLocationalCopula()
+    {
+        Assert.All(Sample, l =>
+        {
+            var sentence = Syntax.Realize(l, new CopularCommand(new Oblique(Role.Location, new NounPhrase("house", Number.Singular)), Number.Singular, false), "");
+
+            Assert.Contains(l.Predication.CopulaFor(locational: true).Root, sentence.Words.Select(w => w.Word.Root));
+        });
     }
 }
