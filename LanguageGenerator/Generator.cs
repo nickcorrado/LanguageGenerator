@@ -35,7 +35,8 @@ public static partial class Generator
         var morphology = SelectMorphologicalProfile(rand, wordOrder.ConstituentWordOrder);
 
         var alignment = SelectAlignment(rand, 0.5, 0.25);
-        var cases = SelectCases(rand, alignment, 0.75, 0.6, 0.35, 0.65, 0.25, 0.2);
+        var regions = SelectRegions(rand);
+        var cases = SelectCases(rand, alignment, regions, 0.65);
         var paradigms = GenerateParadigms(rand, morphology, wordOrder, alignment, cases, phonology, syllableDropoff);
         //last, so that adding these left everything before them as it was for each seed
         var pronouns = GeneratePronouns(rand, paradigms, morphology, wordOrder, phonology, syllableDropoff);
@@ -43,9 +44,9 @@ public static partial class Generator
         var predication = GeneratePredication(rand, phonology, syllableDropoff);
         var adjectiveAgreement = SelectAdjectiveAgreement(rand, predication);
         var genders = GenerateGenders(rand, morphology, paradigms, phonology, syllableDropoff);
-        var adpositions = GenerateAdpositions(rand, phonology, syllableDropoff);
+        var adpositions = GenerateAdpositions(rand, regions, cases, phonology, syllableDropoff);
         wordOrder = wordOrder with { ObliquePosition = SelectObliquePosition(rand, wordOrder.ConstituentWordOrder) };
-        var roleMarkers = SelectRoleMarkers(alignment, cases, wordOrder, adpositions);
+        var roleMarkers = SelectRoleMarkers(alignment, cases, regions, wordOrder, adpositions);
         predication = GenerateLocationalPredication(rand, predication, phonology, syllableDropoff);
         var numerals = GenerateNumerals(rand, morphology, phonology, syllableDropoff);
         var articles = GenerateArticles(rand, morphology, genders, numerals, phonology, syllableDropoff);

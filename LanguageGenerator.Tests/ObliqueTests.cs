@@ -12,29 +12,41 @@ public class ObliqueTests
     private static Oblique Stone(Role role) => new(role, new NounPhrase("stone", Number.Singular));
 
     [Fact]
-    public void GenerateAdpositions_ManyDraws_AreOneSyllableAndShareWordsAsWalsSays()
+    public void GenerateAdpositions_ManyDraws_GiveEachRegionWithoutACaseOneWord()
     {
         var phonology = GeneratedLanguages.Sample[0].Phonology;
         var rand = new Random(1);
 
-        var drawn = Enumerable.Range(0, 3000).Select(_ => Generator.GenerateAdpositions(rand, phonology, 0.15)).ToList();
-
-        //WALS 52A: 76 of 289 languages modeled use one word for 'with a friend' and 'with a knife'
-        Assert.InRange(drawn.Count(a => a[Role.Instrument] == a[Role.Companion]) / 3000.0, 0.23, 0.30);
-        Assert.All(drawn, a =>
+        Assert.All(Enumerable.Range(0, 500), _ =>
         {
-            Assert.Same(a[Role.Recipient], a[Role.Goal]);
-            Assert.All(a.Values, w => Assert.Equal(1, w.Root.Form.Count(p => p is Vowel)));
-            Assert.All(a.Values, w => Assert.Equal(PartOfSpeech.Adposition, w.PartOfSpeech));
+            var regions = Generator.SelectRegions(rand);
+            var cases = Generator.SelectCases(rand, MorphosyntacticAlignment.NominativeAccusative, regions, 0);
+            var words = Generator.GenerateAdpositions(rand, regions, cases, phonology, 0.15);
+
+            Assert.All(regions, r =>
+            {
+                if (cases.Contains(r.Case))
+                {
+                    Assert.All(r.Roles, role => Assert.False(words.ContainsKey(role)));
+                }
+                else
+                {
+                    Assert.Single(r.Roles.Select(role => words[role]).Distinct());
+                    Assert.Equal(r.Gloss, words[r.Head].Root.Meaning);
+                }
+            });
+            Assert.All(words.Values, w => Assert.Equal(1, w.Root.Form.Count(p => p is Vowel)));
+            Assert.All(words.Values, w => Assert.Equal(PartOfSpeech.Adposition, w.PartOfSpeech));
         });
     }
 
     [Fact]
     public void GenerateAdpositions_EachLanguage_RarelyMakesHomophones()
     {
+        var apart = RoleMap.Regions([]);
         var homophonous = GeneratedLanguages.Sample.Count(l =>
         {
-            var words = Generator.GenerateAdpositions(new Random(1), l.Phonology, 0.15).Values.Distinct().ToList();
+            var words = Generator.GenerateAdpositions(new Random(1), apart, [], l.Phonology, 0.15).Values.Distinct().ToList();
             return words.Select(w => string.Concat(w.Root.Form.Select(p => p.IpaSymbol))).Distinct().Count() < words.Count;
         });
 

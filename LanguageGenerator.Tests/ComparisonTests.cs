@@ -102,7 +102,7 @@ public class ComparisonTests
             var (than, cat) = (IndexOf(sentence, particle.Than.Root), IndexOf(sentence, "cat"));
 
             Assert.True(particle.BeforeStandard ? than < cat : than > cat);
-            Assert.False(sentence.Words.Any(w => w.Word.Morphemes.Any(m => m.Value is Root { Meaning: "from" or "to" or "at" })));
+            Assert.DoesNotContain(sentence.Words, w => w.Word.Morphemes.Any(m => m.Value is Root { Meaning: "from" or "to" or "at" or "toward" }));
         });
         Assert.Contains(GeneratedLanguages.Sample, l => l.Comparison.Value is ParticleComparison);
     }

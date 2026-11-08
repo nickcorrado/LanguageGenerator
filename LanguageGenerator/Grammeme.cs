@@ -71,6 +71,8 @@ public record Case(string Name, string Gloss) : Grammeme(Name, Gloss)
     public static Case Vocative { get; } = new("Vocative", "VOC");
     public static Case Locative { get; } = new("Locative", "LOC");
     public static Case Instrumental { get; } = new("Instrumental", "INS");
+    public static Case Comitative { get; } = new("Comitative", "COM");
+    public static Case Allative { get; } = new("Allative", "ALL");
     public static Case Ergative { get; } = new("Ergative", "ERG");
     public static Case Absolutive { get; } = new("Absolutive", "ABS");
     /// <summary>

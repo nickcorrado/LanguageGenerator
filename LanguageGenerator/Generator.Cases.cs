@@ -20,88 +20,86 @@ public static partial class Generator
         }
     }
 
-    public static List<Case> SelectCases(Random rand, MorphosyntacticAlignment alignment, double genitiveChance, double dativeChance, double ablativeChance, double vocativeChance, double locativeChance, double instrumentalChance)
-    {
-        var cases = new List<Case>();
-        switch (alignment)
-        {
-            case MorphosyntacticAlignment.NominativeAccusative:
-                cases.Add(Case.Nominative);
-                cases.Add(Case.Accusative);
-                break;
-            case MorphosyntacticAlignment.ErgativeAbsolutive:
-                cases.Add(Case.Ergative);
-                cases.Add(Case.Absolutive);
-                break;
-            default:
-                break;
-        }
+    /// <summary>
+    /// How the role map falls into regions, one marker each: each of its edges joins its two roles
+    /// with the edge's chance, and the connected parts that leaves are the regions.
+    /// </summary>
+    //roles can also end up together through a third, so two roles share a marker a little more
+    //often than their edge alone says
+    public static List<RoleRegion> SelectRegions(Random rand) =>
+        RoleMap.Regions(RoleMap.Edges.Where(e => rand.NextDouble() < e.Weight).Select(e => (e.First, e.Second)));
 
-        if (rand.NextDouble() < genitiveChance)
+    //WALS 49A, by how many cases a language has besides its core ones. A language with core cases is
+    //drawn from the 137 with two or more, which are the core two and the rest; one without them from
+    //all 237 but the 24 with only borderline case marking, where a direct case counts as one. The
+    //ranges WALS gives are drawn from evenly, and 10 or more is as many as the map allows
+    private static readonly ((int Least, int Most) Obliques, int Languages)[] ObliqueCaseCountsWithCore =
+        [((0, 0), 23), ((1, 1), 9), ((2, 2), 9), ((3, 3), 12), ((4, 5), 37), ((6, 7), 23), ((8, int.MaxValue), 24)];
+    private static readonly ((int Least, int Most) Obliques, int Languages)[] ObliqueCaseCountsWithoutCore =
+        [((0, 0), 100), ((1, 1), 23), ((2, 2), 9), ((3, 3), 9), ((4, 4), 12), ((5, 6), 37), ((7, 8), 23), ((9, int.MaxValue), 24)];
+
+    //how likely a region is to get a case of its own, by its head's place in Blake's hierarchy, so
+    //a language with any oblique case most likely has a genitive and a dative. A guess: Blake's
+    //hierarchy is a tendency, and an instrumental without a dative is rare but real
+    private static readonly int[] CaseWeightsByRank = [8, 6, 5, 4, 3, 2, 2];
+
+    /// <summary>
+    /// A language's cases: the core ones its alignment needs, a case for each of some of its regions,
+    /// as many as WALS's counts say, and maybe a vocative.
+    /// </summary>
+    public static List<Case> SelectCases(Random rand, MorphosyntacticAlignment alignment, IReadOnlyList<RoleRegion> regions, double vocativeChance)
+    {
+        List<Case> cases = alignment switch
         {
-            cases.Add(Case.Genitive);
-        }
-        if (rand.NextDouble() < dativeChance)
+            MorphosyntacticAlignment.NominativeAccusative => [Case.Nominative, Case.Accusative],
+            MorphosyntacticAlignment.ErgativeAbsolutive => [Case.Ergative, Case.Absolutive],
+            _ => [],
+        };
+
+        var (least, most) = Sampling.Categorical(rand, cases.Count > 0 ? ObliqueCaseCountsWithCore : ObliqueCaseCountsWithoutCore);
+        var top = Math.Min(most, regions.Count);
+        var count = least >= top ? top : least + rand.Next(top - least + 1);
+        var left = regions.ToList();
+        var chosen = new List<RoleRegion>();
+        for (int i = 0; i < count; i++)
         {
-            cases.Add(Case.Dative);
+            var region = Sampling.Categorical(rand, left.Select(r => (r, CaseWeightsByRank[RoleMap.Rank(r.Head)])).ToArray());
+            left.Remove(region);
+            chosen.Add(region);
         }
-        if (rand.NextDouble() < ablativeChance)
-        {
-            cases.Add(Case.Ablative);
-        }
+        cases.AddRange(chosen.OrderBy(r => RoleMap.Rank(r.Head)).Select(r => r.Case));
+
         if (rand.NextDouble() < vocativeChance)
         {
             cases.Add(Case.Vocative);
         }
-        if (rand.NextDouble() < locativeChance)
-        {
-            cases.Add(Case.Locative);
-        }
-        if (rand.NextDouble() < instrumentalChance)
-        {
-            cases.Add(Case.Instrumental);
-        }
-
         return cases;
     }
 
-    //WALS 52A, leaving out its 33 languages that mark the two alike only in part: whether 'with a
-    //friend' and 'with a knife' share a word, as in English, or each has its own
-    private static readonly (bool Value, int Languages)[] ComitativeIsInstrumentalCounts = [(true, 76), (false, 213)];
-
-    //a one-syllable word for each role an adposition could mark, glossed in English. 'To' marks
-    //both a recipient and a goal, as in English, and the comitative marks instruments too in about
-    //a quarter of languages. Each new word is redrawn a few times to keep it from sounding like
-    //one before it; a small inventory may still make homophones, as real languages have
-    public static Dictionary<Role, Lexeme> GenerateAdpositions(Random rand, Phonology phonology, double dropoff)
+    /// <summary>
+    /// A one-syllable word for each region without a case, glossed in English for its head, so the
+    /// roles in a region share their word as they share a case.
+    /// </summary>
+    //each new word is redrawn a few times to keep it from sounding like one before it; a small
+    //inventory may still make homophones, as real languages have
+    public static Dictionary<Role, Lexeme> GenerateAdpositions(Random rand, IReadOnlyList<RoleRegion> regions, IReadOnlyList<Case> cases, Phonology phonology, double dropoff)
     {
-        var instrumentalIsComitative = Sampling.Categorical(rand, ComitativeIsInstrumentalCounts);
-        var words = new Dictionary<string, Lexeme>();
+        var words = new Dictionary<Role, Lexeme>();
         var forms = new DistinctForms(draws: 11);
-        Lexeme Word(string meaning)
+        foreach (var region in regions.Where(r => !cases.Contains(r.Case)))
         {
-            if (!words.TryGetValue(meaning, out var lexeme))
+            var word = new Lexeme(new Root(forms.Draw(() => GenerateForm(rand, phonology, dropoff, 0, maxSyllables: 1)), region.Gloss), PartOfSpeech.Adposition);
+            foreach (var role in region.Roles)
             {
-                var form = forms.Draw(() => GenerateForm(rand, phonology, dropoff, 0, maxSyllables: 1));
-                lexeme = words[meaning] = new Lexeme(new Root(form, meaning), PartOfSpeech.Adposition);
+                words[role] = word;
             }
-            return lexeme;
         }
-
-        return new()
-        {
-            [Role.Possessor] = Word("of"),
-            [Role.Recipient] = Word("to"),
-            [Role.Location] = Word("at"),
-            [Role.Goal] = Word("to"),
-            [Role.Source] = Word("from"),
-            [Role.Companion] = Word("with"),
-            [Role.Instrument] = Word(instrumentalIsComitative ? "with" : "using"),
-        };
+        return words;
     }
 
-    //a role gets its case if the language has one, and otherwise its adposition
-    public static Dictionary<Role, RoleMarker> SelectRoleMarkers(MorphosyntacticAlignment alignment, IReadOnlyList<Case> cases, WordOrder wordOrder, IReadOnlyDictionary<Role, Lexeme> adpositions)
+    //a role gets its region's case if the language has one, and otherwise its region's adposition
+    public static Dictionary<Role, RoleMarker> SelectRoleMarkers(MorphosyntacticAlignment alignment, IReadOnlyList<Case> cases, IReadOnlyList<RoleRegion> regions, WordOrder wordOrder,
+        IReadOnlyDictionary<Role, Lexeme> adpositions)
     {
         var type = wordOrder.AdpositionalPhraseDirectionality == HeadDirectionality.Initial ? AdpositionType.Preposition : AdpositionType.Postposition;
         //a simplification: real languages often pick the governed case per adposition
@@ -118,23 +116,17 @@ public static partial class Generator
             MorphosyntacticAlignment.ErgativeAbsolutive => ergativeAbsolutive,
             _ => new Unmarked(),
         };
-        RoleMarker Adposition(Role role) => new Adposition(adpositions[role], type, governs);
-        RoleMarker CaseOrAdposition(Case @case, Role role) => cases.Contains(@case) ? @case : Adposition(role);
+        RoleMarker Oblique(Role role) => regions.First(r => r.Contains(role)).Case is var @case && cases.Contains(@case)
+            ? @case
+            : new Adposition(adpositions[role], type, governs);
 
         RoleMarker MarkerFor(Role role) => role switch
         {
             Role.IntransitiveSubject => Core(Case.Nominative, Case.Absolutive),
             Role.TransitiveSubject => Core(Case.Nominative, Case.Ergative),
             Role.DirectObject => Core(Case.Accusative, Case.Absolutive),
-            Role.Possessor => CaseOrAdposition(Case.Genitive, role),
-            Role.Recipient => CaseOrAdposition(Case.Dative, role),
             Role.Addressee => cases.Contains(Case.Vocative) ? Case.Vocative : new Unmarked(),
-            Role.Location => CaseOrAdposition(Case.Locative, role),
-            Role.Goal => Adposition(role),
-            Role.Source => CaseOrAdposition(Case.Ablative, role),
-            Role.Companion => Adposition(role),
-            Role.Instrument => CaseOrAdposition(Case.Instrumental, role),
-            _ => throw new ArgumentOutOfRangeException(nameof(role), role, "Every role needs a marker."),
+            _ => Oblique(role),
         };
 
         return Enum.GetValues<Role>().ToDictionary(role => role, MarkerFor);
