@@ -1,0 +1,284 @@
+﻿namespace LanguageGenerator.Tests;
+
+public class ParadigmTests
+{
+    private static readonly Lexeme Dog = new(new Root([Consonant.k, Vowel.a, Consonant.b, Vowel.a], "dog"), PartOfSpeech.Noun);
+    private static readonly Lexeme See = new(new Root([Consonant.s, Vowel.i], "see"), PartOfSpeech.Verb);
+    private static readonly InflectionalCategory NumberCategory = new("Number", [Number.Singular, Number.Plural]);
+    private static readonly InflectionalCategory CaseCategory = new("Case", [Case.Nominative, Case.Accusative]);
+
+    //every slot's exponents are ti, no, se, mə in order, one per combination of its values
+    private static ExponentSlot Slot(ExponentPosition position, params InflectionalCategory[] categories)
+    {
+        var forms = new Queue<Phoneme[]>([[Consonant.t, Vowel.i], [Consonant.n, Vowel.o], [Consonant.s, Vowel.e], [Consonant.m, Vowel.ə]]);
+        return new ExponentSlot
+        {
+            Categories = categories,
+            Position = position,
+            Exponents = [.. Paradigm.Combinations(categories).Select(values => (values, position is ExponentPosition.Prefix or ExponentPosition.Suffix
+                ? (Morpheme)new Affix(forms.Dequeue(), values)
+                : new Particle(forms.Dequeue(), values)))],
+        };
+    }
+
+    private static Paradigm Nouns(params ExponentSlot[] slots) =>
+        new() { PartOfSpeech = PartOfSpeech.Noun, Categories = [NumberCategory, CaseCategory], Slots = slots };
+
+    private static (string Segmented, string Gloss) Show(IReadOnlyList<Word> words) =>
+        (string.Join(" ", words.Select(w => w.Segmented(Orthography.Ipa))), string.Join(" ", words.Select(w => w.Gloss)));
+
+    [Fact]
+    public void Inflect_FusedSlot_ExpressesBothCategoriesInOneAffix()
+    {
+        var paradigm = Nouns(Slot(ExponentPosition.Suffix, NumberCategory, CaseCategory));
+
+        Assert.Equal(("kaba-mə", "dog-PL.ACC"), Show(paradigm.Inflect(Dog, [Number.Plural, Case.Accusative])));
+    }
+
+    [Fact]
+    public void Inflect_SlotPerCategory_StacksSuffixesOutward()
+    {
+        var paradigm = Nouns(Slot(ExponentPosition.Suffix, NumberCategory), Slot(ExponentPosition.Suffix, CaseCategory));
+
+        Assert.Equal(("kaba-no-ti", "dog-PL-NOM"), Show(paradigm.Inflect(Dog, [Number.Plural, Case.Nominative])));
+    }
+
+    [Fact]
+    public void Inflect_PrefixSlot_GoesBeforeTheRoot()
+    {
+        var paradigm = Nouns(Slot(ExponentPosition.Prefix, NumberCategory), Slot(ExponentPosition.Suffix, CaseCategory));
+
+        Assert.Equal(("no-kaba-ti", "PL-dog-NOM"), Show(paradigm.Inflect(Dog, [Number.Plural, Case.Nominative])));
+    }
+
+    [Fact]
+    public void Inflect_FollowingParticles_AreSeparateWordsInnermostFirst()
+    {
+        var paradigm = Nouns(Slot(ExponentPosition.FollowingParticle, NumberCategory), Slot(ExponentPosition.FollowingParticle, CaseCategory));
+
+        Assert.Equal(("kaba ti no", "dog SG ACC"), Show(paradigm.Inflect(Dog, [Number.Singular, Case.Accusative])));
+    }
+
+    [Fact]
+    public void Inflect_PrecedingParticles_AreSeparateWordsInnermostNearest()
+    {
+        var paradigm = Nouns(Slot(ExponentPosition.PrecedingParticle, NumberCategory), Slot(ExponentPosition.PrecedingParticle, CaseCategory));
+
+        Assert.Equal(("no ti kaba", "ACC SG dog"), Show(paradigm.Inflect(Dog, [Number.Singular, Case.Accusative])));
+    }
+
+    [Fact]
+    public void Inflect_PersonAndNumberInOneSlot_GlossesThemTogether()
+    {
+        InflectionalCategory person = new("Person", [Person.Third]), number = new("Number", [Number.Singular]), tense = new("Tense", [Tense.Past]);
+        var paradigm = new Paradigm { PartOfSpeech = PartOfSpeech.Verb, Categories = [person, number, tense], Slots = [Slot(ExponentPosition.Suffix, person, number, tense)] };
+
+        Assert.Equal(("si-ti", "see-3SG.PST"), Show(paradigm.Inflect(See, [Person.Third, Number.Singular, Tense.Past])));
+    }
+
+    [Fact]
+    public void Inflect_ZeroAffix_AddsNoFormAndGlossesItsFeaturesInBrackets()
+    {
+        var number = new ExponentSlot
+        {
+            Categories = [NumberCategory],
+            Position = ExponentPosition.Suffix,
+            Exponents = [([Number.Singular], new Affix([], [Number.Singular])), ([Number.Plural], new Affix([Consonant.t, Vowel.i], [Number.Plural]))],
+        };
+        var paradigm = Nouns(number, Slot(ExponentPosition.Suffix, CaseCategory));
+
+        Assert.Equal(("kaba-no", "dog[SG]-ACC"), Show(paradigm.Inflect(Dog, [Number.Singular, Case.Accusative])));
+        Assert.Equal(("kaba-ti-ti", "dog-PL-NOM"), Show(paradigm.Inflect(Dog, [Number.Plural, Case.Nominative])));
+    }
+
+    [Fact]
+    public void Inflect_ZeroParticle_LeavesOutTheWord()
+    {
+        var number = new ExponentSlot
+        {
+            Categories = [NumberCategory],
+            Position = ExponentPosition.FollowingParticle,
+            Exponents = [([Number.Singular], new Particle([], [Number.Singular])), ([Number.Plural], new Particle([Consonant.t, Vowel.i], [Number.Plural]))],
+        };
+        var paradigm = Nouns(number, Slot(ExponentPosition.FollowingParticle, CaseCategory));
+
+        Assert.Equal(("kaba no", "dog[SG] ACC"), Show(paradigm.Inflect(Dog, [Number.Singular, Case.Accusative])));
+    }
+
+    public static TheoryData<bool, bool, bool, ThirdPersonZero, Grammeme[], bool> ZeroCases => new()
+    {
+        { true, false, false, ThirdPersonZero.None, [Number.Singular], true },
+        { false, false, false, ThirdPersonZero.None, [Number.Singular], false },
+        //Greenberg's universal 35: the plural is never zero
+        { true, true, true, ThirdPersonZero.All, [Number.Plural], false },
+        { true, true, false, ThirdPersonZero.None, [Number.Singular, Case.Nominative], true },
+        { true, false, false, ThirdPersonZero.None, [Number.Singular, Case.Nominative], false },
+        { true, true, false, ThirdPersonZero.None, [Number.Singular, Case.Accusative], false },
+        { false, true, false, ThirdPersonZero.None, [Case.Absolutive], true },
+        { false, true, false, ThirdPersonZero.None, [Case.Ergative], false },
+        { false, false, false, ThirdPersonZero.Singular, [Person.Third, Number.Singular], true },
+        { false, false, false, ThirdPersonZero.Singular, [Person.Third, Number.Plural], false },
+        { false, false, false, ThirdPersonZero.All, [Person.Third, Number.Plural], true },
+        { true, true, true, ThirdPersonZero.All, [Person.First, Number.Singular], false },
+        { false, false, true, ThirdPersonZero.Singular, [Tense.Present, Person.Third, Number.Singular], true },
+        { false, false, false, ThirdPersonZero.Singular, [Tense.Present, Person.Third, Number.Singular], false },
+        { true, true, true, ThirdPersonZero.All, [Aspect.Imperfective], false },
+    };
+
+    [Theory]
+    [MemberData(nameof(ZeroCases))]
+    public void IsZero_OnlyWhenEveryValueIsOneTheLanguageLeavesUnmarked(bool singular, bool coreCase, bool present, ThirdPersonZero thirdPerson, Grammeme[] values, bool zero)
+    {
+        Assert.Equal(zero, new ZeroMarking(singular, coreCase, present, thirdPerson).IsZero(values));
+    }
+
+    [Fact]
+    public void GenerateParadigm_GeneratedLanguages_HaveZeroExponentsExactlyWhereTheirRulesSay()
+    {
+        Assert.All(GeneratedLanguages.Sample, l => Assert.All(l.Paradigms.All.SelectMany(p => p.Slots).SelectMany(s => s.Exponents), e =>
+            Assert.Equal(l.MorphologicalProfile.ZeroMarking.IsZero(e.Values), e.Exponent.Form.Count == 0)));
+    }
+
+    [Fact]
+    public void GenerateParadigm_GeneratedLanguages_NeverLeaveANounPluralUnmarked()
+    {
+        var plurals = GeneratedLanguages.Sample.SelectMany(l => l.Paradigms.Nouns.Slots).SelectMany(s => s.Exponents)
+            .Where(e => e.Values.Contains(Number.Plural)).ToList();
+
+        Assert.NotEmpty(plurals);
+        Assert.All(plurals, e => Assert.NotEmpty(e.Exponent.Form));
+    }
+
+    [Fact]
+    public void Cells_AreEveryCombinationOfValues()
+    {
+        Assert.Equal(4, Nouns().Cells.Count());
+    }
+
+    [Fact]
+    public void Inflect_MissingACategoryValue_Throws()
+    {
+        Assert.Throws<ArgumentException>(() => Nouns().Inflect(Dog, [Number.Plural]));
+    }
+
+    [Fact]
+    public void Inflect_TwoValuesForOneCategory_Throws()
+    {
+        Assert.Throws<ArgumentException>(() => Nouns().Inflect(Dog, [Number.Plural, Number.Singular, Case.Nominative]));
+    }
+
+    [Fact]
+    public void Inflect_WrongPartOfSpeech_Throws()
+    {
+        Assert.Throws<ArgumentException>(() => Nouns().Inflect(See, [Number.Plural, Case.Nominative]));
+    }
+
+    private static bool IsParticle(ExponentSlot slot) => slot.Position is ExponentPosition.PrecedingParticle or ExponentPosition.FollowingParticle;
+
+    private static ExponentSlot SlotWith(Paradigm paradigm, string category) => paradigm.Slots.Single(s => s.Categories.Any(c => c.Name == category));
+
+    [Theory]
+    [InlineData(Fusion.Isolating, true)]
+    [InlineData(Fusion.Concatenative, false)]
+    public void GenerateParadigm_ByFusion_UsesParticlesOnlyWhenIsolating(Fusion fusion, bool particles)
+    {
+        var slots = GeneratedLanguages.Sample.Where(l => l.MorphologicalProfile.Fusion == fusion)
+            .SelectMany(l => l.Paradigms.All.SelectMany(p => p.Slots)).ToList();
+
+        Assert.NotEmpty(slots);
+        Assert.All(slots, s => Assert.Equal(particles, IsParticle(s)));
+    }
+
+    [Fact]
+    public void GenerateParadigm_MixedFusion_UsesBothParticlesAndAffixes()
+    {
+        var slots = GeneratedLanguages.Sample.Where(l => l.MorphologicalProfile.Fusion == Fusion.Mixed)
+            .SelectMany(l => l.Paradigms.All.SelectMany(p => p.Slots)).ToList();
+
+        Assert.Contains(slots, IsParticle);
+        Assert.Contains(slots, s => !IsParticle(s));
+    }
+
+    [Fact]
+    public void GenerateParadigm_CaseWithNumber_DecidesWhetherTheyShareASlot()
+    {
+        var nouns = GeneratedLanguages.Sample.Select(l => (l.MorphologicalProfile.Exponence.CaseWithNumber, Paradigm: l.Paradigms.Nouns))
+            .Where(x => x.Paradigm.Categories.Has<Case>() && x.Paradigm.Categories.Has<Number>())
+            .ToList();
+
+        Assert.Contains(nouns, x => x.CaseWithNumber);
+        Assert.All(nouns, x => Assert.Equal(x.CaseWithNumber, SlotWith(x.Paradigm, "Case") == SlotWith(x.Paradigm, "Number")));
+    }
+
+    [Fact]
+    public void GenerateParadigm_TamWithAgreement_DecidesWhetherTheyShareASlot()
+    {
+        var verbs = GeneratedLanguages.Sample.Select(l => (l.MorphologicalProfile.Exponence.TamWithAgreement, Paradigm: l.Paradigms.Verbs))
+            .Where(x => x.Paradigm.Categories.Has<Person>() && x.Paradigm.Categories.Any(c => c.Is<Tense>() || c.Is<Aspect>()))
+            .ToList();
+
+        Assert.Contains(verbs, x => x.TamWithAgreement);
+        Assert.All(verbs, x =>
+        {
+            //agreement fuses with whichever TAM category sits just inside it
+            var tam = x.Paradigm.Categories.Last(c => c.Is<Tense>() || c.Is<Aspect>()).Name;
+            Assert.Equal(x.TamWithAgreement, SlotWith(x.Paradigm, "Person") == SlotWith(x.Paradigm, tam));
+        });
+    }
+
+    [Fact]
+    public void Morphology_ReadsOffWhatTheParadigmsDo()
+    {
+        Assert.All(GeneratedLanguages.Sample, l =>
+        {
+            var multiCategory = l.Paradigms.All.SelectMany(p => p.Slots)
+                .Any(s => s.Categories.Count(c => !c.Is<Number>()) + (s.Categories.Has<Number>() && !s.Categories.Has<Person>() ? 1 : 0) > 1);
+            var expected = l.MorphologicalProfile.Fusion == Fusion.Isolating ? MorphologicalType.Analytic
+                : multiCategory ? MorphologicalType.Fusional
+                : MorphologicalType.Agglutinative;
+            Assert.Equal(expected, l.MorphologicalType);
+        });
+    }
+
+    [Fact]
+    public void GenerateParadigm_VerbAgreement_AlwaysFusesPersonAndNumber()
+    {
+        var agreementSlots = GeneratedLanguages.Sample
+            .SelectMany(l => l.Paradigms.Verbs.Slots)
+            .Where(s => s.Categories.Has<Person>())
+            .ToList();
+
+        Assert.NotEmpty(agreementSlots);
+        Assert.All(agreementSlots, s => Assert.Contains(s.Categories, c => c.Is<Number>()));
+    }
+
+    [Fact]
+    public void GenerateParadigm_GeneratedLanguages_HaveNoSingleValuedCategory()
+    {
+        var categories = GeneratedLanguages.Sample.SelectMany(l => l.Paradigms.All.SelectMany(p => p.Categories));
+
+        Assert.All(categories, c => Assert.True(c.Values.Count >= 2, $"{c.Name} has only {c.Values.Count} value"));
+    }
+
+    [Fact]
+    public void GenerateParadigm_GeneratedLanguages_KeepExponentsAlmostAlwaysDistinctWithinASlot()
+    {
+        //zero exponents are all alike on purpose, so only overt ones count
+        var slots = GeneratedLanguages.Sample.SelectMany(l => l.Paradigms.All.SelectMany(p => p.Slots))
+            .Select(s => s.Exponents.Where(e => e.Exponent.Form.Count > 0).ToList()).ToList();
+
+        //syncretism is allowed when the phonology runs out of distinct forms, which happens in big
+        //fused slots whose affixes are bare consonants, but it should stay rare
+        var exponents = slots.Sum(s => s.Count);
+        var repeats = slots.Sum(s => s.Count - s.Select(e => string.Join(" ", e.Exponent.Form.Select(p => p.IpaSymbol))).Distinct().Count());
+        Assert.True(repeats < exponents / 100.0, $"{repeats} of {exponents} exponents repeat a form in their slot");
+    }
+
+    [Fact]
+    public void SelectNounCategories_OnlyPeripheralCases_AddsADirectCase()
+    {
+        var categories = Generator.SelectNounCategories(new Random(0), MorphosyntacticAlignment.None, [Case.Dative]);
+
+        Assert.Equal(["DIR", "DAT"], categories.Single(c => c.Is<Case>()).Values.Select(v => v.Gloss));
+    }
+}

@@ -1,0 +1,689 @@
+﻿namespace LanguageGenerator.Tests;
+
+public class SoundChangeTests
+{
+    private static readonly Phoneme[] Ka = [Consonant.k, Vowel.a];
+
+    private static string Surface(SyllableTemplate template, SoundChange change, params Phoneme[][] morphemes) =>
+        string.Concat(TestData.Phonology(template, ClusterRepair.Epenthesis, change).Realize(TestData.Word(morphemes)).Phonemes.Select(p => p.IpaSymbol));
+
+    [Theory]
+    [InlineData("p", "f")]
+    [InlineData("b", "v")]
+    [InlineData("t", "θ")]
+    [InlineData("d", "ð")]
+    [InlineData("k", "x")]
+    [InlineData("g", "w")]
+    [InlineData("ʧ", "ʃ")]
+    [InlineData("ʤ", "ʒ")]
+    public void Lenition_BetweenVowels_WeakensAStop(string stop, string weakened)
+    {
+        var consonant = Consonant.All.Single(c => c.IpaSymbol == stop);
+
+        Assert.Equal($"ka{weakened}a", Surface(SyllableTemplates.CV, SoundChange.Lenition, [.. Ka, consonant, Vowel.a]));
+    }
+
+    [Fact]
+    public void Lenition_WithoutTheLikeliestSound_TakesTheNext()
+    {
+        List<Consonant> noθ = [.. Consonant.All.Where(c => c != Consonant.θ)];
+
+        var surface = TestData.Phonology(SyllableTemplates.CV, ClusterRepair.Epenthesis, noθ, SoundChange.Lenition).Realize(TestData.Word([Vowel.a, Consonant.t, Vowel.a]));
+
+        Assert.Equal("asa", string.Concat(surface.Phonemes.Select(p => p.IpaSymbol)));
+    }
+
+    [Fact]
+    public void NasalAssimilation_BeforeAVelar_GivesAVelarNasal()
+    {
+        Assert.Equal("kaŋka", Surface(SyllableTemplates.CVF, SoundChange.NasalAssimilation, [.. Ka, Consonant.n], Ka));
+    }
+
+    [Theory]
+    [InlineData(CodaRestriction.SingleNasal, "kanka")]
+    [InlineData(CodaRestriction.Nasals, "kaŋka")]
+    public void NasalAssimilation_WhereTheNewNasalCantCloseTheSyllable_KeepsTheOldOne(CodaRestriction codas, string expected)
+    {
+        //where only n can close a syllable, n before k stays n rather than becoming a ŋ that
+        //cluster repair would delete, which made kan-ka kaka
+        var phonology = TestData.Phonology(SyllableTemplates.CVF, ClusterRepair.Deletion, SoundChange.NasalAssimilation) with
+        {
+            SyllableRule = new SyllableRule(SyllableTemplates.CVF, TestData.Vowels, TestData.Consonants, codas),
+        };
+
+        Assert.Equal(expected, string.Concat(phonology.Realize(TestData.Word([.. Ka, Consonant.n], Ka)).Phonemes.Select(p => p.IpaSymbol)));
+    }
+
+    [Fact]
+    public void Realize_GeneratedLanguagesWithNasalAssimilation_NeverLoseANasalToIt()
+    {
+        //every nasal survives, assimilated or not. A nasal before another nasal can become its double
+        //and merge with it, as Latin in- + m- gave imm-, so roots with two nasals together are left out
+        bool IsNasal(Phoneme p) => p is Consonant { Manner: ConsonantManner.Nasal };
+        int Nasals(SurfaceForm form) => form.Phonemes.Count(IsNasal);
+        Assert.All(GeneratedLanguages.Sample.Where(l => l.Phonology.SoundChanges.Contains(SoundChange.NasalAssimilation)), l =>
+        {
+            var without = l.Phonology with { SoundChanges = [.. l.Phonology.SoundChanges.Where(c => c != SoundChange.NasalAssimilation)] };
+            var roots = l.Lexicon.Where(x => !x.Root.Form.Zip(x.Root.Form.Skip(1)).Any(pair => IsNasal(pair.First) && IsNasal(pair.Second)));
+            Assert.All(roots, x => Assert.Equal(Nasals(without.Realize(new Word([x.Root]))), Nasals(l.Phonology.Realize(new Word([x.Root])))));
+        });
+    }
+
+    [Fact]
+    public void Lenition_NotBetweenVowels_LeavesAStopAlone()
+    {
+        Assert.Equal("pat", Surface(SyllableTemplates.CVF, SoundChange.Lenition, [Consonant.p, Vowel.a, Consonant.t]));
+    }
+
+    [Fact]
+    public void Lenition_WithoutTheSoundInTheInventory_LeavesAStopAlone()
+    {
+        List<Consonant> noF = [.. Consonant.All.Where(c => c != Consonant.f)];
+
+        var surface = TestData.Phonology(SyllableTemplates.CV, ClusterRepair.Epenthesis, noF, SoundChange.Lenition).Realize(TestData.Word([Vowel.a, Consonant.p, Vowel.a]));
+
+        Assert.Equal("apa", string.Concat(surface.Phonemes.Select(p => p.IpaSymbol)));
+    }
+
+    [Theory]
+    [InlineData("p", "d", "bd")]
+    [InlineData("b", "t", "pt")]
+    [InlineData("s", "d", "zd")]
+    [InlineData("p", "t", "pt")]
+    [InlineData("p", "n", "pn")]
+    public void VoicingAssimilation_TakesTheVoicingOfTheObstruentAfter(string first, string second, string result)
+    {
+        Consonant Sound(string ipa) => Consonant.All.Single(c => c.IpaSymbol == ipa);
+
+        var surface = TestData.Phonology(SyllableTemplates.CVF, ClusterRepair.Deletion, SoundChange.VoicingAssimilation);
+        Morpheme morpheme = new Root([], "dog");
+        var changed = SoundChange.VoicingAssimilation.Apply([new(Vowel.a, morpheme), new(Sound(first), morpheme), new(Sound(second), morpheme), new(Vowel.a, morpheme)], surface);
+
+        Assert.Equal($"a{result}a", string.Concat(changed.Select(s => s.Phoneme.IpaSymbol)));
+    }
+
+    [Fact]
+    public void FinalDevoicing_DevoicesOnlyAtTheEndOfAWord()
+    {
+        Assert.Equal("dap", Surface(SyllableTemplates.CVF, SoundChange.FinalDevoicing, [Consonant.d, Vowel.a, Consonant.b]));
+        Assert.Equal("kaban", Surface(SyllableTemplates.CVF, SoundChange.FinalDevoicing, [.. Ka, Consonant.b, Vowel.a, Consonant.n]));
+    }
+
+    [Fact]
+    public void VowelElision_AtAMorphemeBoundary_LosesTheFirstVowel()
+    {
+        Assert.Equal("ki", Surface(SyllableTemplates.CV, SoundChange.VowelElision, Ka, [Vowel.i]));
+        //within a morpheme, the vowels stay
+        Assert.Equal("kaai", Surface(SyllableTemplates.CV, SoundChange.VowelElision, [.. Ka, Vowel.a, Vowel.i]));
+    }
+
+    [Fact]
+    public void VowelElision_OfAWholeMorpheme_LeavesItEmptyInTheSegmentation()
+    {
+        var surface = TestData.Phonology(SyllableTemplates.CV, ClusterRepair.Epenthesis, SoundChange.VowelElision).Realize(TestData.Word(Ka, [Vowel.a], [Vowel.i]));
+
+        Assert.Equal("ki", string.Concat(surface.Phonemes.Select(p => p.IpaSymbol)));
+        Assert.Contains("∅", surface.Segmented(Orthography.Ipa));
+    }
+
+    [Theory]
+    [InlineData("a", "aː")]
+    [InlineData("e", "eː")]
+    [InlineData("i", "iː")]
+    [InlineData("o", "oː")]
+    [InlineData("u", "uː")]
+    [InlineData("æ", null)]
+    [InlineData("ɛ", null)]
+    [InlineData("ɔ", null)]
+    [InlineData("ə", null)]
+    [InlineData("aː", null)]
+    public void Lengthened_GivesTheSameVowelHeldLonger(string vowel, string? lengthened)
+    {
+        Assert.Equal(lengthened, Vowel.All.Single(v => v.IpaSymbol == vowel).Lengthened?.IpaSymbol);
+    }
+
+    private static string Contracted(IReadOnlyList<Vowel> vowels, params Phoneme[][] morphemes)
+    {
+        var phonology = TestData.Phonology(SyllableTemplates.CV, ClusterRepair.Epenthesis, SoundChange.VowelCoalescence) with { Vowels = [.. vowels] };
+
+        return string.Concat(phonology.Realize(TestData.Word(morphemes)).Phonemes.Select(p => p.IpaSymbol));
+    }
+
+    [Theory]
+    [InlineData("a", "a", "aː")]
+    [InlineData("a", "i", "eː")]
+    [InlineData("i", "a", "eː")]
+    [InlineData("a", "u", "oː")]
+    [InlineData("e", "o", "oː")]
+    [InlineData("o", "e", "oː")]
+    [InlineData("a", "e", "ɛ")]
+    [InlineData("a", "aː", "aː")]
+    [InlineData("ə", "a", "a")]
+    [InlineData("a", "ə", "a")]
+    [InlineData("ə", "ə", "ə")]
+    public void VowelCoalescence_MergesVowelsThatMeet(string first, string second, string merged)
+    {
+        Vowel Sound(string ipa) => Vowel.All.Single(v => v.IpaSymbol == ipa);
+
+        Assert.Equal($"k{merged}", Contracted(Vowel.All, [Consonant.k, Sound(first)], [Sound(second)]));
+    }
+
+    [Fact]
+    public void VowelCoalescence_WithinAMorpheme_MergesToo()
+    {
+        Assert.Equal("keː", Contracted(Vowel.All, [.. Ka, Vowel.i]));
+    }
+
+    [Fact]
+    public void VowelCoalescence_OfThreeVowels_LeavesOne()
+    {
+        Assert.Equal("kaː", Contracted(Vowel.All, [.. Ka, Vowel.a, Vowel.a]));
+    }
+
+    [Fact]
+    public void VowelCoalescence_WithoutLongVowels_KeepsTheShortOne()
+    {
+        Assert.Equal("ka", Contracted([Vowel.a, Vowel.i, Vowel.u], Ka, [Vowel.a]));
+    }
+
+    [Fact]
+    public void VowelCoalescence_WithoutTheHalfwayVowel_TakesTheNearest()
+    {
+        Assert.Equal("ki", Contracted([Vowel.i, Vowel.a, Vowel.u], [Consonant.k, Vowel.i], [Vowel.a]));
+    }
+
+    [Fact]
+    public void VowelCoalescence_LeavesVowelsApartAlone()
+    {
+        Assert.Equal("kala", Contracted(Vowel.All, Ka, [Consonant.l, Vowel.a]));
+    }
+
+    [Fact]
+    public void VowelCoalescence_OfAWholeSuffix_LeavesItEmptyInTheSegmentation()
+    {
+        var surface = TestData.Phonology(SyllableTemplates.CV, ClusterRepair.Epenthesis, SoundChange.VowelCoalescence).Realize(TestData.Word(Ka, [Vowel.i]));
+
+        Assert.Contains("∅", surface.Segmented(Orthography.Ipa));
+    }
+
+    //coalescence merges whatever glide formation leaves, and a language only inserts a glottal
+    //consonant if it has one, so in either, vowels never meet
+    [Theory]
+    [InlineData("coalescence")]
+    [InlineData("glottal insertion")]
+    public void Generate_LanguagesWithCoalescenceOrGlottalInsertion_NeverLetVowelsMeet(string strategy)
+    {
+        var change = strategy == "coalescence" ? SoundChange.VowelCoalescence : SoundChange.GlottalInsertion;
+        var resolving = GeneratedLanguages.Sample.Where(l => l.Phonology.SoundChanges.Contains(change)).ToList();
+
+        Assert.NotEmpty(resolving);
+        Assert.All(resolving, l => Assert.All(GeneratedLanguages.AllWords(l).Select(l.Phonology.Realize), surface =>
+        {
+            var phonemes = surface.Phonemes.ToList();
+            Assert.DoesNotContain(Enumerable.Range(1, phonemes.Count - 1), i => phonemes[i] is Vowel && phonemes[i - 1] is Vowel);
+        }));
+    }
+
+    //p voices to b, and then b weakens to v, so one change feeds the next
+    [Fact]
+    public void Realize_ChangesInOrder_CanFeedEachOther()
+    {
+        var phonology = TestData.Phonology(SyllableTemplates.CV, ClusterRepair.Epenthesis, SoundChange.IntervocalicVoicing, SoundChange.Lenition);
+
+        Assert.Equal("ava", string.Concat(phonology.Realize(TestData.Word([Vowel.a, Consonant.p, Vowel.a])).Phonemes.Select(p => p.IpaSymbol)));
+    }
+
+    [Fact]
+    public void Generate_AnyLanguage_OnlyDevoicesFinallyIfSyllablesCanEndInAConsonant()
+    {
+        Assert.All(GeneratedLanguages.Sample.Where(l => l.Phonology.SoundChanges.Contains(SoundChange.FinalDevoicing)),
+            l => Assert.Contains(l.Phonology.SyllableRule.Template.Slots, s => s is Slot.Final));
+    }
+
+    [Fact]
+    public void SelectSoundChanges_ManyDraws_EachComeUp()
+    {
+        var rand = new Random(1);
+        var rule = new SyllableRule(SyllableTemplates.CVF, TestData.Vowels, TestData.Consonants);
+        var drawn = Enumerable.Range(0, 2000).SelectMany(_ => Generator.SelectSoundChanges(rand, rule, TestData.Vowels)).ToList();
+
+        Assert.InRange(drawn.Count(c => c == SoundChange.Lenition) / 2000.0, 0.22, 0.28);
+        Assert.InRange(drawn.Count(c => c == SoundChange.VoicingAssimilation) / 2000.0, 0.27, 0.33);
+        Assert.InRange(drawn.Count(c => c == SoundChange.FinalDevoicing) / 2000.0, 0.27, 0.33);
+        Assert.InRange(drawn.Count(c => c == SoundChange.VowelElision) / 2000.0, 0.27, 0.33);
+        Assert.InRange(drawn.Count(c => c == SoundChange.VowelCoalescence) / 2000.0, 0.12, 0.18);
+        Assert.InRange(drawn.Count(c => c == SoundChange.GreekContraction) / 2000.0, 0.09, 0.15);
+        Assert.InRange(drawn.Count(c => c == SoundChange.GlideInsertion) / 2000.0, 0.09, 0.15);
+        Assert.InRange(drawn.Count(c => c == SoundChange.GlottalInsertion) / 2000.0, 0.06, 0.10);
+        //always with coalescence, and 40% of the time otherwise
+        Assert.InRange(drawn.Count(c => c == SoundChange.GlideFormation) / 2000.0, 0.15 + 0.85 * 0.4 - 0.04, 0.15 + 0.85 * 0.4 + 0.04);
+        Assert.InRange(drawn.Count(c => c == SoundChange.FrontBackHarmony) / 2000.0, 0.13, 0.17);
+        Assert.InRange(drawn.Count(c => c == SoundChange.TongueRootHarmony) / 2000.0, 0.06, 0.10);
+    }
+
+    [Fact]
+    public void SelectSoundChanges_WithoutVowelsToPair_DrawsNoHarmony()
+    {
+        var rand = new Random(1);
+        var rule = new SyllableRule(SyllableTemplates.CVF, TestData.Vowels, TestData.Consonants);
+        var drawn = Enumerable.Range(0, 2000).SelectMany(_ => Generator.SelectSoundChanges(rand, rule, [Vowel.a, Vowel.i, Vowel.ə])).ToList();
+
+        Assert.DoesNotContain(SoundChange.FrontBackHarmony, drawn);
+        Assert.DoesNotContain(SoundChange.TongueRootHarmony, drawn);
+    }
+
+    private static readonly SoundChange[] MainHiatusResolutions =
+        [SoundChange.VowelElision, SoundChange.VowelCoalescence, SoundChange.GreekContraction, SoundChange.GlideInsertion, SoundChange.GlottalInsertion];
+
+    [Fact]
+    public void Generate_AnyLanguage_ResolvesHiatusAfterHarmonyAndFusionAndGlidesBeforeTheRest()
+    {
+        Assert.All(GeneratedLanguages.Sample, l =>
+        {
+            var changes = l.Phonology.SoundChanges.ToList();
+            var fusion = changes.IndexOf(SoundChange.IdenticalVowelFusion);
+            var glides = changes.IndexOf(SoundChange.GlideFormation);
+            var main = MainHiatusResolutions.Select(c => changes.IndexOf(c)).Max();
+            Assert.True(fusion > changes.IndexOf(SoundChange.FrontBackHarmony) && fusion > changes.IndexOf(SoundChange.TongueRootHarmony));
+            Assert.True(glides < 0 || glides > fusion);
+            Assert.True(main < 0 || main > Math.Max(fusion, glides));
+        });
+    }
+
+    [Fact]
+    public void Generate_AnyLanguage_HasAtMostOneMainWayWithVowelsThatMeet()
+    {
+        Assert.All(GeneratedLanguages.Sample, l => Assert.True(MainHiatusResolutions.Count(l.Phonology.SoundChanges.Contains) <= 1));
+    }
+
+    [Fact]
+    public void Generate_LanguagesWithCoalescence_AlwaysFormGlidesFirst()
+    {
+        Assert.All(GeneratedLanguages.Sample.Where(l => l.Phonology.SoundChanges.Contains(SoundChange.VowelCoalescence)
+                && l.Phonology.Consonants.Any(c => c == Consonant.j || c == Consonant.w)),
+            l => Assert.Contains(SoundChange.GlideFormation, l.Phonology.SoundChanges));
+    }
+
+    [Fact]
+    public void GlideFormation_CloseVowelBeforeAnother_BecomesAGlideWhereTheSyllableAllowsIt()
+    {
+        //CLV lets k come before j; CV has room for only one consonant, so the i stays
+        Assert.Equal("kja", Surface(SyllableTemplates.CLV, SoundChange.GlideFormation, [Consonant.k, Vowel.i], [Vowel.a]));
+        Assert.Equal("kwe", Surface(SyllableTemplates.CLV, SoundChange.GlideFormation, [Consonant.k, Vowel.u], [Vowel.e]));
+        Assert.Equal("kia", Surface(SyllableTemplates.CV, SoundChange.GlideFormation, [Consonant.k, Vowel.i], [Vowel.a]));
+        //after a vowel, the glide starts the syllable alone
+        Assert.Equal("ajo", Surface(SyllableTemplates.CV, SoundChange.GlideFormation, [Vowel.a, Vowel.i], [Vowel.o]));
+        //before a consonant, nothing happens
+        Assert.Equal("kita", Surface(SyllableTemplates.CLV, SoundChange.GlideFormation, [Consonant.k, Vowel.i], [Consonant.t, Vowel.a]));
+    }
+
+    [Fact]
+    public void GlideFormation_AtTheStartOfAWord_NeedsTheWholeClusterToBeAnOnset()
+    {
+        //m can't come before w, and with nothing before it, m can't close a syllable instead
+        Assert.Equal("mua", Surface(SyllableTemplates.CLVF, SoundChange.GlideFormation, [Consonant.m, Vowel.u], [Vowel.a]));
+        //after a vowel it can, so the w starts the next syllable
+        Assert.Equal("amwa", Surface(SyllableTemplates.CLVF, SoundChange.GlideFormation, [Vowel.a, Consonant.m, Vowel.u], [Vowel.a]));
+    }
+
+    [Theory]
+    [InlineData("a", "e", "aː")]
+    [InlineData("e", "a", "eː")]
+    [InlineData("e", "o", "oː")]
+    [InlineData("a", "o", "oː")]
+    [InlineData("o", "a", "oː")]
+    [InlineData("ə", "a", "aː")]
+    public void GreekContraction_NonCloseVowels_MergeIntoTheRoundedOrTheFirst(string first, string second, string merged)
+    {
+        Vowel Sound(string ipa) => Vowel.All.Single(v => v.IpaSymbol == ipa);
+
+        Assert.Equal($"k{merged}", Surface(SyllableTemplates.CV, SoundChange.GreekContraction, [Consonant.k, Sound(first)], [Sound(second)]));
+    }
+
+    [Fact]
+    public void GreekContraction_CloseVowels_DontContract()
+    {
+        Assert.Equal("kai", Surface(SyllableTemplates.CV, SoundChange.GreekContraction, Ka, [Vowel.i]));
+        Assert.Equal("kia", Surface(SyllableTemplates.CV, SoundChange.GreekContraction, [Consonant.k, Vowel.i], [Vowel.a]));
+    }
+
+    [Theory]
+    [InlineData("i", "a", "kija")]
+    [InlineData("e", "o", "kejo")]
+    [InlineData("u", "a", "kuwa")]
+    [InlineData("o", "e", "kowe")]
+    [InlineData("a", "o", "kawo")]
+    [InlineData("a", "e", "kaje")]
+    public void GlideInsertion_PutsTheGlideThatGoesWithTheFirstVowelBetween(string first, string second, string expected)
+    {
+        Vowel Sound(string ipa) => Vowel.All.Single(v => v.IpaSymbol == ipa);
+
+        Assert.Equal(expected, Surface(SyllableTemplates.CV, SoundChange.GlideInsertion, [Consonant.k, Sound(first)], [Sound(second)]));
+    }
+
+    [Fact]
+    public void GlottalInsertion_PutsAGlottalStopBetweenOrHWithoutOne()
+    {
+        Assert.Equal("kaʔi", Surface(SyllableTemplates.CV, SoundChange.GlottalInsertion, Ka, [Vowel.i]));
+
+        List<Consonant> noʔ = [.. Consonant.All.Where(c => c != Consonant.ʔ)];
+        var phonology = TestData.Phonology(SyllableTemplates.CV, ClusterRepair.Epenthesis, noʔ, SoundChange.GlottalInsertion);
+        Assert.Equal("kahi", string.Concat(phonology.Realize(TestData.Word(Ka, [Vowel.i])).Phonemes.Select(p => p.IpaSymbol)));
+    }
+
+    [Fact]
+    public void GlottalInsertion_TheInsertedConsonant_BelongsToTheMorphemeAfterIt()
+    {
+        var surface = TestData.Phonology(SyllableTemplates.CV, ClusterRepair.Epenthesis, SoundChange.GlottalInsertion).Realize(TestData.Word(Ka, [Vowel.i]));
+
+        Assert.Equal("ka-ʔi", surface.Segmented(Orthography.Ipa));
+        Assert.Equal("ka.ʔi", surface.Syllabified(Orthography.Ipa));
+    }
+
+    //a change that depends on syllables, applied to a word of one morpheme in a CVF language
+    private static SurfaceForm Syllabic(SoundChange change, params Phoneme[] sounds) =>
+        (TestData.Phonology(SyllableTemplates.CVF, ClusterRepair.Epenthesis) with { SyllableChanges = [change] }).Realize(TestData.Word(sounds));
+
+    private static string Sounds(SurfaceForm form) => string.Concat(form.Phonemes.Select(p => p.IpaSymbol));
+
+    [Fact]
+    public void CodaDevoicing_DevoicesAtTheEndOfAnySyllable()
+    {
+        Assert.Equal("tak", Sounds(Syllabic(SoundChange.CodaDevoicing, Consonant.t, Vowel.a, Consonant.g)));
+        Assert.Equal("takma", Sounds(Syllabic(SoundChange.CodaDevoicing, Consonant.t, Vowel.a, Consonant.g, Consonant.m, Vowel.a)));
+    }
+
+    [Fact]
+    public void CodaDevoicing_LeavesAnOnsetAlone()
+    {
+        Assert.Equal("taga", Sounds(Syllabic(SoundChange.CodaDevoicing, Consonant.t, Vowel.a, Consonant.g, Vowel.a)));
+    }
+
+    //a suffix's vowel makes the g an onset, as German Tage does
+    [Fact]
+    public void CodaDevoicing_AcrossAMorphemeBoundary_GoesBySyllablesNotMorphemes()
+    {
+        var phonology = TestData.Phonology(SyllableTemplates.CVF, ClusterRepair.Epenthesis) with { SyllableChanges = [SoundChange.CodaDevoicing] };
+
+        Assert.Equal("taga", Sounds(phonology.Realize(TestData.Word([Consonant.t, Vowel.a, Consonant.g], [Vowel.a]))));
+    }
+
+    [Fact]
+    public void CodaWeakening_WeakensAnSClosingASyllable()
+    {
+        Assert.Equal("pah", Sounds(Syllabic(SoundChange.CodaWeakening, Consonant.p, Vowel.a, Consonant.s)));
+        Assert.Equal("pahta", Sounds(Syllabic(SoundChange.CodaWeakening, Consonant.p, Vowel.a, Consonant.s, Consonant.t, Vowel.a)));
+        Assert.Equal("pasa", Sounds(Syllabic(SoundChange.CodaWeakening, Consonant.p, Vowel.a, Consonant.s, Vowel.a)));
+    }
+
+    [Fact]
+    public void CodaWeakening_WithoutH_LeavesTheSAlone()
+    {
+        List<Consonant> noH = [.. Consonant.All.Where(c => c != Consonant.h)];
+        var phonology = TestData.Phonology(SyllableTemplates.CVF, ClusterRepair.Epenthesis, noH) with { SyllableChanges = [SoundChange.CodaWeakening] };
+
+        Assert.Equal("pas", Sounds(phonology.Realize(TestData.Word([Consonant.p, Vowel.a, Consonant.s]))));
+    }
+
+    [Fact]
+    public void ClosedSyllableLaxing_OpensAVowelOnlyInAClosedSyllable()
+    {
+        Assert.Equal("pɛt", Sounds(Syllabic(SoundChange.ClosedSyllableLaxing, Consonant.p, Vowel.e, Consonant.t)));
+        Assert.Equal("kɔl", Sounds(Syllabic(SoundChange.ClosedSyllableLaxing, Consonant.k, Vowel.o, Consonant.l)));
+        Assert.Equal("peta", Sounds(Syllabic(SoundChange.ClosedSyllableLaxing, Consonant.p, Vowel.e, Consonant.t, Vowel.a)));
+    }
+
+    [Fact]
+    public void ClosedSyllableLaxing_WithoutTheOpenVowel_LeavesTheVowelAlone()
+    {
+        var phonology = (TestData.Phonology(SyllableTemplates.CVF, ClusterRepair.Epenthesis) with { Vowels = [Vowel.a, Vowel.e], SyllableChanges = [SoundChange.ClosedSyllableLaxing] });
+
+        Assert.Equal("pet", Sounds(phonology.Realize(TestData.Word([Consonant.p, Vowel.e, Consonant.t]))));
+    }
+
+    //the surface form's syllables are the ones after the change, not before it
+    [Fact]
+    public void Realize_SyllableChanges_LeaveSyllablesThatMatchTheSounds()
+    {
+        var form = Syllabic(SoundChange.CodaDevoicing, Consonant.t, Vowel.a, Consonant.g, Consonant.m, Vowel.a);
+
+        Assert.Equal(Consonant.k, form.Syllables[0].Coda);
+        Assert.Equal("tak.ma", form.Syllabified(Orthography.Ipa));
+    }
+
+    //in a language with no codas, an epenthetic vowel leaves the g an onset by the time the change runs
+    [Fact]
+    public void Realize_SyllableChanges_SeeTheWordAfterRepair()
+    {
+        var form = (TestData.Phonology(SyllableTemplates.CV, ClusterRepair.Epenthesis) with { SyllableChanges = [SoundChange.CodaDevoicing] })
+            .Realize(TestData.Word([Consonant.t, Vowel.a, Consonant.g]));
+
+        Assert.Contains(Consonant.g, form.Phonemes);
+    }
+
+    [Fact]
+    public void SelectSyllableChanges_ManyDraws_EachComeUp()
+    {
+        var rand = new Random(1);
+        var rule = new SyllableRule(SyllableTemplates.CVF, TestData.Vowels, TestData.Consonants);
+        var drawn = Enumerable.Range(0, 3000).SelectMany(_ => Generator.SelectSyllableChanges(rand, rule, TestData.Vowels, SyllableContact.NoRise)).ToList();
+
+        Assert.InRange(drawn.Count(c => c == SoundChange.CodaDevoicing) / 3000.0, 0.17, 0.23);
+        Assert.InRange(drawn.Count(c => c == SoundChange.CodaWeakening) / 3000.0, 0.13, 0.17);
+        Assert.InRange(drawn.Count(c => c == SoundChange.ClosedSyllableLaxing) / 3000.0, 0.13, 0.17);
+        Assert.InRange(drawn.Count(c => c == SoundChange.CompensatoryLengthening) / 3000.0, 0.10, 0.14);
+    }
+
+    [Fact]
+    public void SelectSyllableChanges_WithoutLongVowels_NeverLengthens()
+    {
+        var rand = new Random(1);
+        var rule = new SyllableRule(SyllableTemplates.CVF, TestData.Vowels, TestData.Consonants);
+
+        Assert.DoesNotContain(SoundChange.CompensatoryLengthening,
+            Enumerable.Range(0, 500).SelectMany(_ => Generator.SelectSyllableChanges(rand, rule, [Vowel.a, Vowel.i], SyllableContact.NoRise)));
+    }
+
+    [Fact]
+    public void CompensatoryLengthening_LosesTheCodaAndLengthensTheVowel()
+    {
+        Assert.Equal("kaː", Sounds(Syllabic(SoundChange.CompensatoryLengthening, Consonant.k, Vowel.a, Consonant.ɹ)));
+        Assert.Equal("teːta", Sounds(Syllabic(SoundChange.CompensatoryLengthening, Consonant.t, Vowel.e, Consonant.s, Consonant.t, Vowel.a)));
+        Assert.Equal("koː", Sounds(Syllabic(SoundChange.CompensatoryLengthening, Consonant.k, Vowel.o, Consonant.h)));
+    }
+
+    [Fact]
+    public void CompensatoryLengthening_LeavesAnOnsetAndOtherCodasAlone()
+    {
+        Assert.Equal("kaɹa", Sounds(Syllabic(SoundChange.CompensatoryLengthening, Consonant.k, Vowel.a, Consonant.ɹ, Vowel.a)));
+        Assert.Equal("kat", Sounds(Syllabic(SoundChange.CompensatoryLengthening, Consonant.k, Vowel.a, Consonant.t)));
+    }
+
+    [Fact]
+    public void CompensatoryLengthening_AfterAVowelThatCantLengthen_KeepsTheCoda()
+    {
+        Assert.Equal("kaːɹ", Sounds(Syllabic(SoundChange.CompensatoryLengthening, Consonant.k, Vowel.aː, Consonant.ɹ)));
+        Assert.Equal("kəɹ", Sounds(Syllabic(SoundChange.CompensatoryLengthening, Consonant.k, Vowel.ə, Consonant.ɹ)));
+    }
+
+    [Fact]
+    public void CompensatoryLengthening_WithoutTheLongVowel_KeepsBothHalves()
+    {
+        var phonology = TestData.Phonology(SyllableTemplates.CVF, ClusterRepair.Epenthesis) with { Vowels = [Vowel.a, Vowel.i], SyllableChanges = [SoundChange.CompensatoryLengthening] };
+
+        Assert.Equal("kaɹ", Sounds(phonology.Realize(TestData.Word([Consonant.k, Vowel.a, Consonant.ɹ]))));
+    }
+
+    [Fact]
+    public void CompensatoryLengthening_OfAWholeSuffix_LeavesItEmpty()
+    {
+        var phonology = TestData.Phonology(SyllableTemplates.CVF, ClusterRepair.Epenthesis) with { SyllableChanges = [SoundChange.CompensatoryLengthening] };
+
+        Assert.Equal("kaː-∅", phonology.Realize(TestData.Word([Consonant.k, Vowel.a], [Consonant.ɹ])).Segmented(Orthography.Ipa));
+    }
+
+    [Fact]
+    public void CompensatoryLengthening_AfterCodaWeakening_IsFedByIt()
+    {
+        var phonology = TestData.Phonology(SyllableTemplates.CVF, ClusterRepair.Epenthesis) with { SyllableChanges = [SoundChange.CodaWeakening, SoundChange.CompensatoryLengthening] };
+
+        Assert.Equal("kaː", Sounds(phonology.Realize(TestData.Word([Consonant.k, Vowel.a, Consonant.s]))));
+    }
+
+    [Fact]
+    public void FrontBackHarmony_LongVowels_HarmonizeToo()
+    {
+        Assert.Equal("keːleː", Surface(SyllableTemplates.CV, SoundChange.FrontBackHarmony, [Consonant.k, Vowel.eː], [Consonant.l, Vowel.oː]));
+        Assert.Equal("kuːluː", Surface(SyllableTemplates.CV, SoundChange.FrontBackHarmony, [Consonant.k, Vowel.uː], [Consonant.l, Vowel.iː]));
+    }
+
+    [Fact]
+    public void FrontBackHarmony_IAndU_ArePartners()
+    {
+        Assert.Equal("kili", Surface(SyllableTemplates.CV, SoundChange.FrontBackHarmony, [Consonant.k, Vowel.i], [Consonant.l, Vowel.u]));
+        Assert.Equal("kulu", Surface(SyllableTemplates.CV, SoundChange.FrontBackHarmony, [Consonant.k, Vowel.u], [Consonant.l, Vowel.i]));
+    }
+
+    [Fact]
+    public void CompensatoryLengthening_OfU_GivesItsLongForm()
+    {
+        Assert.Equal("kuː", Sounds(Syllabic(SoundChange.CompensatoryLengthening, Consonant.k, Vowel.u, Consonant.ɹ)));
+    }
+
+    [Fact]
+    public void SelectSyllableChanges_WithoutCodas_DrawsNoneThatNeedThem()
+    {
+        var rand = new Random(1);
+        var rule = new SyllableRule(SyllableTemplates.CV, TestData.Vowels, TestData.Consonants);
+        SoundChange[] needCodas = [SoundChange.CodaDevoicing, SoundChange.CodaWeakening, SoundChange.CompensatoryLengthening, SoundChange.ClosedSyllableLaxing, SoundChange.Syncope];
+
+        var drawn = Enumerable.Range(0, 500).SelectMany(_ => Generator.SelectSyllableChanges(rand, rule, TestData.Vowels, SyllableContact.NoRise)).ToList();
+
+        Assert.DoesNotContain(drawn, needCodas.Contains);
+        //the changes that follow stress need no codas
+        Assert.Contains(SoundChange.UnstressedReduction, drawn);
+    }
+
+    [Fact]
+    public void SelectSyllableChanges_WithSonorantCodas_LaxesButNeverDevoices()
+    {
+        var rand = new Random(1);
+        var rule = new SyllableRule(SyllableTemplates.CVF, TestData.Vowels, TestData.Consonants, CodaRestriction.Sonorants);
+        var drawn = Enumerable.Range(0, 500).SelectMany(_ => Generator.SelectSyllableChanges(rand, rule, TestData.Vowels, SyllableContact.NoRise)).ToList();
+
+        Assert.Contains(SoundChange.ClosedSyllableLaxing, drawn);
+        Assert.DoesNotContain(SoundChange.CodaDevoicing, drawn);
+        Assert.DoesNotContain(SoundChange.CodaWeakening, drawn);
+    }
+
+    [Fact]
+    public void IdenticalVowelFusion_SameVowelTwice_MergesIntoTheLongVowel()
+    {
+        Assert.Equal("kaː", Surface(SyllableTemplates.CV, SoundChange.IdenticalVowelFusion, Ka, [Vowel.a]));
+        Assert.Equal("kaː", Surface(SyllableTemplates.CV, SoundChange.IdenticalVowelFusion, Ka, [Vowel.aː]));
+        Assert.Equal("kaː", Surface(SyllableTemplates.CV, SoundChange.IdenticalVowelFusion, Ka, [Vowel.a, Vowel.a]));
+        Assert.Equal("liuː", Surface(SyllableTemplates.CV, SoundChange.IdenticalVowelFusion, [Consonant.l, Vowel.i, Vowel.u], [Vowel.u]));
+    }
+
+    [Fact]
+    public void IdenticalVowelFusion_WithoutLongVowels_LeavesOneShortVowel()
+    {
+        var phonology = TestData.Phonology(SyllableTemplates.CV, ClusterRepair.Epenthesis, SoundChange.IdenticalVowelFusion) with { Vowels = [Vowel.a, Vowel.i, Vowel.u] };
+
+        Assert.Equal("ka", string.Concat(phonology.Realize(TestData.Word(Ka, [Vowel.a])).Phonemes.Select(p => p.IpaSymbol)));
+    }
+
+    [Fact]
+    public void IdenticalVowelFusion_DifferentVowels_AreLeftAlone()
+    {
+        Assert.Equal("kai", Surface(SyllableTemplates.CV, SoundChange.IdenticalVowelFusion, Ka, [Vowel.i]));
+    }
+
+    [Fact]
+    public void Lenition_AspiratesBetweenVowels_BecomeFricativesAsInGreek()
+    {
+        Assert.Equal("afa", Surface(SyllableTemplates.CV, SoundChange.Lenition, [Vowel.a, Consonant.pʰ, Vowel.a]));
+        Assert.Equal("axa", Surface(SyllableTemplates.CV, SoundChange.Lenition, [Vowel.a, Consonant.kʰ, Vowel.a]));
+    }
+
+    [Fact]
+    public void IntervocalicVoicing_Aspirate_KeepsItsAspirationAndHasNoVoicedCounterpart()
+    {
+        Assert.Equal("apʰa", Surface(SyllableTemplates.CV, SoundChange.IntervocalicVoicing, [Vowel.a, Consonant.pʰ, Vowel.a]));
+    }
+
+    [Fact]
+    public void FinalDevoicing_LabializedVelar_StaysLabialized()
+    {
+        Assert.Equal("akʷ", Surface(SyllableTemplates.CVF, SoundChange.FinalDevoicing, [Vowel.a, Consonant.gʷ]).Replace("ə", ""));
+    }
+
+    private static readonly Phoneme[] La = [Consonant.l, Vowel.a];
+    private static readonly Phoneme[] Læ = [Consonant.l, Vowel.æ];
+
+    [Fact]
+    public void FrontBackHarmony_SuffixTakesTheRootsSide()
+    {
+        Assert.Equal("kælæ", Surface(SyllableTemplates.CV, SoundChange.FrontBackHarmony, [Consonant.k, Vowel.æ], La));
+        Assert.Equal("kala", Surface(SyllableTemplates.CV, SoundChange.FrontBackHarmony, Ka, Læ));
+        Assert.Equal("kele", Surface(SyllableTemplates.CV, SoundChange.FrontBackHarmony, [Consonant.k, Vowel.e], [Consonant.l, Vowel.o]));
+    }
+
+    [Fact]
+    public void FrontBackHarmony_RootsFirstHarmonizingVowel_RulesTheRootToo()
+    {
+        Assert.Equal("kala", Surface(SyllableTemplates.CV, SoundChange.FrontBackHarmony, [.. Ka, .. Læ]));
+    }
+
+    [Fact]
+    public void FrontBackHarmony_NeutralVowels_StayAndLetItPass()
+    {
+        //ə has no partner, so it doesn't change, and doesn't stop a from deciding the word
+        Assert.Equal("kəlala", Surface(SyllableTemplates.CV, SoundChange.FrontBackHarmony, [Consonant.k, Vowel.ə, .. La], Læ));
+        Assert.Equal("kalə", Surface(SyllableTemplates.CV, SoundChange.FrontBackHarmony, Ka, [Consonant.l, Vowel.ə]));
+        //with only neutral vowels in the root, nothing decides the word
+        Assert.Equal("kəlæ", Surface(SyllableTemplates.CV, SoundChange.FrontBackHarmony, [Consonant.k, Vowel.ə], Læ));
+    }
+
+    [Fact]
+    public void FrontBackHarmony_Prefix_AgreesWithTheRootToo()
+    {
+        var word = new Word([new Affix([Consonant.l, Vowel.æ], [Number.Plural]), new Root(Ka, "dog")]);
+        var phonology = TestData.Phonology(SyllableTemplates.CV, ClusterRepair.Epenthesis, SoundChange.FrontBackHarmony);
+
+        Assert.Equal("laka", string.Concat(phonology.Realize(word).Phonemes.Select(p => p.IpaSymbol)));
+    }
+
+    [Fact]
+    public void FrontBackHarmony_WithoutThePartnerInTheInventory_LeavesTheVowelAlone()
+    {
+        var phonology = TestData.Phonology(SyllableTemplates.CV, ClusterRepair.Epenthesis, SoundChange.FrontBackHarmony) with { Vowels = [Vowel.a, Vowel.e] };
+
+        //a is on the back side, but this language has no o for e to become
+        Assert.Equal("kale", string.Concat(phonology.Realize(TestData.Word(Ka, [Consonant.l, Vowel.e])).Phonemes.Select(p => p.IpaSymbol)));
+    }
+
+    [Fact]
+    public void TongueRootHarmony_SuffixTakesTheRootsSide()
+    {
+        Assert.Equal("kele", Surface(SyllableTemplates.CV, SoundChange.TongueRootHarmony, [Consonant.k, Vowel.e], [Consonant.l, Vowel.ɛ]));
+        Assert.Equal("kɔlɛ", Surface(SyllableTemplates.CV, SoundChange.TongueRootHarmony, [Consonant.k, Vowel.ɔ], [Consonant.l, Vowel.e]));
+    }
+
+    [Fact]
+    public void Harmony_WordWithNoRoot_IsLeftAlone()
+    {
+        var word = new Word([new Particle([Consonant.l, Vowel.æ, Consonant.l, Vowel.a], [Number.Plural])]);
+        var phonology = TestData.Phonology(SyllableTemplates.CV, ClusterRepair.Epenthesis, SoundChange.FrontBackHarmony);
+
+        Assert.Equal("læla", string.Concat(phonology.Realize(word).Phonemes.Select(p => p.IpaSymbol)));
+    }
+
+    [Fact]
+    public void Harmony_InASegmentedWord_ShowsOnEachMorpheme()
+    {
+        var phonology = TestData.Phonology(SyllableTemplates.CV, ClusterRepair.Epenthesis, SoundChange.FrontBackHarmony);
+
+        Assert.Equal("kæ-læ", phonology.Realize(TestData.Word([Consonant.k, Vowel.æ], La)).Segmented(Orthography.Ipa));
+    }
+}

@@ -1,50 +1,31 @@
 ﻿namespace LanguageGenerator;
 
-public class Morpheme
+//forms are underlying: the phonemes before sandhi applies at morpheme boundaries
+
+/// <summary>A free morpheme with its own meaning, glossed by that meaning.</summary>
+public record Root(IReadOnlyList<Phoneme> Form, string Meaning);
+/// <summary>A bound morpheme expressing one or more grammemes. Several make it fusional.</summary>
+public record Affix(IReadOnlyList<Phoneme> Form, IReadOnlyList<Grammeme> Grammemes);
+/// <summary>A free morpheme expressing grammemes, standing as a word of its own.</summary>
+public record Particle(IReadOnlyList<Phoneme> Form, IReadOnlyList<Grammeme> Grammemes);
+
+public union Morpheme(Root, Affix, Particle)
 {
-    public MorphemeType Type { get; set; }
-    //n.b. when this collides with other sounds, weird things happen!
-    public List<Phoneme> IsolatedMorpheme { get; set; }
+    public IReadOnlyList<Phoneme> Form => this switch
+    {
+        Root r => r.Form,
+        Affix a => a.Form,
+        Particle p => p.Form,
+    };
+
     // https://www.eva.mpg.de/lingua/resources/glossing-rules.php
-    //if this morpheme has its own meaning, that comes first. It and
-    //grammatical features are separated by periods. Person and number
-    //labels are not separated by periods.
-    public string Gloss { get; protected set; }
-}
-
-//crazy iffy
-public class FusionalMorpheme : Morpheme
-{
-    List<Tagmeme> Tagmemes { get; set; }
-    public FusionalMorpheme()
+    //a root is glossed by its meaning, and grammatical morphemes by their grammemes
+    public string Gloss => this switch
     {
-        foreach (var tagmeme in Tagmemes)
-        {
-            Gloss += tagmeme.Gloss;
-            if (tagmeme is not Person)
-            {
-                Gloss += ".";
-            }
-        }
-    }
+        Root r => r.Meaning,
+        Affix a => Grammeme.JoinGlosses(a.Grammemes),
+        Particle p => Grammeme.JoinGlosses(p.Grammemes),
+    };
+
+    public string Spell(Orthography orthography) => orthography.Spell(Form);
 }
-
-public class AgglutinativeMorpheme : Morpheme
-{
-    Tagmeme Tagmeme { get; set; }
-    public AgglutinativeMorpheme()
-    {
-        Gloss += Tagmeme.Gloss;
-    }
-}
-
-//are Stem and Ending subclasses of Morpheme? and Affix?
-
-public enum MorphemeType
-{
-    Free,
-    Bound,
-}
-
-//I think all of these should be classes and inherit from Tagmeme
-

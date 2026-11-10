@@ -1,97 +1,38 @@
 ﻿namespace LanguageGenerator;
 
-//discriminated unions can't come to C# fast enough
-//what about the relationship between head-directionality and constituent word order??
-//with head-initial, verb would come before objects. with head-final, verb comes after
-public class WordOrder
+/// <summary>A language's constituent order and the head direction of each phrase.</summary>
+//with head-initial, verb would come before objects. with head-final, verb comes after. so the verb
+//phrase follows from constituent order, and the other phrases are drawn depending on it, since each
+//tends to share the verb phrase's direction to some degree
+public record WordOrder
 {
-    //I've rounded off the real percentages to more even numbers for convenience
-    public static WordOrder SOV { get; } = new WordOrder(ConstituentWordOrder.SOV, 0.45); //45%
-    public static WordOrder SVO { get; } = new WordOrder(ConstituentWordOrder.SVO, 0.4); //40%
-    public static WordOrder VSO { get; } = new WordOrder(ConstituentWordOrder.VSO, 0.1); //10%
-    public static WordOrder VOS { get; } = new WordOrder(ConstituentWordOrder.VOS, 0.03); //3%
-    public static WordOrder OSV { get; } = new WordOrder(ConstituentWordOrder.OSV, 0.01); //1%
-    public static WordOrder OVS { get; } = new WordOrder(ConstituentWordOrder.OVS, 0.01); //1%
-
-    public ConstituentWordOrder ConstituentWordOrder { get; private set; }
-    public double Probability { get; private set; }
-    //some languages are consistently head-initial, while others are consistently head-final
-    //many are somewhere in the middle. The algorithm weights either one more likely based on
-    //earlier choices
-    public HeadDirectionality HeadDirectionality { get; private set; }
-    //this one's related to constituent word order. TODO revise
-    public HeadDirectionality VerbPhraseDirectionality { get; private set; }
-    public HeadDirectionality NounPhraseDirectionality { get; private set; }
-    public HeadDirectionality AdjectivePhraseDirectionality { get; private set; }
-    public HeadDirectionality AdpositionalPhraseDirectionality { get; private set; }
+    public required ConstituentWordOrder ConstituentWordOrder { get; init; }
+    public required HeadDirectionality NounPhraseDirectionality { get; init; }
+    public required HeadDirectionality AdjectivePhraseDirectionality { get; init; }
+    public required HeadDirectionality AdpositionalPhraseDirectionality { get; init; }
+    public required ObliquePosition ObliquePosition { get; init; }
     //we don't necessarily have this as a part of speech, so it's out for now
-    //public HeadDirectionality DeterminerPhraseDirectionality { get; private set; }
+    //public HeadDirectionality DeterminerPhraseDirectionality { get; init; }
 
+    public HeadDirectionality VerbPhraseDirectionality =>
+        ObjectPrecedesVerb(ConstituentWordOrder) ? HeadDirectionality.Final : HeadDirectionality.Initial;
 
-    private WordOrder(ConstituentWordOrder enumeratedWordOrder, double probability)
+    //some languages are consistently head-initial, while others are consistently head-final;
+    //many are somewhere in the middle. This is whichever way most phrases go, and the verb
+    //phrase's way in a tie
+    public HeadDirectionality HeadDirectionality
     {
-        ConstituentWordOrder = enumeratedWordOrder;
-        Probability = probability;
-
-        var random = new Random();
-        //probability starts at 50%. every time things go < fraction,
-        //the numerator gets relatively bigger
-        var numerator = 1.0;
-        var denominator = 2.0;
-
-        if (random.NextDouble() < numerator / denominator)
+        get
         {
-            HeadDirectionality = HeadDirectionality.Initial;
-            numerator++;
-        }
-        else
-        {
-            HeadDirectionality = HeadDirectionality.Final;
-        }
-        denominator++;
-
-        if (random.NextDouble() < numerator / denominator)
-        {
-            VerbPhraseDirectionality = HeadDirectionality.Initial;
-            numerator++;
-        }
-        else
-        {
-            VerbPhraseDirectionality = HeadDirectionality.Final;
-        }
-        denominator++;
-
-        if (random.NextDouble() < numerator / denominator)
-        {
-            NounPhraseDirectionality = HeadDirectionality.Initial;
-            numerator++;
-        }
-        else
-        {
-            NounPhraseDirectionality = HeadDirectionality.Final;
-        }
-        denominator++;
-
-        if (random.NextDouble() < numerator / denominator)
-        {
-            AdjectivePhraseDirectionality = HeadDirectionality.Initial;
-            numerator++;
-        }
-        else
-        {
-            AdjectivePhraseDirectionality = HeadDirectionality.Final;
-        }
-        denominator++;
-
-        if (random.NextDouble() < numerator / denominator)
-        {
-            AdpositionalPhraseDirectionality = HeadDirectionality.Initial;
-        }
-        else
-        {
-            AdpositionalPhraseDirectionality = HeadDirectionality.Final;
+            HeadDirectionality[] phrases = [VerbPhraseDirectionality, NounPhraseDirectionality, AdjectivePhraseDirectionality, AdpositionalPhraseDirectionality];
+            var initial = phrases.Count(d => d == HeadDirectionality.Initial);
+            return initial * 2 == phrases.Length ? VerbPhraseDirectionality
+                : initial * 2 > phrases.Length ? HeadDirectionality.Initial
+                : HeadDirectionality.Final;
         }
     }
+
+    public static bool ObjectPrecedesVerb(ConstituentWordOrder order) => order is ConstituentWordOrder.SOV or ConstituentWordOrder.OSV or ConstituentWordOrder.OVS;
 }
 
 public enum ConstituentWordOrder
@@ -104,6 +45,19 @@ public enum ConstituentWordOrder
     OVS
 }
 
+/// <summary>Where obliques, like 'in the house', go relative to the verb and object.</summary>
+//WALS 84A's XOV and XVO, OXV, and OVX and VOX. Between is drawn only where the object precedes the
+//verb, and puts them just before the verb
+public enum ObliquePosition
+{
+    BeforeVerbAndObject,
+    BetweenObjectAndVerb,
+    AfterVerbAndObject,
+}
+
+/// <summary>
+/// Whether a phrase's head comes first or last, as a verb comes before or after its object.
+/// </summary>
 public enum HeadDirectionality
 {
     Initial,
