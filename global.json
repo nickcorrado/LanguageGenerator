@@ -1,8 +1,7 @@
 {
   "sdk": {
-    "version": "11.0.100-preview.6.26359.118",
+    "version": "11.0.100",
     "rollForward": "latestFeature",
-    "allowPrerelease": true,
-    "errorMessage": "The .NET 11 preview SDK for the union-types branch was not found. Install SDK 11.0.100-preview.6.26359.118 or later, or update global.json."
+    "allowPrerelease": false
   }
 }

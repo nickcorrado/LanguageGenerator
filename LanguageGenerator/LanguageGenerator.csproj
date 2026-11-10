@@ -3,7 +3,6 @@
   <!-- the generator itself: deterministic, offline, and free of dependencies, so a game can embed it -->
   <PropertyGroup>
     <TargetFramework>net11.0</TargetFramework>
-    <LangVersion>preview</LangVersion>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
