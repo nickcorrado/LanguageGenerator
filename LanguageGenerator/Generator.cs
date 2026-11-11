@@ -54,6 +54,8 @@ public static partial class Generator
         var commands = GenerateCommands(stages.For("commands"), morphology, wordOrder, phonology, syllableDropoff);
         var comparison = GenerateComparison(stages.For("comparison"), wordOrder, phonology, syllableDropoff);
         var passive = GeneratePassive(stages.For("passive"), alignment, morphology, phonology, syllableDropoff);
+        var conjunctions = GenerateConjunctions(stages.For("conjunctions"), phonology, syllableDropoff);
+        var subordination = GenerateSubordination(stages.For("subordination"), morphology, wordOrder, phonology, syllableDropoff);
 
         //the lexicon comes last, once there are closed classes for it to avoid
         var lexiconSeed = stages.For("lexicon").Next();
@@ -87,6 +89,8 @@ public static partial class Generator
             Commands = commands,
             Comparison = comparison,
             Passive = passive,
+            Conjunctions = conjunctions,
+            Subordination = subordination,
         };
     }
 

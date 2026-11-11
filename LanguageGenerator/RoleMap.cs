@@ -100,18 +100,6 @@ public static class RoleMap
 
     /// <summary>The regions the map falls into when these edges join their roles: its connected parts.</summary>
     //in rank order of their heads, and each region's roles in rank order
-    public static List<RoleRegion> Regions(IEnumerable<(Role First, Role Second)> joined)
-    {
-        var region = Roles.ToDictionary(r => r, r => r);
-        Role Find(Role role) => region[role] == role ? role : region[role] = Find(region[role]);
-        foreach (var (first, second) in joined)
-        {
-            var (a, b) = (Find(first), Find(second));
-            if (a != b)
-            {
-                region[Rank(a) < Rank(b) ? b : a] = Rank(a) < Rank(b) ? a : b;
-            }
-        }
-        return [.. Roles.GroupBy(Find).Select(g => new RoleRegion([.. g])).OrderBy(r => Rank(r.Head))];
-    }
+    public static List<RoleRegion> Regions(IEnumerable<(Role First, Role Second)> joined) =>
+        [.. SemanticMap.Regions(Roles, joined).Select(roles => new RoleRegion(roles))];
 }

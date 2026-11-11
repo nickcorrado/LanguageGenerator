@@ -105,3 +105,15 @@ go home, children
 
 be careful
   be.IMP  adjective:careful
+
+the hunter and the dogs walked to the river, but the queen slept
+  walk.PST.PFV  subject:(and hunter.DEF dog.PL.DEF)  goal:river.DEF
+  but  sleep.PST  subject:queen.DEF
+
+if the wolves come, the hunter will run
+  run.FUT  subject:hunter.DEF
+  if  come  subject:wolf.PL.DEF
+
+the queen walked to the river to drink
+  walk.PST.PFV  subject:queen.DEF  goal:river.DEF
+  purpose  drink

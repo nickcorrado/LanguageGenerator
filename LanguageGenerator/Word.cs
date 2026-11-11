@@ -45,6 +45,7 @@ public enum PartOfSpeech
     Pronoun,
     Adposition,
     Numeral,
+    Conjunction,
 }
 
 public enum AdpositionType
