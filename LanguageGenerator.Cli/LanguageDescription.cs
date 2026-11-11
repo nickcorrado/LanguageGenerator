@@ -128,6 +128,16 @@ public static class LanguageDescription
             { Position: ExponentPosition.PrecedingParticle } p => $"Passive: {p.Marker.Spell(orthography)} before the verb",
             var p => $"Passive: {p.Marker.Spell(orthography)} after the verb",
         });
+        string SpelledWord(Lexeme word) => phonology.Realize(new Word([word.Root])).Spell(orthography);
+        var conjunctions = lang.Conjunctions;
+        var nounAnd = conjunctions.NounAnd.Value switch
+        {
+            AndWord and => SpelledWord(and.Word),
+            AndWith => "the word for 'with'",
+            _ => "nothing, side by side",
+        };
+        var clauseAnd = conjunctions.ClauseAnd is { } word ? SpelledWord(word) : "nothing, side by side";
+        output.WriteLine($"Conjunctions: 'and' {nounAnd} between nouns and {clauseAnd} between clauses; 'or' {SpelledWord(conjunctions.Or)}; 'but' {SpelledWord(conjunctions.But)}");
         output.WriteLine("Comparison: " + lang.Comparison switch
         {
             LocationalComparison l => $"the standard is marked like a place, as the {l.Role.ToString().ToLowerInvariant()} is",
@@ -246,6 +256,15 @@ public static class LanguageDescription
             (new(new Command("walk", Number.Plural, Obliques: [new(Role.Goal, Phrase("water", Number.Singular))]), new NounPhrase("person", Number.Plural)),
                 "people, go to the water"),
         ];
+        (Statement Clause, string Translation)[] coordinated =
+        [
+            (new Clause("see", Tense.Past, Aspect.Perfective, new Coordination(Conjunction.And, [Phrase("dog", Number.Singular), Phrase("cat", Number.Singular)]), Phrase("bird", Number.Plural)),
+                "the dog and the cat saw the birds"),
+            (new Coordinated(Conjunction.But, new Clause("sleep", Tense.Past, Aspect.Imperfective, Phrase("dog", Number.Singular)),
+                new Clause("eat", Tense.Past, Aspect.Imperfective, Phrase("cat", Number.Singular), Phrase("fish", Number.Singular))), "the dog was sleeping, but the cat was eating the fish"),
+            (new CopularClause(new AdjectiveCoordination(Conjunction.And, [new("big"), new("old")]), Tense.Present, Aspect.Imperfective, Phrase("house", Number.Singular)),
+                "the house is big and old"),
+        ];
         (PassiveClause Clause, string Translation)[] passives =
         [
             (new("eat", Tense.Past, Aspect.Perfective, Phrase("fish", Number.Singular), Phrase("cat", Number.Singular), false, []), "the fish was eaten by the cat"),
@@ -257,7 +276,7 @@ public static class LanguageDescription
                 "the dog is bigger than the cats"),
         ];
         foreach (var (clause, translation) in examples.Select(e => ((Statement)e.Clause, e.Translation)).Concat(copular.Select(e => ((Statement)e.Clause, e.Translation)))
-            .Concat(commands.Select(e => ((Statement)e.Clause, e.Translation))).Concat(copularCommands.Select(e => ((Statement)e.Clause, e.Translation))).Concat(passives.Select(e => ((Statement)e.Clause, e.Translation))).Concat(comparatives.Select(e => ((Statement)e.Clause, e.Translation))).Concat(addressed.Select(e => ((Statement)e.Clause, e.Translation))))
+            .Concat(commands.Select(e => ((Statement)e.Clause, e.Translation))).Concat(copularCommands.Select(e => ((Statement)e.Clause, e.Translation))).Concat(coordinated).Concat(passives.Select(e => ((Statement)e.Clause, e.Translation))).Concat(comparatives.Select(e => ((Statement)e.Clause, e.Translation))).Concat(addressed.Select(e => ((Statement)e.Clause, e.Translation))))
         {
             output.WriteLine();
             output.WriteLine(Syntax.Realize(lang, clause, translation).Interlinear());

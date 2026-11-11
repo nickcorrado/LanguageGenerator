@@ -28,6 +28,7 @@ public class Language
     public required Comparison Comparison { get; init; }
     /// <summary>How the language marks a passive verb, or null where it has no passive.</summary>
     public required Passive? Passive { get; init; }
+    public required Conjunctions Conjunctions { get; init; }
 
     public Gender? GenderOf(Lexeme noun) => Genders.Of(noun, Lexicon.ClassOf(noun.Root.Meaning));
 

@@ -42,6 +42,8 @@ public static class ClauseFile
     {
         var entries = new List<Entry>();
         (string Text, int Line)? translation = null;
+        //whether the last clause read can be joined by a line starting with a conjunction
+        var continuing = false;
         var lines = text.ReplaceLineEndings("\n").Split('\n');
         for (int i = 0; i < lines.Length; i++)
         {
@@ -59,11 +61,23 @@ public static class ClauseFile
                     throw new ClauseFormatException($"'{pending.Text}' needs an indented clause under it saying what it means.", pending.Line);
                 }
                 translation = (line.Trim(), number);
+                continuing = false;
+            }
+            else if (ConjunctionOf(line) is { } conjunction)
+            {
+                //a line starting with a conjunction joins its clause to the ones above it
+                if (!continuing)
+                {
+                    throw new ClauseFormatException($"A line starting with '{line.Trim().Split(' ')[0]}' joins a clause to the one above it, so it can't come first.", number);
+                }
+                var previous = entries[^1];
+                entries[^1] = previous with { Statement = new Coordinated(conjunction, previous.Statement, ParseClause(line.Trim()[(line.Trim().IndexOf(' ') + 1)..], number)) };
             }
             else if (translation is { } english)
             {
                 entries.Add(new Entry(english.Text, ParseClause(line, number), number));
                 translation = null;
+                continuing = true;
             }
             else
             {
@@ -76,6 +90,18 @@ public static class ClauseFile
         }
         return entries;
     }
+
+    //'and', 'or' and 'but', written as words of their own
+    private static readonly Dictionary<string, Conjunction> Conjunctions = new()
+    {
+        ["and"] = Conjunction.And,
+        ["or"] = Conjunction.Or,
+        ["but"] = Conjunction.But,
+    };
+
+    //the conjunction an indented line starts with, if it starts with one
+    private static Conjunction? ConjunctionOf(string line) =>
+        line.Trim().Split(' ', 2) is [var first, _] && Conjunctions.TryGetValue(first, out var conjunction) ? conjunction : null;
 
     //each noun these clauses use, with the English of the first clause to use it
     public static IReadOnlyList<(string Noun, string Translation)> Nouns(IEnumerable<Entry> entries) =>
@@ -94,6 +120,7 @@ public static class ClauseFile
         CopularCommand => [],
         Comparative c => [.. ArgumentsOf(c.Clause), c.Standard],
         Addressed a => [.. ArgumentsOf(a.Statement), a.Addressee],
+        Coordinated c => [.. ArgumentsOf(c.First), .. ArgumentsOf(c.Second)],
     };
 
     private static IEnumerable<Argument> Given(Argument? argument) => argument.HasValue ? [argument.GetValueOrDefault()] : [];
@@ -102,6 +129,7 @@ public static class ClauseFile
     {
         NounPhrase n => [n.Noun, .. Given(n.Possessor).SelectMany(NounsIn)],
         Pronoun => [],
+        Coordination c => c.Items.SelectMany(NounsIn),
     };
 
     //the roles a clause can have. An oblique role is written as its name in lowercase. A noun or
@@ -258,7 +286,7 @@ public static class ClauseFile
                         ?? throw new ClauseFormatException($"be can't say its subject is {value} yet: the noun has to be a noun, not a pronoun.", number);
                     break;
                 case "adjective":
-                    complement = ParseAdjective(value, number);
+                    complement = value.StartsWith('(') ? ParseAdjectiveCoordination(value, number) : ParseAdjective(value, number);
                     break;
                 case var name when ObliqueRoles.TryGetValue(name, out var oblique):
                     obliques.Add((role, new Oblique(oblique, ParseArgument(value, number))));
@@ -414,6 +442,10 @@ public static class ClauseFile
                     throw new ClauseFormatException($"Ordinals go from 1st to {NumeralSystem.Largest}th for now, not {word}.", number);
                 }
             }
+            else if (Conjunctions.ContainsKey(word))
+            {
+                throw new ClauseFormatException($"Write {word} first, before what it joins, as in ({word} dog.DEF cat.DEF), not '({string.Join(' ', words)})'.", number);
+            }
             else if (NumberWords.Contains(word.Split('.')[0]))
             {
                 throw new ClauseFormatException($"Write numbers in digits, as in ({words[0]} 3), not '{word}'.", number);
@@ -466,6 +498,36 @@ public static class ClauseFile
     ];
 
     //an adjective, which has no features of its own yet
+    //a coordination in parentheses, conjunction first, as in (and dog.DEF cat.DEF): the conjunction and
+    //the two or more things it joins, or null if the parentheses hold something else
+    private static (Conjunction Conjunction, List<string> Items)? Coordinating(string token, int number)
+    {
+        if (!token.EndsWith(')'))
+        {
+            return null;
+        }
+        var words = Tokenize(token[1..^1], number);
+        if (words.Count == 0 || !Conjunctions.TryGetValue(words[0], out var conjunction))
+        {
+            return null;
+        }
+        if (words.Count < 3)
+        {
+            throw new ClauseFormatException($"'{token}' joins too few things: {words[0]} needs two or more, as in ({words[0]} dog.DEF cat.DEF).", number);
+        }
+        return (conjunction, words[1..]);
+    }
+
+    //adjectives said together, as in adjective:(and warm crowded)
+    private static AdjectiveCoordination ParseAdjectiveCoordination(string token, int number)
+    {
+        if (Coordinating(token, number) is not var (conjunction, items) || conjunction == Conjunction.But)
+        {
+            throw new ClauseFormatException($"Adjectives in parentheses are joined with and or or first, as in adjective:(and warm crowded), not '{token}'.", number);
+        }
+        return new AdjectiveCoordination(conjunction, [.. items.Select(item => ParseAdjective(item, number))]);
+    }
+
     private static Adjective ParseAdjective(string token, int number)
     {
         var (meaning, features) = ParseWord(token, number);
@@ -513,6 +575,14 @@ public static class ClauseFile
 
     private static Argument ParseArgument(string token, int number)
     {
+        if (token.StartsWith('(') && Coordinating(token, number) is var (conjunction, items))
+        {
+            if (conjunction == Conjunction.But)
+            {
+                throw new ClauseFormatException("but joins only clauses, on a line of its own starting with but.", number);
+            }
+            return new Coordination(conjunction, [.. items.Select(item => ParseArgument(item, number))]);
+        }
         if (token.StartsWith('('))
         {
             return ParseModifiedNounPhrase(token, number);

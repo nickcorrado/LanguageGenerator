@@ -69,6 +69,28 @@ Anything else that goes with a noun goes in parentheses, noun first:
 
 A number makes the noun dual for two and paucal for a few, unless it says otherwise.
 
+## Coordination
+
+Noun phrases joined by 'and' or 'or' go in parentheses with the conjunction first, and each of them can be anything a role takes, including another noun phrase in parentheses:
+
+| Written | Means |
+| --- | --- |
+| `subject:(and dog.DEF cat.DEF)` | 'the dog and the cat' |
+| `object:(and (purse.NDF empty) sword.NDF)` | 'an empty purse and a sword' |
+| `object:(or rope.NDF boat.NDF)` | 'a rope or a boat' |
+| `subject:(and 2SG 1SG)` | 'you and I', which a verb agrees with as 'we' |
+| `adjective:(and warm crowded)` | 'warm and crowded', said of the subject of `be` |
+
+Clauses joined by 'and', 'or' or 'but' stay one entry: the first clause, then each joined one on an indented line of its own starting with its conjunction:
+
+```
+hunters sit by the fire and argue
+  sit  subject:hunter.PL  location:fire.DEF
+  and  argue  subject:hunter.PL
+```
+
+'But' joins only clauses.
+
 ## Pronouns
 
 Pronouns are a person and number, as in `subject:1SG` or `object:1PL.INCL`.

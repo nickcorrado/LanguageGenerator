@@ -11,7 +11,7 @@ Roughly in the order to build them, since the later ones lean on the earlier one
 - **Existentials.** 'There is a dog in the house', which many languages say unlike 'the dog is in the house'.
 - **Modals.** Ability, permission and obligation (*can*, *must*, *should*, *have to*), by verbs, affixes or particles. The largest group of refusals, since game text is full of them, as in *you must find the key*.
 - **Questions.** Yes-no questions, and content questions with *who*, *what*, *where* and *why*, by a particle, by word order, or by intonation alone, with question words in place or fronted, in WALS's proportions.
-- **Coordination.** *And*, *or* and *but* between clauses and between nouns. The front end gets around *and* by splitting *a table, a broken chair, and a chest* into three sentences, and can't do anything with *a rope or a boat*.
+- **More coordination.** Where the conjunction goes, which WALS doesn't count and is always between the two things here, though Latin *-que* follows the second; 'both … and' and 'either … or'; dropping a repeated subject (*she turns and walks away*); and coordinated addressees (*Marta and Ann, come*).
 - **Subordinate clauses.** Conditionals, which are what game instructions are made of, then *when*, *before*, *until*, *because*, and purpose (*to open your bag*).
 - **Complement clauses and reported speech.** *I told you that you were late*, *she wants to go home*. Today *"You're late," she says* glosses as a separate clause, *she says*, that doesn't say what she said.
 - **Relative clauses.** *Nobody who goes into the forest*, *a clearing where nothing grows*, by a relativizer, a gap or a resumptive pronoun, before or after the noun as WALS has them.

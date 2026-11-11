@@ -11,9 +11,9 @@
 //no definiteness is a bare noun, as English has for 'dogs', 'water' or 'my dog'
 public record NounPhrase(string Noun, Number Number, ValueList<Adjective> Adjectives = default, int? Count = null, Argument? Possessor = null, int? Ordinal = null,
     Definiteness? Definiteness = null);
-/// <summary>What fills a role: a noun phrase or a pronoun.</summary>
+/// <summary>What fills a role: a noun phrase, a pronoun, or several of them joined by 'and' or 'or'.</summary>
 //what agrees with one depends on the language, so that's Syntax.AgreementOf's to say
-public union Argument(NounPhrase, Pronoun);
+public union Argument(NounPhrase, Pronoun, Coordination);
 /// <summary>
 /// A phrase saying where, to where, from where, to whom, with whom or with what something happened.
 /// </summary>
@@ -30,9 +30,10 @@ public record Clause(string Verb, Tense Tense, Aspect Aspect, Argument Subject, 
 public record Adjective(string Meaning);
 /// <summary>
 /// What a copular clause says of its subject: a noun phrase, as in 'you are a fool', an adjective,
-/// as in 'the gate is locked', or a Location, as in 'the dog is in the house'.
+/// as in 'the gate is locked', adjectives together, as in 'the inn is warm and crowded', or a
+/// Location, as in 'the dog is in the house'.
 /// </summary>
-public union Complement(NounPhrase, Adjective, Oblique);
+public union Complement(NounPhrase, Adjective, AdjectiveCoordination, Oblique);
 /// <summary>A clause saying what or where its subject is, as English does with be.</summary>
 public record CopularClause(Complement Complement, Tense Tense, Aspect Aspect, Argument Subject, bool Negative = false);
 
@@ -57,7 +58,7 @@ public record CopularCommand(Complement Complement, Number Number, bool Negative
 public record Addressed(Statement Statement, NounPhrase Addressee);
 
 /// <summary>Anything a sentence can say.</summary>
-public union Statement(Clause, PassiveClause, CopularClause, Command, CopularCommand, Comparative, Addressed);
+public union Statement(Clause, PassiveClause, CopularClause, Command, CopularCommand, Comparative, Addressed, Coordinated);
 
 public static class Syntax
 {
@@ -70,6 +71,32 @@ public static class Syntax
         CopularCommand c => Realize(language, c, translation),
         Comparative c => Realize(language, c, translation),
         Addressed a => Realize(language, a, translation),
+        Coordinated c => Realize(language, c, translation),
+    };
+
+    //each statement as it would be said alone, with the language's word for the conjunction between,
+    //or nothing where it sets clauses side by side
+    public static Sentence Realize(Language language, Coordinated coordinated, string translation)
+    {
+        var first = Realize(language, coordinated.First, translation);
+        var second = Realize(language, coordinated.Second, translation);
+        IReadOnlyList<SurfaceForm> between = language.Conjunctions.BetweenClauses(coordinated.Conjunction) is { } word
+            ? [language.Phonology.Realize(new Word([word.Root]))]
+            : [];
+        return first with { Words = [.. first.Words, .. between, .. second.Words] };
+    }
+
+    //parts said one after another, with a word between each two, if there is one
+    private static IReadOnlyList<Word> Join(IEnumerable<IReadOnlyList<Word>> parts, Lexeme? between) =>
+        [.. parts.SelectMany((part, i) => i == 0 || between is null ? part : [new Word([between.Root]), .. part])];
+
+    //a predicate's adjectives and how they're joined: one alone, or several said of the subject
+    //together, joined as clauses are, since a predicate is what a clause says
+    private static (IReadOnlyList<Adjective> Adjectives, Lexeme? Between)? PredicateAdjectives(Language language, Complement complement) => complement.Value switch
+    {
+        Adjective adjective => ([adjective], null),
+        AdjectiveCoordination together => ([.. together.Adjectives], language.Conjunctions.BetweenClauses(together.Conjunction)),
+        _ => null,
     };
 
     //the addressee comes first, in the addressee's case: the vocative, where the language has one,
@@ -111,10 +138,10 @@ public static class Syntax
     public static Sentence Realize(Language language, CopularCommand command, string translation)
     {
         var predication = language.Predication;
-        if (command.Complement.Value is Adjective verbal && predication.Adjectives == PredicativeAdjectives.Verbal)
+        if (PredicateAdjectives(language, command.Complement) is var (adjectives, between) && predication.Adjectives == PredicativeAdjectives.Verbal)
         {
-            var adjective = language.Lexicon.Adjective(verbal.Meaning) with { PartOfSpeech = PartOfSpeech.Verb };
-            return Sentence(language, Order(language.WordOrder, [], CommandVerb(language, adjective, command.Number, command.Negative), null, []), translation);
+            var predicate = Join(adjectives.Select(a => CommandVerb(language, language.Lexicon.Adjective(a.Meaning) with { PartOfSpeech = PartOfSpeech.Verb }, command.Number, command.Negative)), between);
+            return Sentence(language, Order(language.WordOrder, [], predicate, null, []), translation);
         }
         if (command.Complement.Value is Oblique location)
         {
@@ -186,11 +213,11 @@ public static class Syntax
     {
         var predication = language.Predication;
         var subject = Subject(language, clause.Subject, Role.IntransitiveSubject);
-        if (clause.Complement.Value is Adjective verbal && predication.Adjectives == PredicativeAdjectives.Verbal)
+        if (PredicateAdjectives(language, clause.Complement) is var (adjectives, between) && predication.Adjectives == PredicativeAdjectives.Verbal)
         {
             //a property word inflects as a verb in a language whose adjectives are verbs
-            var adjective = language.Lexicon.Adjective(verbal.Meaning) with { PartOfSpeech = PartOfSpeech.Verb };
-            var predicate = Verb(language, adjective, clause.Tense, clause.Aspect, clause.Subject, clause.Negative);
+            var predicate = Join(adjectives.Select(a =>
+                Verb(language, language.Lexicon.Adjective(a.Meaning) with { PartOfSpeech = PartOfSpeech.Verb }, clause.Tense, clause.Aspect, clause.Subject, clause.Negative)), between);
             return Sentence(language, Order(language.WordOrder, subject, predicate, null, standard), translation);
         }
 
@@ -248,6 +275,7 @@ public static class Syntax
     private static IReadOnlyList<Word> PredicateComplement(Language language, Complement complement, Argument subject) => complement.Value switch
     {
         NounPhrase noun => Inflect(language, noun, Role.IntransitiveSubject),
+        AdjectiveCoordination together => Join(together.Adjectives.Select(a => PredicateComplement(language, a, subject)), language.Conjunctions.BetweenClauses(together.Conjunction)),
         Adjective adjective when language.AdjectiveAgreement == AdjectiveAgreement.Agreement =>
             [AgreeingAdjective(language, language.Lexicon.Adjective(adjective.Meaning),
                 Features(language.Paradigms.Nouns, [AgreementOf(language, subject).Number, CaseFor(language, language.RoleMarkers[Role.IntransitiveSubject])]),
@@ -282,21 +310,37 @@ public static class Syntax
         phrase.Count is not null && language.Numerals.NounStaysSingular ? Number.Singular : phrase.Number;
 
     //what a verb or adjective agrees with: a noun is third person, in the number of its word, so
-    //that a verb is singular with 'three wolf' too, as in Hungarian
+    //that a verb is singular with 'three wolf' too, as in Hungarian. Things joined by 'and' are
+    //plural, or dual if there are two and the language has a dual, as Slovene's are, in the first
+    //person if any of them is, else the second if any is, so 'you and I' is 'we'; 'or' agrees with
+    //its last, as English 'either the dogs or the cat is'
     private static (Person Person, Number Number) AgreementOf(Language language, Argument argument) => argument switch
     {
         NounPhrase n => (Person.Third, NumberOf(language, n)),
         Pronoun p => (p.Person, p.Number),
+        Coordination { Conjunction: Conjunction.Or } c => AgreementOf(language, c.Items[^1]),
+        Coordination c => (c.Items.Select(i => AgreementOf(language, i).Person).MinBy(p => p == Person.First ? 0 : p == Person.Second ? 1 : 2)!,
+            c.Items.Count == 2 ? Number.Dual : Number.Plural),
     };
 
     //the gender something agrees with: a noun's own, or a pronoun's, if the language has that gender.
     //A pronoun with no gender given has none to agree with, since what it refers to isn't known
+    //Things joined by 'or' take their last's gender; things joined by 'and' share it if they all have
+    //one, and otherwise take the masculine, or the animate, as real gender systems mostly resolve them
     private static Gender? GenderOf(Language language, Argument argument) => argument.Value switch
     {
         NounPhrase n => language.GenderOf(language.Lexicon.Noun(n.Noun)),
         Pronoun { Gender: { } g } when language.Genders.Values.Contains(g) => g,
+        Coordination { Conjunction: Conjunction.Or } c => GenderOf(language, c.Items[^1]),
+        Coordination c => Resolved([.. c.Items.Select(i => GenderOf(language, i))]),
         _ => null,
     };
+
+    private static Gender? Resolved(IReadOnlyList<Gender?> genders) =>
+        genders.Distinct().Count() == 1 ? genders[0]
+        : genders.Contains(Gender.Masculine) ? Gender.Masculine
+        : genders.Contains(Gender.Animate) ? Gender.Animate
+        : genders.FirstOrDefault(g => g is not null);
 
     //an adjective agreeing with a noun: it takes the noun's markers for these features, but only its
     //affixes, since a particle belongs to the phrase and is said once, and a marker for its gender.
@@ -327,6 +371,24 @@ public static class Syntax
             NounPhrase phrase => Possessed(language, phrase, language.Articles.Apply(Modified(language, phrase, Features(nouns, [NumberOf(language, phrase), @case])),
                 language.Lexicon.Noun(phrase.Noun).Root, phrase.Definiteness, phrase.Number, language.GenderOf(language.Lexicon.Noun(phrase.Noun)))),
             Pronoun pronoun => pronouns.Inflect(language.Pronouns.For(pronoun), Features(pronouns, [@case])),
+            Coordination coordination => Joined(language, coordination, @case),
+        };
+    }
+
+    //each part in the case, with the language's 'and' or 'or' between each two, or for 'and' in a
+    //language whose 'and' is 'with', every part after the first marked as a companion. An adposition
+    //for the whole is said once, outside it all
+    private static IReadOnlyList<Word> Joined(Language language, Coordination coordination, Case @case)
+    {
+        var conjunctions = language.Conjunctions;
+        var parts = coordination.Items.Select(item => Inflect(language, item, @case)).ToList();
+        return (coordination.Conjunction, conjunctions.NounAnd.Value) switch
+        {
+            (Conjunction.Or, _) => Join(parts, conjunctions.Or),
+            (Conjunction.And, AndWith) => [.. parts[0], .. coordination.Items.Skip(1).SelectMany(item => Marked(language, item, Role.Companion))],
+            (Conjunction.And, AndWord and) => Join(parts, and.Word),
+            (Conjunction.And, _) => Join(parts, null),
+            _ => throw new ArgumentException("Only 'and' and 'or' join noun phrases.", nameof(coordination)),
         };
     }
 

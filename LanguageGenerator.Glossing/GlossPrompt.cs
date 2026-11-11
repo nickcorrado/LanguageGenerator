@@ -81,9 +81,20 @@ public static class GlossPrompt
                 be.IMP  adjective:careful
 
             Rules:
-            - One clause per verb. Split a sentence with several verbs into several clauses, each with
-              its own English line, as in 'the hunter saw the wolves' and 'he ran'.
-            - Demonstratives, adverbs and conjunctions have no gloss: leave them out of the gloss
+            - One clause per verb. Clauses joined by and, or or but stay one sentence: write the first
+              clause, then each one joined to it on an indented line of its own starting with and, or
+              or but. Split other sentences with several verbs into several clauses, each with its own
+              English line, as in 'the hunter saw the wolves' and 'he ran'.
+
+                hunters sit by the fire and argue
+                  sit  subject:hunter.PL  location:fire.DEF
+                  and  argue  subject:hunter.PL
+
+            - Noun phrases joined by and or or go in parentheses with the conjunction first:
+              object:(and (purse.NDF empty) sword.NDF) for 'an empty purse and a sword', or
+              object:(or rope.NDF boat.NDF). Adjectives said together go the same way:
+              adjective:(and warm crowded) for 'warm and crowded'.
+            - Demonstratives, adverbs and other conjunctions have no gloss: leave them out of the gloss
               line when the meaning mostly survives, and gloss 'this' or 'that' with a noun as DEF. The English line is natural
               English saying what the gloss does, so 'the' stays, but a dropped adverb goes.
             - Paraphrase into what the format can say when that keeps the meaning, as with 'went' for
