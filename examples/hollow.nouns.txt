@@ -4,7 +4,9 @@
 answer THING
 anyone HUM
 anything THING
+appearance THING
 apron THING
+armor THING
 back THING
 bag THING
 bank THING
@@ -26,11 +28,13 @@ character HUM
 chest THING
 child HUM
 chimney THING
+choice THING
 circle THING
 clearing THING
 clothes THING
 clothing THING
 coast THING
+control THING
 crow ANIM
 current THING
 decision THING
@@ -38,6 +42,7 @@ dog ANIM
 door THING
 doorway THING
 drink THING
+due THING
 dusk THING
 dust THING
 ear THING
@@ -80,6 +85,9 @@ left THING
 letter THING
 light THING
 line THING
+lip THING
+lock THING
+lockpick THING
 man M
 map THING
 marta F
@@ -87,8 +95,10 @@ middle THING
 mill THING
 miller HUM
 moon THING
+morning THING
 moss THING
 net THING
+night THING
 nobody THING
 north THING
 nothing THING
@@ -100,6 +110,7 @@ pole THING
 price THING
 purse THING
 rat ANIM
+rest THING
 river THING
 road THING
 room THING
@@ -114,6 +125,7 @@ someone HUM
 something THING
 son M
 song THING
+spring THING
 stair THING
 stew THING
 stone THING
