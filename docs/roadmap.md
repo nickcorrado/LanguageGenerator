@@ -1,6 +1,6 @@
 # Roadmap
 
-[examples/hollow.txt](../examples/hollow.txt), a short text adventure, is the test of what real text needs. The front end refused 49 of its 190 sentences. Refusals are the easy part, though: a refusal names what's missing, while a sentence that glosses can still lose half of what it said. *A dog barks somewhere behind the mill* comes out as 'a dog barks at the mill', *nobody believes him, because he drinks* as two unconnected clauses, and *at dusk* doesn't come out at all. So this list counts both.
+[examples/hollow.txt](../examples/hollow.txt), a short text adventure, is the test of what real text needs. The front end refuses 24 of its 190 sentences. Refusals are the easy part, though: a refusal names what's missing, while a sentence that glosses can still lose half of what it said. *A dog barks somewhere behind the mill* comes out as 'a dog barks at the mill', *they pass so close that you could touch them* as two unconnected clauses, 'they pass near you' and 'you could touch them', and *at dusk* doesn't come out at all. So this list counts both.
 
 ## Clauses
 
