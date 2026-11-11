@@ -58,7 +58,7 @@ public record CopularCommand(Complement Complement, Number Number, bool Negative
 public record Addressed(Statement Statement, NounPhrase Addressee);
 
 /// <summary>Anything a sentence can say.</summary>
-public union Statement(Clause, PassiveClause, CopularClause, Command, CopularCommand, Comparative, Addressed, Coordinated, Subordinated);
+public union Statement(Clause, PassiveClause, CopularClause, Command, CopularCommand, Comparative, Addressed, Coordinated, Subordinated, Modalized);
 
 public static class Syntax
 {
@@ -68,15 +68,16 @@ public static class Syntax
     //marked as one
     private static IReadOnlyList<Word> Words(Language language, Statement statement) => statement switch
     {
-        Clause c => Words(language, c),
-        PassiveClause c => Words(language, c),
-        CopularClause c => Words(language, c),
+        Clause c => Words(language, c, null),
+        PassiveClause c => Words(language, c, null),
+        CopularClause c => Copular(language, c, [], null),
         Command c => Words(language, c),
         CopularCommand c => Words(language, c),
         Comparative c => Words(language, c),
         Addressed a => Words(language, a),
         Coordinated c => Words(language, c),
         Subordinated s => Words(language, s),
+        Modalized m => Words(language, m),
     };
 
     /// <summary>Who or what a statement is about: its subject, or 'you' for a command.</summary>
@@ -91,6 +92,7 @@ public static class Syntax
         Addressed a => SubjectOf(a.Statement),
         Coordinated c => SubjectOf(c.First),
         Subordinated s => SubjectOf(s.Main),
+        Modalized m => SubjectOf(m.Clause),
     };
 
     public static Sentence Realize(Language language, Subordinated subordinated, string translation) => Sentence(language, Words(language, subordinated), translation);
@@ -144,12 +146,15 @@ public static class Syntax
         CopularClause c when language.Predication.Adjectives == PredicativeAdjectives.Verbal && PredicateAdjectives(language, c.Complement) is var (adjectives, _) =>
             language.Lexicon.Adjective(adjectives[^1].Meaning).Root,
         CopularClause => language.Predication.Copula.Root,
+        Modalized m when language.Modals.Markers[m.Modality].Value is ModalVerb modal => modal.Verb.Root,
+        Modalized m => VerbRoot(language, m.Clause),
         _ => null,
     };
 
     //a verb's clause with its verb bare of tense and agreement, keeping negation and the passive,
     //and without its subject where it shares the main clause's. Marked like a role, its verb takes
-    //that role's case, or the whole clause its adposition. Null for any other kind of clause
+    //that role's case, or the whole clause its adposition. Null for any other kind of clause,
+    //including one with a modal, which stays balanced
     private static IReadOnlyList<Word>? Deranked(Language language, Statement statement, bool dropSubject, Role? markedAs)
     {
         var marker = markedAs is { } role ? language.RoleMarkers[role].Value : null;
@@ -211,6 +216,7 @@ public static class Syntax
         PassiveClause c => c with { Patient = subject },
         CopularClause c => c with { Subject = subject },
         Comparative c => c with { Clause = c.Clause with { Subject = subject } },
+        Modalized m => m with { Clause = WithSubject(m.Clause, subject) },
         _ => statement,
     };
 
@@ -295,14 +301,14 @@ public static class Syntax
         return Flat(Order(language.WordOrder, [], copula, complement, []));
     }
 
-    public static Sentence Realize(Language language, Clause clause, string translation) => Sentence(language, Words(language, clause), translation);
+    public static Sentence Realize(Language language, Clause clause, string translation) => Sentence(language, Words(language, clause, null), translation);
 
-    private static IReadOnlyList<Word> Words(Language language, Clause clause)
+    private static IReadOnlyList<Word> Words(Language language, Clause clause, Modalized? modal)
     {
         var subjectRole = clause.Object is null ? Role.IntransitiveSubject : Role.TransitiveSubject;
         var subject = Subject(language, clause.Subject, subjectRole);
         var @object = clause.Object.HasValue ? Inflect(language, clause.Object.GetValueOrDefault(), Role.DirectObject) : null;
-        var verb = Verb(language, language.Lexicon.Verb(clause.Verb), clause.Tense, clause.Aspect, clause.Subject, clause.Negative);
+        var verb = Predicate(language, language.Lexicon.Verb(clause.Verb), clause.Tense, clause.Aspect, clause.Subject, clause.Negative, modal, null);
         var obliques = clause.Obliques.SelectMany(o => Oblique(language, o)).ToList();
         return Flat(Order(language.WordOrder, subject, verb, @object, obliques));
     }
@@ -311,17 +317,17 @@ public static class Syntax
     //it had already, and the verb agrees with it; the agent, if there is one, goes before the other
     //obliques, marked for its role. A language without a passive says the active instead, as real
     //ones do, with the agent as its subject, or 'they' where nobody says who
-    public static Sentence Realize(Language language, PassiveClause clause, string translation) => Sentence(language, Words(language, clause), translation);
+    public static Sentence Realize(Language language, PassiveClause clause, string translation) => Sentence(language, Words(language, clause, null), translation);
 
-    private static IReadOnlyList<Word> Words(Language language, PassiveClause clause)
+    private static IReadOnlyList<Word> Words(Language language, PassiveClause clause, Modalized? modal)
     {
         if (language.Passive is not { } passive)
         {
             var doer = clause.Agent.HasValue ? clause.Agent.GetValueOrDefault() : new Pronoun(Person.Third, Number.Plural);
-            return Words(language, new Clause(clause.Verb, clause.Tense, clause.Aspect, doer, clause.Patient, clause.Negative, clause.Obliques));
+            return Words(language, new Clause(clause.Verb, clause.Tense, clause.Aspect, doer, clause.Patient, clause.Negative, clause.Obliques), modal);
         }
         var subject = Subject(language, clause.Patient, Role.IntransitiveSubject);
-        var verb = passive.Apply(Verb(language, language.Lexicon.Verb(clause.Verb), clause.Tense, clause.Aspect, clause.Patient, clause.Negative));
+        var verb = Predicate(language, language.Lexicon.Verb(clause.Verb), clause.Tense, clause.Aspect, clause.Patient, clause.Negative, modal, passive);
         IReadOnlyList<Word> agent = clause.Agent.HasValue ? Marked(language, clause.Agent.GetValueOrDefault(), Role.Agent) : [];
         var obliques = agent.Concat(clause.Obliques.SelectMany(o => Oblique(language, o))).ToList();
         return Flat(Order(language.WordOrder, subject, verb, null, obliques));
@@ -349,15 +355,15 @@ public static class Syntax
         };
     }
 
-    public static Sentence Realize(Language language, CopularClause clause, string translation) => Sentence(language, Words(language, clause), translation);
-
-    private static IReadOnlyList<Word> Words(Language language, CopularClause clause) => Copular(language, clause, []);
+    public static Sentence Realize(Language language, CopularClause clause, string translation) => Sentence(language, Copular(language, clause, [], null), translation);
 
     //a copular clause's complement goes where an object would, so it precedes the copula in an OV
     //language, as in Turkish and Japanese, and follows it in a VO one. Where adjectives are verbal,
     //the adjective takes the verb's place instead, with no copula. A standard of comparison, if the
-    //clause has one, goes where obliques go
-    private static IReadOnlyList<Word> Copular(Language language, CopularClause clause, IReadOnlyList<Word> standard)
+    //clause has one, goes where obliques go. A copula with a modal is never dropped, since the modal
+    //goes with it, as Russian has no copula in ty ostorožen 'you are careful' but has one in ty
+    //dolžen byt' ostorožen 'you must be careful'
+    private static IReadOnlyList<Word> Copular(Language language, CopularClause clause, IReadOnlyList<Word> standard, Modalized? modal)
     {
         var predication = language.Predication;
         var subject = Subject(language, clause.Subject, Role.IntransitiveSubject);
@@ -365,7 +371,7 @@ public static class Syntax
         {
             //a property word inflects as a verb in a language whose adjectives are verbs
             var predicate = Join(adjectives.Select(a =>
-                Verb(language, language.Lexicon.Adjective(a.Meaning) with { PartOfSpeech = PartOfSpeech.Verb }, clause.Tense, clause.Aspect, clause.Subject, clause.Negative)), between);
+                Predicate(language, language.Lexicon.Adjective(a.Meaning) with { PartOfSpeech = PartOfSpeech.Verb }, clause.Tense, clause.Aspect, clause.Subject, clause.Negative, modal, null)), between);
             return Flat(Order(language.WordOrder, subject, predicate, null, standard));
         }
 
@@ -380,9 +386,9 @@ public static class Syntax
             {
                 throw new ArgumentException("Only an adjective can be compared.", nameof(clause));
             }
-            var be = predication.Drops(clause.Tense, clause.Negative, locational: true)
+            var be = modal is null && predication.Drops(clause.Tense, clause.Negative, locational: true)
                 ? []
-                : Verb(language, predication.CopulaFor(locational: true), clause.Tense, clause.Aspect, clause.Subject, clause.Negative);
+                : Predicate(language, predication.CopulaFor(locational: true), clause.Tense, clause.Aspect, clause.Subject, clause.Negative, modal, null);
             return Flat(Order(language.WordOrder, subject, be, null, Oblique(language, location)));
         }
 
@@ -390,9 +396,9 @@ public static class Syntax
         //language whose adjectives agree, agrees with the subject in number, gender and that case,
         //as in Latin canis magnus est 'the dog is big'; otherwise it's just its root
         var complement = PredicateComplement(language, clause.Complement, clause.Subject);
-        var copula = predication.Drops(clause.Tense, clause.Negative)
+        var copula = modal is null && predication.Drops(clause.Tense, clause.Negative)
             ? []
-            : Verb(language, predication.Copula, clause.Tense, clause.Aspect, clause.Subject, clause.Negative);
+            : Predicate(language, predication.Copula, clause.Tense, clause.Aspect, clause.Subject, clause.Negative, modal, null);
         return Flat(Order(language.WordOrder, subject, copula, complement, standard));
     }
 
@@ -410,9 +416,9 @@ public static class Syntax
         }
         return language.Comparison switch
         {
-            LocationalComparison locational => Copular(language, clause, Marked(language, comparative.Standard, locational.Role)),
-            ParticleComparison particle => Copular(language, clause, Than(particle, Inflect(language, comparative.Standard, Role.IntransitiveSubject))),
-            ConjoinedComparison => [.. Words(language, clause), .. Words(language, clause with { Subject = comparative.Standard, Negative = !clause.Negative })],
+            LocationalComparison locational => Copular(language, clause, Marked(language, comparative.Standard, locational.Role), null),
+            ParticleComparison particle => Copular(language, clause, Than(particle, Inflect(language, comparative.Standard, Role.IntransitiveSubject)), null),
+            ConjoinedComparison => [.. Copular(language, clause, [], null), .. Copular(language, clause with { Subject = comparative.Standard, Negative = !clause.Negative }, [], null)],
         };
 
         static IReadOnlyList<Word> Than(ParticleComparison particle, IReadOnlyList<Word> standard) =>
@@ -435,6 +441,61 @@ public static class Syntax
     //a language that drops subject pronouns leaves the verb's agreement, if any, to say who
     private static IReadOnlyList<Word> Subject(Language language, Argument subject, Role role) =>
         subject.Value is Pronoun && language.Pronouns.DropsSubjects ? [] : Inflect(language, subject, role);
+
+    public static Sentence Realize(Language language, Modalized modalized, string translation) => Sentence(language, Words(language, modalized), translation);
+
+    //the clause, with its modal where its verb is
+    private static IReadOnlyList<Word> Words(Language language, Modalized modalized) => modalized.Clause.Value switch
+    {
+        Clause c => Words(language, c, modalized),
+        PassiveClause c => Words(language, c, modalized),
+        CopularClause c => Copular(language, c, [], modalized),
+        _ => throw new ArgumentException("Only a clause with a verb or be can take a modal.", nameof(modalized)),
+    };
+
+    //a verb with its passive, its modal and its negation, each where the language puts it. A modal
+    //verb takes the tense, the agreement and the modal's negation, and the verb itself goes bare
+    //beside it with its own, as in French il ne peut pas nager 'he can't swim'. A modal affix goes
+    //next to the root, outside only the passive, as in Turkish gör-ül-ebil-ir 'can be seen', and a
+    //modal particle beside the verb. With either of those, a negation goes where it always does,
+    //whichever it negates
+    //TODO a language whose negation is an affix could show its scope by its order, as Turkish
+    //git-me-meli 'must not go' puts its negation inside the modal and gid-eme-z 'cannot go' outside
+    private static IReadOnlyList<Word> Predicate(Language language, Lexeme verb, Tense tense, Aspect aspect, Argument subject, bool negative, Modalized? modal, Passive? passive)
+    {
+        IReadOnlyList<Word> Voiced(IReadOnlyList<Word> words) => passive is null ? words : passive.Apply(words);
+        IReadOnlyList<Word> Negated(IReadOnlyList<Word> words, bool negated) => negated ? language.Negation.Apply(words) : words;
+        if (modal is null)
+        {
+            return Voiced(Verb(language, verb, tense, aspect, subject, negative));
+        }
+        switch (language.Modals.Markers[modal.Modality].Value)
+        {
+            case ModalVerb m:
+            {
+                var bare = Negated(Voiced([new Word([verb.Root])]), negative);
+                var auxiliary = Verb(language, m.Verb, tense, aspect, subject, modal.Negative);
+                return m.BeforeVerb ? [.. auxiliary, .. bare] : [.. bare, .. auxiliary];
+            }
+            case ModalAffix m:
+            {
+                var words = Verb(language, verb, tense, aspect, subject, negative: false).ToList();
+                var at = words.FindIndex(w => w.Root is not null);
+                var morphemes = words[at].Morphemes.ToList();
+                var root = morphemes.FindIndex(x => x.Value is Root);
+                morphemes.Insert(m.Position == ExponentPosition.Prefix ? root : root + 1, m.Marker);
+                words[at] = words[at] with { Morphemes = morphemes };
+                return Negated(Voiced(words), negative || modal.Negative);
+            }
+            case ModalParticle m:
+            {
+                var words = Voiced(Verb(language, verb, tense, aspect, subject, negative: false));
+                return Negated(m.BeforeVerb ? [new Word([m.Marker]), .. words] : [.. words, new Word([m.Marker])], negative || modal.Negative);
+            }
+            default:
+                throw new InvalidOperationException();
+        }
+    }
 
     //the verb agrees with its subject. TODO many ergative languages agree with the absolutive instead
     private static IReadOnlyList<Word> Verb(Language language, Lexeme verb, Tense tense, Aspect aspect, Argument subject, bool negative)

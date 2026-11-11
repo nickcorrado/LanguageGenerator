@@ -22,8 +22,25 @@ Anything the generator can't express yet, like a question, is an error naming th
 | `NEG` | Negates the clause | `see.PST.NEG` |
 | `IMP` | A command, with no tense or aspect | `drink.IMP.NEG  object:wine` |
 | `PASS` | Passive, with what's done to as its subject and `agent:` saying who does it | `carry.PASS  subject:light.DEF  agent:(figure.NDF small)` |
+| `ABIL` | Its subject can, as in 'you can swim' | `swim.ABIL  subject:2SG` |
+| `PERM` | Its subject may, or is allowed to | `go.PERM  subject:2SG` |
+| `OBLIG` | Its subject must, or has to | `find.OBLIG  subject:2SG  object:key.DEF` |
 
 A command has no subject, unless it's `subject:2PL` for several people.
+
+### Modals
+
+`NEG` after a modal negates the modal, and `NEG` before it negates the verb, the way glosses put a morpheme outside what it applies to:
+
+| Written | Means |
+| --- | --- |
+| `swim.ABIL.NEG  subject:2SG` | 'you can't swim' |
+| `sing.NEG.OBLIG  subject:2SG` | 'you must not sing' |
+| `go.OBLIG.NEG  subject:2SG` | 'you don't have to go' |
+
+'Could' is `ABIL.PST`. A modal works with `be` and `PASS` too, as in `be.OBLIG  subject:2SG  adjective:careful`, but not with a command or a comparison. Other modals, like 'should', 'might' and 'maybe', can't be said yet.
+
+A language marks each modal with an affix, a word of its own or a verb, as WALS 74A counts them. A modal verb takes the tense and agreement, with the verb bare beside it, and is glossed by what it means, `can`, `may` or `must`, while an affix or a word of its own is glossed `ABIL`, `PERM` or `OBLIG`, as grammars gloss them.
 
 ### `be`
 

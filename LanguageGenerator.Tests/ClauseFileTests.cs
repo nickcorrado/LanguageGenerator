@@ -277,7 +277,7 @@ public class ClauseFileTests
     [InlineData("x\n  sleep subject:dog location:house.ACC", 2, "case comes from its role")]
     [InlineData("x\n  sleep.PST.FUT subject:dog", 2, "more than one tense")]
     [InlineData("x\n  sleep.PL subject:dog", 2, "agrees with its subject")]
-    [InlineData("x\n  sleep.SBJV subject:dog", 2, "only tense, aspect, polarity, the imperative and the passive")]
+    [InlineData("x\n  sleep.SBJV subject:dog", 2, "only tense, aspect, polarity, the imperative, the passive and the modals")]
     [InlineData("x\n  sleep.NEG.NEG subject:dog", 2, "more than one polarity")]
     [InlineData("x\n  sleep subject:dog.NEG", 2, "the verb that's negated")]
     [InlineData("x\n  sleep subject:dog.ACC", 2, "case comes from its role")]

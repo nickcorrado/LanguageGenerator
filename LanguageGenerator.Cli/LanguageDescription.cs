@@ -158,6 +158,14 @@ public static class LanguageDescription
             ParticleComparison p => $"the particle {phonology.Realize(new Word([p.Than.Root])).Spell(orthography)} {(p.BeforeStandard ? "before" : "after")} the standard",
             ConjoinedComparison => "two clauses, 'X is big, Y is not big'",
         });
+        var modals = string.Join(", ", lang.Modals.Markers.Select(m => $"{m.Key.Gloss} " + m.Value.Value switch
+        {
+            ModalAffix a => Spelled(a.Position, a.Marker),
+            ModalParticle p => $"{((Morpheme)p.Marker).Spell(orthography)} {(p.BeforeVerb ? "before" : "after")} the verb",
+            ModalVerb v => $"the verb {SpelledWord(v.Verb)} {(v.BeforeVerb ? "before" : "after")} the bare verb",
+            _ => throw new InvalidOperationException(),
+        }));
+        output.WriteLine($"Modals: {modals}");
         var numerals = lang.Numerals;
         string Say(int n) => string.Join(" ", numerals.Say(n).Select(w => phonology.Realize(new Word([w.Root])).Spell(orthography)));
         var counting = numerals.Base == NumeralBase.Restricted
@@ -298,8 +306,16 @@ public static class LanguageDescription
             (new(new CopularClause(new Adjective("big"), Tense.Present, Aspect.Imperfective, Phrase("dog", Number.Singular)), Phrase("cat", Number.Plural)),
                 "the dog is bigger than the cats"),
         ];
+        (Modalized Clause, string Translation)[] modalized =
+        [
+            (new(new Clause("drink", Tense.Present, Aspect.Imperfective, Phrase("dog", Number.Singular), Phrase("water", Number.Singular)), Modality.Ability, true),
+                "the dog can't drink the water"),
+            (new(new Clause("sleep", Tense.Present, Aspect.Imperfective, Phrase("cat", Number.Singular)), Modality.Permission, false), "the cat may sleep"),
+            (new(new Clause("eat", Tense.Present, Aspect.Imperfective, Phrase("dog", Number.Plural), Phrase("fish", Number.Singular), true), Modality.Obligation, false),
+                "the dogs must not eat the fish"),
+        ];
         foreach (var (clause, translation) in examples.Select(e => ((Statement)e.Clause, e.Translation)).Concat(copular.Select(e => ((Statement)e.Clause, e.Translation)))
-            .Concat(commands.Select(e => ((Statement)e.Clause, e.Translation))).Concat(copularCommands.Select(e => ((Statement)e.Clause, e.Translation))).Concat(coordinated).Concat(subordinated).Concat(passives.Select(e => ((Statement)e.Clause, e.Translation))).Concat(comparatives.Select(e => ((Statement)e.Clause, e.Translation))).Concat(addressed.Select(e => ((Statement)e.Clause, e.Translation))))
+            .Concat(commands.Select(e => ((Statement)e.Clause, e.Translation))).Concat(copularCommands.Select(e => ((Statement)e.Clause, e.Translation))).Concat(coordinated).Concat(subordinated).Concat(passives.Select(e => ((Statement)e.Clause, e.Translation))).Concat(comparatives.Select(e => ((Statement)e.Clause, e.Translation))).Concat(addressed.Select(e => ((Statement)e.Clause, e.Translation))).Concat(modalized.Select(e => ((Statement)e.Clause, e.Translation))))
         {
             output.WriteLine();
             output.WriteLine(Syntax.Realize(lang, clause, translation).Interlinear());
