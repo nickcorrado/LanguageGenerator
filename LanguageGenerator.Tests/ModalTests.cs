@@ -16,7 +16,7 @@ public class ModalTests
     //where the modal's marker is in a sentence: the modal verb's word, or the word with its affix or particle
     private static int ModalAt(Sentence sentence) => sentence.Words.ToList().FindIndex(w => w.Word.Morphemes.Any(m => m.Value switch
     {
-        Root r => r.Meaning is "can" or "may" or "must",
+        Root r => r.Meaning is "can" or "may" or "must" or "should",
         Affix a => a.Grammemes.Any(g => g is Modality),
         Particle p => p.Grammemes.Any(g => g is Modality),
     }));
@@ -41,21 +41,25 @@ public class ModalTests
         Assert.InRange(drawn.Count(m => m is ModalParticle) / 4000.0, 0.045, 0.07);
     }
 
-    [Fact]
-    public void GenerateModals_ManyDraws_OftenShareCanAndMay()
+    [Theory]
+    //ability and permission joined 60% of the time, and obligation and advisability 50%, and
+    //rarely the same by chance otherwise
+    [InlineData("Ability", "Permission", 0.57, 0.65)]
+    [InlineData("Obligation", "Advisability", 0.47, 0.55)]
+    public void GenerateModals_ManyDraws_ShareMarkersAsTheMapSays(string first, string second, double least, double most)
     {
         var language = GeneratedLanguages.Sample.First(l => l.MorphologicalProfile.Fusion != Fusion.Isolating);
+        var (a, b) = (ModalityMap.Modalities.Single(m => m.Name == first), ModalityMap.Modalities.Single(m => m.Name == second));
         static IReadOnlyList<Phoneme> Form(ModalMarking marking) => marking.Value switch
         {
             ModalAffix a => a.Marker.Form,
             ModalParticle p => p.Marker.Form,
             ModalVerb v => v.Verb.Root.Form,
         };
-        var shared = Drawn(language, 4000).Count(m => Form(m.Markers[Modality.Ability]).SequenceEqual(Form(m.Markers[Modality.Permission]))
-            && m.Markers[Modality.Ability].Value.GetType() == m.Markers[Modality.Permission].Value.GetType());
+        var shared = Drawn(language, 4000).Count(m => Form(m.Markers[a]).SequenceEqual(Form(m.Markers[b]))
+            && m.Markers[a].Value.GetType() == m.Markers[b].Value.GetType());
 
-        //joined 60% of the time, and rarely the same by chance otherwise
-        Assert.InRange(shared / 4000.0, 0.57, 0.65);
+        Assert.InRange(shared / 4000.0, least, most);
     }
 
     [Fact]
@@ -200,6 +204,7 @@ public class ModalTests
     [InlineData("swim.ABIL.NEG  subject:2SG", true, false)]
     [InlineData("sing.NEG.OBLIG  subject:2SG", false, true)]
     [InlineData("find.OBLIG  subject:2SG  object:key.DEF", false, false)]
+    [InlineData("follow.NEG.ADVS  subject:2SG  object:3PL", false, true)]
     public void Parse_Modal_NegatesWhatTheNegationFollows(string gloss, bool modalNegative, bool verbNegative)
     {
         var modalized = Assert.IsType<Modalized>(Parsed(gloss).Value);

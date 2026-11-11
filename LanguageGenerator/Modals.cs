@@ -26,13 +26,14 @@ public record Modals(IReadOnlyDictionary<Modality, ModalMarking> Markers);
 
 /// <summary>
 /// A semantic map of the modalities, after van der Auwera and Plungian's: which share a marker in
-/// languages, as English can is both 'able to' and 'allowed to'.
+/// languages, as English can is both 'able to' and 'allowed to', and French devoir both 'must' and,
+/// in the conditional, 'should'.
 /// </summary>
 //WALS counts none of this, so every weight is a guess
 public static class ModalityMap
 {
     /// <summary>The modalities, in no order that matters but the edges'.</summary>
-    public static IReadOnlyList<Modality> Modalities { get; } = [Modality.Ability, Modality.Permission, Modality.Obligation];
+    public static IReadOnlyList<Modality> Modalities { get; } = [Modality.Ability, Modality.Permission, Modality.Obligation, Modality.Advisability];
 
     public static IReadOnlyList<(Modality First, Modality Second, double Weight)> Edges { get; } =
     [
@@ -42,6 +43,10 @@ public static class ModalityMap
         //a marker of possibility and necessity alike, as Old English mōt was 'may' and 'must', and
         //St'át'imcets's modals are neither
         (Modality.Permission, Modality.Obligation, 0.05),
+        //'should' as a softer 'must', which many languages don't tell apart, or tell apart only by
+        //putting 'must' in a conditional, as French devrais and Spanish debería do, against English
+        //should, German sollen or Russian sledovalo by
+        (Modality.Obligation, Modality.Advisability, 0.5),
     ];
 
     /// <summary>The English verb that glosses a modal verb in this meaning.</summary>
@@ -49,6 +54,7 @@ public static class ModalityMap
         modality == Modality.Ability ? "can"
         : modality == Modality.Permission ? "may"
         : modality == Modality.Obligation ? "must"
+        : modality == Modality.Advisability ? "should"
         : throw new ArgumentOutOfRangeException(nameof(modality), modality, null);
 }
 

@@ -25,6 +25,7 @@ Anything the generator can't express yet, like a question, is an error naming th
 | `ABIL` | Its subject can, as in 'you can swim' | `swim.ABIL  subject:2SG` |
 | `PERM` | Its subject may, or is allowed to | `go.PERM  subject:2SG` |
 | `OBLIG` | Its subject must, or has to | `find.OBLIG  subject:2SG  object:key.DEF` |
+| `ADVS` | Its subject should, or ought to | `rest.ADVS  subject:2SG` |
 
 A command has no subject, unless it's `subject:2PL` for several people.
 
@@ -37,10 +38,11 @@ A command has no subject, unless it's `subject:2PL` for several people.
 | `swim.ABIL.NEG  subject:2SG` | 'you can't swim' |
 | `sing.NEG.OBLIG  subject:2SG` | 'you must not sing' |
 | `go.OBLIG.NEG  subject:2SG` | 'you don't have to go' |
+| `follow.NEG.ADVS  subject:2SG  object:3PL` | 'you shouldn't follow them' |
 
-'Could' is `ABIL.PST`. A modal works with `be` and `PASS` too, as in `be.OBLIG  subject:2SG  adjective:careful`, but not with a command or a comparison. Other modals, like 'should', 'might' and 'maybe', can't be said yet.
+'Could' is `ABIL.PST`. A modal works with `be` and `PASS` too, as in `be.OBLIG  subject:2SG  adjective:careful`, but not with a command or a comparison. Other modals, like 'might' and 'maybe', can't be said yet.
 
-A language marks each modal with an affix, a word of its own or a verb, as WALS 74A counts them. A modal verb takes the tense and agreement, with the verb bare beside it, and is glossed by what it means, `can`, `may` or `must`, while an affix or a word of its own is glossed `ABIL`, `PERM` or `OBLIG`, as grammars gloss them.
+A language marks each modal with an affix, a word of its own or a verb, as WALS 74A counts them. A modal verb takes the tense and agreement, with the verb bare beside it, and is glossed by what it means, `can`, `may`, `must` or `should`, while an affix or a word of its own is glossed `ABIL`, `PERM`, `OBLIG` or `ADVS`. The Leipzig rules have none of these; the first three are what grammars commonly use, and `ADVS`, for advisability, is coined here, since grammars have no common gloss for 'should'.
 
 ### `be`
 

@@ -29,8 +29,9 @@ public static class GlossPrompt
             - Verb features: {Values<Tense>()}; {Values<Aspect>()}; {Values<Polarity>()}; PASS (passive);
               {Values<Modality>()}.
             - A modal is a feature of the verb: ABIL for 'can' or 'be able to', PERM for 'may' or 'can'
-              meaning allowed, and OBLIG for 'must' or 'have to'. 'Could' is ABIL.PST, and 'will be able
-              to' ABIL.FUT. NEG after the modal negates the modal, and NEG before it the verb:
+              meaning allowed, OBLIG for 'must' or 'have to', and ADVS for 'should' or 'ought to'.
+              'Could' is ABIL.PST, and 'will be able to' ABIL.FUT. NEG after the modal negates the
+              modal, and NEG before it the verb:
 
                 you cannot swim in armor
                   swim.ABIL.NEG  subject:2SG  location:armor
@@ -38,6 +39,8 @@ public static class GlossPrompt
                   sing.NEG.OBLIG  subject:2SG
                 you must be careful
                   be.OBLIG  subject:2SG  adjective:careful
+                you should not follow them
+                  follow.NEG.ADVS  subject:2SG  object:3PL
 
             - A passive verb has PASS, its subject is what's done to, and agent: is who does it, if the
               sentence says: 'each light is carried by a small figure' is
@@ -123,10 +126,10 @@ public static class GlossPrompt
               English saying what the gloss does, so 'the' stays, but a dropped adverb goes.
             - Paraphrase into what the format can say when that keeps the meaning, as with 'went' for
               walk.PST, or 'lives in' for be with location:.
-            - Never drop a modal, like should, might or want to, that has no gloss: 'you should go'
-              doesn't say 'you go', and 'it might rain' doesn't say 'it rains'.
+            - Never drop a modal, like might, maybe or want to, that has no gloss: 'it might rain'
+              doesn't say 'it rains'.
             - When a sentence can't be said even loosely, as with a question, a modal other than ABIL,
-              PERM or OBLIG (like should, might, maybe or want to), a relative
+              PERM, OBLIG or ADVS (like might, maybe or want to), a relative
               clause, a comparison other than an adjective with be (like 'runs faster than' or
               'stronger arms than yours'), or a command to anyone but 'you', like 'let's go', write instead one line: {CantExpress} (what's missing): the sentence.
               This is better than a gloss that changes what the sentence means.

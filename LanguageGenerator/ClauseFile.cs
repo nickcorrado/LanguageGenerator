@@ -31,7 +31,7 @@ namespace LanguageGenerator;
 //can compare its subject with a standard: be subject:marta adjective:tall standard:(man.PL) is
 //'Marta is taller than the men'. A verb with PASS is passive: its subject is what's done to, and
 //agent: is who does it, if anyone says, as in carry.PASS subject:light.DEF agent:(figure.NDF small). A verb
-//with ABIL, PERM or OBLIG says its subject can, may or must, as in find.OBLIG subject:2SG, and NEG
+//with ABIL, PERM, OBLIG or ADVS says its subject can, may, must or should, as in find.OBLIG subject:2SG, and NEG
 //after one negates the modal, as swim.ABIL.NEG is 'can't swim', while NEG before one negates the
 //verb, as sing.NEG.OBLIG is 'must not sing'. Any clause can have an addressee, who it's said to, a bare noun as in addressee:marta, and
 //a command to a plural addressee is to all of them. Anything not given takes its unmarked value: present, imperfective, singular, exclusive for
@@ -299,7 +299,7 @@ public static class ClauseFile
     {
         Mood m when m == Mood.Prohibitive => new($"Write a command not to do something as {verb}.IMP.NEG, not {verb}.{m.Gloss}.", number),
         Person or Number => new($"'{verb}' can't take {feature.Gloss}: a verb agrees with its subject.", number),
-        _ => new($"'{verb}' can't take {feature.Gloss} ({feature.Name}) yet: verbs have only tense, aspect, polarity, the imperative, the passive and the modals ABIL, PERM and OBLIG.", number),
+        _ => new($"'{verb}' can't take {feature.Gloss} ({feature.Name}) yet: verbs have only tense, aspect, polarity, the imperative, the passive and the modals {string.Join(", ", ValuesOf<Modality>().Select(m => m.Gloss))}.", number),
     };
 
     private static ClauseRoles ParseRoles(string verb, IEnumerable<string> tokens, int number)
