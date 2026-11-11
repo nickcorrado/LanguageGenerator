@@ -30,7 +30,10 @@ namespace LanguageGenerator;
 //people, and be.IMP says what or where to be, as in be.IMP adjective:careful. be with an adjective
 //can compare its subject with a standard: be subject:marta adjective:tall standard:(man.PL) is
 //'Marta is taller than the men'. A verb with PASS is passive: its subject is what's done to, and
-//agent: is who does it, if anyone says, as in carry.PASS subject:light.DEF agent:(figure.NDF small). Any clause can have an addressee, who it's said to, a bare noun as in addressee:marta, and
+//agent: is who does it, if anyone says, as in carry.PASS subject:light.DEF agent:(figure.NDF small). A verb
+//with ABIL, PERM, OBLIG or ADVS says its subject can, may, must or should, as in find.OBLIG subject:2SG, and NEG
+//after one negates the modal, as swim.ABIL.NEG is 'can't swim', while NEG before one negates the
+//verb, as sing.NEG.OBLIG is 'must not sing'. Any clause can have an addressee, who it's said to, a bare noun as in addressee:marta, and
 //a command to a plural addressee is to all of them. Anything not given takes its unmarked value: present, imperfective, singular, exclusive for
 //'we' and masculine for a gendered pronoun. Whatever the generator can't express yet is an error,
 //never dropped
@@ -150,6 +153,7 @@ public static class ClauseFile
         Addressed a => [.. ArgumentsOf(a.Statement), a.Addressee],
         Coordinated c => [.. ArgumentsOf(c.First), .. ArgumentsOf(c.Second)],
         Subordinated s => [.. ArgumentsOf(s.Main), .. ArgumentsOf(s.Clause)],
+        Modalized m => ArgumentsOf(m.Clause),
     };
 
     private static IEnumerable<Argument> Given(Argument? argument) => argument.HasValue ? [argument.GetValueOrDefault()] : [];
@@ -198,6 +202,12 @@ public static class ClauseFile
                 ? "A command can't compare yet."
                 : $"Only be takes a standard:, as in be subject:marta adjective:tall standard:(man.PL) for 'Marta is taller than the men'.", number);
         }
+        if (features.Modality is { } modality && (features.Imperative || standard.HasValue))
+        {
+            throw new ClauseFormatException(features.Imperative
+                ? $"A command can't take {modality.Gloss}: it already says what to do."
+                : $"A comparison can't take {modality.Gloss} yet.", number);
+        }
 
         Statement statement;
         if (features.Imperative)
@@ -220,6 +230,10 @@ public static class ClauseFile
         else
         {
             statement = ToClause(verb, features, roles, subject, number);
+        }
+        if (features.Modality is { } modal)
+        {
+            statement = new Modalized(statement, modal, features.ModalNegative);
         }
         return addressee is null ? statement : new Addressed(statement, addressee);
     }
@@ -246,7 +260,8 @@ public static class ClauseFile
         _ => throw new ClauseFormatException("An addressee is a noun, as in addressee:marta. A clause said to 'you' needs none.", number),
     };
 
-    private record VerbFeatures(Tense? Tense, Aspect? Aspect, bool Negative, bool Imperative, bool Passive);
+    //Negative negates the verb, and ModalNegative the modal
+    private record VerbFeatures(Tense? Tense, Aspect? Aspect, bool Negative, bool Imperative, bool Passive, Modality? Modality, bool ModalNegative);
 
     //the obliques keep the role they were written with, which is how be finds its location:
     private record ClauseRoles(Dictionary<string, Argument> Arguments, List<(string Role, Oblique Oblique)> Obliques, Complement? Complement)
@@ -256,7 +271,7 @@ public static class ClauseFile
 
     private static VerbFeatures ParseVerbFeatures(string verb, IReadOnlyList<Grammeme> glosses, int number)
     {
-        if (glosses.FirstOrDefault(g => g is not (Tense or Aspect or Polarity) && g != Mood.Imperative && g != Voice.Passive) is { } unsupported)
+        if (glosses.FirstOrDefault(g => g is not (Tense or Aspect or Polarity or Modality) && g != Mood.Imperative && g != Voice.Passive) is { } unsupported)
         {
             throw Unsupported(verb, unsupported, number);
         }
@@ -264,19 +279,27 @@ public static class ClauseFile
         {
             throw new ClauseFormatException($"'{verb}' has more than one {repeated.Key.Name.ToLowerInvariant()}.", number);
         }
+        //a negation after the modal negates the modal, as glosses put a morpheme outside what it
+        //scopes over: swim.ABIL.NEG is 'can't swim', and sing.NEG.OBLIG 'must not sing'
+        var modality = glosses.OfType<Modality>().SingleOrDefault();
+        var negative = glosses.Contains(Polarity.Negative);
+        var order = glosses.ToList();
+        var modalNegative = negative && modality is not null && order.IndexOf(Polarity.Negative) > order.IndexOf(modality);
         return new VerbFeatures(
             glosses.OfType<Tense>().SingleOrDefault(),
             glosses.OfType<Aspect>().SingleOrDefault(),
-            glosses.Contains(Polarity.Negative),
+            negative && !modalNegative,
             glosses.Contains(Mood.Imperative),
-            glosses.Contains(Voice.Passive));
+            glosses.Contains(Voice.Passive),
+            modality,
+            modalNegative);
     }
 
     private static ClauseFormatException Unsupported(string verb, Grammeme feature, int number) => feature switch
     {
         Mood m when m == Mood.Prohibitive => new($"Write a command not to do something as {verb}.IMP.NEG, not {verb}.{m.Gloss}.", number),
         Person or Number => new($"'{verb}' can't take {feature.Gloss}: a verb agrees with its subject.", number),
-        _ => new($"'{verb}' can't take {feature.Gloss} ({feature.Name}) yet: verbs have only tense, aspect, polarity, the imperative and the passive.", number),
+        _ => new($"'{verb}' can't take {feature.Gloss} ({feature.Name}) yet: verbs have only tense, aspect, polarity, the imperative, the passive and the modals {string.Join(", ", ValuesOf<Modality>().Select(m => m.Gloss))}.", number),
     };
 
     private static ClauseRoles ParseRoles(string verb, IEnumerable<string> tokens, int number)

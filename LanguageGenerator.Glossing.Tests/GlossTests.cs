@@ -145,7 +145,7 @@ public partial class GlossTests
         var prompt = GlossPrompt.System;
 
         Assert.All(ClauseFile.RoleNames, role => Assert.Contains(role, prompt));
-        Assert.All(ClauseFile.ValuesOf<Tense>().Concat<Grammeme>(ClauseFile.ValuesOf<Aspect>()).Concat(ClauseFile.ValuesOf<Polarity>()).Concat(ClauseFile.ValuesOf<Number>()),
+        Assert.All(ClauseFile.ValuesOf<Tense>().Concat<Grammeme>(ClauseFile.ValuesOf<Aspect>()).Concat(ClauseFile.ValuesOf<Polarity>()).Concat(ClauseFile.ValuesOf<Number>()).Concat(ClauseFile.ValuesOf<Modality>()),
             value => Assert.Contains($"{value.Gloss} ({value.Name.ToLowerInvariant()})", prompt));
     }
 
@@ -159,10 +159,12 @@ public partial class GlossTests
     [Fact]
     public void Prompt_ItsOwnExamples_Parse()
     {
-        var examples = Regex.Matches(GlossPrompt.System, @"^ {2}(\S.*)\n {4}(\S.*)$", RegexOptions.Multiline);
+        //an English line and the gloss indented under it, at the top level or inside a rule, taking
+        //only a clause's first line, which parses on its own
+        var examples = Regex.Matches(GlossPrompt.System, @"^( {2,})(\S.*)\n\1 {2}(\S.*)$", RegexOptions.Multiline);
 
-        Assert.NotEmpty(examples);
-        Assert.All(examples, m => Assert.Single(ClauseFile.Parse($"{m.Groups[1].Value}\n  {m.Groups[2].Value}")));
+        Assert.Contains(examples, m => m.Groups[3].Value.Contains(".OBLIG"));
+        Assert.All(examples, m => Assert.Single(ClauseFile.Parse($"{m.Groups[2].Value}\n  {m.Groups[3].Value}")));
     }
 
     [Fact]

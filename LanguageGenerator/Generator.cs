@@ -56,6 +56,7 @@ public static partial class Generator
         var passive = GeneratePassive(stages.For("passive"), alignment, morphology, phonology, syllableDropoff);
         var conjunctions = GenerateConjunctions(stages.For("conjunctions"), phonology, syllableDropoff);
         var subordination = GenerateSubordination(stages.For("subordination"), morphology, wordOrder, phonology, syllableDropoff);
+        var modals = GenerateModals(stages.For("modals"), morphology, wordOrder, predication, phonology, syllableDropoff);
 
         //the lexicon comes last, once there are closed classes for it to avoid
         var lexiconSeed = stages.For("lexicon").Next();
@@ -64,7 +65,8 @@ public static partial class Generator
         {
             [PartOfSpeech.Noun] = pronouns.Forms.Values,
             [PartOfSpeech.Adjective] = [.. numerals.Words.Values, .. new[] { numerals.Many, numerals.Ordinals.First, numerals.Ordinals.Second }.OfType<Lexeme>()],
-            [PartOfSpeech.Verb] = [predication.Copula, .. predication.LocationalCopula is { } locational ? [locational] : Array.Empty<Lexeme>()],
+            [PartOfSpeech.Verb] = [predication.Copula, .. predication.LocationalCopula is { } locational ? [locational] : Array.Empty<Lexeme>(),
+                .. modals.Markers.Values.Select(m => m.Value).OfType<ModalVerb>().Select(m => m.Verb)],
         });
 
         return new Language
@@ -91,6 +93,7 @@ public static partial class Generator
             Passive = passive,
             Conjunctions = conjunctions,
             Subordination = subordination,
+            Modals = modals,
         };
     }
 

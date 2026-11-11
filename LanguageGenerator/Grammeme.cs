@@ -55,6 +55,25 @@ public record Mood(string Name, string Gloss) : Grammeme(Name, Gloss)
     public static Mood Prohibitive { get; } = new("Prohibitive", "PROH");
 }
 
+/// <summary>
+/// What a clause says is possible or necessary for its subject: that they can do it, may do it,
+/// must, or should.
+/// </summary>
+//the Leipzig rules have no glosses for these, so they're the ones grammars commonly coin, except
+//ADVS, for which there's no common one. They're situational modality only, which WALS 74A counts;
+//epistemic modality, as in 'it may rain', isn't here yet
+public record Modality(string Name, string Gloss) : Grammeme(Name, Gloss)
+{
+    /// <summary>Able to, as in 'you can swim'.</summary>
+    public static Modality Ability { get; } = new("Ability", "ABIL");
+    /// <summary>Allowed to, as in 'you may go in the morning'.</summary>
+    public static Modality Permission { get; } = new("Permission", "PERM");
+    /// <summary>Obliged to, as in 'you must find the key'.</summary>
+    public static Modality Obligation { get; } = new("Obligation", "OBLIG");
+    /// <summary>Weakly obliged to, advised to, as in 'you should go' or 'you ought to go'.</summary>
+    public static Modality Advisability { get; } = new("Advisability", "ADVS");
+}
+
 public record Voice(string Name, string Gloss) : Grammeme(Name, Gloss)
 {
     public static Voice Active { get; } = new("Active", "ACTV");
