@@ -22,7 +22,7 @@ public static class GlossCommand
           Ollama with --base-url http://localhost:11434/v1. It needs --model.
         """;
 
-    private const string DefaultAnthropicModel = "claude-opus-5-5";
+    private const string DefaultAnthropicModel = "claude-sonnet-5-5";
     private const string NounHeader = "# What each noun names: M, F, HUM, ANIM or THING. Gender follows from this in languages that\n# have it. Edit freely: glossing again keeps every line here.\n\n";
 
     public static async Task<int> Run(IReadOnlyList<string> args)
