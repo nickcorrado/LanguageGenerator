@@ -99,15 +99,19 @@ public static class Syntax
     //puts that kind. Its verb is deranked, bare of tense and agreement, where the language derank
     //this kind, or does either and the two clauses share a subject, which a deranked clause then
     //leaves unsaid; only a verb's clause can be deranked here, and a copular one is always balanced.
-    //A balanced clause whose subject was taken from the main clause says it as a pronoun
+    //A balanced clause whose subject was taken from the main clause says it as a pronoun. A deranked
+    //clause the language marks like a role takes that role's case on its verb, or its adposition, in
+    //place of the subordinator, as a noun in that role would
     private static IReadOnlyList<Word> Words(Language language, Subordinated subordinated)
     {
         var marking = language.Subordination.Markers[subordinated.Subordinator];
         var shared = subordinated.SharesSubject || SubjectOf(subordinated.Clause).Equals(SubjectOf(subordinated.Main));
         var derank = marking.Balance == Balance.Deranked || marking.Balance == Balance.Either && shared;
-        var clause = (derank ? Deranked(language, subordinated.Clause, shared) : null)
-            ?? Words(language, subordinated.SharesSubject ? WithSubject(subordinated.Clause, Pronominal(language, SubjectOf(subordinated.Main))) : subordinated.Clause);
-        var marked = Subordinate(clause, marking, VerbRoot(language, subordinated.Clause));
+        var deranked = derank ? Deranked(language, subordinated.Clause, shared, marking.MarkedAs) : null;
+        var marked = deranked is not null && marking.MarkedAs is not null
+            ? deranked
+            : Subordinate(deranked ?? Words(language, subordinated.SharesSubject ? WithSubject(subordinated.Clause, Pronominal(language, SubjectOf(subordinated.Main))) : subordinated.Clause),
+                marking, VerbRoot(language, subordinated.Clause));
         var main = Words(language, subordinated.Main);
         return marking.BeforeMain ? [.. marked, .. main] : [.. main, .. marked];
     }
@@ -144,37 +148,56 @@ public static class Syntax
     };
 
     //a verb's clause with its verb bare of tense and agreement, keeping negation and the passive,
-    //and without its subject where it shares the main clause's. Null for any other kind of clause
-    private static IReadOnlyList<Word>? Deranked(Language language, Statement statement, bool dropSubject)
+    //and without its subject where it shares the main clause's. Marked like a role, its verb takes
+    //that role's case, or the whole clause its adposition. Null for any other kind of clause
+    private static IReadOnlyList<Word>? Deranked(Language language, Statement statement, bool dropSubject, Role? markedAs)
     {
+        var marker = markedAs is { } role ? language.RoleMarkers[role].Value : null;
+        IReadOnlyList<Word> Verb(Lexeme verb, bool negative)
+        {
+            var words = marker is Case @case ? AsNoun(language, verb, @case) : [new Word([verb.Root])];
+            return negative ? language.Negation.Apply(words) : words;
+        }
+        IReadOnlyList<Word> Adpositioned(IReadOnlyList<Word> clause) => marker switch
+        {
+            Adposition { Type: AdpositionType.Preposition } a => [new Word([a.Lexeme.Root]), .. clause],
+            Adposition a => [.. clause, new Word([a.Lexeme.Root])],
+            _ => clause,
+        };
+
         switch (statement.Value)
         {
             case Clause c:
             {
-                var verb = Bare(language, language.Lexicon.Verb(c.Verb), c.Negative);
+                var verb = Verb(language.Lexicon.Verb(c.Verb), c.Negative);
                 var subject = dropSubject ? [] : Subject(language, c.Subject, c.Object is null ? Role.IntransitiveSubject : Role.TransitiveSubject);
                 var @object = c.Object.HasValue ? Inflect(language, c.Object.GetValueOrDefault(), Role.DirectObject) : null;
-                return Flat(Order(language.WordOrder, subject, verb, @object, [.. c.Obliques.SelectMany(o => Oblique(language, o))]));
+                return Adpositioned(Flat(Order(language.WordOrder, subject, verb, @object, [.. c.Obliques.SelectMany(o => Oblique(language, o))])));
             }
             case PassiveClause c when language.Passive is { } passive:
             {
-                var verb = passive.Apply(Bare(language, language.Lexicon.Verb(c.Verb), c.Negative));
+                var verb = passive.Apply(Verb(language.Lexicon.Verb(c.Verb), c.Negative));
                 var subject = dropSubject ? [] : Subject(language, c.Patient, Role.IntransitiveSubject);
                 IReadOnlyList<Word> agent = c.Agent.HasValue ? Marked(language, c.Agent.GetValueOrDefault(), Role.Agent) : [];
-                return Flat(Order(language.WordOrder, subject, verb, null, [.. agent, .. c.Obliques.SelectMany(o => Oblique(language, o))]));
+                return Adpositioned(Flat(Order(language.WordOrder, subject, verb, null, [.. agent, .. c.Obliques.SelectMany(o => Oblique(language, o))])));
             }
             case PassiveClause c:
                 return Deranked(language, new Clause(c.Verb, c.Tense, c.Aspect, c.Agent.HasValue ? c.Agent.GetValueOrDefault() : new Pronoun(Person.Third, Number.Plural),
-                    c.Patient, c.Negative, c.Obliques), dropSubject: false);
+                    c.Patient, c.Negative, c.Obliques), dropSubject: false, markedAs);
             default:
                 return null;
         }
     }
 
-    private static IReadOnlyList<Word> Bare(Language language, Lexeme verb, bool negative)
+    //a verb inflected as a singular noun in a case, as a nominalized verb is, with its zero markers
+    //unglossed, as an agreeing adjective's are
+    private static IReadOnlyList<Word> AsNoun(Language language, Lexeme verb, Case @case)
     {
-        IReadOnlyList<Word> words = [new Word([verb.Root])];
-        return negative ? language.Negation.Apply(words) : words;
+        var nouns = language.Paradigms.Nouns;
+        var words = nouns.Inflect(verb with { PartOfSpeech = PartOfSpeech.Noun }, Features(nouns, [Number.Singular, @case])).ToList();
+        var main = words.FindIndex(w => w.Root is not null);
+        words[main] = words[main] with { Covert = null };
+        return words;
     }
 
     //the pronoun that refers back to something already said

@@ -1,4 +1,4 @@
-using static LanguageGenerator.Tests.Sentences;
+﻿using static LanguageGenerator.Tests.Sentences;
 
 namespace LanguageGenerator.Tests;
 
@@ -104,6 +104,67 @@ public class SubordinationTests
     }
 
     [Fact]
+    public void GenerateSubordination_ManyDraws_ShareMarkersAcrossTheMapsEdges()
+    {
+        var drawn = Draws(_ => true);
+        bool Share(Subordination s, Subordinator a, Subordinator b) =>
+            s.Markers[a].Marker.Form.SequenceEqual(s.Markers[b].Marker.Form) && s.Markers[a].Position == s.Markers[b].Position;
+
+        //'when' and 'if' share a marker by their own edge 40% of the time, and a little more through others
+        Assert.InRange(drawn.Count(d => Share(d, Subordinator.When, Subordinator.If)) / 3000.0, 0.39, 0.50);
+        Assert.InRange(drawn.Count(d => Share(d, Subordinator.Before, Subordinator.Until)) / 3000.0, 0.17, 0.25);
+        //'if' and 'before' have no path between them but through 'when' and 'after' and 'because'... and
+        //none at all to 'until', so those never share
+        Assert.DoesNotContain(drawn, d => Share(d, Subordinator.If, Subordinator.Until));
+        //each keeps its own meaning in its gloss
+        Assert.All(drawn, d => Assert.All(d.Markers, m => Assert.Equal(Linkage.For(m.Key), Assert.Single(m.Value.Marker.Value switch
+        {
+            Affix a => a.Grammemes,
+            Particle p => p.Grammemes,
+            _ => [],
+        }))));
+    }
+
+    [Fact]
+    public void GenerateSubordination_ManyDraws_MarkReducedClausesLikeRolesAsGuessed()
+    {
+        var drawn = Draws(_ => true);
+        double Share(Subordinator s, Role? role) => drawn.Count(d => d.Markers[s].MarkedAs == role) / 3000.0;
+
+        Assert.InRange(Share(Subordinator.Purpose, Role.Goal), 0.22, 0.28);
+        Assert.InRange(Share(Subordinator.Purpose, Role.Recipient), 0.12, 0.18);
+        Assert.InRange(Share(Subordinator.Because, Role.Source), 0.22, 0.28);
+        Assert.Equal(1, Share(Subordinator.If, null));
+        Assert.Equal(1, Share(Subordinator.Before, null));
+    }
+
+    [Fact]
+    public void Realize_DerankedClauseMarkedLikeARole_TakesItsCaseOrAdposition()
+    {
+        var dogEats = CatEats with { Subject = new NounPhrase("dog", Number.Singular) };
+        var marked = GeneratedLanguages.Sample.Where(l => l.Subordination.Markers[Subordinator.Purpose] is { Balance: not Balance.Balanced, MarkedAs: not null }).ToList();
+
+        Assert.NotEmpty(marked);
+        Assert.All(marked, l =>
+        {
+            var sentence = Syntax.Realize(l, new Subordinated(dogEats, Subordinator.Purpose, DogSleeps, true), "x");
+            var sleep = IndexOf(sentence, "sleep");
+
+            Assert.DoesNotContain(sentence.Words, w => w.Word.Morphemes.Any(IsMarker));
+            switch (l.RoleMarkers[l.Subordination.Markers[Subordinator.Purpose].MarkedAs!.Value].Value)
+            {
+                //a case particle can come before the verb, and the main clause has only core cases
+                case Case c:
+                    Assert.Contains(c.Gloss, string.Join(" ", sentence.Words.Select(w => w.Gloss)).Split('-', '.', ' ', '[', ']'));
+                    break;
+                case Adposition a:
+                    Assert.InRange(IndexOf(sentence, a.Lexeme.Root), sleep - 1, sleep + 1);
+                    break;
+            }
+        });
+    }
+
+    [Fact]
     public void Generate_IsolatingLanguages_MarkClausesWithWords() =>
         Assert.All(GeneratedLanguages.Sample.Where(l => l.MorphologicalProfile.Fusion == Fusion.Isolating),
             l => Assert.DoesNotContain(l.Subordination.Markers.Values, m => m.Position == ExponentPosition.Suffix));
@@ -127,6 +188,13 @@ public class SubordinationTests
                 var marker = sentence.Words.ToList().FindIndex(w => w.Word.Morphemes.Any(IsMarker));
 
                 Assert.Equal(marking.BeforeMain, dog < cat);
+                //the clauses don't share a subject, so only a clause the language always deranks can be
+                //marked like a role in place of its subordinator
+                if (marking is { Balance: Balance.Deranked, MarkedAs: not null })
+                {
+                    Assert.Equal(-1, marker);
+                    continue;
+                }
                 Assert.True(marking.Position switch
                 {
                     ExponentPosition.PrecedingParticle => marker < Math.Min(dog, sleep),

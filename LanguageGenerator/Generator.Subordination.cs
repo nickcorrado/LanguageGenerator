@@ -1,4 +1,4 @@
-namespace LanguageGenerator;
+﻿namespace LanguageGenerator;
 
 //subordinate clauses
 public static partial class Generator
@@ -39,8 +39,10 @@ public static partial class Generator
             _ => throw new ArgumentOutOfRangeException(nameof(subordinator), subordinator, null),
         };
 
-    //a short word or affix for each subordinator, kept from sounding alike. An isolating language
-    //puts a word at the clause's end where another would use a suffix
+    //a short word or affix for each region of the subordinator map, kept from sounding alike, which
+    //each subordinator in the region uses with its own meaning. A language that mixes its kinds of
+    //marker draws one for each region. An isolating language puts a word at the clause's end where
+    //another would use a suffix
     public static Subordination GenerateSubordination(Random rand, MorphologicalProfile morphology, WordOrder wordOrder, Phonology phonology, double dropoff)
     {
         var objectFirst = wordOrder.VerbPhraseDirectionality == HeadDirectionality.Final;
@@ -56,7 +58,7 @@ public static partial class Generator
 
         var forms = new DistinctForms();
         var markers = new Dictionary<Subordinator, SubordinatorMarking>();
-        foreach (var subordinator in Enum.GetValues<Subordinator>())
+        foreach (var region in SemanticMap.Regions(SubordinatorMap.Subordinators, SemanticMap.Joined(rand, SubordinatorMap.Edges)))
         {
             var position = mixed ? Sampling.Categorical(rand, counts) : shared;
             if (position == ExponentPosition.Suffix && morphology.Fusion == Fusion.Isolating)
@@ -65,9 +67,13 @@ public static partial class Generator
             }
             var affix = position == ExponentPosition.Suffix;
             var form = forms.Draw(() => affix ? MarkerForm(rand, true, phonology, dropoff) : [.. GenerateSyllable(rand, phonology.SyllableRule, dropoff, needsOnset: false).Phonemes]);
-            List<Grammeme> meaning = [Linkage.For(subordinator)];
-            markers[subordinator] = new SubordinatorMarking(affix ? new Affix(form, meaning) : new Particle(form, meaning), position,
-                balances.GetValueOrDefault(subordinator, whenBalance), rand.NextDouble() < BeforeMainChance(subordinator, objectFirst));
+            foreach (var subordinator in region)
+            {
+                List<Grammeme> meaning = [Linkage.For(subordinator)];
+                markers[subordinator] = new SubordinatorMarking(affix ? new Affix(form, meaning) : new Particle(form, meaning), position,
+                    balances.GetValueOrDefault(subordinator, whenBalance), rand.NextDouble() < BeforeMainChance(subordinator, objectFirst),
+                    Sampling.Categorical(rand, SubordinatorMap.AttachmentsOf(subordinator)));
+            }
         }
         return new Subordination(markers);
     }

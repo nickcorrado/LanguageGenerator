@@ -148,7 +148,8 @@ public static class LanguageDescription
                 _ => $"… {marker}",
             };
             var balance = m.Value.Balance switch { Balance.Deranked => ", bare verb", Balance.Either => ", bare verb if the subject is shared", _ => "" };
-            return $"{m.Key.ToString().ToLowerInvariant()} {form} ({(m.Value.BeforeMain ? "first" : "after")}{balance})";
+            var role = m.Value.MarkedAs is { } r && m.Value.Balance != Balance.Balanced ? $", marked like the {r.ToString().ToLowerInvariant()} when bare" : "";
+            return $"{m.Key.ToString().ToLowerInvariant()} {form} ({(m.Value.BeforeMain ? "first" : "after")}{balance}{role})";
         }));
         output.WriteLine($"Subordinate clauses: {subordinators}");
         output.WriteLine("Comparison: " + lang.Comparison switch

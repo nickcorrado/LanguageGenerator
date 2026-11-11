@@ -22,7 +22,7 @@ public static partial class Generator
     //roles can also end up together through a third, so two roles share a marker a little more
     //often than their edge alone says
     public static List<RoleRegion> SelectRegions(Random rand) =>
-        RoleMap.Regions(RoleMap.Edges.Where(e => rand.NextDouble() < e.Weight).Select(e => (e.First, e.Second)));
+        RoleMap.Regions(SemanticMap.Joined(rand, RoleMap.Edges));
 
     //WALS 49A, by how many cases a language has besides its core ones. A language with core cases is
     //drawn from the 137 with two or more, which are the core two and the rest; one without them from
