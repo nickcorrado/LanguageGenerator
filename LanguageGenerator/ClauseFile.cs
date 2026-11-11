@@ -42,7 +42,7 @@ public static class ClauseFile
     {
         var entries = new List<Entry>();
         (string Text, int Line)? translation = null;
-        //whether the last clause read can be joined by a line starting with a conjunction
+        //whether the last clause read can be joined by a line starting with a conjunction or a subordinator
         var continuing = false;
         var lines = text.ReplaceLineEndings("\n").Split('\n');
         for (int i = 0; i < lines.Length; i++)
@@ -63,19 +63,26 @@ public static class ClauseFile
                 translation = (line.Trim(), number);
                 continuing = false;
             }
-            else if (ConjunctionOf(line) is { } conjunction)
+            else if (ConjunctionOf(line) is not null || SubordinatorOf(line) is not null)
             {
-                //a line starting with a conjunction joins its clause to the ones above it
+                //a line starting with a conjunction joins its clause to the ones above it, and one
+                //starting with a subordinator puts its clause under them
                 if (!continuing)
                 {
                     throw new ClauseFormatException($"A line starting with '{line.Trim().Split(' ')[0]}' joins a clause to the one above it, so it can't come first.", number);
                 }
                 var previous = entries[^1];
-                entries[^1] = previous with { Statement = new Coordinated(conjunction, previous.Statement, ParseClause(line.Trim()[(line.Trim().IndexOf(' ') + 1)..], number)) };
+                var rest = line.Trim()[(line.Trim().IndexOf(' ') + 1)..];
+                entries[^1] = previous with
+                {
+                    Statement = ConjunctionOf(line) is { } conjunction
+                        ? new Coordinated(conjunction, previous.Statement, ParseClause(rest, number, null))
+                        : ToSubordinated(previous.Statement, SubordinatorOf(line).GetValueOrDefault(), rest, number),
+                };
             }
             else if (translation is { } english)
             {
-                entries.Add(new Entry(english.Text, ParseClause(line, number), number));
+                entries.Add(new Entry(english.Text, ParseClause(line, number, null), number));
                 translation = null;
                 continuing = true;
             }
@@ -103,6 +110,27 @@ public static class ClauseFile
     private static Conjunction? ConjunctionOf(string line) =>
         line.Trim().Split(' ', 2) is [var first, _] && Conjunctions.TryGetValue(first, out var conjunction) ? conjunction : null;
 
+    //the words that start a subordinate clause's line
+    private static readonly Dictionary<string, Subordinator> Subordinators = Enum.GetValues<Subordinator>().ToDictionary(s => s.ToString().ToLowerInvariant());
+
+    private static Subordinator? SubordinatorOf(string line) =>
+        line.Trim().Split(' ', 2) is [var first, _] && Subordinators.TryGetValue(first, out var subordinator) ? subordinator : null;
+
+    //a clause under the ones above it. Only a purpose clause can leave out its subject, which is then
+    //the main clause's, as in 'to cross the river, you need a rope'. It can't be a command, or be said
+    //to someone, since the main clause is
+    private static Subordinated ToSubordinated(Statement main, Subordinator subordinator, string line, int number)
+    {
+        var shares = subordinator == Subordinator.Purpose && !Tokenize(line, number).Any(t => t.StartsWith("subject:"));
+        var clause = ParseClause(line, number, shares ? Syntax.SubjectOf(main) : (Argument?)null);
+        return clause.Value switch
+        {
+            Command or CopularCommand => throw new ClauseFormatException($"A clause under another can't be a command: {subordinator.ToString().ToLowerInvariant()} takes a clause with a subject.", number),
+            Addressed => throw new ClauseFormatException("Say who's addressed in the main clause, not in one under it.", number),
+            _ => new Subordinated(main, subordinator, clause, shares),
+        };
+    }
+
     //each noun these clauses use, with the English of the first clause to use it
     public static IReadOnlyList<(string Noun, string Translation)> Nouns(IEnumerable<Entry> entries) =>
         [.. entries.SelectMany(e => ArgumentsOf(e.Statement).SelectMany(NounsIn).Select(n => (Noun: n, e.Translation))).DistinctBy(n => n.Noun)];
@@ -121,6 +149,7 @@ public static class ClauseFile
         Comparative c => [.. ArgumentsOf(c.Clause), c.Standard],
         Addressed a => [.. ArgumentsOf(a.Statement), a.Addressee],
         Coordinated c => [.. ArgumentsOf(c.First), .. ArgumentsOf(c.Second)],
+        Subordinated s => [.. ArgumentsOf(s.Main), .. ArgumentsOf(s.Clause)],
     };
 
     private static IEnumerable<Argument> Given(Argument? argument) => argument.HasValue ? [argument.GetValueOrDefault()] : [];
@@ -142,7 +171,8 @@ public static class ClauseFile
     public static IReadOnlyList<string> RoleNames => Roles;
     public static IReadOnlyList<T> ValuesOf<T>() where T : Grammeme => [.. Glosses.Values.OfType<T>()];
 
-    private static Statement ParseClause(string line, int number)
+    //a subject that isn't said is the given one, if there is one
+    private static Statement ParseClause(string line, int number, Argument? impliedSubject)
     {
         var tokens = Tokenize(line, number);
         if (tokens[0].Contains(':'))
@@ -174,7 +204,7 @@ public static class ClauseFile
         {
             statement = ToCommand(verb, features, roles, addressee, number);
         }
-        else if (!roles.Arguments.TryGetValue("subject", out var subject))
+        else if ((roles.Arguments.TryGetValue("subject", out var said) ? said : impliedSubject) is not { } subject)
         {
             throw new ClauseFormatException("The clause needs a subject, as in subject:dog.", number);
         }

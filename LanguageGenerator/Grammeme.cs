@@ -173,6 +173,33 @@ public record Possessive(string Name, string Gloss) : Grammeme(Name, Gloss)
     public static Possessive Possessed { get; } = new("Possessed", "POSS");
 }
 
+/// <summary>
+/// Marks a subordinate clause for how it relates to the main one, glossed as converbs are: ANT for
+/// one that happens before it ('after'), POST for one that happens after it ('before').
+/// </summary>
+public record Linkage(string Name, string Gloss) : Grammeme(Name, Gloss)
+{
+    public static Linkage Conditional { get; } = new("Conditional", "COND");
+    public static Linkage Temporal { get; } = new("Temporal", "TEMP");
+    public static Linkage Posterior { get; } = new("Posterior", "POST");
+    public static Linkage Anterior { get; } = new("Anterior", "ANT");
+    public static Linkage Terminative { get; } = new("Terminative", "TERM");
+    public static Linkage Reason { get; } = new("Reason", "REAS");
+    public static Linkage Purposive { get; } = new("Purposive", "PURP");
+
+    public static Linkage For(Subordinator subordinator) => subordinator switch
+    {
+        Subordinator.If => Conditional,
+        Subordinator.When => Temporal,
+        Subordinator.Before => Posterior,
+        Subordinator.After => Anterior,
+        Subordinator.Until => Terminative,
+        Subordinator.Because => Reason,
+        Subordinator.Purpose => Purposive,
+        _ => throw new ArgumentOutOfRangeException(nameof(subordinator), subordinator, null),
+    };
+}
+
 /// <summary>Marks a numeral as an ordinal, as English -th makes seventh of seven.</summary>
 public record Ordinality(string Name, string Gloss) : Grammeme(Name, Gloss)
 {

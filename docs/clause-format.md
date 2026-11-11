@@ -91,6 +91,28 @@ hunters sit by the fire and argue
 
 'But' joins only clauses.
 
+## Subordinate clauses
+
+A clause under another goes on an indented line of its own after the main clause, starting with what it says. The language decides which comes first, so the main clause is always written first, whatever order the English has:
+
+```
+if you hear the song, cover your ears
+  cover.IMP  object:(ear.PL possessor:2SG)
+  if  hear  subject:2SG  object:song.DEF
+```
+
+| Starts with | Says |
+| --- | --- |
+| `if` | On the condition that |
+| `when` | At the time that |
+| `before` | Before |
+| `after` | After |
+| `until` | Up to the time that |
+| `because` | For the reason that |
+| `purpose` | In order to |
+
+A purpose clause can leave out its subject when it's the main clause's, as in `purpose  cross  object:river.DEF` for 'to cross the river'. A clause under another can't be a command or have an addressee of its own.
+
 ## Pronouns
 
 Pronouns are a person and number, as in `subject:1SG` or `object:1PL.INCL`.

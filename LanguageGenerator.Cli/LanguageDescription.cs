@@ -138,6 +138,19 @@ public static class LanguageDescription
         };
         var clauseAnd = conjunctions.ClauseAnd is { } word ? SpelledWord(word) : "nothing, side by side";
         output.WriteLine($"Conjunctions: 'and' {nounAnd} between nouns and {clauseAnd} between clauses; 'or' {SpelledWord(conjunctions.Or)}; 'but' {SpelledWord(conjunctions.But)}");
+        var subordinators = string.Join(", ", lang.Subordination.Markers.Select(m =>
+        {
+            var marker = m.Value.Marker.Spell(orthography);
+            var form = m.Value.Position switch
+            {
+                ExponentPosition.Suffix => $"-{marker}",
+                ExponentPosition.PrecedingParticle => $"{marker} …",
+                _ => $"… {marker}",
+            };
+            var balance = m.Value.Balance switch { Balance.Deranked => ", bare verb", Balance.Either => ", bare verb if the subject is shared", _ => "" };
+            return $"{m.Key.ToString().ToLowerInvariant()} {form} ({(m.Value.BeforeMain ? "first" : "after")}{balance})";
+        }));
+        output.WriteLine($"Subordinate clauses: {subordinators}");
         output.WriteLine("Comparison: " + lang.Comparison switch
         {
             LocationalComparison l => $"the standard is marked like a place, as the {l.Role.ToString().ToLowerInvariant()} is",
@@ -265,6 +278,15 @@ public static class LanguageDescription
             (new CopularClause(new AdjectiveCoordination(Conjunction.And, [new("big"), new("old")]), Tense.Present, Aspect.Imperfective, Phrase("house", Number.Singular)),
                 "the house is big and old"),
         ];
+        (Statement Clause, string Translation)[] subordinated =
+        [
+            (new Subordinated(new Clause("eat", Tense.Present, Aspect.Imperfective, Phrase("cat", Number.Singular), Phrase("fish", Number.Singular)), Subordinator.If,
+                new Clause("sleep", Tense.Present, Aspect.Imperfective, Phrase("dog", Number.Singular)), false), "if the dog sleeps, the cat eats the fish"),
+            (new Subordinated(new Clause("walk", Tense.Past, Aspect.Perfective, Phrase("dog", Number.Singular), Obliques: [new(Role.Goal, Phrase("water", Number.Singular))]),
+                Subordinator.Purpose, new Clause("drink", Tense.Past, Aspect.Perfective, Phrase("dog", Number.Singular)), true), "the dog walked to the water to drink"),
+            (new Subordinated(new Clause("sleep", Tense.Past, Aspect.Perfective, Phrase("cat", Number.Singular)), Subordinator.Because,
+                new CopularClause(new Adjective("big"), Tense.Past, Aspect.Imperfective, Phrase("dog", Number.Singular)), false), "the cat slept because the dog was big"),
+        ];
         (PassiveClause Clause, string Translation)[] passives =
         [
             (new("eat", Tense.Past, Aspect.Perfective, Phrase("fish", Number.Singular), Phrase("cat", Number.Singular), false, []), "the fish was eaten by the cat"),
@@ -276,7 +298,7 @@ public static class LanguageDescription
                 "the dog is bigger than the cats"),
         ];
         foreach (var (clause, translation) in examples.Select(e => ((Statement)e.Clause, e.Translation)).Concat(copular.Select(e => ((Statement)e.Clause, e.Translation)))
-            .Concat(commands.Select(e => ((Statement)e.Clause, e.Translation))).Concat(copularCommands.Select(e => ((Statement)e.Clause, e.Translation))).Concat(coordinated).Concat(passives.Select(e => ((Statement)e.Clause, e.Translation))).Concat(comparatives.Select(e => ((Statement)e.Clause, e.Translation))).Concat(addressed.Select(e => ((Statement)e.Clause, e.Translation))))
+            .Concat(commands.Select(e => ((Statement)e.Clause, e.Translation))).Concat(copularCommands.Select(e => ((Statement)e.Clause, e.Translation))).Concat(coordinated).Concat(subordinated).Concat(passives.Select(e => ((Statement)e.Clause, e.Translation))).Concat(comparatives.Select(e => ((Statement)e.Clause, e.Translation))).Concat(addressed.Select(e => ((Statement)e.Clause, e.Translation))))
         {
             output.WriteLine();
             output.WriteLine(Syntax.Realize(lang, clause, translation).Interlinear());
