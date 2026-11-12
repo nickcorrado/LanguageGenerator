@@ -1,21 +1,21 @@
-# Glossed from hollow.txt by claude-opus-5-5. Glossing it again keeps the sentences here that
+# Glossed from hollow.txt by claude-sonnet-5-5. Glossing it again keeps the sentences here that
 # still parse, so edit those freely; delete one to have it glossed again.
 
 # > The village of Hollow sits at the edge of the old forest.
-Hollow sits at the edge of the old forest
-  sit  subject:hollow  location:(edge possessor:(forest.DEF old))
+the village of Hollow sits at the edge of the old forest
+  sit  subject:(village.DEF possessor:hollow)  location:(edge.DEF possessor:(forest.DEF old))
 
 # > Few travelers come here now.
 few travelers come
-  come  subject:(traveler.PL few)
+  come  subject:traveler.PA
 
 # > The road from the coast washed out three winters ago, and nobody has repaired it.
-the coastal road collapsed, and nobody has repaired it
-  collapse.PST.PFV  subject:(road.DEF coastal)
-  and  repair.PFV  subject:nobody  object:3SG.N
+the coast road washed out
+  wash_out.PST.PFV  subject:(road.DEF possessor:coast.DEF)
+  and  repair.PST.PFV  subject:nobody  object:3SG.N
 
 # > Smoke rises from a dozen chimneys.
-smoke rises from 12 chimneys
+smoke rises from a dozen chimneys
   rise  subject:smoke  source:(chimney 12)
 
 # > A dog barks somewhere behind the mill.
@@ -23,18 +23,17 @@ a dog barks at the mill
   bark  subject:dog.NDF  location:mill.DEF
 
 # > You arrive at dusk with an empty purse and a sword that has seen better days.
-you arrive, and you have an empty purse and a worn sword
-  arrive  subject:2SG
-  and  have  subject:2SG  object:(and (purse.NDF empty) (sword.NDF worn))
+# can't express yet (relative clause: "that has seen better days"): You arrive at dusk with an empty purse and a sword that has seen better days.
 
 # > The gate stands open.
 the gate is open
   be  subject:gate.DEF  adjective:open
 
 # > An old woman sits beside it, mending a net.
-an old woman sits by it and mends a net
+an old woman sits beside it
   sit  subject:(woman.NDF old)  location:3SG.N
-  and  mend  subject:3SG.F  object:net.NDF
+she mends a net
+  mend  subject:3SG.F  object:net.NDF
 
 # > "You're late," she says.
 you are late
@@ -47,11 +46,11 @@ we expected you
   expect.PST  subject:1PL.EXCL  object:2SG
 
 # > "Who told you I was coming?"
-# can't express yet (question): "Who told you I was coming?"
+# can't express yet (question inside another clause): Who told you I was coming?
 
 # > "The crows tell me everything."
 the crows tell me everything
-  tell  subject:crow.PL.DEF  recipient:1SG  object:everything
+  tell  subject:crow.PL.DEF  object:everything  recipient:1SG
 
 # > She bites through the thread.
 she bites the thread
@@ -62,7 +61,7 @@ go to the inn
   go.IMP  goal:inn.DEF
 
 # > Ask for Marta.
-ask for marta
+ask for Marta
   ask.IMP  object:marta
 
 # > Don't drink the red wine."
@@ -74,22 +73,22 @@ the inn is warm and crowded
   be  subject:inn.DEF  adjective:(and warm crowded)
 
 # > Hunters sit by the fire and argue about the price of furs.
-hunters sit by the fire and argue
+hunters sit by the fire and argue about the price of furs
   sit  subject:hunter.PL  location:fire.DEF
-  and  argue  subject:hunter.PL
+  and  argue  subject:hunter.PL  object:(price.DEF possessor:fur.PL)
 
 # > A boy carries bread to the long table.
 a boy carries bread to the long table
   carry  subject:boy.NDF  object:bread  goal:(table.DEF long)
 
 # > Everyone stops talking when you walk in.
-everyone is silent when you enter
+everyone is silent when you come in
   be  subject:everyone  adjective:silent
   when  enter  subject:2SG
 
 # > Marta wipes her hands on her apron.
-Marta wipes her hands on her apron
-  wipe  subject:marta  object:(hand.PL possessor:3SG.F)  location:(apron possessor:3SG.F)
+Marta wipes her hands with her apron
+  wipe  subject:marta  object:(hand.PL possessor:3SG.F)  instrument:(apron possessor:3SG.F)
 
 # > She is taller than most of the men here.
 she is taller than most of the men
@@ -102,7 +101,7 @@ she says
   say  subject:3SG.F
 
 # > "Sit down.
-sit down
+sit
   sit.IMP
 
 # > Eat something first.
@@ -110,8 +109,7 @@ eat something
   eat.IMP  object:something
 
 # > You look terrible."
-your appearance is terrible
-  be  subject:(appearance possessor:2SG)  adjective:terrible
+# can't express yet (a linking 'look' with an adjective, 'look terrible'): You look terrible.
 
 # > She brings you a bowl of stew and a cup of water.
 she brings you stew and water
@@ -126,8 +124,8 @@ you eat it
   eat  subject:2SG  object:3SG.N
 
 # > "Three of our children have gone missing," she says.
-three of our children have disappeared
-  disappear.PST.PFV  subject:(child 3 possessor:1PL.EXCL)
+our three children are missing
+  be  subject:(child 3 possessor:1PL.EXCL)  adjective:missing
 she says
   say  subject:3SG.F
 
@@ -140,25 +138,22 @@ the second child vanished
   vanish.PST.PFV  subject:(child.DEF 2nd)
 
 # > Last night, my sister's son did not come home."
-my sister's son did not come home last night
-  come.PST.PFV.NEG  subject:(son possessor:(sister possessor:1SG))  goal:home  location:(night last)
+my sister's son did not come home
+  come.PST.PFV.NEG  subject:(son possessor:(sister possessor:1SG))  goal:home
 
 # > "Did anyone see what happened?"
-# can't express yet (question): Did anyone see what happened?
+# can't express yet (a question inside another clause): Did anyone see what happened?
 
 # > "The miller saw lights in the forest.
 the miller saw lights in the forest
   see.PST.PFV  subject:miller.DEF  object:light.PL  location:forest.DEF
 
 # > He says they moved against the wind.
-he says
-  say  subject:3SG.M
-they moved into the wind
-  move.PST  subject:3PL.N  goal:wind.DEF
+# can't express yet (no role for 'against the wind'): He says they moved against the wind.
 
 # > Nobody believes him, because he drinks.
-no one believes him because he drinks
-  believe.NEG  subject:anyone  object:3SG.M
+nobody believes him because he drinks
+  believe  subject:nobody  object:3SG.M
   because  drink  subject:3SG.M
 
 # > But I believe him."
@@ -166,7 +161,8 @@ I believe him
   believe  subject:1SG  object:3SG.M
 
 # > "Why didn't you send for the king's soldiers?"
-# can't express yet (question): Why didn't you send for the king's soldiers?
+Why didn't you summon the king's soldiers?
+  summon.PST.PFV.NEG  subject:2SG  object:(soldier.PL possessor:king.DEF)  why
 
 # > Marta laughs without smiling.
 Marta laughs and does not smile
@@ -174,23 +170,22 @@ Marta laughs and does not smile
   and  smile.NEG  subject:marta
 
 # > "The king doesn't know this village exists.
-the king doesn't know this village
-  know.NEG  subject:king.DEF  object:village.DEF
+# can't express yet (a clause as the object of 'know'): The king doesn't know this village exists.
 
 # > We sent a letter in the spring.
-we sent a letter in the spring
-  send.PST.PFV  subject:1PL.EXCL  object:letter.NDF  location:spring.DEF
+we sent a letter
+  send.PST.PFV  subject:1PL.EXCL  object:letter.NDF
 
 # > No one answered."
-nobody answered
-  answer.PST.PFV  subject:nobody
+people didn't answer
+  answer.PST.PFV.NEG  subject:person.PL
 
 # > She puts a small iron key on the table.
 she puts a small iron key on the table
-  put  subject:3SG.F  object:(key.NDF small iron)  goal:table.DEF
+  put  subject:3SG.F  object:(key.NDF small iron)  location:table.DEF
 
 # > "This opens the old watchtower.
-it opens the old watchtower
+this opens the old watchtower
   open  subject:3SG.N  object:(watchtower.DEF old)
 
 # > My husband kept it before he died.
@@ -199,17 +194,17 @@ my husband kept it before he died
   before  die.PST.PFV  subject:3SG.M
 
 # > There is a map inside, if the rats haven't eaten it."
-there is a map in the watchtower, if the rats haven't eaten it
-  be  subject:map.NDF  location:watchtower.DEF
-  if  eat.PST.PFV.NEG  subject:rat.PL.DEF  object:3SG.N
+there is a map inside, if the rats haven't eaten it
+  be  subject:map.NDF  location:inside
+  if  eat.PRS.PFV.NEG  subject:rat.PL.DEF  object:3SG.N
 
 # > A hunter at the fire turns around.
-a hunter turns around at the fire
+a hunter at the fire turns around
   turn  subject:hunter.NDF  location:fire.DEF
 
 # > His left hand has only two fingers.
 his left hand has two fingers
-  have  subject:(hand possessor:3SG.M left)  object:(finger 2)
+  have  subject:(hand left possessor:3SG.M)  object:(finger 2)
 
 # > "Don't listen to her," he says.
 don't listen to her
@@ -222,15 +217,15 @@ he says
 
 # > "Then you can go in the morning," says Marta.
 you can go in the morning
-  go.PERM  subject:2SG  location:morning.DEF
+  go.ABIL  subject:2SG
 Marta says
   say  subject:marta
 
 # > New quest: The Missing Children.
-# can't express yet (title with no verb): New quest: The Missing Children.
+# can't express yet (no verb, only a title): New quest: The Missing Children.
 
 # > Find the watchtower and recover the map.
-find the watchtower and recover the map
+find the watchtower
   find.IMP  object:watchtower.DEF
   and  recover.IMP  object:map.DEF
 
@@ -239,7 +234,7 @@ the watchtower stands on a hill
   stand  subject:watchtower.DEF  location:hill.NDF
 
 # > Its door is swollen with rain, but the key still turns.
-its door is swollen, but the key turns
+its door is swollen
   be  subject:(door possessor:3SG.N)  adjective:swollen
   but  turn  subject:key.DEF
 
@@ -252,7 +247,7 @@ you climb
   climb  subject:2SG
 
 # > On the top floor you find a table, a broken chair, and a chest.
-on the top floor you find a table, a broken chair and a chest
+on the top floor you find a table, a broken chair, and a chest
   find  subject:2SG  object:(and table.NDF (chair.NDF broken) chest.NDF)  location:(floor.DEF top)
 
 # > The chest is locked.
@@ -265,13 +260,13 @@ you can pick the lock if you have a lockpick
   if  have  subject:2SG  object:lockpick.NDF
 
 # > Otherwise, you must find the key.
-you must find the key
+otherwise, you must find the key
   find.OBLIG  subject:2SG  object:key.DEF
 
 # > Search the room to look for hidden objects.
-search the room to find hidden objects
+search the room to look for hidden objects
   search.IMP  object:room.DEF
-  purpose  find  object:(object.PL hidden)
+  purpose  seek  object:(object.PL hidden)
 
 # > Press the left button to open your bag.
 press the left button to open your bag
@@ -279,18 +274,17 @@ press the left button to open your bag
   purpose  open  object:(bag possessor:2SG)
 
 # > The map is rolled inside a leather tube.
-the map is rolled, and it is in a leather tube
-  be  subject:map.DEF  adjective:rolled
-  and  be  subject:3SG.N  location:(tube.NDF leather)
+the map is rolled inside a leather tube
+  roll.PASS  subject:map.DEF  location:(tube.NDF leather)
 
 # > Someone has drawn a red circle around the old stone circle in the deep woods.
-someone drew a red circle around the old stone circle
-  draw.PST.PFV  subject:someone  object:(circle.NDF red)  location:(circle.DEF old stone)
+someone drew a red circle at the old stone circle
+  draw.PST.PFV  subject:someone  object:(circle.NDF red)  location:(circle.DEF stone old)
 the old stone circle is in the deep woods
-  be  subject:(circle.DEF old stone)  location:(wood.PL.DEF deep)
+  be  subject:(circle.DEF stone old)  location:(wood.PL.DEF deep)
 
 # > Beneath it, in a shaking hand, someone has written three words: Do not sing.
-someone wrote three words under it with a shaking hand
+someone wrote three words beneath it in a shaking hand
   write.PST.PFV  subject:someone  object:(word 3)  location:3SG.N  instrument:(hand.NDF shaking)
 do not sing
   sing.IMP.NEG
@@ -304,21 +298,21 @@ they stop
   stop  subject:3PL.N
 
 # > Then they start again, slower than before.
-# can't express yet (comparison with an adverb): Then they start again, slower than before.
+# can't express yet (comparison other than an adjective with be, 'slower than before'): Then they start again, slower than before.
 
 # > A pale figure stands in the doorway.
 a pale figure stands in the doorway
   stand  subject:(figure.NDF pale)  location:doorway.DEF
 
 # > It wears the clothes of a child, but its face is wrong.
-it wears a child's clothing, but its face is wrong
-  wear  subject:3SG.N  object:(clothing possessor:child.NDF)
+it wears a child's clothes, but its face is wrong
+  wear  subject:3SG.N  object:(clothes possessor:child.NDF)
   but  be  subject:(face possessor:3SG.N)  adjective:wrong
 
 # > It tilts its head and begins to hum.
-it tilts its head and hums
+it tilts its head and begins the hum
   tilt  subject:3SG.N  object:(head possessor:3SG.N)
-  and  hum  subject:3SG.N
+  and  begin  subject:3SG.N  object:hum
 
 # > Your sword is in your hand before you know it.
 your sword is in your hand before you know it
@@ -335,10 +329,10 @@ it raises one finger and points at the map
   and  point  subject:3SG.N  goal:map.DEF
 
 # > Then it turns and walks down the stairs, and the humming fades.
-it turns and walks down the stairs, and the humming fades
+it turns and walks down the stairs and the hum fades
   turn  subject:3SG.N
-  and  walk  subject:3SG.N  location:stair.PL.DEF
-  and  fade  subject:humming.DEF
+  and  walk  subject:3SG.N  goal:stair.PL.DEF
+  and  fade  subject:hum.DEF
 
 # > You wait a long time before you follow it.
 you wait before you follow it
@@ -350,7 +344,7 @@ the stairs are empty
   be  subject:stair.PL.DEF  adjective:empty
 
 # > There are small wet footprints in the dust.
-small wet footprints are in the dust
+there are small wet footprints in the dust
   be  subject:(footprint.PL small wet)  location:dust.DEF
 
 # > Item: Rusty Key.
@@ -371,7 +365,7 @@ the item is healing moss
 
 # > Grows on the shaded side of stones.
 it grows on the shaded side of stones
-  grow  subject:3SG.N  location:(side shaded possessor:stone.PL)
+  grow  subject:3SG.N  location:(side.DEF shaded possessor:stone.PL)
 
 # > Restores a little health when eaten.
 it restores a little health when it is eaten
@@ -382,20 +376,17 @@ it restores a little health when it is eaten
 # can't express yet (comparison with 'like'): Tastes like a wet boot.
 
 # > Item: Hunter's Bow.
-the item is a hunter's bow
+the item is the hunter's bow
   be  subject:item.DEF  noun:(bow possessor:hunter)
 
 # > A short bow made of yew.
-it is a short bow
-  be  subject:3SG.N  noun:(bow.NDF short)
-it was made from yew
-  make.PST.PFV.PASS  subject:3SG.N  source:yew
+# can't express yet (relative clause, "made of yew" modifying the noun): A short bow made of yew.
 
 # > It was made for someone with stronger arms than yours.
-# can't express yet (comparison other than an adjective with be): It was made for someone with stronger arms than yours.
+# can't express yet (comparison with 'stronger arms than yours', and 'for someone with ...'): It was made for someone with stronger arms than yours.
 
 # > Item: Crow Feather.
-the item is a crow's feather
+the item is a crow feather
   be  subject:item.DEF  noun:(feather possessor:crow)
 
 # > The old woman gave you this.
@@ -403,15 +394,15 @@ the old woman gave you this
   give.PST.PFV  subject:(woman.DEF old)  recipient:2SG  object:3SG.N
 
 # > It feels warmer than it should.
-# can't express yet (comparison other than an adjective with be): It feels warmer than it should.
+# can't express yet (comparison with a clause, 'warmer than it should'): It feels warmer than it should.
 
 # > The next morning, the miller finds you at the well.
 the miller finds you at the well
   find  subject:miller.DEF  object:2SG  location:well.DEF
 
 # > He smells of beer, and his eyes are red.
-he smells of beer, and his eyes are red
-  smell  subject:3SG.M  source:beer
+he smells of beer
+  smell  subject:3SG.M  object:beer
   and  be  subject:(eye.PL possessor:3SG.M)  adjective:red
 
 # > "You went to the tower," he says.
@@ -425,11 +416,12 @@ I saw your torch
   see.PST.PFV  subject:1SG  object:(torch possessor:2SG)
 
 # > Did you see them?"
-# can't express yet (question): Did you see them?
+did you see them?
+  see.PST.PFV.Q  subject:2SG  object:3PL
 
 # > "I saw something."
 I saw something
-  see.PST.PFV  subject:1SG  object:something
+  see.PST.PFV  subject:1SG  object:thing.NDF
 
 # > "They come when the moon is dark.
 they come when the moon is dark
@@ -437,11 +429,11 @@ they come when the moon is dark
   when  be  subject:moon.DEF  adjective:dark
 
 # > I have watched them for years.
-I have been watching them
+I watched them
   watch.PST.IPFV  subject:1SG  object:3PL
 
 # > They walk in a line, and they sing.
-they walk in a line, and they sing
+they walk in a line and they sing
   walk  subject:3PL  location:line.NDF
   and  sing  subject:3PL
 
@@ -455,22 +447,22 @@ my brother heard it
   hear.PST.PFV  subject:(brother possessor:1SG)  object:3SG.N
 
 # > He walked into the river with his boots on."
-he walked into the river, and he was wearing his boots
-  walk.PST.PFV  subject:3SG.M  goal:river.DEF
-  and  wear.PST.IPFV  subject:3SG.M  object:(boot.PL possessor:3SG.M)
+he walked into the river
+  walk.PST  subject:3SG.M  goal:river.DEF
 
 # > "What do they want?"
-# can't express yet (question): "What do they want?"
+what do they want?
+  want  subject:3PL  object:what
 
 # > "I don't know.
 I don't know
   know.NEG  subject:1SG
 
 # > Maybe they want what we all want.
-# can't express yet (maybe, relative clause): Maybe they want what we all want.
+# can't express yet (modal "maybe" and a relative clause): Maybe they want what we all want.
 
 # > Maybe they just want to go home."
-# can't express yet (maybe, want to): Maybe they just want to go home."
+# can't express yet (modals "maybe" and "want to"): Maybe they just want to go home.
 
 # > He presses a small bag into your hand.
 he presses a small bag into your hand
@@ -481,32 +473,31 @@ it contains wax
   contain  subject:3SG.N  object:wax
 
 # > "For your ears," he says.
-# can't express yet (benefactive 'for' in a fragment): "For your ears," he says.
+# can't express yet (quoted speech whose content is a sentence fragment): "For your ears," he says.
 
 # > "Buy me a drink when you come back.
-buy me a drink when you come back
-  buy.IMP  object:drink.NDF  recipient:1SG
-  when  return  subject:2SG
+buy me a drink when you come
+  buy.IMP  recipient:1SG  object:drink.NDF
+  when  come  subject:2SG
 
 # > If you come back."
-# can't express yet (if-clause without a main clause): If you come back."
+# can't express yet (a conditional clause with no main clause): If you come back.
 
 # > The forest begins where the fields end.
-the forest begins at the end of the fields
-  begin  subject:forest.DEF  location:(end.DEF possessor:field.PL.DEF)
+# can't express yet (a "where" clause): The forest begins where the fields end.
 
 # > The trees here are older than the village, older than the kingdom.
-the trees are older than the village, and they are older than the kingdom
+the trees are older than the village
   be  subject:tree.PL.DEF  adjective:old  standard:village.DEF
-  and  be  subject:3PL.N  adjective:old  standard:kingdom.DEF
+  and  be  subject:tree.PL.DEF  adjective:old  standard:kingdom.DEF
 
 # > Their branches close over the path and shut out the sun.
-their branches close over the path and block the sun
+their branches close over the path
   close  subject:(branch.PL possessor:3PL.N)  location:path.DEF
   and  block  subject:(branch.PL possessor:3PL.N)  object:sun.DEF
 
 # > Birds do not sing here.
-birds do not sing here
+birds do not sing
   sing.NEG  subject:bird.PL
 
 # > Your footsteps sound very loud.
@@ -522,9 +513,9 @@ the path splits
   split  subject:path.DEF
 
 # > At the first fork you go left, because the moss grows thicker on that side.
-at the first fork you go to the left, because that side's moss is thicker than the other side's moss
-  go  subject:2SG  location:(fork.DEF 1st)  goal:left.DEF
-  because  be  subject:(moss possessor:side.DEF)  adjective:thick  standard:(moss possessor:(side.DEF other))
+at the first fork you go left
+  go  subject:2SG  location:(fork.DEF 1st)  goal:left
+  because  grow  subject:(moss thick)  location:side.DEF
 
 # > At the second fork you find a child's shoe, and you stop for a while.
 at the second fork you find a child's shoe, and you stop
@@ -537,14 +528,16 @@ you reach a river
 
 # > The bridge has fallen.
 the bridge has fallen
-  fall.PST.PFV  subject:bridge.DEF
+  fall.PFV  subject:bridge.DEF
 
 # > A ferryman sits on the far bank with his back to you.
 a ferryman sits on the far bank
   sit  subject:ferryman.NDF  location:(bank.DEF far)
+his back is to you
+  be  subject:(back possessor:3SG.M)  location:2SG
 
 # > You call out, but he does not turn around.
-you call out, but he does not turn around
+you call, but he does not turn
   call  subject:2SG
   but  turn.NEG  subject:3SG.M
 
@@ -554,7 +547,7 @@ to cross the river, you need a rope or a boat
   purpose  cross  object:river.DEF
 
 # > There is a fallen tree upstream.
-a fallen tree is upstream
+there is a fallen tree upstream
   be  subject:(tree.NDF fallen)  location:upstream
 
 # > Be careful: the current is strong, and you cannot swim in armor.
@@ -569,33 +562,33 @@ you cross on the fallen tree
   cross  subject:2SG  location:(tree.DEF fallen)
 
 # > Halfway over, you look down and see faces in the water.
-you look, and you see faces in the water
+you look down and see faces in the water
   look  subject:2SG
   and  see  subject:2SG  object:face.PL  location:water.DEF
 
 # > They are looking up at you.
 they are looking at you
-  look  subject:3PL.N  object:2SG
+  look  subject:3PL  object:2SG
 
 # > They are all smiling.
 they are smiling
-  smile  subject:3PL.N
+  smile  subject:3PL
 
 # > The ferryman is dead.
 the ferryman is dead
   be  subject:ferryman.DEF  adjective:dead
 
 # > He has been dead for a long time.
-he is dead
-  be  subject:3SG.M  adjective:dead
+he has been dead
+  be.PFV  subject:3SG.M  adjective:dead
 
 # > His hand is still closed around his pole.
-his hand holds his pole
-  hold  subject:(hand possessor:3SG.M)  object:(pole possessor:3SG.M)
+his hand grips his pole
+  grip  subject:(hand possessor:3SG.M)  object:(pole possessor:3SG.M)
 
 # > You make camp in a hollow between two roots.
-you camp in a hollow
-  camp  subject:2SG  location:hollow.NDF
+you make camp in a hollow
+  make  subject:2SG  object:camp  location:hollow.NDF
 
 # > You light a small fire and eat the last of the bread.
 you light a small fire and eat the last bread
@@ -621,16 +614,17 @@ if you do not have wax, you will lose control of your character
   if  have.NEG  subject:2SG  object:wax
 
 # > The song stops, or you stop hearing it.
-the song stops, or you do not hear it
+the song stops, or you no longer hear it
   stop  subject:song.DEF
   or  hear.NEG  subject:2SG  object:3SG.N
 
 # > Lights move between the trees, soft and blue.
-# couldn't gloss (Line 2: Only a possessor can be a noun phrase of its own inside parentheses, as in (son possessor:(sister possessor:1SG)), not '(and soft blue)'.)
+soft blue lights move between the trees
+  move  subject:(light.PL soft blue)  location:tree.PL.DEF
 
 # > They pass so close that you could touch them.
-they pass near you
-  pass  subject:3PL.N  location:2SG
+they pass
+  pass  subject:3PL.N
 you could touch them
   touch.ABIL.PST  subject:2SG  object:3PL.N
 
@@ -641,40 +635,34 @@ each light is carried by a small figure
 # > There are nine of them, and the last one is much smaller than the rest.
 they are nine figures, and the last one is smaller than the rest
   be  subject:3PL  noun:(figure 9)
-  and  be  subject:(figure.DEF last)  adjective:small  standard:rest.DEF
+  and  be  subject:(one.DEF last)  adjective:small  standard:rest.DEF
 
 # > You follow them.
 you follow them
   follow  subject:2SG  object:3PL
 
 # > You know that you should not, but you do.
-# can't express yet (complement clause): You know that you should not, but you do.
+# can't express yet (a clause inside another clause, "know that you should not"): You know that you should not, but you do.
 
 # > The stone circle stands in a clearing where nothing grows.
-the stone circle stands in a clearing
-  stand  subject:(circle.DEF stone)  location:clearing.NDF
-nothing grows in the clearing
-  grow  subject:nothing  location:clearing.DEF
+# can't express yet (relative clause, "a clearing where nothing grows"): The stone circle stands in a clearing where nothing grows.
 
 # > Nine stones lean inward like old men sharing a secret.
-# can't express yet (comparison with like): Nine stones lean inward like old men sharing a secret.
+# can't express yet (comparison with a clause, "like old men sharing a secret"): Nine stones lean inward like old men sharing a secret.
 
 # > The children stand in front of the stones, one to each.
-the children stand at the stones
+the children stand in front of the stones
   stand  subject:child.PL.DEF  location:stone.PL.DEF
 
 # > In the middle of the circle, a woman is waiting.
 in the middle of the circle, a woman is waiting
-  wait  subject:woman.NDF  location:(middle possessor:circle.DEF)
+  wait  subject:woman.NDF  location:(middle.DEF possessor:circle.DEF)
 
 # > It is the old woman from the gate.
-it is the old woman
-  be  subject:3SG.N  noun:(woman.DEF old)
-she was at the gate
-  be.PST  subject:3SG.F  location:gate.DEF
+# can't express yet (a noun modified by "from the gate"): It is the old woman from the gate.
 
 # > "I told you that you were late," she says.
-# can't express yet (complement clause): "I told you that you were late," she says.
+# can't express yet (a clause inside another clause, "I told you that you were late"): "I told you that you were late," she says.
 
 # > You cannot hear her, but you can read her lips.
 you cannot hear her, but you can read her lips
@@ -686,29 +674,28 @@ you pull the wax from your ears
   pull  subject:2SG  object:wax.DEF  source:(ear.PL possessor:2SG)
 
 # > "What have you done to them?"
-# can't express yet (question): "What have you done to them?"
+what have you done to them?
+  do.PST.PFV  subject:2SG  object:what  recipient:3PL
 
 # > "I have kept them safe.
 I have protected them
   protect.PST.PFV  subject:1SG  object:3PL
 
 # > This valley is dying, stranger.
-this valley is dying, stranger
+stranger, the valley is dying
   die  subject:valley.DEF  addressee:stranger
 
 # > The forest wants a price, and it has always wanted one.
-the forest wants a price, and it wanted one
+the forest wants a price
   want  subject:forest.DEF  object:price.NDF
-  and  want.PST  subject:3SG.N  object:price.NDF
+  and  want.PST.IPFV  subject:3SG.N  object:price.NDF
 
 # > Long ago, the village paid it willingly.
 the village paid it
-  pay.PST.PFV  subject:village.DEF  recipient:3SG.N
+  pay.PST  subject:village.DEF  recipient:3SG.N
 
 # > Then they forgot, and the forest began to take what it was owed."
-they forgot, and the forest was taking its due
-  forget.PST.PFV  subject:3PL
-  and  take.PST  subject:forest.DEF  object:(due possessor:3SG.N)
+# can't express yet (relative clause): Then they forgot, and the forest began to take what it was owed.
 
 # > "They are children."
 they are children
@@ -719,100 +706,97 @@ I was a child
   be.PST  subject:1SG  noun:child.NDF
 
 # > She lifts the net she was mending.
-she lifts the net
-  lift  subject:3SG.F  object:net.DEF
-she was mending it
-  mend.PST  subject:3SG.F  object:3SG.N
+# can't express yet (relative clause): She lifts the net she was mending.
 
 # > It shines like water.
-# can't express yet (comparison with 'like'): It shines like water.
+# can't express yet (comparison with like): It shines like water.
 
 # > "Nine must stand here until the next nine come.
-nine people must stand until the next nine people come
-  stand.OBLIG  subject:(person 9)
-  until  come  subject:(person.DEF 9 next)
+# can't express yet (a bare number with no noun, "nine"): Nine must stand here until the next nine come.
 
 # > That is the bargain.
 that is the bargain
   be  subject:3SG.N  noun:bargain.DEF
 
 # > I have stood here for two hundred years.
-# can't express yet (duration 'for two hundred years'): I have stood here for two hundred years.
+# can't express yet (duration, "for two hundred years"): I have stood here for two hundred years.
 
 # > I am very tired."
 I am tired
   be  subject:1SG  adjective:tired
 
 # > She holds the net out to you.
-she offers you the net
+she offers the net to you
   offer  subject:3SG.F  object:net.DEF  recipient:2SG
 
 # > "Someone has to carry it.
-someone has to carry it
+someone must carry it
   carry.OBLIG  subject:someone  object:3SG.N
 
 # > You came here with nothing.
-when you came, you didn't have a thing
-  have.PST.NEG  subject:2SG  object:thing.NDF
-  when  come.PST.PFV  subject:2SG
+you came with nothing
+  come.PST.PFV  subject:2SG  companion:nothing
 
 # > Nobody is waiting for you.
 nobody is waiting for you
   wait  subject:nobody  object:2SG
 
 # > Would it be so terrible?"
-# can't express yet (question): Would it be so terrible?
+Is it terrible?
+  be.Q  subject:3SG.N  adjective:terrible
 
 # > Choose your answer.
 choose your answer
   choose.IMP  object:(answer possessor:2SG)
 
 # > Your decision will change the ending of the story.
-your decision will change the story's ending
-  change.FUT  subject:(decision possessor:2SG)  object:(ending possessor:story.DEF)
+your decision will change the ending of the story
+  change.FUT  subject:(decision possessor:2SG)  object:(ending.DEF possessor:story.DEF)
 
 # > If you take the net, the children will go home, and you will remain in the circle forever.
-if you take the net, the children will go home, and you will remain in the circle
+if you take the net, the children will go home and you will remain in the circle
   go.FUT  subject:child.PL.DEF  goal:home
   and  remain.FUT  subject:2SG  location:circle.DEF
   if  take  subject:2SG  object:net.DEF
 
 # > If you refuse, you must fight the old woman.
-If you refuse, you must fight the old woman.
+if you refuse, you must fight the old woman
   fight.OBLIG  subject:2SG  object:(woman.DEF old)
   if  refuse  subject:2SG
 
 # > If you have the crow feather, you can offer a third choice.
-If you have the crow feather, you can offer a third choice.
+if you have the crow feather, you can offer a third choice
   offer.ABIL  subject:2SG  object:(choice.NDF 3rd)
   if  have  subject:2SG  object:(feather.DEF crow)
 
 # > You hold up the crow feather.
-You raise the crow feather.
+you raise the crow feather
   raise  subject:2SG  object:(feather.DEF crow)
 
 # > The old woman's face changes for the first time.
-The old woman's face changes.
+the old woman's face changes
   change  subject:(face possessor:(woman.DEF old))
 
 # > For a moment she looks young.
-# can't express yet (a verb like 'look' or 'seem' with an adjective): For a moment she looks young.
+she is young
+  be  subject:3SG.F  adjective:young
 
 # > "Where did you get that?"
-# can't express yet (question): "Where did you get that?"
+where did you get that?
+  get.PST.PFV  subject:2SG  object:3SG.N  source:where
 
 # > "You gave it to me."
-You gave it to me.
+you gave it to me
   give.PST.PFV  subject:2SG  object:3SG.N  recipient:1SG
 
 # > "No," she says quietly.
-She says.
+she says
   say  subject:3SG.F
 
 # > "I did not."
-I did not give it to you.
+I did not give it to you
   give.PST.PFV.NEG  subject:1SG  object:3SG.N  recipient:2SG
 
 # > Above you, the sky fills with crows.
-The sky fills with crows.
+the sky fills with crows
   fill  subject:sky.DEF  instrument:crow.PL
