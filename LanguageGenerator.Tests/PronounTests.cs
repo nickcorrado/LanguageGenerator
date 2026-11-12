@@ -189,7 +189,7 @@ public class PronounTests
     {
         foreach (var language in GeneratedLanguages.Sample)
         {
-            var sentence = Syntax.Realize(language, new Clause("see", Tense.Present, Aspect.Imperfective, I, You), "I see you");
+            var sentence = Syntax.Realize(language, new Clause("see", Tense.Present, Aspect.Imperfective, I, You) { Adverbs = [] }, "I see you");
             var roots = sentence.Words.SelectMany(w => w.Word.Morphemes).Select(m => m.Value).OfType<Root>().ToList();
 
             //the object pronoun is always there, and the subject only where it isn't dropped

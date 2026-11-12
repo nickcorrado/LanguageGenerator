@@ -14,19 +14,19 @@ public class ClauseFileTests
     {
         var entry = Single("drink the wine\n  drink.IMP  object:wine  location:house");
 
-        Assert.Equal(new Command("drink", Number.Singular, new NounPhrase("wine", Number.Singular), Obliques: [new(Role.Location, new NounPhrase("house", Number.Singular))]), entry.Statement.Value);
+        Assert.Equal(new Command("drink", Number.Singular, new NounPhrase("wine", Number.Singular), Obliques: [new(Role.Location, new NounPhrase("house", Number.Singular))]) { Adverbs = [] }, entry.Statement.Value);
     }
 
     [Fact]
     public void Parse_NegativeCommand_IsNegative()
     {
-        Assert.Equal(new Command("go", Number.Singular, Negative: true), Single("don't go\n  go.IMP.NEG").Statement.Value);
+        Assert.Equal(new Command("go", Number.Singular, Negative: true) { Adverbs = [] }, Single("don't go\n  go.IMP.NEG").Statement.Value);
     }
 
     [Fact]
     public void Parse_CommandToSeveralPeople_TakesTheirNumber()
     {
-        Assert.Equal(new Command("go", Number.Plural), Single("go, all of you\n  go.IMP  subject:2PL").Statement.Value);
+        Assert.Equal(new Command("go", Number.Plural) { Adverbs = [] }, Single("go, all of you\n  go.IMP  subject:2PL").Statement.Value);
     }
 
     [Theory]
@@ -57,7 +57,7 @@ public class ClauseFileTests
         var entry = Single("the dog saw the cats\n  see.PST.PFV  subject:dog  object:cat.PL\n");
 
         Assert.Equal("the dog saw the cats", entry.Translation);
-        Assert.Equal(new Clause("see", Tense.Past, Aspect.Perfective, new NounPhrase("dog", Number.Singular), new NounPhrase("cat", Number.Plural)), Verbal(entry));
+        Assert.Equal(new Clause("see", Tense.Past, Aspect.Perfective, new NounPhrase("dog", Number.Singular), new NounPhrase("cat", Number.Plural)) { Adverbs = [] }, Verbal(entry));
         Assert.Equal(2, entry.Line);
     }
 
@@ -69,9 +69,9 @@ public class ClauseFileTests
         Assert.Equal(new Clause("walk", Tense.Past, Aspect.Imperfective, new Pronoun(Person.First, Number.Plural), Obliques:
         [
             new(Role.Source, new NounPhrase("village", Number.Singular)),
-            new(Role.Goal, new NounPhrase("river", Number.Singular, [new("big")])),
+            new(Role.Goal, new NounPhrase("river", Number.Singular, [new("big", false)])),
             new(Role.Companion, new Pronoun(Person.Second, Number.Singular)),
-        ]), clause);
+        ]) { Adverbs = [] }, clause);
         Assert.NotEqual(clause with { Obliques = [.. clause.Obliques.Reverse()] }, clause);
     }
 
@@ -92,7 +92,7 @@ public class ClauseFileTests
     {
         var clause = Verbal(Single("the king's old dogs saw her cat\n  see.PST  subject:(dog.PL old possessor:king)  object:(cat possessor:3SG.F)"));
 
-        Assert.Equal(new NounPhrase("dog", Number.Plural, [new("old")], Possessor: new NounPhrase("king", Number.Singular)), clause.Subject.Value);
+        Assert.Equal(new NounPhrase("dog", Number.Plural, [new("old", false)], Possessor: new NounPhrase("king", Number.Singular)), clause.Subject.Value);
         Assert.Equal(new NounPhrase("cat", Number.Singular, [], Possessor: new Pronoun(Person.Third, Number.Singular, Gender: Gender.Feminine)), clause.Object.GetValueOrDefault().Value);
         Assert.NotEqual(new NounPhrase("cat", Number.Singular, [], Possessor: new NounPhrase("king", Number.Singular)), clause.Object.GetValueOrDefault().Value);
     }
@@ -178,16 +178,16 @@ public class ClauseFileTests
     [Fact]
     public void Parse_Be_IsACopularClause()
     {
-        Assert.Equal(new CopularClause(new Adjective("locked"), Tense.Past, Aspect.Imperfective, new NounPhrase("gate", Number.Singular)),
+        Assert.Equal(new CopularClause(new Adjective("locked", false), Tense.Past, Aspect.Imperfective, new NounPhrase("gate", Number.Singular)) { Obliques = [], Adverbs = [] },
             Single("the gate was locked\n  be.PST subject:gate adjective:locked").Statement.Value);
-        Assert.Equal(new CopularClause(new NounPhrase("fool", Number.Plural), Tense.Present, Aspect.Imperfective, new Pronoun(Person.Second, Number.Plural), Negative: true),
+        Assert.Equal(new CopularClause(new NounPhrase("fool", Number.Plural), Tense.Present, Aspect.Imperfective, new Pronoun(Person.Second, Number.Plural), Negative: true) { Obliques = [], Adverbs = [] },
             Single("you aren't fools\n  be.NEG subject:2PL noun:fool.PL").Statement.Value);
     }
 
     [Fact]
     public void Parse_BeWithALocation_SaysWhereItsSubjectIs()
     {
-        Assert.Equal(new CopularClause(new Oblique(Role.Location, new NounPhrase("house", Number.Singular, [new("big")])), Tense.Past, Aspect.Imperfective, new NounPhrase("dog", Number.Singular), Negative: true),
+        Assert.Equal(new CopularClause(new Oblique(Role.Location, new NounPhrase("house", Number.Singular, [new("big", false)])), Tense.Past, Aspect.Imperfective, new NounPhrase("dog", Number.Singular), Negative: true) { Obliques = [], Adverbs = [] },
             Single("the dog wasn't in the big house\n  be.PST.NEG location:(house big) subject:dog").Statement.Value);
     }
 
@@ -198,7 +198,7 @@ public class ClauseFileTests
     [InlineData("x\n  be subject:dog object:cat", "be has no object")]
     [InlineData("x\n  be subject:dog noun:cat adjective:big", "more than one noun or adjective")]
     [InlineData("x\n  be subject:dog noun:1SG", "has to be a noun, not a pronoun")]
-    [InlineData("x\n  be subject:dog adjective:big.PL", "adjectives have no features but CMPR yet")]
+    [InlineData("x\n  be subject:dog adjective:big.PL", "adjectives have no features but CMPR and INTS yet")]
     [InlineData("x\n  sleep subject:dog adjective:big", "Only be takes a noun: or adjective:")]
     public void Parse_CopulaMistakes_SayWhat(string text, string message)
     {
@@ -210,7 +210,7 @@ public class ClauseFileTests
     {
         var clause = Verbal(Single("the big old dogs saw the cat\n  see.PST  subject:(dog.PL big old)  object:(cat)"));
 
-        Assert.Equal(new NounPhrase("dog", Number.Plural, [new("big"), new("old")]), clause.Subject.Value);
+        Assert.Equal(new NounPhrase("dog", Number.Plural, [new("big", false), new("old", false)]), clause.Subject.Value);
         Assert.Equal(new NounPhrase("cat", Number.Singular), clause.Object!.Value.Value);
     }
 
@@ -223,7 +223,7 @@ public class ClauseFileTests
     [InlineData("x\n  sleep subject:(cat owner:king)", "can't have an owner yet")]
     [InlineData("x\n  sleep subject:(cat possessor:king possessor:queen)", "more than one possessor")]
     [InlineData("x\n  sleep subject:cat possessor:king", "goes inside its noun's parentheses")]
-    [InlineData("x\n  sleep subject:(dog big.PL)", "adjectives have no features but CMPR yet")]
+    [InlineData("x\n  sleep subject:(dog big.PL)", "adjectives have no features but CMPR and INTS yet")]
     [InlineData("x\n  sleep subject:(dog.ACC big)", "case comes from its role")]
     public void Parse_NounPhraseMistakes_SayWhat(string text, string message)
     {
@@ -245,7 +245,7 @@ public class ClauseFileTests
     {
         var entry = Single("the bird sleeps\n  sleep subject:bird");
 
-        Assert.Equal(new Clause("sleep", Tense.Present, Aspect.Imperfective, new NounPhrase("bird", Number.Singular)), Verbal(entry));
+        Assert.Equal(new Clause("sleep", Tense.Present, Aspect.Imperfective, new NounPhrase("bird", Number.Singular)) { Adverbs = [] }, Verbal(entry));
     }
 
     [Fact]

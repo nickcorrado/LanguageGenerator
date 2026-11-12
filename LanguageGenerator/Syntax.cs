@@ -19,19 +19,22 @@ public record NounPhrase(string Noun, Number Number, ValueList<Adjective> Adject
 public union Argument(NounPhrase, Pronoun, Coordination, QuestionWord);
 /// <summary>
 /// A phrase saying where, to where, from where, to whom, with whom or with what something happened,
-/// or what it was like.
+/// what it was like, when it happened or for how long.
 /// </summary>
 public record Oblique(Role Role, Argument Argument)
 {
     public static IReadOnlyList<Role> Roles { get; } =
-        [Role.Recipient, Role.Location, Role.Goal, Role.Source, Role.Companion, Role.Instrument, Role.Similative];
+        [Role.Recipient, Role.Location, Role.Goal, Role.Source, Role.Companion, Role.Instrument, Role.Similative, Role.Time, Role.Duration];
 }
 
-//obliques are in the order they're said in English
-public record Clause(string Verb, Tense Tense, Aspect Aspect, Argument Subject, Argument? Object = null, bool Negative = false, ValueList<Oblique> Obliques = default);
+//obliques and adverbs are each in the order they're said in English
+public record Clause(string Verb, Tense Tense, Aspect Aspect, Argument Subject, Argument? Object = null, bool Negative = false, ValueList<Oblique> Obliques = default)
+{
+    public required ValueList<Adverbial> Adverbs { get; init; }
+}
 
-/// <summary>A property, like 'big', said of something.</summary>
-public record Adjective(string Meaning);
+/// <summary>A property, like 'big', said of something, or with Intensified, much of it, as in 'very big'.</summary>
+public record Adjective(string Meaning, bool Intensified);
 /// <summary>
 /// What a copular clause says of its subject: a noun phrase, as in 'you are a fool', an adjective,
 /// as in 'the gate is locked', adjectives together, as in 'the inn is warm and crowded', or a
@@ -39,19 +42,32 @@ public record Adjective(string Meaning);
 /// </summary>
 public union Complement(NounPhrase, Adjective, AdjectiveCoordination, Oblique);
 /// <summary>A clause saying what or where its subject is, as English does with be.</summary>
-public record CopularClause(Complement Complement, Tense Tense, Aspect Aspect, Argument Subject, bool Negative = false);
+//its obliques say only when and for how long
+public record CopularClause(Complement Complement, Tense Tense, Aspect Aspect, Argument Subject, bool Negative = false)
+{
+    public required ValueList<Oblique> Obliques { get; init; }
+    public required ValueList<Adverbial> Adverbs { get; init; }
+}
 
 /// <summary>
 /// Telling one person or more to do something, or with Negative, not to. Who's told is 'you', so it
 /// isn't said, and a command has no tense or aspect of its own.
 /// </summary>
-public record Command(string Verb, Number Number, Argument? Object = null, bool Negative = false, ValueList<Oblique> Obliques = default);
+public record Command(string Verb, Number Number, Argument? Object = null, bool Negative = false, ValueList<Oblique> Obliques = default)
+{
+    public required ValueList<Adverbial> Adverbs { get; init; }
+}
 
 /// <summary>
 /// Telling one person or more what or where to be, as in 'be careful', 'don't be a fool' or 'be in
 /// the house'.
 /// </summary>
-public record CopularCommand(Complement Complement, Number Number, bool Negative);
+//its obliques say only when and for how long
+public record CopularCommand(Complement Complement, Number Number, bool Negative)
+{
+    public required ValueList<Oblique> Obliques { get; init; }
+    public required ValueList<Adverbial> Adverbs { get; init; }
+}
 
 /// <summary>
 /// A statement said to someone called by name or by what they are, as in 'Marta, come here' or 'old
@@ -184,18 +200,17 @@ public static class Syntax
                 var verb = Verb(language.Lexicon.Verb(c.Verb), c.Negative);
                 var subject = dropSubject ? [] : Subject(language, c.Subject, c.Object is null ? Role.IntransitiveSubject : Role.TransitiveSubject);
                 var @object = c.Object.HasValue ? Inflect(language, c.Object.GetValueOrDefault(), Role.DirectObject) : null;
-                return Adpositioned(Flat(Order(language.WordOrder, subject, verb, @object, [.. c.Obliques.SelectMany(o => Oblique(language, o))])));
+                return Adpositioned(Flat(Order(language.WordOrder, subject, verb, @object, Adverbials(language, c.Adverbs, c.Obliques))));
             }
             case PassiveClause c when language.Passive is { } passive:
             {
                 var verb = passive.Apply(Verb(language.Lexicon.Verb(c.Verb), c.Negative));
                 var subject = dropSubject ? [] : Subject(language, c.Patient, Role.IntransitiveSubject);
                 IReadOnlyList<Word> agent = c.Agent.HasValue ? Marked(language, c.Agent.GetValueOrDefault(), Role.Agent) : [];
-                return Adpositioned(Flat(Order(language.WordOrder, subject, verb, null, [.. agent, .. c.Obliques.SelectMany(o => Oblique(language, o))])));
+                return Adpositioned(Flat(Order(language.WordOrder, subject, verb, null, [.. agent, .. Adverbials(language, c.Adverbs, c.Obliques)])));
             }
             case PassiveClause c:
-                return Deranked(language, new Clause(c.Verb, c.Tense, c.Aspect, c.Agent.HasValue ? c.Agent.GetValueOrDefault() : new Pronoun(Person.Third, Number.Plural),
-                    c.Patient, c.Negative, c.Obliques), dropSubject: false, markedAs);
+                return Deranked(language, Active(c), dropSubject: false, markedAs);
             default:
                 return null;
         }
@@ -269,8 +284,7 @@ public static class Syntax
     {
         var words = CommandVerb(language, language.Lexicon.Verb(command.Verb), command.Number, command.Negative);
         var @object = command.Object.HasValue ? Inflect(language, command.Object.GetValueOrDefault(), Role.DirectObject) : null;
-        var obliques = command.Obliques.SelectMany(o => Oblique(language, o)).ToList();
-        return Flat(Order(language.WordOrder, [], words, @object, obliques));
+        return Flat(Order(language.WordOrder, [], words, @object, Adverbials(language, command.Adverbs, command.Obliques)));
     }
 
     private static IReadOnlyList<Word> CommandVerb(Language language, Lexeme verb, Number number, bool negative)
@@ -293,19 +307,24 @@ public static class Syntax
     private static IReadOnlyList<Word> Words(Language language, CopularCommand command)
     {
         var predication = language.Predication;
+        var obliques = Adverbials(language, command.Adverbs, command.Obliques);
         if (PredicateAdjectives(language, command.Complement) is var (adjectives, between) && predication.Adjectives == PredicativeAdjectives.Verbal)
         {
-            var predicate = Join(adjectives.Select(a => CommandVerb(language, language.Lexicon.Adjective(a.Meaning) with { PartOfSpeech = PartOfSpeech.Verb }, command.Number, command.Negative)), between);
-            return Flat(Order(language.WordOrder, [], predicate, null, []));
+            var predicate = Join(adjectives.Select(a =>
+            {
+                var lexeme = language.Lexicon.Adjective(a.Meaning);
+                return Intensified(language, CommandVerb(language, lexeme with { PartOfSpeech = PartOfSpeech.Verb }, command.Number, command.Negative), lexeme.Root, a);
+            }), between);
+            return Flat(Order(language.WordOrder, [], predicate, null, obliques));
         }
         if (command.Complement.Value is Oblique location)
         {
             var be = CommandVerb(language, predication.CopulaFor(locational: true), command.Number, command.Negative);
-            return Flat(Order(language.WordOrder, [], be, null, Oblique(language, location)));
+            return Flat(Order(language.WordOrder, [], be, null, [.. Oblique(language, location), .. obliques]));
         }
         var complement = PredicateComplement(language, command.Complement, new Pronoun(Person.Second, command.Number));
         var copula = CommandVerb(language, predication.Copula, command.Number, command.Negative);
-        return Flat(Order(language.WordOrder, [], copula, complement, []));
+        return Flat(Order(language.WordOrder, [], copula, complement, obliques));
     }
 
     public static Sentence Realize(Language language, Clause clause, string translation) => Sentence(language, Words(language, clause, null, []), translation);
@@ -316,8 +335,7 @@ public static class Syntax
         var subject = Subject(language, clause.Subject, subjectRole);
         var @object = clause.Object.HasValue ? Inflect(language, clause.Object.GetValueOrDefault(), Role.DirectObject) : null;
         var verb = Predicate(language, language.Lexicon.Verb(clause.Verb), clause.Tense, clause.Aspect, clause.Subject, clause.Negative, modal, null);
-        IReadOnlyList<Word> obliques = [.. adverbs, .. clause.Obliques.SelectMany(o => Oblique(language, o))];
-        return Flat(Order(language.WordOrder, subject, verb, @object, obliques));
+        return Flat(Order(language.WordOrder, subject, verb, @object, [.. adverbs, .. Adverbials(language, clause.Adverbs, clause.Obliques)]));
     }
 
     //the patient takes the case of an intransitive subject, which in an ergative language is the one
@@ -330,14 +348,47 @@ public static class Syntax
     {
         if (language.Passive is not { } passive)
         {
-            var doer = clause.Agent.HasValue ? clause.Agent.GetValueOrDefault() : new Pronoun(Person.Third, Number.Plural);
-            return Words(language, new Clause(clause.Verb, clause.Tense, clause.Aspect, doer, clause.Patient, clause.Negative, clause.Obliques), modal, adverbs);
+            return Words(language, Active(clause), modal, adverbs);
         }
         var subject = Subject(language, clause.Patient, Role.IntransitiveSubject);
         var verb = Predicate(language, language.Lexicon.Verb(clause.Verb), clause.Tense, clause.Aspect, clause.Patient, clause.Negative, modal, passive);
         IReadOnlyList<Word> agent = clause.Agent.HasValue ? Marked(language, clause.Agent.GetValueOrDefault(), Role.Agent) : [];
-        IReadOnlyList<Word> obliques = [.. adverbs, .. agent, .. clause.Obliques.SelectMany(o => Oblique(language, o))];
-        return Flat(Order(language.WordOrder, subject, verb, null, obliques));
+        return Flat(Order(language.WordOrder, subject, verb, null, [.. adverbs, .. agent, .. Adverbials(language, clause.Adverbs, clause.Obliques)]));
+    }
+
+    //a passive said as the active, with its agent as the subject, or 'they' where nobody says who
+    private static Clause Active(PassiveClause clause) =>
+        new(clause.Verb, clause.Tense, clause.Aspect, clause.Agent.HasValue ? clause.Agent.GetValueOrDefault() : new Pronoun(Person.Third, Number.Plural),
+            clause.Patient, clause.Negative, clause.Obliques) { Adverbs = clause.Adverbs };
+
+    //a clause's adverbs, then its obliques, which go together where obliques go
+    private static IReadOnlyList<Word> Adverbials(Language language, ValueList<Adverbial> adverbs, ValueList<Oblique> obliques) =>
+        [.. adverbs.SelectMany(a => Adverbial(language, a)), .. obliques.SelectMany(o => Oblique(language, o))];
+
+    //an adverb is its own root, uninflected. One saying how is made from its adjective as the
+    //language makes them, with 'very' beside the adjective if it has it, outside the adverb's marker,
+    //as in 'very slowly'
+    private static IReadOnlyList<Word> Adverbial(Language language, Adverbial adverbial)
+    {
+        switch (adverbial)
+        {
+            case Adverb adverb:
+                return [new Word([language.Lexicon.Adverb(adverb.Meaning).Root])];
+            case Manner manner:
+            {
+                var root = language.Lexicon.Adjective(manner.Adjective.Meaning).Root;
+                IReadOnlyList<Word> words = language.Manner switch
+                {
+                    MannerBare => [new Word([root])],
+                    MannerAffix { Position: ExponentPosition.Prefix } affix => [new Word([affix.Marker, root])],
+                    MannerAffix affix => [new Word([root, affix.Marker])],
+                    MannerWord word => word.BeforeAdjective ? [new Word([word.Marker]), new Word([root])] : [new Word([root]), new Word([word.Marker])],
+                };
+                return Intensified(language, words, root, manner.Adjective);
+            }
+            default:
+                throw new InvalidOperationException();
+        }
     }
 
     //an oblique takes its role's case, and its adposition, if the role has one, before or after it
@@ -398,16 +449,17 @@ public static class Syntax
     {
         var predication = language.Predication;
         var subject = Subject(language, clause.Subject, Role.IntransitiveSubject);
+        IReadOnlyList<Word> obliques = [.. adverbs, .. Adverbials(language, clause.Adverbs, clause.Obliques)];
         if (PredicateAdjectives(language, clause.Complement) is var (adjectives, between) && predication.Adjectives == PredicativeAdjectives.Verbal)
         {
             //a property word inflects as a verb in a language whose adjectives are verbs
             var predicate = Join(adjectives.Select(a =>
             {
                 var lexeme = language.Lexicon.Adjective(a.Meaning);
-                return Compared(Predicate(language, lexeme with { PartOfSpeech = PartOfSpeech.Verb }, clause.Tense, clause.Aspect, clause.Subject, clause.Negative, modal, null),
-                    lexeme.Root, degree);
+                var verb = Predicate(language, lexeme with { PartOfSpeech = PartOfSpeech.Verb }, clause.Tense, clause.Aspect, clause.Subject, clause.Negative, modal, null);
+                return Graded(Intensified(language, verb, lexeme.Root, a), lexeme.Root, degree);
             }), between);
-            return Flat(Order(language.WordOrder, subject, predicate, null, [.. adverbs, .. standard]));
+            return Flat(Order(language.WordOrder, subject, predicate, null, [.. obliques, .. standard]));
         }
 
         //a location is an oblique, and goes where obliques go, with the language's locational copula
@@ -424,19 +476,19 @@ public static class Syntax
             var be = modal is null && predication.Drops(clause.Tense, clause.Negative, locational: true)
                 ? []
                 : Predicate(language, predication.CopulaFor(locational: true), clause.Tense, clause.Aspect, clause.Subject, clause.Negative, modal, null);
-            return Flat(Order(language.WordOrder, subject, be, null, [.. adverbs, .. Oblique(language, location)]));
+            return Flat(Order(language.WordOrder, subject, be, null, [.. adverbs, .. Adverbials(language, clause.Adverbs, [location, .. clause.Obliques])]));
         }
 
         //a predicate noun takes the same case as an intransitive subject. A predicate adjective, in a
         //language whose adjectives agree, agrees with the subject in number, gender and that case,
         //as in Latin canis magnus est 'the dog is big'; otherwise it's just its root
         var complement = clause.Complement.Value is Adjective adjective
-            ? Compared(PredicateComplement(language, adjective, clause.Subject), language.Lexicon.Adjective(adjective.Meaning).Root, degree)
+            ? Graded(PredicateComplement(language, adjective, clause.Subject), language.Lexicon.Adjective(adjective.Meaning).Root, degree)
             : PredicateComplement(language, clause.Complement, clause.Subject);
         var copula = modal is null && predication.Drops(clause.Tense, clause.Negative)
             ? []
             : Predicate(language, predication.Copula, clause.Tense, clause.Aspect, clause.Subject, clause.Negative, modal, null);
-        return Flat(Order(language.WordOrder, subject, copula, complement, [.. adverbs, .. standard]));
+        return Flat(Order(language.WordOrder, subject, copula, complement, [.. obliques, .. standard]));
     }
 
     //a locational standard takes its role's case or adposition, and a particle's standard the plain
@@ -465,7 +517,8 @@ public static class Syntax
             LocationalComparison locational => Copular(language, clause, Marked(language, standard, locational.Role), degree, null, adverbs),
             ParticleComparison particle => Copular(language, clause, Than(particle, Inflect(language, standard, Role.IntransitiveSubject)), degree, null, adverbs),
             ExceedComparison exceed => Copular(language, clause, Exceeding(language, exceed, standard), degree, null, adverbs),
-            ConjoinedComparison => [.. Copular(language, clause, [], null, null, adverbs), .. Copular(language, clause with { Subject = standard, Negative = !clause.Negative }, [], null, null, [])],
+            ConjoinedComparison => [.. Copular(language, clause, [], null, null, adverbs),
+                .. Copular(language, clause with { Subject = standard, Negative = !clause.Negative, Obliques = [], Adverbs = [] }, [], null, null, [])],
         };
 
         static IReadOnlyList<Word> Than(ParticleComparison particle, IReadOnlyList<Word> standard) =>
@@ -479,9 +532,14 @@ public static class Syntax
         return language.WordOrder.VerbPhraseDirectionality == HeadDirectionality.Initial ? [.. verb, .. @object] : [.. @object, .. verb];
     }
 
-    //an adjective's words with its comparative marker, if it has one: an affix next to its root,
-    //inside any agreement or tense, or a word beside it
-    private static IReadOnlyList<Word> Compared(IReadOnlyList<Word> words, Root adjective, DegreeMarker? degree)
+    //an adjective's words with 'very' beside it, if it has it. It goes on before any comparative
+    //marker, so that the comparative's is the nearer, as in 'much bigger'
+    private static IReadOnlyList<Word> Intensified(Language language, IReadOnlyList<Word> words, Root root, Adjective adjective) =>
+        adjective.Intensified ? Graded(words, root, language.Intensifier) : words;
+
+    //an adjective's words with a marker of degree, if it has one: an affix next to its root, inside
+    //any agreement or tense, or a word beside it
+    private static IReadOnlyList<Word> Graded(IReadOnlyList<Word> words, Root adjective, DegreeMarker? degree)
     {
         if (degree is not { } marker)
         {
@@ -512,10 +570,10 @@ public static class Syntax
         NounPhrase noun => Inflect(language, noun, Role.IntransitiveSubject),
         AdjectiveCoordination together => Join(together.Adjectives.Select(a => PredicateComplement(language, a, subject)), language.Conjunctions.BetweenClauses(together.Conjunction)),
         Adjective adjective when language.AdjectiveAgreement == AdjectiveAgreement.Agreement =>
-            [AgreeingAdjective(language, language.Lexicon.Adjective(adjective.Meaning),
+            Intensified(language, [AgreeingAdjective(language, language.Lexicon.Adjective(adjective.Meaning),
                 Features(language.Paradigms.Nouns, [AgreementOf(language, subject).Number, CaseFor(language, language.RoleMarkers[Role.IntransitiveSubject])]),
-                GenderOf(language, subject))],
-        Adjective adjective => [new Word([language.Lexicon.Adjective(adjective.Meaning).Root])],
+                GenderOf(language, subject))], language.Lexicon.Adjective(adjective.Meaning).Root, adjective),
+        Adjective adjective => Intensified(language, [new Word([language.Lexicon.Adjective(adjective.Meaning).Root])], language.Lexicon.Adjective(adjective.Meaning).Root, adjective),
         _ => throw new ArgumentException("A predicate is a noun or an adjective.", nameof(complement)),
     };
 
@@ -644,11 +702,10 @@ public static class Syntax
         return statement.Value switch
         {
             Clause c => [(c.Subject, c.Object is null ? Role.IntransitiveSubject : Role.TransitiveSubject, false), .. Given(c.Object, Role.DirectObject, false), .. Obliques(c.Obliques)],
-            PassiveClause c when language.Passive is null => Roles(language, new Clause(c.Verb, c.Tense, c.Aspect,
-                c.Agent.HasValue ? c.Agent.GetValueOrDefault() : new Pronoun(Person.Third, Number.Plural), c.Patient, c.Negative, c.Obliques)),
+            PassiveClause c when language.Passive is null => Roles(language, Active(c)),
             PassiveClause c => [(c.Patient, Role.IntransitiveSubject, false), .. Given(c.Agent, Role.Agent, true), .. Obliques(c.Obliques)],
-            CopularClause { Complement.Value: Oblique location } c => [(c.Subject, Role.IntransitiveSubject, false), (location.Argument, location.Role, true)],
-            CopularClause c => [(c.Subject, Role.IntransitiveSubject, false)],
+            CopularClause { Complement.Value: Oblique location } c => [(c.Subject, Role.IntransitiveSubject, false), (location.Argument, location.Role, true), .. Obliques(c.Obliques)],
+            CopularClause c => [(c.Subject, Role.IntransitiveSubject, false), .. Obliques(c.Obliques)],
             Comparative c => Roles(language, c.Clause),
             Modalized m => Roles(language, m.Clause),
             _ => [],
@@ -854,12 +911,12 @@ public static class Syntax
         var head = noun[main];
         var agreement = language.AdjectiveAgreement;
 
-        var adjectives = phrase.Adjectives.Select(a =>
+        var adjectives = phrase.Adjectives.SelectMany(a =>
         {
             var lexeme = language.Lexicon.Adjective(a.Meaning);
-            return agreement == AdjectiveAgreement.Agreement
+            return Intensified(language, [agreement == AdjectiveAgreement.Agreement
                 ? AgreeingAdjective(language, lexeme, features, language.GenderOf(nounLexeme))
-                : new Word([lexeme.Root]);
+                : new Word([lexeme.Root])], lexeme.Root, a);
         }).ToList();
 
         var headFirst = language.WordOrder.NounPhraseDirectionality == HeadDirectionality.Initial;

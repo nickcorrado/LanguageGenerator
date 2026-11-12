@@ -7,7 +7,7 @@ public class ObliqueTests
     //only the basic meanings, since coining new ones would add to the shared sample's lexicons
 
     private static Sentence Walk(Language language, params Oblique[] obliques) =>
-        Syntax.Realize(language, new Clause("walk", Tense.Past, Aspect.Perfective, new NounPhrase("dog", Number.Singular), Obliques: [.. obliques]), "x");
+        Syntax.Realize(language, new Clause("walk", Tense.Past, Aspect.Perfective, new NounPhrase("dog", Number.Singular), Obliques: [.. obliques]) { Adverbs = [] }, "x");
 
     private static Oblique Stone(Role role) => new(role, new NounPhrase("stone", Number.Singular));
 
@@ -97,6 +97,9 @@ public class ObliqueTests
                         var between = sentence.Words.Skip(Math.Min(at, stone) + 1).Take(Math.Abs(at - stone) - 1);
                         Assert.DoesNotContain(between, w => w.Word.Root is not null);
                         break;
+                    //a duration marked like the object, in a language that doesn't mark objects
+                    case Unmarked when role == Role.Duration:
+                        break;
                     default:
                         Assert.Fail($"{role} has no marker.");
                         break;
@@ -112,7 +115,7 @@ public class ObliqueTests
         {
             var order = language.WordOrder;
             var transitive = Syntax.Realize(language, new Clause("see", Tense.Past, Aspect.Perfective, new NounPhrase("dog", Number.Singular),
-                new NounPhrase("cat", Number.Singular), Obliques: [Stone(Role.Location)]), "x");
+                new NounPhrase("cat", Number.Singular), Obliques: [Stone(Role.Location)]) { Adverbs = [] }, "x");
             var (s, v, o, x) = (IndexOf(transitive, "dog"), IndexOf(transitive, "see"), IndexOf(transitive, "cat"), IndexOf(transitive, "stone"));
 
             //the core constituents keep their order

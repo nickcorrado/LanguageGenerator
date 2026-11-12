@@ -83,6 +83,25 @@ With an adjective, `be` can compare its subject: `CMPR` on the adjective says 'm
 
 How a language marks the standard follows WALS 121A: marked like a place, mostly 'from', as in Turkish ('tall from the men'); with a particle like English *than*; as the object of a verb meaning 'exceed', as in Yoruba ('he is big, exceeds the elephant'); or as two clauses, 'Marta is tall, the men are not tall'. Every language marks a comparative adjective with no standard, with a word or an affix glossed `CMPR`, as Turkish says *daha büyük* 'more big', and some also mark it beside a standard, as English *-er* does. A degree word goes before or after the adjective as WALS 91A counts. 'Like' is a word on the side of the phrase the language's adpositions go, or an affix on its edge glossed `SIM`.
 
+### Adverbs
+
+A clause can say when, how often, how and for how long, with any number of each in the order they're said:
+
+| Written | Means |
+| --- | --- |
+| `wake.PST  subject:2SG  adverb:later  adverb:suddenly` | 'later, you woke suddenly' |
+| `climb  subject:2SG  manner:careful` | 'you climb carefully' |
+| `sleep.PST  subject:3PL  time:(night last)` | 'they slept last night' |
+| `stand.PST  subject:1SG  duration:(year.PL 200)` | 'I stood for two hundred years' |
+| `be  subject:1SG  adjective:tired.INTS` | 'I am very tired' |
+| `walk  subject:3SG  manner:slow.INTS` | 'she walks very slowly' |
+
+`adverb:` is a word of its own, like *now*, *again* or *always*, which the language coins a root for. `manner:` is an adjective saying how, which the language makes into an adverb its own way, so 'carefully' is `manner:careful`. `time:` and `duration:` take a noun phrase, as other roles do, and `be` takes them too. `INTS` on any adjective says 'very', or 'much' with `CMPR`, as `small.CMPR.INTS` is 'much smaller'.
+
+Words for where, like *here*, *there* and *inside*, can't be said yet, and neither can *ago* or *later* after a noun, a manner that compares, as in 'more slowly', or a question asking when, how or for how long.
+
+Adverbs and manners go where obliques go, before them. An adverb is its bare root. A manner adverb is the adjective itself, as German *schnell* is 'quick' and 'quickly'; the adjective with an affix, as English *-ly* and Turkish *-ce* make one, glossed `ADV` as the Leipzig rules have it; or the adjective with a word beside it, as Mandarin *de* and Japanese *ni*, glossed `ADV` too. WALS doesn't count these, so the odds are guesses. A time is marked like a place in most languages, sharing the location's case or adposition, and otherwise by an adposition of its own glossed `during`. A duration is marked like the object, as Latin *duos annos* 'for two years' is accusative, like a time, or by an adposition glossed `for`. 'Very' is a word on the side WALS 91A counts for degree words, the comparative's side where that's a word too, and is glossed `INTS`, as grammars commonly gloss an intensifier.
+
 ## Roles
 
 | Role | Says |
@@ -97,9 +116,13 @@ How a language marks the standard follows WALS 121A: marked like a place, mostly
 | `companion:` | With whom |
 | `instrument:` | With what |
 | `like:` | Like what |
+| `time:` | When |
+| `duration:` | For how long |
 | `agent:` | Who does it, in a passive |
 | `standard:` | What the subject of `be` is compared with |
 | `addressee:` | Who the clause is said to |
+| `adverb:` | When, how often or how, as a word of its own |
+| `manner:` | How, as an adjective |
 
 Any clause can be said to someone, with `addressee:marta` or `addressee:(man old)`, a bare noun that comes first in the vocative case where the language has one. A command to a plural addressee, as in `addressee:child.PL`, is to all of them.
 

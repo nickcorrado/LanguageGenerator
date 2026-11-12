@@ -92,9 +92,10 @@ public static partial class Generator
         return words;
     }
 
-    //a role gets its region's case if the language has one, and otherwise its region's adposition
+    //a role gets its region's case if the language has one, and otherwise its region's adposition. A
+    //duration is marked like the role it's like, or with its own word
     public static Dictionary<Role, RoleMarker> SelectRoleMarkers(MorphosyntacticAlignment alignment, IReadOnlyList<Case> cases, IReadOnlyList<RoleRegion> regions, WordOrder wordOrder,
-        IReadOnlyDictionary<Role, Lexeme> adpositions)
+        IReadOnlyDictionary<Role, Lexeme> adpositions, (Role? Like, Lexeme? Word) duration)
     {
         var type = wordOrder.AdpositionalPhraseDirectionality == HeadDirectionality.Initial ? AdpositionType.Preposition : AdpositionType.Postposition;
         //a simplification: real languages often pick the governed case per adposition
@@ -121,6 +122,8 @@ public static partial class Generator
             Role.TransitiveSubject => Core(Case.Nominative, Case.Ergative),
             Role.DirectObject => Core(Case.Accusative, Case.Absolutive),
             Role.Addressee => cases.Contains(Case.Vocative) ? Case.Vocative : new Unmarked(),
+            Role.Duration => duration.Like is { } like ? MarkerFor(like)
+                : new Adposition(duration.Word ?? throw new ArgumentException("A duration is like another role or has a word of its own.", nameof(duration)), type, governs),
             _ => Oblique(role),
         };
 

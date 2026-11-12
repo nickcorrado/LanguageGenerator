@@ -170,8 +170,8 @@ public class SubordinationTests
             l => Assert.DoesNotContain(l.Subordination.Markers.Values, m => m.Position == ExponentPosition.Suffix));
 
     //only the basic meanings, since coining new ones would add to the shared sample's lexicons
-    private static readonly Clause CatEats = new("eat", Tense.Present, Aspect.Imperfective, new NounPhrase("cat", Number.Singular), new NounPhrase("fish", Number.Singular));
-    private static readonly Clause DogSleeps = new("sleep", Tense.Present, Aspect.Imperfective, new NounPhrase("dog", Number.Singular));
+    private static readonly Clause CatEats = new("eat", Tense.Present, Aspect.Imperfective, new NounPhrase("cat", Number.Singular), new NounPhrase("fish", Number.Singular)) { Adverbs = [] };
+    private static readonly Clause DogSleeps = new("sleep", Tense.Present, Aspect.Imperfective, new NounPhrase("dog", Number.Singular)) { Adverbs = [] };
 
     private static bool IsMarker(Morpheme m) => m.Value is Affix { Grammemes: [Linkage] } or Particle { Grammemes: [Linkage] };
 

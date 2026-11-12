@@ -9,7 +9,7 @@ public class ModalTests
     //only the basic meanings, since coining new ones would add to the shared sample's lexicons
     private static readonly NounPhrase Dog = new("dog", Number.Singular);
     private static readonly NounPhrase Fish = new("fish", Number.Singular);
-    private static Clause DogEatsFish(bool negative) => new("eat", Tense.Present, Aspect.Imperfective, Dog, Fish, negative);
+    private static Clause DogEatsFish(bool negative) => new("eat", Tense.Present, Aspect.Imperfective, Dog, Fish, negative) { Adverbs = [] };
 
     private static Sentence Realized(Language language, Statement statement) => Syntax.Realize(language, statement, "x");
 
@@ -86,9 +86,9 @@ public class ModalTests
         var clauses = new Statement[]
         {
             DogEatsFish(false),
-            new PassiveClause("eat", Tense.Past, Aspect.Perfective, Fish, Dog, false, []),
-            new CopularClause(new Adjective("big"), Tense.Present, Aspect.Imperfective, Dog),
-            new CopularClause(new Oblique(Role.Location, new NounPhrase("house", Number.Singular)), Tense.Present, Aspect.Imperfective, Dog),
+            new PassiveClause("eat", Tense.Past, Aspect.Perfective, Fish, Dog, false, []) { Adverbs = [] },
+            new CopularClause(new Adjective("big", false), Tense.Present, Aspect.Imperfective, Dog) { Obliques = [], Adverbs = [] },
+            new CopularClause(new Oblique(Role.Location, new NounPhrase("house", Number.Singular)), Tense.Present, Aspect.Imperfective, Dog) { Obliques = [], Adverbs = [] },
         };
         Assert.All(GeneratedLanguages.Sample, l =>
         {
@@ -140,7 +140,7 @@ public class ModalTests
         Assert.NotEmpty(languages);
         Assert.All(languages, l =>
         {
-            var sentence = Realized(l, new Modalized(new PassiveClause("eat", Tense.Past, Aspect.Perfective, Fish, null, false, []), Modality.Ability, false));
+            var sentence = Realized(l, new Modalized(new PassiveClause("eat", Tense.Past, Aspect.Perfective, Fish, null, false, []) { Adverbs = [] }, Modality.Ability, false));
             var morphemes = sentence.Words[ModalAt(sentence)].Word.Morphemes.Select(m => m.Value).ToList();
             var root = morphemes.FindIndex(m => m is Root);
             var prefix = ((ModalAffix)l.Modals.Markers[Modality.Ability].Value!).Position == ExponentPosition.Prefix;
@@ -177,7 +177,7 @@ public class ModalTests
         Assert.NotEmpty(languages);
         Assert.All(languages, l =>
         {
-            var big = new CopularClause(new Adjective("big"), Tense.Present, Aspect.Imperfective, Dog);
+            var big = new CopularClause(new Adjective("big", false), Tense.Present, Aspect.Imperfective, Dog) { Obliques = [], Adverbs = [] };
             var sentence = Realized(l, new Modalized(big, Modality.Obligation, false));
 
             Assert.True(IndexOf(sentence, l.Predication.Copula.Root) >= 0);
@@ -192,7 +192,7 @@ public class ModalTests
         Assert.NotEmpty(languages);
         Assert.All(languages, l =>
         {
-            var main = new Clause("sleep", Tense.Present, Aspect.Imperfective, new NounPhrase("cat", Number.Singular));
+            var main = new Clause("sleep", Tense.Present, Aspect.Imperfective, new NounPhrase("cat", Number.Singular)) { Adverbs = [] };
             var sentence = Realized(l, new Subordinated(main, Subordinator.If, new Modalized(DogEatsFish(false), Modality.Ability, false), false));
             var marker = l.Subordination.Markers[Subordinator.If].Marker;
 

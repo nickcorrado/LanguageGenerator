@@ -94,6 +94,28 @@ public static class GlossPrompt
               it shines like water
                 shine  subject:3SG.N  like:water
 
+            A clause can say when, how often, how and for how long, with any number of each, in the
+            order they're said, and be takes them too:
+            - adverb: is a word of its own saying when, how often or how, in its plain English form:
+              adverb:now, adverb:again, adverb:always, adverb:yesterday, adverb:suddenly.
+            - manner: is an adverb made from an adjective, written as the adjective: manner:careful for
+              'carefully', manner:slow for 'slowly'.
+            - time: is when, as a noun phrase: time:night for 'at night', time:(night last) for 'last
+              night', time:harvest.DEF for 'at the harvest'.
+            - duration: is for how long, as a noun phrase: duration:(year.PL 200) for 'for two hundred
+              years', duration:while.NDF for 'for a while'.
+            - INTS on any adjective says 'very', or 'much' with CMPR: adjective:tired.INTS for 'very
+              tired', manner:slow.INTS for 'very slowly', adjective:small.CMPR.INTS for 'much smaller'.
+
+              later, you wake suddenly
+                wake  subject:2SG  adverb:later  adverb:suddenly
+              you climb carefully
+                climb  subject:2SG  manner:careful
+              the village was quiet at night
+                be.PST  subject:village.DEF  adjective:quiet  time:night
+              I am very tired
+                be  subject:1SG  adjective:tired.INTS
+
             A yes-no question has Q on its verb, glossed otherwise as the statement would be, with
             'do' left out. A question asking who, what, where or why has no Q: who or what goes in
             the role it asks about, where is location:where, goal:where for 'where to' or
@@ -148,19 +170,21 @@ public static class GlossPrompt
               object:(and (purse.NDF empty) sword.NDF) for 'an empty purse and a sword', or
               object:(or rope.NDF boat.NDF). Adjectives said together go the same way:
               adjective:(and warm crowded) for 'warm and crowded'.
-            - Demonstratives, adverbs and other conjunctions have no gloss: leave them out of the gloss
-              line when the meaning mostly survives, and gloss 'this' or 'that' with a noun as DEF.
+            - Demonstratives, words for where like 'here', 'there' and 'inside', words like 'only',
+              'even' and 'still', 'ago' and 'later' after a noun, as in 'three winters ago', and other
+              conjunctions have no gloss: leave them out of the gloss line when the meaning mostly
+              survives, and gloss 'this' or 'that' with a noun as DEF.
             - The English line says what the gloss says and nothing more, since readers take it as the
               translation of what the gloss became. Write it fresh from the gloss: lowercase but for
               names, with no final period, though a question keeps its question mark. Keep 'the' and
-              'a', and leave out whatever the gloss left out, like an adverb, 'this', 'so' or 'here'.
-              Never copy the sentence you were given when the gloss says less. For 'Eat something
-              first.' write:
+              'a', and leave out whatever the gloss left out, like 'only', 'this', 'so' or 'here'.
+              Never copy the sentence you were given when the gloss says less. For 'Eat only the
+              bread.' write:
 
-                eat something
-                  eat.IMP  object:something
+                eat the bread
+                  eat.IMP  object:bread.DEF
 
-              and not 'Eat something first.', since nothing in the gloss says 'first'. For 'She is
+              and not 'Eat only the bread.', since nothing in the gloss says 'only'. For 'She is
               taller than most of the men here.', the English line is 'she is taller than most of the
               men', without 'here'.
             - Paraphrase into what the format can say when that keeps the meaning, as with 'went' for
@@ -168,7 +192,7 @@ public static class GlossPrompt
             - Never drop a modal, like might, maybe or want to, that has no gloss: 'it might rain'
               doesn't say 'it rains'.
             - When a sentence can't be said even loosely, as with a question asking two things, or
-              when, how, which or whose, or a question inside another clause, a modal other than ABIL,
+              when, how, how long, which or whose, or a question inside another clause, a modal other than ABIL,
               PERM, OBLIG or ADVS (like might, maybe or want to), a relative
               clause, a comparison other than an adjective with be (like 'runs faster than',
               'stronger arms than yours' or 'as tall as'), a comparison with a clause (like 'warmer

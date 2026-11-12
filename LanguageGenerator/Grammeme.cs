@@ -131,6 +131,11 @@ public enum Role
     //what something is or does something like, as in 'it shines like water'. It has a marker of
     //its own, the language's Similative, rather than one from the semantic map of roles
     Similative,
+    //when something happens, as in 'at night'
+    Time,
+    //how long it goes on, as in 'for two hundred years'. It has no place on the semantic map either:
+    //a language marks it like an object, like a time, or with a word of its own
+    Duration,
 }
 
 /// <summary>
@@ -246,6 +251,18 @@ public record Definiteness(string Name, string Gloss) : Grammeme(Name, Gloss)
 public record Degree(string Name, string Gloss) : Grammeme(Name, Gloss)
 {
     public static Degree Comparative { get; } = new("Comparative", "CMPR");
+    /// <summary>
+    /// Much of a property, as English very says. The Leipzig rules have no gloss for it, so it's the
+    /// one grammars commonly use.
+    /// </summary>
+    public static Degree Intensive { get; } = new("Intensive", "INTS");
+}
+
+/// <summary>Marks a word made from another of a different part of speech.</summary>
+public record Derivation(string Name, string Gloss) : Grammeme(Name, Gloss)
+{
+    /// <summary>An adverb made from an adjective, as English -ly makes 'carefully'.</summary>
+    public static Derivation Adverbial { get; } = new("Adverbial", "ADV");
 }
 
 //TODO politeness

@@ -172,10 +172,10 @@ public class PhonologyTests
         //the example doesn't give any commands
         Statement[] commands =
         [
-            new Command("see", Number.Singular),
-            new Command("see", Number.Plural),
-            new Command("see", Number.Singular, Negative: true),
-            new Command("see", Number.Plural, Negative: true),
+            new Command("see", Number.Singular) { Adverbs = [] },
+            new Command("see", Number.Plural) { Adverbs = [] },
+            new Command("see", Number.Singular, Negative: true) { Adverbs = [] },
+            new Command("see", Number.Plural, Negative: true) { Adverbs = [] },
         ];
         var example = ClauseFile.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "scene.txt")));
         var statements = example.Select(e => e.Statement).Concat(commands).ToList();

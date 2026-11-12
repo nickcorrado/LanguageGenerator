@@ -50,7 +50,7 @@ public class VocativeTests
     {
         Assert.All(GeneratedLanguages.Sample, l =>
         {
-            var sentence = Syntax.Realize(l, new Addressed(new Clause("sleep", Tense.Past, Aspect.Perfective, new NounPhrase("dog", Number.Singular)),
+            var sentence = Syntax.Realize(l, new Addressed(new Clause("sleep", Tense.Past, Aspect.Perfective, new NounPhrase("dog", Number.Singular)) { Adverbs = [] },
                 new NounPhrase("person", Number.Singular)), "x");
             var (person, dog, sleep) = (IndexOf(sentence, "person"), IndexOf(sentence, "dog"), IndexOf(sentence, "sleep"));
             var vocative = sentence.Words.Any(w => w.Gloss.Contains("VOC"));
@@ -64,7 +64,7 @@ public class VocativeTests
     public void Realize_Addressed_KeepsTheClauseAsItWas()
     {
         var language = GeneratedLanguages.Sample[0];
-        var clause = new Clause("sleep", Tense.Past, Aspect.Perfective, new NounPhrase("dog", Number.Singular));
+        var clause = new Clause("sleep", Tense.Past, Aspect.Perfective, new NounPhrase("dog", Number.Singular)) { Adverbs = [] };
         var plain = Syntax.Realize(language, clause, "x");
         var addressed = Syntax.Realize(language, new Addressed(clause, new NounPhrase("person", Number.Singular)), "x");
 

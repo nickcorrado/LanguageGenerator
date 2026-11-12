@@ -4,11 +4,11 @@ namespace LanguageGenerator.Tests;
 
 public class AdjectiveTests
 {
-    private static readonly NounPhrase BigOldDogs = new("dog", Number.Plural, [new("big"), new("old")]);
+    private static readonly NounPhrase BigOldDogs = new("dog", Number.Plural, [new("big", false), new("old", false)]);
 
     //only the basic meanings, since coining new ones would add to the shared sample's lexicons
     private static Sentence Sleep(Language l, NounPhrase subject) =>
-        Syntax.Realize(l, new Clause("sleep", Tense.Present, Aspect.Imperfective, subject), "the big old dogs are sleeping");
+        Syntax.Realize(l, new Clause("sleep", Tense.Present, Aspect.Imperfective, subject) { Adverbs = [] }, "the big old dogs are sleeping");
 
     private static Word WordOf(Sentence sentence, string meaning) => sentence.Words[IndexOf(sentence, meaning)].Word;
 

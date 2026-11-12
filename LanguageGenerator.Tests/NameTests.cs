@@ -11,7 +11,7 @@ public class NameTests
     {
         Assert.All(GeneratedLanguages.Sample, l =>
         {
-            var sentence = Syntax.Realize(l, new Clause("sleep", Tense.Past, Aspect.Perfective, new NounPhrase("person", Number.Plural)), "the people slept");
+            var sentence = Syntax.Realize(l, new Clause("sleep", Tense.Past, Aspect.Perfective, new NounPhrase("person", Number.Plural)) { Adverbs = [] }, "the people slept");
             var people = sentence.Words[IndexOf(sentence, "person")].Spell(l.Orthography);
 
             Assert.Equal(people, char.ToLowerInvariant(l.Name[0]) + l.Name[1..]);

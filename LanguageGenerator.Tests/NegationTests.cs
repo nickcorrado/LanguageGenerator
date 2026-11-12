@@ -3,7 +3,7 @@
 public class NegationTests
 {
     private static Sentence DogDidNotSeeCat(Language l, bool negative = true) =>
-        Syntax.Realize(l, new Clause("see", Tense.Past, Aspect.Perfective, new NounPhrase("dog", Number.Singular), new NounPhrase("cat", Number.Singular), negative), "the dog didn't see the cat");
+        Syntax.Realize(l, new Clause("see", Tense.Past, Aspect.Perfective, new NounPhrase("dog", Number.Singular), new NounPhrase("cat", Number.Singular), negative) { Adverbs = [] }, "the dog didn't see the cat");
 
     //which word is the verb itself, rather than a particle or an argument
     private static int VerbIndex(Sentence sentence) => sentence.Words.ToList().FindIndex(w => w.Word.Root?.Meaning == "see");

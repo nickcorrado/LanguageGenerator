@@ -92,6 +92,7 @@ public class Lexicon : IEnumerable<Lexeme>
     public Lexeme Noun(string meaning) => this[meaning, PartOfSpeech.Noun];
     public Lexeme Verb(string meaning) => this[meaning, PartOfSpeech.Verb];
     public Lexeme Adjective(string meaning) => this[meaning, PartOfSpeech.Adjective];
+    public Lexeme Adverb(string meaning) => this[meaning, PartOfSpeech.Adverb];
 
     public IEnumerator<Lexeme> GetEnumerator()
     {
