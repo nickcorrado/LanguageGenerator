@@ -27,7 +27,7 @@ public static class GlossPrompt
             Words are English meanings in dictionary form, lowercase even for names: wolf, not wolves; see, not saw; marta, not Marta.
             Features follow a word after periods, in Leipzig glossing style.
             - Verb features: {Values<Tense>()}; {Values<Aspect>()}; {Values<Polarity>()}; PASS (passive);
-              {Values<Modality>()}.
+              {Values<Modality>()}; Q (yes-no question).
             - A modal is a feature of the verb: ABIL for 'can' or 'be able to', PERM for 'may' or 'can'
               meaning allowed, OBLIG for 'must' or 'have to', and ADVS for 'should' or 'ought to'.
               'Could' is ABIL.PST, and 'will be able to' ABIL.FUT. NEG after the modal negates the
@@ -85,6 +85,24 @@ public static class GlossPrompt
               Marta is taller than the men
                 be  subject:marta  adjective:tall  standard:man.PL.DEF
 
+            A yes-no question has Q on its verb, glossed otherwise as the statement would be, with
+            'do' left out. A question asking who, what, where or why has no Q: who or what goes in
+            the role it asks about, where is location:where, goal:where for 'where to' or
+            source:where for 'where from', and why is written on its own. A question asks one thing:
+
+              did you see them?
+                see.PST.PFV.Q  subject:2SG  object:3PL
+              can you swim?
+                swim.ABIL.Q  subject:2SG
+              who told you?
+                tell.PST.PFV  subject:who  object:2SG
+              what do they want?
+                want  subject:3PL  object:what
+              where did you get that?
+                get.PST.PFV  subject:2SG  object:3SG.N  source:where
+              why didn't you come?
+                come.PST.PFV.NEG  subject:2SG  why
+
             A command to 'you' has IMP on its verb, with no tense or aspect, NEG for 'don't', and no
             subject, unless it's to several people, which is subject:2PL:
 
@@ -128,7 +146,8 @@ public static class GlossPrompt
               walk.PST, or 'lives in' for be with location:.
             - Never drop a modal, like might, maybe or want to, that has no gloss: 'it might rain'
               doesn't say 'it rains'.
-            - When a sentence can't be said even loosely, as with a question, a modal other than ABIL,
+            - When a sentence can't be said even loosely, as with a question asking two things, or
+              when, how, which or whose, or a question inside another clause, a modal other than ABIL,
               PERM, OBLIG or ADVS (like might, maybe or want to), a relative
               clause, a comparison other than an adjective with be (like 'runs faster than' or
               'stronger arms than yours'), or a command to anyone but 'you', like 'let's go', write instead one line: {CantExpress} (what's missing): the sentence.
@@ -140,7 +159,7 @@ public static class GlossPrompt
               the two dogs slept in the old house
                 sleep.PST  subject:(dog.DEF 2)  location:(house.DEF old)
               [2]
-              {CantExpress} (question): Where did they go?
+              {CantExpress} (question with when): When did they go?
             """;
     }
 

@@ -11,9 +11,12 @@
 //no definiteness is a bare noun, as English has for 'dogs', 'water' or 'my dog'
 public record NounPhrase(string Noun, Number Number, ValueList<Adjective> Adjectives = default, int? Count = null, Argument? Possessor = null, int? Ordinal = null,
     Definiteness? Definiteness = null);
-/// <summary>What fills a role: a noun phrase, a pronoun, or several of them joined by 'and' or 'or'.</summary>
+/// <summary>
+/// What fills a role: a noun phrase, a pronoun, several of them joined by 'and' or 'or', or a
+/// question word asking what fills it.
+/// </summary>
 //what agrees with one depends on the language, so that's Syntax.AgreementOf's to say
-public union Argument(NounPhrase, Pronoun, Coordination);
+public union Argument(NounPhrase, Pronoun, Coordination, QuestionWord);
 /// <summary>
 /// A phrase saying where, to where, from where, to whom, with whom or with what something happened.
 /// </summary>
@@ -58,7 +61,7 @@ public record CopularCommand(Complement Complement, Number Number, bool Negative
 public record Addressed(Statement Statement, NounPhrase Addressee);
 
 /// <summary>Anything a sentence can say.</summary>
-public union Statement(Clause, PassiveClause, CopularClause, Command, CopularCommand, Comparative, Addressed, Coordinated, Subordinated, Modalized);
+public union Statement(Clause, PassiveClause, CopularClause, Command, CopularCommand, Comparative, Addressed, Coordinated, Subordinated, Modalized, Question);
 
 public static class Syntax
 {
@@ -68,16 +71,17 @@ public static class Syntax
     //marked as one
     private static IReadOnlyList<Word> Words(Language language, Statement statement) => statement switch
     {
-        Clause c => Words(language, c, null),
-        PassiveClause c => Words(language, c, null),
-        CopularClause c => Copular(language, c, [], null),
+        Clause c => Words(language, c, null, []),
+        PassiveClause c => Words(language, c, null, []),
+        CopularClause c => Copular(language, c, [], null, []),
         Command c => Words(language, c),
         CopularCommand c => Words(language, c),
-        Comparative c => Words(language, c),
+        Comparative c => Words(language, c, []),
         Addressed a => Words(language, a),
         Coordinated c => Words(language, c),
         Subordinated s => Words(language, s),
-        Modalized m => Words(language, m),
+        Modalized m => Words(language, m, []),
+        Question q => Words(language, q),
     };
 
     /// <summary>Who or what a statement is about: its subject, or 'you' for a command.</summary>
@@ -93,6 +97,7 @@ public static class Syntax
         Coordinated c => SubjectOf(c.First),
         Subordinated s => SubjectOf(s.Main),
         Modalized m => SubjectOf(m.Clause),
+        Question q => SubjectOf(q.Statement),
     };
 
     public static Sentence Realize(Language language, Subordinated subordinated, string translation) => Sentence(language, Words(language, subordinated), translation);
@@ -148,6 +153,7 @@ public static class Syntax
         CopularClause => language.Predication.Copula.Root,
         Modalized m when language.Modals.Markers[m.Modality].Value is ModalVerb modal => modal.Verb.Root,
         Modalized m => VerbRoot(language, m.Clause),
+        Question q => VerbRoot(language, q.Statement),
         _ => null,
     };
 
@@ -301,15 +307,15 @@ public static class Syntax
         return Flat(Order(language.WordOrder, [], copula, complement, []));
     }
 
-    public static Sentence Realize(Language language, Clause clause, string translation) => Sentence(language, Words(language, clause, null), translation);
+    public static Sentence Realize(Language language, Clause clause, string translation) => Sentence(language, Words(language, clause, null, []), translation);
 
-    private static IReadOnlyList<Word> Words(Language language, Clause clause, Modalized? modal)
+    private static IReadOnlyList<Word> Words(Language language, Clause clause, Modalized? modal, IReadOnlyList<Word> adverbs)
     {
         var subjectRole = clause.Object is null ? Role.IntransitiveSubject : Role.TransitiveSubject;
         var subject = Subject(language, clause.Subject, subjectRole);
         var @object = clause.Object.HasValue ? Inflect(language, clause.Object.GetValueOrDefault(), Role.DirectObject) : null;
         var verb = Predicate(language, language.Lexicon.Verb(clause.Verb), clause.Tense, clause.Aspect, clause.Subject, clause.Negative, modal, null);
-        var obliques = clause.Obliques.SelectMany(o => Oblique(language, o)).ToList();
+        IReadOnlyList<Word> obliques = [.. adverbs, .. clause.Obliques.SelectMany(o => Oblique(language, o))];
         return Flat(Order(language.WordOrder, subject, verb, @object, obliques));
     }
 
@@ -317,19 +323,19 @@ public static class Syntax
     //it had already, and the verb agrees with it; the agent, if there is one, goes before the other
     //obliques, marked for its role. A language without a passive says the active instead, as real
     //ones do, with the agent as its subject, or 'they' where nobody says who
-    public static Sentence Realize(Language language, PassiveClause clause, string translation) => Sentence(language, Words(language, clause, null), translation);
+    public static Sentence Realize(Language language, PassiveClause clause, string translation) => Sentence(language, Words(language, clause, null, []), translation);
 
-    private static IReadOnlyList<Word> Words(Language language, PassiveClause clause, Modalized? modal)
+    private static IReadOnlyList<Word> Words(Language language, PassiveClause clause, Modalized? modal, IReadOnlyList<Word> adverbs)
     {
         if (language.Passive is not { } passive)
         {
             var doer = clause.Agent.HasValue ? clause.Agent.GetValueOrDefault() : new Pronoun(Person.Third, Number.Plural);
-            return Words(language, new Clause(clause.Verb, clause.Tense, clause.Aspect, doer, clause.Patient, clause.Negative, clause.Obliques), modal);
+            return Words(language, new Clause(clause.Verb, clause.Tense, clause.Aspect, doer, clause.Patient, clause.Negative, clause.Obliques), modal, adverbs);
         }
         var subject = Subject(language, clause.Patient, Role.IntransitiveSubject);
         var verb = Predicate(language, language.Lexicon.Verb(clause.Verb), clause.Tense, clause.Aspect, clause.Patient, clause.Negative, modal, passive);
         IReadOnlyList<Word> agent = clause.Agent.HasValue ? Marked(language, clause.Agent.GetValueOrDefault(), Role.Agent) : [];
-        var obliques = agent.Concat(clause.Obliques.SelectMany(o => Oblique(language, o))).ToList();
+        IReadOnlyList<Word> obliques = [.. adverbs, .. agent, .. clause.Obliques.SelectMany(o => Oblique(language, o))];
         return Flat(Order(language.WordOrder, subject, verb, null, obliques));
     }
 
@@ -355,7 +361,7 @@ public static class Syntax
         };
     }
 
-    public static Sentence Realize(Language language, CopularClause clause, string translation) => Sentence(language, Copular(language, clause, [], null), translation);
+    public static Sentence Realize(Language language, CopularClause clause, string translation) => Sentence(language, Copular(language, clause, [], null, []), translation);
 
     //a copular clause's complement goes where an object would, so it precedes the copula in an OV
     //language, as in Turkish and Japanese, and follows it in a VO one. Where adjectives are verbal,
@@ -363,7 +369,7 @@ public static class Syntax
     //clause has one, goes where obliques go. A copula with a modal is never dropped, since the modal
     //goes with it, as Russian has no copula in ty ostorožen 'you are careful' but has one in ty
     //dolžen byt' ostorožen 'you must be careful'
-    private static IReadOnlyList<Word> Copular(Language language, CopularClause clause, IReadOnlyList<Word> standard, Modalized? modal)
+    private static IReadOnlyList<Word> Copular(Language language, CopularClause clause, IReadOnlyList<Word> standard, Modalized? modal, IReadOnlyList<Word> adverbs)
     {
         var predication = language.Predication;
         var subject = Subject(language, clause.Subject, Role.IntransitiveSubject);
@@ -372,7 +378,7 @@ public static class Syntax
             //a property word inflects as a verb in a language whose adjectives are verbs
             var predicate = Join(adjectives.Select(a =>
                 Predicate(language, language.Lexicon.Adjective(a.Meaning) with { PartOfSpeech = PartOfSpeech.Verb }, clause.Tense, clause.Aspect, clause.Subject, clause.Negative, modal, null)), between);
-            return Flat(Order(language.WordOrder, subject, predicate, null, standard));
+            return Flat(Order(language.WordOrder, subject, predicate, null, [.. adverbs, .. standard]));
         }
 
         //a location is an oblique, and goes where obliques go, with the language's locational copula
@@ -389,7 +395,7 @@ public static class Syntax
             var be = modal is null && predication.Drops(clause.Tense, clause.Negative, locational: true)
                 ? []
                 : Predicate(language, predication.CopulaFor(locational: true), clause.Tense, clause.Aspect, clause.Subject, clause.Negative, modal, null);
-            return Flat(Order(language.WordOrder, subject, be, null, Oblique(language, location)));
+            return Flat(Order(language.WordOrder, subject, be, null, [.. adverbs, .. Oblique(language, location)]));
         }
 
         //a predicate noun takes the same case as an intransitive subject. A predicate adjective, in a
@@ -399,15 +405,15 @@ public static class Syntax
         var copula = modal is null && predication.Drops(clause.Tense, clause.Negative)
             ? []
             : Predicate(language, predication.Copula, clause.Tense, clause.Aspect, clause.Subject, clause.Negative, modal, null);
-        return Flat(Order(language.WordOrder, subject, copula, complement, standard));
+        return Flat(Order(language.WordOrder, subject, copula, complement, [.. adverbs, .. standard]));
     }
 
     //a locational standard takes its role's case or adposition, and a particle's standard the plain
     //case a subject takes, with the particle on its side. A conjoined comparison is two clauses,
     //the second denying the property of the standard, as in 'Marta is tall, the men are not tall'
-    public static Sentence Realize(Language language, Comparative comparative, string translation) => Sentence(language, Words(language, comparative), translation);
+    public static Sentence Realize(Language language, Comparative comparative, string translation) => Sentence(language, Words(language, comparative, []), translation);
 
-    private static IReadOnlyList<Word> Words(Language language, Comparative comparative)
+    private static IReadOnlyList<Word> Words(Language language, Comparative comparative, IReadOnlyList<Word> adverbs)
     {
         var clause = comparative.Clause;
         if (clause.Complement.Value is not Adjective)
@@ -416,9 +422,9 @@ public static class Syntax
         }
         return language.Comparison switch
         {
-            LocationalComparison locational => Copular(language, clause, Marked(language, comparative.Standard, locational.Role), null),
-            ParticleComparison particle => Copular(language, clause, Than(particle, Inflect(language, comparative.Standard, Role.IntransitiveSubject)), null),
-            ConjoinedComparison => [.. Copular(language, clause, [], null), .. Copular(language, clause with { Subject = comparative.Standard, Negative = !clause.Negative }, [], null)],
+            LocationalComparison locational => Copular(language, clause, Marked(language, comparative.Standard, locational.Role), null, adverbs),
+            ParticleComparison particle => Copular(language, clause, Than(particle, Inflect(language, comparative.Standard, Role.IntransitiveSubject)), null, adverbs),
+            ConjoinedComparison => [.. Copular(language, clause, [], null, adverbs), .. Copular(language, clause with { Subject = comparative.Standard, Negative = !clause.Negative }, [], null, [])],
         };
 
         static IReadOnlyList<Word> Than(ParticleComparison particle, IReadOnlyList<Word> standard) =>
@@ -442,16 +448,137 @@ public static class Syntax
     private static IReadOnlyList<Word> Subject(Language language, Argument subject, Role role) =>
         subject.Value is Pronoun && language.Pronouns.DropsSubjects ? [] : Inflect(language, subject, role);
 
-    public static Sentence Realize(Language language, Modalized modalized, string translation) => Sentence(language, Words(language, modalized), translation);
+    public static Sentence Realize(Language language, Modalized modalized, string translation) => Sentence(language, Words(language, modalized, []), translation);
 
     //the clause, with its modal where its verb is
-    private static IReadOnlyList<Word> Words(Language language, Modalized modalized) => modalized.Clause.Value switch
+    private static IReadOnlyList<Word> Words(Language language, Modalized modalized, IReadOnlyList<Word> adverbs) => modalized.Clause.Value switch
     {
-        Clause c => Words(language, c, modalized),
-        PassiveClause c => Words(language, c, modalized),
-        CopularClause c => Copular(language, c, [], modalized),
+        Clause c => Words(language, c, modalized, adverbs),
+        PassiveClause c => Words(language, c, modalized, adverbs),
+        CopularClause c => Copular(language, c, [], modalized, adverbs),
         _ => throw new ArgumentException("Only a clause with a verb or be can take a modal.", nameof(modalized)),
     };
+
+    public static Sentence Realize(Language language, Question question, string translation) => Sentence(language, Words(language, question), translation);
+
+    //a content question puts its question word first, with the rest of its phrase, where the
+    //language fronts them, as English does, and otherwise leaves it in its role's own place, as
+    //Mandarin and Japanese do; 'why' goes first too, or else where obliques go, as a phrase saying
+    //why would. It needs no other marking. A yes-no question takes the language's particle, its
+    //affix on the finite verb, or the finite verb first, or nothing but intonation. A language that
+    //puts the verb first in a yes-no question puts it right after a fronted question word in a
+    //content one, as German does
+    //TODO many languages use their yes-no marker in content questions too, as Japanese does its ka,
+    //which WALS doesn't count
+    private static IReadOnlyList<Word> Words(Language language, Question question)
+    {
+        var questions = language.Questions;
+        var finite = VerbRoot(language, question.Statement);
+        var asked = Asked(language, question.Statement);
+        if (asked is null && !question.Why)
+        {
+            return Polar(language, Words(language, question.Statement), finite);
+        }
+        IReadOnlyList<Word> why = question.Why ? [new Word([questions.Why.Root])] : [];
+        if (!questions.FrontsQuestionWords)
+        {
+            return Words(language, question.Statement, why);
+        }
+        var words = Words(language, question.Statement).ToList();
+        List<Word> fronted = [.. why];
+        if (asked is var (root, phrase))
+        {
+            var at = words.FindIndex(w => w.Root == root) - phrase.ToList().FindIndex(w => w.Root == root);
+            fronted.AddRange(words.GetRange(at, phrase.Count));
+            words.RemoveRange(at, phrase.Count);
+        }
+        return [.. fronted, .. questions.Polar.Value is QuestionInversion ? Inverted(words, finite) : words];
+    }
+
+    //a clause that can be asked, with words said where its obliques go, before them
+    private static IReadOnlyList<Word> Words(Language language, Statement statement, IReadOnlyList<Word> adverbs) => statement.Value switch
+    {
+        Clause c => Words(language, c, null, adverbs),
+        PassiveClause c => Words(language, c, null, adverbs),
+        CopularClause c => Copular(language, c, [], null, adverbs),
+        Comparative c => Words(language, c, adverbs),
+        Modalized m => Words(language, m, adverbs),
+        _ => throw new ArgumentException("Only a clause with a verb or be can be asked.", nameof(statement)),
+    };
+
+    //a yes-no question's marker: a particle first, last or after the first word, or an affix on the
+    //finite verb outside everything else on it, or on the last word where there's no verb, as a
+    //copular clause that drops its copula has none, the way Turkish puts mi on the predicate
+    private static IReadOnlyList<Word> Polar(Language language, IReadOnlyList<Word> clause, Root? finite) => language.Questions.Polar switch
+    {
+        QuestionParticle { Position: QuestionParticlePosition.Initial } p => [new Word([p.Marker]), .. clause],
+        QuestionParticle { Position: QuestionParticlePosition.Final } p => [.. clause, new Word([p.Marker])],
+        QuestionParticle p => [.. clause.Take(1), new Word([p.Marker]), .. clause.Skip(1)],
+        QuestionAffix a => Affixed(clause, a, finite),
+        QuestionInversion => Inverted(clause, finite),
+        QuestionIntonation => clause,
+    };
+
+    private static IReadOnlyList<Word> Affixed(IReadOnlyList<Word> clause, QuestionAffix affix, Root? finite)
+    {
+        List<Word> words = [.. clause];
+        var at = words.FindLastIndex(w => w.Root is { } r && r == finite);
+        at = at < 0 ? words.Count - 1 : at;
+        words[at] = words[at] with
+        {
+            Morphemes = affix.Position == ExponentPosition.Prefix ? [affix.Marker, .. words[at].Morphemes] : [.. words[at].Morphemes, affix.Marker],
+        };
+        return words;
+    }
+
+    //the finite verb first, leaving any negation or other verb behind, as German hast du ihn nicht
+    //gesehen? 'didn't you see him?' does. A clause that drops its copula has nothing to move
+    private static IReadOnlyList<Word> Inverted(IReadOnlyList<Word> clause, Root? finite)
+    {
+        List<Word> words = [.. clause];
+        var at = words.FindIndex(w => w.Root is { } r && r == finite);
+        if (at < 0)
+        {
+            return words;
+        }
+        var verb = words[at];
+        words.RemoveAt(at);
+        return [verb, .. words];
+    }
+
+    //the question word a statement asks with, if it has one, and its whole phrase as the statement
+    //says it, with the role's case and adposition
+    private static (Root Root, IReadOnlyList<Word> Phrase)? Asked(Language language, Statement statement)
+    {
+        foreach (var (argument, role, marked) in Roles(language, statement))
+        {
+            if (argument.Value is QuestionWord question)
+            {
+                return (language.Questions.Words[question.Word].Root, marked ? Marked(language, argument, role) : Inflect(language, argument, role));
+            }
+        }
+        return null;
+    }
+
+    //what fills each of a clause's roles, as the language says it, and whether that role is marked as
+    //an oblique is, with its adposition
+    private static IEnumerable<(Argument Argument, Role Role, bool Marked)> Roles(Language language, Statement statement)
+    {
+        IEnumerable<(Argument, Role, bool)> Obliques(ValueList<Oblique> obliques) => obliques.Select(o => (o.Argument, o.Role, true));
+        IEnumerable<(Argument, Role, bool)> Given(Argument? argument, Role role, bool marked) => argument.HasValue ? [(argument.GetValueOrDefault(), role, marked)] : [];
+        return statement.Value switch
+        {
+            Clause c => [(c.Subject, c.Object is null ? Role.IntransitiveSubject : Role.TransitiveSubject, false), .. Given(c.Object, Role.DirectObject, false), .. Obliques(c.Obliques)],
+            PassiveClause c when language.Passive is null => Roles(language, new Clause(c.Verb, c.Tense, c.Aspect,
+                c.Agent.HasValue ? c.Agent.GetValueOrDefault() : new Pronoun(Person.Third, Number.Plural), c.Patient, c.Negative, c.Obliques)),
+            PassiveClause c => [(c.Patient, Role.IntransitiveSubject, false), .. Given(c.Agent, Role.Agent, true), .. Obliques(c.Obliques)],
+            CopularClause { Complement.Value: Oblique location } c => [(c.Subject, Role.IntransitiveSubject, false), (location.Argument, location.Role, true)],
+            CopularClause c => [(c.Subject, Role.IntransitiveSubject, false)],
+            Comparative c => Roles(language, c.Clause),
+            Modalized m => Roles(language, m.Clause),
+            _ => [],
+        };
+    }
 
     //a verb with its passive, its modal and its negation, each where the language puts it. A modal
     //verb takes the tense, the agreement and the modal's negation, and the verb itself goes bare
@@ -527,6 +654,7 @@ public static class Syntax
     {
         NounPhrase n => (Person.Third, NumberOf(language, n)),
         Pronoun p => (p.Person, p.Number),
+        QuestionWord => (Person.Third, Number.Singular),
         Coordination { Conjunction: Conjunction.Or } c => AgreementOf(language, c.Items[^1]),
         Coordination c => (c.Items.Select(i => AgreementOf(language, i).Person).MinBy(p => p == Person.First ? 0 : p == Person.Second ? 1 : 2)!,
             c.Items.Count == 2 ? Number.Dual : Number.Plural),
@@ -583,6 +711,7 @@ public static class Syntax
                 language.Lexicon.Noun(phrase.Noun).Root, phrase.Definiteness, phrase.Number, language.GenderOf(language.Lexicon.Noun(phrase.Noun)))),
             Pronoun pronoun => pronouns.Inflect(language.Pronouns.For(pronoun), Features(pronouns, [@case])),
             Coordination coordination => Joined(language, coordination, @case),
+            QuestionWord question => nouns.Inflect(language.Questions.Words[question.Word], Features(nouns, [Number.Singular, @case])),
         };
     }
 

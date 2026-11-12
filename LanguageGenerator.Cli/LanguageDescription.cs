@@ -165,6 +165,21 @@ public static class LanguageDescription
             ModalVerb v => $"the verb {SpelledWord(v.Verb)} {(v.BeforeVerb ? "before" : "after")} the bare verb",
         };
         output.WriteLine($"Modals: {string.Join(", ", lang.Modals.Markers.Select(m => $"{m.Key.Gloss} {Modal(m.Value)}"))}");
+        var questions = lang.Questions;
+        var polar = questions.Polar switch
+        {
+            QuestionParticle p => $"the particle {((Morpheme)p.Marker).Spell(orthography)} {p.Position switch
+            {
+                QuestionParticlePosition.Initial => "first",
+                QuestionParticlePosition.Final => "last",
+                _ => "after the first word",
+            }}",
+            QuestionAffix a => $"{Spelled(a.Position, a.Marker)} on the verb",
+            QuestionInversion => "the verb first",
+            QuestionIntonation => "intonation alone",
+        };
+        var asking = string.Join(", ", [.. questions.Words.Select(w => $"{w.Value.Root.Meaning} {SpelledWord(w.Value)}"), $"why {SpelledWord(questions.Why)}"]);
+        output.WriteLine($"Questions: yes-no by {polar}; question words {(questions.FrontsQuestionWords ? "first" : "in place")}: {asking}");
         var numerals = lang.Numerals;
         string Say(int n) => string.Join(" ", numerals.Say(n).Select(w => phonology.Realize(new Word([w.Root])).Spell(orthography)));
         var counting = numerals.Base == NumeralBase.Restricted
@@ -313,8 +328,17 @@ public static class LanguageDescription
             (new Modalized(new Clause("eat", Tense.Present, Aspect.Imperfective, Phrase("dog", Number.Plural), Phrase("fish", Number.Singular), true), Modality.Obligation, false),
                 "the dogs must not eat the fish"),
         ];
+        (Statement Clause, string Translation)[] questions =
+        [
+            (new Question(new Clause("see", Tense.Past, Aspect.Perfective, Phrase("dog", Number.Singular), Phrase("cat", Number.Plural)), false), "did the dog see the cats?"),
+            (new Question(new Clause("eat", Tense.Present, Aspect.Imperfective, new QuestionWord(Interrogative.Who), Phrase("fish", Number.Singular)), false), "who eats the fish?"),
+            (new Question(new Clause("eat", Tense.Past, Aspect.Perfective, Phrase("dog", Number.Singular), new QuestionWord(Interrogative.What)), false), "what did the dog eat?"),
+            (new Question(new CopularClause(new Oblique(Role.Location, new QuestionWord(Interrogative.Where)), Tense.Present, Aspect.Imperfective, Phrase("cat", Number.Singular)), false),
+                "where is the cat?"),
+            (new Question(new Clause("sleep", Tense.Present, Aspect.Imperfective, Phrase("dog", Number.Singular), Negative: true), true), "why doesn't the dog sleep?"),
+        ];
         (Statement Clause, string Translation)[] all =
-            [.. examples, .. copular, .. commands, .. copularCommands, .. coordinated, .. subordinated, .. passives, .. comparatives, .. addressed, .. modalized];
+            [.. examples, .. copular, .. commands, .. copularCommands, .. coordinated, .. subordinated, .. passives, .. comparatives, .. addressed, .. modalized, .. questions];
         foreach (var (clause, translation) in all)
         {
             output.WriteLine();

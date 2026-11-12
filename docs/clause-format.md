@@ -13,7 +13,7 @@ Words are English meanings, whatever their case, which the language coins roots 
 
 Features left out take their unmarked values: present, imperfective, singular, and exclusive for 'we'. A value the language doesn't distinguish falls back on the nearest one it does, so a dual becomes a plural in a language without one.
 
-Anything the generator can't express yet, like a question, is an error naming the line, never silently dropped.
+Anything the generator can't express yet, like a relative clause, is an error naming the line, never silently dropped.
 
 ## Verbs
 
@@ -26,6 +26,7 @@ Anything the generator can't express yet, like a question, is an error naming th
 | `PERM` | Its subject may, or is allowed to | `go.PERM  subject:2SG` |
 | `OBLIG` | Its subject must, or has to | `find.OBLIG  subject:2SG  object:key.DEF` |
 | `ADVS` | Its subject should, or ought to | `rest.ADVS  subject:2SG` |
+| `Q` | A yes-no question | `see.PST.Q  subject:2SG  object:3PL` |
 
 A command has no subject, unless it's `subject:2PL` for several people.
 
@@ -43,6 +44,24 @@ A command has no subject, unless it's `subject:2PL` for several people.
 'Could' is `ABIL.PST`. A modal works with `be` and `PASS` too, as in `be.OBLIG  subject:2SG  adjective:careful`, but not with a command or a comparison. Other modals, like 'might' and 'maybe', can't be said yet.
 
 A language marks each modal with an affix, a word of its own or a verb, as WALS 74A counts them. A modal verb takes the tense and agreement, with the verb bare beside it, and is glossed by what it means, `can`, `may`, `must` or `should`, while an affix or a word of its own is glossed `ABIL`, `PERM`, `OBLIG` or `ADVS`. The Leipzig rules have none of these; the first three are what grammars commonly use, and `ADVS`, for advisability, is coined here, since grammars have no common gloss for 'should'.
+
+### Questions
+
+A yes-no question has `Q` on its verb. A question asking who, what, where or why has no `Q`, and its question word goes in the role it asks about. `why` fills no role, so it's written on its own:
+
+| Written | Means |
+| --- | --- |
+| `see.PST.Q  subject:2SG  object:3PL` | 'did you see them?' |
+| `swim.ABIL.Q  subject:2SG` | 'can you swim?' |
+| `tell.PST  subject:who  object:2SG` | 'who told you?' |
+| `want  subject:3PL  object:what` | 'what do they want?' |
+| `be  subject:key.DEF  location:where` | 'where is the key?' |
+| `get.PST  subject:2SG  object:3SG.N  source:where` | 'where did you get that?' |
+| `come.PST.NEG  subject:2SG  why` | 'why didn't you come?' |
+
+`where` asks about a place, so it's `location:where`, `goal:where` for 'where to' or `source:where` for 'where from'. A question asks one thing, and its question word fills a role directly, not inside a noun phrase, as 'whose' would, or a coordination. Questions with 'when', 'how' or 'which', `noun:who` for 'who are you?', and a question joined to or under another clause can't be said yet.
+
+How a language marks a yes-no question follows WALS 116A: a particle, which goes first, last or after the first word as WALS 92A counts them for OV and VO languages; an affix on the finite verb, outside everything else on it; the finite verb first, as German does; or intonation alone, which the text doesn't show. A content question puts its question word first, with the rest of its phrase, in the share of languages WALS 93A counts for each word order, as English does, and otherwise leaves it in place, as Mandarin and Japanese do, with `why` where obliques go. The particle and affix are glossed `Q`, as the Leipzig rules gloss a question marker, and the question words by what they ask, `who`, `what`, `where` and `why`. A question word takes its role's case and adposition as a noun would, so 'where from' can be 'where-ABL'.
 
 ### `be`
 

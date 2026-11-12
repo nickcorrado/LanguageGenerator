@@ -79,7 +79,7 @@ public static class ClauseFile
                 entries[^1] = previous with
                 {
                     Statement = ConjunctionOf(line) is { } conjunction
-                        ? new Coordinated(conjunction, previous.Statement, ParseClause(rest, number, null))
+                        ? ToCoordinated(conjunction, previous.Statement, ParseClause(rest, number, null), number)
                         : ToSubordinated(previous.Statement, SubordinatorOf(line).GetValueOrDefault(), rest, number),
                 };
             }
@@ -130,9 +130,25 @@ public static class ClauseFile
         {
             Command or CopularCommand => throw new ClauseFormatException($"A clause under another can't be a command: {subordinator.ToString().ToLowerInvariant()} takes a clause with a subject.", number),
             Addressed => throw new ClauseFormatException("Say who's addressed in the main clause, not in one under it.", number),
+            Question => throw new ClauseFormatException("A clause under another can't be a question: ask it in the main clause.", number),
             _ => new Subordinated(main, subordinator, clause, shares),
         };
     }
+
+    //clauses joined by a conjunction, neither of them a question yet
+    private static Coordinated ToCoordinated(Conjunction conjunction, Statement first, Statement second, int number) =>
+        IsQuestion(first) || IsQuestion(second)
+            ? throw new ClauseFormatException("A question can't be joined to another clause yet.", number)
+            : new Coordinated(conjunction, first, second);
+
+    private static bool IsQuestion(Statement statement) => statement.Value switch
+    {
+        Question => true,
+        Addressed a => IsQuestion(a.Statement),
+        Coordinated c => IsQuestion(c.First) || IsQuestion(c.Second),
+        Subordinated s => IsQuestion(s.Main),
+        _ => false,
+    };
 
     //each noun these clauses use, with the English of the first clause to use it
     public static IReadOnlyList<(string Noun, string Translation)> Nouns(IEnumerable<Entry> entries) =>
@@ -154,6 +170,7 @@ public static class ClauseFile
         Coordinated c => [.. ArgumentsOf(c.First), .. ArgumentsOf(c.Second)],
         Subordinated s => [.. ArgumentsOf(s.Main), .. ArgumentsOf(s.Clause)],
         Modalized m => ArgumentsOf(m.Clause),
+        Question q => ArgumentsOf(q.Statement),
     };
 
     private static IEnumerable<Argument> Given(Argument? argument) => argument.HasValue ? [argument.GetValueOrDefault()] : [];
@@ -162,6 +179,7 @@ public static class ClauseFile
     {
         NounPhrase n => [n.Noun, .. Given(n.Possessor).SelectMany(NounsIn)],
         Pronoun => [],
+        QuestionWord => [],
         Coordination c => c.Items.SelectMany(NounsIn),
     };
 
@@ -185,7 +203,14 @@ public static class ClauseFile
         }
         var (verb, glosses) = ParseWord(tokens[0], number);
         var features = ParseVerbFeatures(verb, glosses, number);
-        var roles = ParseRoles(verb, tokens.Skip(1), number);
+        //why fills no role, so it's written on its own
+        var why = tokens.Skip(1).Count(t => t == "why") switch
+        {
+            0 => false,
+            1 => true,
+            _ => throw new ClauseFormatException("The clause has more than one why.", number),
+        };
+        var roles = ParseRoles(verb, tokens.Skip(1).Where(t => t != "why"), number);
         var addressee = roles.Arguments.TryGetValue("addressee", out var called) ? ToAddressee(called, number) : null;
         Argument? standard = roles.Arguments.TryGetValue("standard", out var than) ? than : (Argument?)null;
         if (roles.Arguments.ContainsKey("agent") && !features.Passive)
@@ -208,6 +233,7 @@ public static class ClauseFile
                 ? $"A command can't take {modality.Gloss}: it already says what to do."
                 : $"A comparison can't take {modality.Gloss} yet.", number);
         }
+        var asked = CheckQuestion(features, roles, why, number);
 
         Statement statement;
         if (features.Imperative)
@@ -235,7 +261,54 @@ public static class ClauseFile
         {
             statement = new Modalized(statement, modal, features.ModalNegative);
         }
+        if (asked)
+        {
+            statement = new Question(statement, why);
+        }
         return addressee is null ? statement : new Addressed(statement, addressee);
+    }
+
+    //the question words, in the roles they ask about
+    private static readonly Dictionary<string, Interrogative> QuestionWords = Enum.GetValues<Interrogative>().ToDictionary(w => w.ToString().ToLowerInvariant());
+
+    //whether the clause is a question: a yes-no question with Q, or a content question with one
+    //question word in a role or why. Where asks about a place, so it's only where, to where or from
+    //where, and a question word can't be a standard yet
+    private static bool CheckQuestion(VerbFeatures features, ClauseRoles roles, bool why, int number)
+    {
+        var questioned = roles.Arguments.Select(a => (a.Key, a.Value)).Concat(roles.Obliques.Select(o => (Key: o.Role, o.Oblique.Argument)))
+            .Where(a => a.Item2.Value is QuestionWord).ToList();
+        if (!features.Question && !why && questioned.Count == 0)
+        {
+            return false;
+        }
+        if (features.Imperative)
+        {
+            throw new ClauseFormatException("A command can't be a question.", number);
+        }
+        if (questioned.Count + (why ? 1 : 0) > 1)
+        {
+            throw new ClauseFormatException("A question can only ask one thing yet: one who, what, where or why.", number);
+        }
+        if (features.Question && (why || questioned.Count > 0))
+        {
+            throw new ClauseFormatException($"A question with {(why ? "why" : WordOf(questioned[0].Item2))} needs no Q: Q is only for a yes-no question.", number);
+        }
+        if (questioned is [var (role, argument)])
+        {
+            var word = ((QuestionWord)argument.Value!).Word;
+            if (role == "standard")
+            {
+                throw new ClauseFormatException("A comparison can't ask about its standard yet.", number);
+            }
+            if (word == Interrogative.Where && role is not ("location" or "goal" or "source"))
+            {
+                throw new ClauseFormatException($"where asks about a place, so it's location:where, goal:where for 'where to' or source:where for 'where from', not {role}:where.", number);
+            }
+        }
+        return true;
+
+        static string WordOf(Argument argument) => ((QuestionWord)argument.Value!).Word.ToString().ToLowerInvariant();
     }
 
     //'Marta is taller than the men': an adjective, said of the subject more than of the standard
@@ -261,7 +334,7 @@ public static class ClauseFile
     };
 
     //Negative negates the verb, and ModalNegative the modal
-    private record VerbFeatures(Tense? Tense, Aspect? Aspect, bool Negative, bool Imperative, bool Passive, Modality? Modality, bool ModalNegative);
+    private record VerbFeatures(Tense? Tense, Aspect? Aspect, bool Negative, bool Imperative, bool Question, bool Passive, Modality? Modality, bool ModalNegative);
 
     //the obliques keep the role they were written with, which is how be finds its location:
     private record ClauseRoles(Dictionary<string, Argument> Arguments, List<(string Role, Oblique Oblique)> Obliques, Complement? Complement)
@@ -271,7 +344,7 @@ public static class ClauseFile
 
     private static VerbFeatures ParseVerbFeatures(string verb, IReadOnlyList<Grammeme> glosses, int number)
     {
-        if (glosses.FirstOrDefault(g => g is not (Tense or Aspect or Polarity or Modality) && g != Mood.Imperative && g != Voice.Passive) is { } unsupported)
+        if (glosses.FirstOrDefault(g => g is not (Tense or Aspect or Polarity or Modality) && g != Mood.Imperative && g != Mood.Interrogative && g != Voice.Passive) is { } unsupported)
         {
             throw Unsupported(verb, unsupported, number);
         }
@@ -290,6 +363,7 @@ public static class ClauseFile
             glosses.OfType<Aspect>().SingleOrDefault(),
             negative && !modalNegative,
             glosses.Contains(Mood.Imperative),
+            glosses.Contains(Mood.Interrogative),
             glosses.Contains(Voice.Passive),
             modality,
             modalNegative);
@@ -299,7 +373,7 @@ public static class ClauseFile
     {
         Mood m when m == Mood.Prohibitive => new($"Write a command not to do something as {verb}.IMP.NEG, not {verb}.{m.Gloss}.", number),
         Person or Number => new($"'{verb}' can't take {feature.Gloss}: a verb agrees with its subject.", number),
-        _ => new($"'{verb}' can't take {feature.Gloss} ({feature.Name}) yet: verbs have only tense, aspect, polarity, the imperative, the passive and the modals {string.Join(", ", ValuesOf<Modality>().Select(m => m.Gloss))}.", number),
+        _ => new($"'{verb}' can't take {feature.Gloss} ({feature.Name}) yet: verbs have only tense, aspect, polarity, the imperative, Q for a question, the passive and the modals {string.Join(", ", ValuesOf<Modality>().Select(m => m.Gloss))}.", number),
     };
 
     private static ClauseRoles ParseRoles(string verb, IEnumerable<string> tokens, int number)
@@ -335,8 +409,12 @@ public static class ClauseFile
             switch (role)
             {
                 case "noun":
-                    complement = ParseArgument(value, number).Value as NounPhrase
-                        ?? throw new ClauseFormatException($"be can't say its subject is {value} yet: the noun has to be a noun, not a pronoun.", number);
+                    complement = ParseArgument(value, number).Value switch
+                    {
+                        NounPhrase noun => noun,
+                        QuestionWord => throw new ClauseFormatException($"be can't ask what its subject is yet, as in noun:{value} for '{value} are you?'.", number),
+                        _ => throw new ClauseFormatException($"be can't say its subject is {value} yet: the noun has to be a noun, not a pronoun.", number),
+                    };
                     break;
                 case "adjective":
                     complement = value.StartsWith('(') ? ParseAdjectiveCoordination(value, number) : ParseAdjective(value, number);
@@ -455,7 +533,8 @@ public static class ClauseFile
         {
             throw new ClauseFormatException($"Noun phrases can't have {A(word[..word.IndexOf(':')])} yet, only adjectives, a number, an ordinal and a possessor.", number);
         }
-        var noun = (NounPhrase)ParseArgument(words[0], number).Value!;
+        var noun = ParseArgument(words[0], number).Value as NounPhrase
+            ?? throw new ClauseFormatException($"{words[0]} can't take adjectives, a number or a possessor yet.", number);
 
         int? count = null;
         int? ordinal = null;
@@ -470,6 +549,10 @@ public static class ClauseFile
                     throw new ClauseFormatException($"'{words[0]}' has more than one possessor.", number);
                 }
                 possessor = ParseArgument(word["possessor:".Length..], number);
+                if (possessor.GetValueOrDefault().Value is QuestionWord)
+                {
+                    throw new ClauseFormatException("A possessor can't be a question word yet, as in 'whose house'.", number);
+                }
             }
             else if (word.All(char.IsAsciiDigit))
             {
@@ -584,6 +667,10 @@ public static class ClauseFile
     private static Adjective ParseAdjective(string token, int number)
     {
         var (meaning, features) = ParseWord(token, number);
+        if (QuestionWords.ContainsKey(meaning) || meaning == "why")
+        {
+            throw new ClauseFormatException($"{meaning} isn't an adjective: a question word goes in the role it asks about, as in subject:who.", number);
+        }
         if (features.Count > 0)
         {
             throw new ClauseFormatException($"'{meaning}' can't take {features[0].Gloss}: adjectives have no features yet.", number);
@@ -634,7 +721,12 @@ public static class ClauseFile
             {
                 throw new ClauseFormatException("but joins only clauses, on a line of its own starting with but.", number);
             }
-            return new Coordination(conjunction, [.. items.Select(item => ParseArgument(item, number))]);
+            var joined = items.Select(item => ParseArgument(item, number)).ToList();
+            if (joined.Any(a => a.Value is QuestionWord))
+            {
+                throw new ClauseFormatException($"A question word can't be joined to anything with {conjunction.ToString().ToLowerInvariant()} yet.", number);
+            }
+            return new Coordination(conjunction, [.. joined]);
         }
         if (token.StartsWith('('))
         {
@@ -645,6 +737,15 @@ public static class ClauseFile
             return pronoun;
         }
         var (noun, features) = ParseWord(token, number);
+        if (noun == "why")
+        {
+            throw new ClauseFormatException("why fills no role, so it's written on its own, as in leave.PST subject:3SG why.", number);
+        }
+        if (QuestionWords.TryGetValue(noun, out var asked))
+        {
+            return features.Count == 0 ? new QuestionWord(asked)
+                : throw new ClauseFormatException($"{noun} can't take {features[0].Gloss}: a question word takes no glosses.", number);
+        }
         Number? count = null;
         Definiteness? definiteness = null;
         foreach (var feature in features)
