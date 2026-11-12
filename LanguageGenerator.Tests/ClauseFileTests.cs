@@ -198,7 +198,7 @@ public class ClauseFileTests
     [InlineData("x\n  be subject:dog object:cat", "be has no object")]
     [InlineData("x\n  be subject:dog noun:cat adjective:big", "more than one noun or adjective")]
     [InlineData("x\n  be subject:dog noun:1SG", "has to be a noun, not a pronoun")]
-    [InlineData("x\n  be subject:dog adjective:big.PL", "adjectives have no features yet")]
+    [InlineData("x\n  be subject:dog adjective:big.PL", "adjectives have no features but CMPR yet")]
     [InlineData("x\n  sleep subject:dog adjective:big", "Only be takes a noun: or adjective:")]
     public void Parse_CopulaMistakes_SayWhat(string text, string message)
     {
@@ -223,7 +223,7 @@ public class ClauseFileTests
     [InlineData("x\n  sleep subject:(cat owner:king)", "can't have an owner yet")]
     [InlineData("x\n  sleep subject:(cat possessor:king possessor:queen)", "more than one possessor")]
     [InlineData("x\n  sleep subject:cat possessor:king", "goes inside its noun's parentheses")]
-    [InlineData("x\n  sleep subject:(dog big.PL)", "adjectives have no features yet")]
+    [InlineData("x\n  sleep subject:(dog big.PL)", "adjectives have no features but CMPR yet")]
     [InlineData("x\n  sleep subject:(dog.ACC big)", "case comes from its role")]
     public void Parse_NounPhraseMistakes_SayWhat(string text, string message)
     {

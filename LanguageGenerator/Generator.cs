@@ -53,6 +53,8 @@ public static partial class Generator
         var possession = GeneratePossession(stages.For("possession"), morphology, wordOrder, phonology, syllableDropoff);
         var commands = GenerateCommands(stages.For("commands"), morphology, wordOrder, phonology, syllableDropoff);
         var comparison = GenerateComparison(stages.For("comparison"), wordOrder, phonology, syllableDropoff);
+        var degree = GenerateDegree(stages.For("degree"), comparison, morphology, phonology, syllableDropoff);
+        var similative = GenerateSimilative(stages.For("similative"), comparison, morphology, wordOrder, phonology, syllableDropoff);
         var passive = GeneratePassive(stages.For("passive"), alignment, morphology, phonology, syllableDropoff);
         var conjunctions = GenerateConjunctions(stages.For("conjunctions"), phonology, syllableDropoff);
         var subordination = GenerateSubordination(stages.For("subordination"), morphology, wordOrder, phonology, syllableDropoff);
@@ -67,7 +69,8 @@ public static partial class Generator
             [PartOfSpeech.Noun] = [.. pronouns.Forms.Values, .. questions.Words.Values, questions.Why],
             [PartOfSpeech.Adjective] = [.. numerals.Words.Values, .. new[] { numerals.Many, numerals.Ordinals.First, numerals.Ordinals.Second }.OfType<Lexeme>()],
             [PartOfSpeech.Verb] = [predication.Copula, .. predication.LocationalCopula is { } locational ? [locational] : Array.Empty<Lexeme>(),
-                .. modals.Markers.Values.Select(m => m.Value).OfType<ModalVerb>().Select(m => m.Verb)],
+                .. modals.Markers.Values.Select(m => m.Value).OfType<ModalVerb>().Select(m => m.Verb),
+                .. comparison.Value is ExceedComparison exceed ? [exceed.Exceed] : Array.Empty<Lexeme>()],
         });
 
         return new Language
@@ -91,6 +94,8 @@ public static partial class Generator
             Possession = possession,
             Commands = commands,
             Comparison = comparison,
+            Degree = degree,
+            Similative = similative,
             Passive = passive,
             Conjunctions = conjunctions,
             Subordination = subordination,

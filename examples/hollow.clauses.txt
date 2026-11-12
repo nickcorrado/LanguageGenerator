@@ -92,7 +92,7 @@ Marta wipes her hands with her apron
 
 # > She is taller than most of the men here.
 she is taller than most of the men
-  be  subject:3SG.F  adjective:tall  standard:(man.PL.DEF most)
+  be  subject:3SG.F  adjective:tall.CMPR  standard:(man.PL.DEF most)
 
 # > "So you're the one," she says.
 you are the one
@@ -488,8 +488,8 @@ buy me a drink when you come
 
 # > The trees here are older than the village, older than the kingdom.
 the trees are older than the village
-  be  subject:tree.PL.DEF  adjective:old  standard:village.DEF
-  and  be  subject:tree.PL.DEF  adjective:old  standard:kingdom.DEF
+  be  subject:tree.PL.DEF  adjective:old.CMPR  standard:village.DEF
+  and  be  subject:tree.PL.DEF  adjective:old.CMPR  standard:kingdom.DEF
 
 # > Their branches close over the path and shut out the sun.
 their branches close over the path
@@ -635,7 +635,7 @@ each light is carried by a small figure
 # > There are nine of them, and the last one is much smaller than the rest.
 they are nine figures, and the last one is smaller than the rest
   be  subject:3PL  noun:(figure 9)
-  and  be  subject:(one.DEF last)  adjective:small  standard:rest.DEF
+  and  be  subject:(one.DEF last)  adjective:small.CMPR  standard:rest.DEF
 
 # > You follow them.
 you follow them

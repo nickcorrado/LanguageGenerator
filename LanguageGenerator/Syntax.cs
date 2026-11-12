@@ -18,12 +18,13 @@ public record NounPhrase(string Noun, Number Number, ValueList<Adjective> Adject
 //what agrees with one depends on the language, so that's Syntax.AgreementOf's to say
 public union Argument(NounPhrase, Pronoun, Coordination, QuestionWord);
 /// <summary>
-/// A phrase saying where, to where, from where, to whom, with whom or with what something happened.
+/// A phrase saying where, to where, from where, to whom, with whom or with what something happened,
+/// or what it was like.
 /// </summary>
 public record Oblique(Role Role, Argument Argument)
 {
     public static IReadOnlyList<Role> Roles { get; } =
-        [Role.Recipient, Role.Location, Role.Goal, Role.Source, Role.Companion, Role.Instrument];
+        [Role.Recipient, Role.Location, Role.Goal, Role.Source, Role.Companion, Role.Instrument, Role.Similative];
 }
 
 //obliques are in the order they're said in English
@@ -73,7 +74,7 @@ public static class Syntax
     {
         Clause c => Words(language, c, null, []),
         PassiveClause c => Words(language, c, null, []),
-        CopularClause c => Copular(language, c, [], null, []),
+        CopularClause c => Copular(language, c, [], null, null, []),
         Command c => Words(language, c),
         CopularCommand c => Words(language, c),
         Comparative c => Words(language, c, []),
@@ -352,6 +353,10 @@ public static class Syntax
     //a phrase marked for a role: its case, and its adposition, if the role has one, before or after it
     private static IReadOnlyList<Word> Marked(Language language, Argument argument, Role role)
     {
+        if (role == Role.Similative)
+        {
+            return Likened(language, argument);
+        }
         var phrase = Inflect(language, argument, role);
         return language.RoleMarkers[role] switch
         {
@@ -361,15 +366,35 @@ public static class Syntax
         };
     }
 
-    public static Sentence Realize(Language language, CopularClause clause, string translation) => Sentence(language, Copular(language, clause, [], null, []), translation);
+    //what something is likened to, in the plain case a subject takes, with the language's word for
+    //'like' on its side of the phrase, or its affix on the phrase's edge, outside everything else
+    private static IReadOnlyList<Word> Likened(Language language, Argument argument)
+    {
+        var phrase = Inflect(language, argument, Role.IntransitiveSubject);
+        switch (language.Similative.Value)
+        {
+            case SimilativeWord word:
+                return word.BeforeStandard ? [new Word([word.Like.Root]), .. phrase] : [.. phrase, new Word([word.Like.Root])];
+            case SimilativeAffix { Position: ExponentPosition.Prefix } affix:
+                return [phrase[0] with { Morphemes = [affix.Marker, .. phrase[0].Morphemes] }, .. phrase.Skip(1)];
+            case SimilativeAffix affix:
+                return [.. phrase.SkipLast(1), phrase[^1] with { Morphemes = [.. phrase[^1].Morphemes, affix.Marker] }];
+            default:
+                throw new InvalidOperationException();
+        }
+    }
+
+    public static Sentence Realize(Language language, CopularClause clause, string translation) => Sentence(language, Copular(language, clause, [], null, null, []), translation);
 
     //a copular clause's complement goes where an object would, so it precedes the copula in an OV
     //language, as in Turkish and Japanese, and follows it in a VO one. Where adjectives are verbal,
     //the adjective takes the verb's place instead, with no copula. A standard of comparison, if the
-    //clause has one, goes where obliques go. A copula with a modal is never dropped, since the modal
+    //clause has one, goes where obliques go, and a comparative's marker, if it has one, goes on the
+    //adjective, whether it's verbal or not. A copula with a modal is never dropped, since the modal
     //goes with it, as Russian has no copula in ty ostorožen 'you are careful' but has one in ty
     //dolžen byt' ostorožen 'you must be careful'
-    private static IReadOnlyList<Word> Copular(Language language, CopularClause clause, IReadOnlyList<Word> standard, Modalized? modal, IReadOnlyList<Word> adverbs)
+    private static IReadOnlyList<Word> Copular(Language language, CopularClause clause, IReadOnlyList<Word> standard, DegreeMarker? degree, Modalized? modal,
+        IReadOnlyList<Word> adverbs)
     {
         var predication = language.Predication;
         var subject = Subject(language, clause.Subject, Role.IntransitiveSubject);
@@ -377,7 +402,11 @@ public static class Syntax
         {
             //a property word inflects as a verb in a language whose adjectives are verbs
             var predicate = Join(adjectives.Select(a =>
-                Predicate(language, language.Lexicon.Adjective(a.Meaning) with { PartOfSpeech = PartOfSpeech.Verb }, clause.Tense, clause.Aspect, clause.Subject, clause.Negative, modal, null)), between);
+            {
+                var lexeme = language.Lexicon.Adjective(a.Meaning);
+                return Compared(Predicate(language, lexeme with { PartOfSpeech = PartOfSpeech.Verb }, clause.Tense, clause.Aspect, clause.Subject, clause.Negative, modal, null),
+                    lexeme.Root, degree);
+            }), between);
             return Flat(Order(language.WordOrder, subject, predicate, null, [.. adverbs, .. standard]));
         }
 
@@ -388,7 +417,7 @@ public static class Syntax
             {
                 throw new ArgumentException($"A copular clause can say where its subject is, but not its {location.Role}.", nameof(clause));
             }
-            if (standard.Count > 0)
+            if (standard.Count > 0 || degree.HasValue)
             {
                 throw new ArgumentException("Only an adjective can be compared.", nameof(clause));
             }
@@ -401,7 +430,9 @@ public static class Syntax
         //a predicate noun takes the same case as an intransitive subject. A predicate adjective, in a
         //language whose adjectives agree, agrees with the subject in number, gender and that case,
         //as in Latin canis magnus est 'the dog is big'; otherwise it's just its root
-        var complement = PredicateComplement(language, clause.Complement, clause.Subject);
+        var complement = clause.Complement.Value is Adjective adjective
+            ? Compared(PredicateComplement(language, adjective, clause.Subject), language.Lexicon.Adjective(adjective.Meaning).Root, degree)
+            : PredicateComplement(language, clause.Complement, clause.Subject);
         var copula = modal is null && predication.Drops(clause.Tense, clause.Negative)
             ? []
             : Predicate(language, predication.Copula, clause.Tense, clause.Aspect, clause.Subject, clause.Negative, modal, null);
@@ -409,8 +440,11 @@ public static class Syntax
     }
 
     //a locational standard takes its role's case or adposition, and a particle's standard the plain
-    //case a subject takes, with the particle on its side. A conjoined comparison is two clauses,
-    //the second denying the property of the standard, as in 'Marta is tall, the men are not tall'
+    //case a subject takes, with the particle on its side. A standard that's exceeded is the object
+    //of a bare verb 'exceed', on the side of it the language puts objects. A conjoined comparison is
+    //two clauses, the second denying the property of the standard, as in 'Marta is tall, the men
+    //are not tall'. The adjective is comparative where the language marks it so alongside a
+    //standard, and always with no standard, which is 'more' than something already known
     public static Sentence Realize(Language language, Comparative comparative, string translation) => Sentence(language, Words(language, comparative, []), translation);
 
     private static IReadOnlyList<Word> Words(Language language, Comparative comparative, IReadOnlyList<Word> adverbs)
@@ -420,15 +454,56 @@ public static class Syntax
         {
             throw new ArgumentException("Only an adjective can be compared.", nameof(comparative));
         }
+        if (!comparative.Standard.HasValue)
+        {
+            return Copular(language, clause, [], language.Degree.Marker, null, adverbs);
+        }
+        var standard = comparative.Standard.GetValueOrDefault();
+        var degree = language.Degree.WithStandard ? language.Degree.Marker : (DegreeMarker?)null;
         return language.Comparison switch
         {
-            LocationalComparison locational => Copular(language, clause, Marked(language, comparative.Standard, locational.Role), null, adverbs),
-            ParticleComparison particle => Copular(language, clause, Than(particle, Inflect(language, comparative.Standard, Role.IntransitiveSubject)), null, adverbs),
-            ConjoinedComparison => [.. Copular(language, clause, [], null, adverbs), .. Copular(language, clause with { Subject = comparative.Standard, Negative = !clause.Negative }, [], null, [])],
+            LocationalComparison locational => Copular(language, clause, Marked(language, standard, locational.Role), degree, null, adverbs),
+            ParticleComparison particle => Copular(language, clause, Than(particle, Inflect(language, standard, Role.IntransitiveSubject)), degree, null, adverbs),
+            ExceedComparison exceed => Copular(language, clause, Exceeding(language, exceed, standard), degree, null, adverbs),
+            ConjoinedComparison => [.. Copular(language, clause, [], null, null, adverbs), .. Copular(language, clause with { Subject = standard, Negative = !clause.Negative }, [], null, null, [])],
         };
 
         static IReadOnlyList<Word> Than(ParticleComparison particle, IReadOnlyList<Word> standard) =>
             particle.BeforeStandard ? [new Word([particle.Than.Root]), .. standard] : [.. standard, new Word([particle.Than.Root])];
+    }
+
+    private static IReadOnlyList<Word> Exceeding(Language language, ExceedComparison exceed, Argument standard)
+    {
+        IReadOnlyList<Word> verb = [new Word([exceed.Exceed.Root])];
+        var @object = Inflect(language, standard, Role.DirectObject);
+        return language.WordOrder.VerbPhraseDirectionality == HeadDirectionality.Initial ? [.. verb, .. @object] : [.. @object, .. verb];
+    }
+
+    //an adjective's words with its comparative marker, if it has one: an affix next to its root,
+    //inside any agreement or tense, or a word beside it
+    private static IReadOnlyList<Word> Compared(IReadOnlyList<Word> words, Root adjective, DegreeMarker? degree)
+    {
+        if (degree is not { } marker)
+        {
+            return words;
+        }
+        List<Word> compared = [.. words];
+        var at = compared.FindIndex(w => w.Root == adjective);
+        switch (marker.Value)
+        {
+            case DegreeAffix affix:
+            {
+                var morphemes = compared[at].Morphemes.ToList();
+                var root = morphemes.FindIndex(m => m.Value is Root);
+                morphemes.Insert(affix.Position == ExponentPosition.Prefix ? root : root + 1, affix.Marker);
+                compared[at] = compared[at] with { Morphemes = morphemes };
+                break;
+            }
+            case DegreeWord word:
+                compared.Insert(word.BeforeAdjective ? at : at + 1, new Word([word.Marker]));
+                break;
+        }
+        return compared;
     }
 
     //a predicate noun or adjective, said of this subject
@@ -455,7 +530,7 @@ public static class Syntax
     {
         Clause c => Words(language, c, modalized, adverbs),
         PassiveClause c => Words(language, c, modalized, adverbs),
-        CopularClause c => Copular(language, c, [], modalized, adverbs),
+        CopularClause c => Copular(language, c, [], null, modalized, adverbs),
         _ => throw new ArgumentException("Only a clause with a verb or be can take a modal.", nameof(modalized)),
     };
 
@@ -500,7 +575,7 @@ public static class Syntax
     {
         Clause c => Words(language, c, null, adverbs),
         PassiveClause c => Words(language, c, null, adverbs),
-        CopularClause c => Copular(language, c, [], null, adverbs),
+        CopularClause c => Copular(language, c, [], null, null, adverbs),
         Comparative c => Words(language, c, adverbs),
         Modalized m => Words(language, m, adverbs),
         _ => throw new ArgumentException("Only a clause with a verb or be can be asked.", nameof(statement)),

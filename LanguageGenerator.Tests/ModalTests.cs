@@ -232,7 +232,7 @@ public class ModalTests
 
     [Theory]
     [InlineData("go.IMP.ABIL", "A command can't take ABIL")]
-    [InlineData("be.OBLIG  subject:marta  adjective:tall  standard:man.PL", "A comparison can't take OBLIG")]
+    [InlineData("be.OBLIG  subject:marta  adjective:tall.CMPR  standard:man.PL", "A comparison can't take OBLIG")]
     [InlineData("go.ABIL.OBLIG  subject:2SG", "more than one modality")]
     public void Parse_BadModals_SayWhy(string gloss, string message) =>
         Assert.Contains(message, Assert.Throws<ClauseFormatException>(() => ClauseFile.Parse($"x\n  {gloss}")).Message);

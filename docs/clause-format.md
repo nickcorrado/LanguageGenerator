@@ -69,7 +69,19 @@ The verb `be` says what its subject is, with `noun:fool` or `adjective:big` in p
 
 `be.IMP` says what or where to be, as in `be.IMP  adjective:careful`.
 
-With an adjective, `be` can compare its subject with a standard: `be  subject:marta  adjective:tall  standard:man.PL.DEF` is 'Marta is taller than the men'.
+### Comparison
+
+With an adjective, `be` can compare its subject: `CMPR` on the adjective says 'more', and `standard:` what the subject is compared with, if anything is.
+
+| Written | Means |
+| --- | --- |
+| `be  subject:marta  adjective:tall.CMPR  standard:man.PL.DEF` | 'Marta is taller than the men' |
+| `be  subject:road.DEF  adjective:long.CMPR` | 'the road is longer' |
+| `shine  subject:3SG.N  like:water` | 'it shines like water' |
+
+`CMPR` goes only on the adjective `be` says of its subject, not on one in a noun phrase or joined to another, and a comparison can't be negated, take a modal or be a command yet. `like:` says what something is or does something like, with any verb but `be`.
+
+How a language marks the standard follows WALS 121A: marked like a place, mostly 'from', as in Turkish ('tall from the men'); with a particle like English *than*; as the object of a verb meaning 'exceed', as in Yoruba ('he is big, exceeds the elephant'); or as two clauses, 'Marta is tall, the men are not tall'. Every language marks a comparative adjective with no standard, with a word or an affix glossed `CMPR`, as Turkish says *daha büyük* 'more big', and some also mark it beside a standard, as English *-er* does. A degree word goes before or after the adjective as WALS 91A counts. 'Like' is a word on the side of the phrase the language's adpositions go, or an affix on its edge glossed `SIM`.
 
 ## Roles
 
@@ -84,6 +96,7 @@ With an adjective, `be` can compare its subject with a standard: `be  subject:ma
 | `recipient:` | To whom |
 | `companion:` | With whom |
 | `instrument:` | With what |
+| `like:` | Like what |
 | `agent:` | Who does it, in a passive |
 | `standard:` | What the subject of `be` is compared with |
 | `addressee:` | Who the clause is said to |

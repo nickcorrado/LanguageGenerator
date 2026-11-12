@@ -157,6 +157,19 @@ public static class LanguageDescription
             LocationalComparison l => $"the standard is marked like a place, as the {l.Role.ToString().ToLowerInvariant()} is",
             ParticleComparison p => $"the particle {phonology.Realize(new Word([p.Than.Root])).Spell(orthography)} {(p.BeforeStandard ? "before" : "after")} the standard",
             ConjoinedComparison => "two clauses, 'X is big, Y is not big'",
+            ExceedComparison e => $"the verb {SpelledWord(e.Exceed)} 'exceed' with the standard as its object",
+        });
+        var degree = lang.Degree.Marker.Value switch
+        {
+            DegreeAffix a => $"{Spelled(a.Position, a.Marker)} on the adjective",
+            DegreeWord w => $"{((Morpheme)w.Marker).Spell(orthography)} {(w.BeforeAdjective ? "before" : "after")} the adjective",
+            _ => throw new InvalidOperationException(),
+        };
+        output.WriteLine($"Comparatives: {degree}, {(lang.Degree.WithStandard ? "with or without a standard" : "only without a standard")}");
+        output.WriteLine("Similes: " + lang.Similative switch
+        {
+            SimilativeWord w => $"the word {SpelledWord(w.Like)} {(w.BeforeStandard ? "before" : "after")} what something is like",
+            SimilativeAffix a => $"{Spelled(a.Position, a.Marker)} on what something is like",
         });
         string Modal(ModalMarking marking) => marking switch
         {
@@ -319,6 +332,9 @@ public static class LanguageDescription
         [
             (new Comparative(new CopularClause(new Adjective("big"), Tense.Present, Aspect.Imperfective, Phrase("dog", Number.Singular)), Phrase("cat", Number.Plural)),
                 "the dog is bigger than the cats"),
+            (new Comparative(new CopularClause(new Adjective("big"), Tense.Present, Aspect.Imperfective, Phrase("cat", Number.Singular)), null), "the cat is bigger"),
+            (new Clause("sleep", Tense.Present, Aspect.Imperfective, Phrase("cat", Number.Singular), Obliques: [new(Role.Similative, Phrase("dog", Number.Singular))]),
+                "the cat sleeps like the dog"),
         ];
         (Statement Clause, string Translation)[] modalized =
         [

@@ -266,7 +266,7 @@ public class QuestionTests
     [InlineData("see.PST  subject:2SG  object:(house possessor:who)", "whose")]
     [InlineData("see.PST  subject:(and who 2SG)", "can't be joined")]
     [InlineData("be  subject:2SG  noun:who", "can't ask what its subject is")]
-    [InlineData("be  subject:marta  adjective:tall  standard:who", "standard")]
+    [InlineData("be  subject:marta  adjective:tall.CMPR  standard:who", "standard")]
     [InlineData("be  subject:2SG  adjective:what", "isn't an adjective")]
     public void Parse_BadQuestions_SayWhy(string gloss, string message) =>
         Assert.Contains(message, Assert.Throws<ClauseFormatException>(() => ClauseFile.Parse($"x\n  {gloss}")).Message);

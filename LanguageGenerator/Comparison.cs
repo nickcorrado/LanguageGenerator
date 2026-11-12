@@ -18,15 +18,55 @@ public record ParticleComparison(Lexeme Than, bool BeforeStandard);
 /// </summary>
 public record ConjoinedComparison;
 
+/// <summary>
+/// The standard of comparison is the object of a verb meaning 'exceed' or 'pass', said after the
+/// property, as Yoruba says 'he is big, exceeds the elephant'.
+/// </summary>
+//the verb is bare, as the second verb of a serial construction is, and its phrase goes where
+//obliques go. It's coined with the comparison, so a clause with the verb exceed itself would get
+//the lexicon's own root, not this one
+public record ExceedComparison(Lexeme Exceed);
+
 /// <summary>How a language says one thing has more of a property than another, as WALS 121A types it.</summary>
-//its fourth type, with a verb meaning 'exceed', as in Swahili or Yoruba, is left out for now. None
-//of these marks the adjective itself, as English -er does: WALS doesn't count that, and most
-//languages of these types don't
-public union Comparison(LocationalComparison, ParticleComparison, ConjoinedComparison);
+public union Comparison(LocationalComparison, ParticleComparison, ConjoinedComparison, ExceedComparison);
+
+/// <summary>A comparative marked by an affix on the adjective, as English -er or Hungarian -bb.</summary>
+//Position is Prefix or Suffix; it goes next to the root, inside any agreement or tense
+public record DegreeAffix(Affix Marker, ExponentPosition Position);
+
+/// <summary>A comparative marked by a word beside the adjective, as Turkish daha or Japanese motto 'more'.</summary>
+public record DegreeWord(Particle Marker, bool BeforeAdjective);
+
+public union DegreeMarker(DegreeAffix, DegreeWord);
+
+/// <summary>
+/// How a language marks an adjective as comparative. Every language can say 'bigger' with no
+/// standard, as Turkish says daha büyük 'more big', but only some mark the adjective when a
+/// standard is said too, as English does in 'bigger than the house' and Turkish doesn't in evden
+/// büyük 'big from the house'.
+/// </summary>
+public record DegreeMarking(DegreeMarker Marker, bool WithStandard);
+
+/// <summary>
+/// 'Like' as a word of its own, before or after what something is likened to as the language's
+/// adpositions go, as English like and Turkish gibi, which is in the plain case a subject takes.
+/// </summary>
+public record SimilativeWord(Lexeme Like, bool BeforeStandard);
+
+/// <summary>
+/// 'Like' as an affix on the edge of the phrase, as Quechua -hina is, outside the plain case a
+/// subject takes.
+/// </summary>
+//Position is Prefix or Suffix
+public record SimilativeAffix(Affix Marker, ExponentPosition Position);
+
+/// <summary>How a language says something is done like something else, as in 'it shines like water'.</summary>
+public union Similative(SimilativeWord, SimilativeAffix);
 
 /// <summary>
 /// A copular clause saying its subject has more of a property than a standard, as in 'Marta is
-/// taller than the men'.
+/// taller than the men', or with no standard, more of it than something already known, as in
+/// 'Marta is taller'.
 /// </summary>
 //the clause's complement is always an adjective
-public record Comparative(CopularClause Clause, Argument Standard);
+public record Comparative(CopularClause Clause, Argument? Standard);
