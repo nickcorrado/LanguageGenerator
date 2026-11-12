@@ -10,8 +10,8 @@ few travelers come now
   come  subject:traveler.PA  when:now
 
 # > The road from the coast washed out three winters ago, and nobody has repaired it.
-the road of the coast washed out, and nobody has repaired it
-  wash_out.PST.PFV  subject:(road.DEF possessor:coast.DEF)
+the road washed out and nobody has repaired it
+  wash_out.PST.PFV  subject:road.DEF
   and  repair.PFV  subject:nobody  object:3SG.N
 
 # > Smoke rises from a dozen chimneys.
@@ -135,8 +135,8 @@ the first one disappeared at the harvest
   disappear.PST.PFV  subject:(one.DEF 1st)  time:harvest.DEF
 
 # > The second vanished a month later.
-the second one vanished later
-  vanish.PST.PFV  subject:(one.DEF 2nd)  when:later
+the second one vanished
+  vanish.PST.PFV  subject:(one.DEF 2nd)
 
 # > Last night, my sister's son did not come home."
 my sister's son did not come home last night
