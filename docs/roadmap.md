@@ -1,6 +1,6 @@
 # Roadmap
 
-[examples/hollow.txt](../examples/hollow.txt), a short text adventure, is the test of what real text needs. The front end refuses 24 of its 190 sentences. Refusals are the easy part, though: a refusal names what's missing, while a sentence that glosses can still lose half of what it said. *A dog barks somewhere behind the mill* comes out as 'a dog barks at the mill', *they pass so close that you could touch them* as two unconnected clauses, 'they pass near you' and 'you could touch them', and *at dusk* doesn't come out at all. So this list counts both.
+[examples/hollow.txt](../examples/hollow.txt), a short text adventure, is the test of what real text needs. The front end refuses 23 of its 190 sentences. Refusals are the easy part, though: a refusal names what's missing, while a sentence that glosses can still lose half of what it said. *A dog barks somewhere behind the mill* comes out as 'a dog barks at the mill', *they pass so close that you could touch them* as just 'they pass very close', and *at dusk* doesn't come out at all. So this list counts both.
 
 ## Clauses
 
@@ -25,7 +25,7 @@ Roughly in the order to build them, since the later ones lean on the earlier one
 - **Quantifiers and indefinites.** *All*, *each*, *most*, *few*, *someone*, *everything*, and above all *nobody*, which can only be 'anyone' with a negated verb, a word the language coins as if it were a noun. Languages differ in whether a negative indefinite takes ordinary negation too.
 - **Nouns modifying nouns.** `(key small iron)` and `(bow short yew)` pass a noun off as an adjective, and the parser can't tell. These need a form of their own, a compound, a genitive or a derived adjective, as each language prefers.
 - **Measure phrases.** *A bowl of stew*, by a genitive or plain apposition, and numeral classifiers in the languages that have them.
-- **Particles of focus.** *Only*, *still*, *just*, *even*.
+- **Particles of focus.** *Only*, *just*, *even*.
 - **Direction on verbs.** *Walk down*, *turn around*, *hold up*, whose particles are dropped today.
 
 ## Game text

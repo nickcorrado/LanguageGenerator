@@ -172,10 +172,12 @@ public static class GlossPrompt
               object:(and (purse.NDF empty) sword.NDF) for 'an empty purse and a sword', or
               object:(or rope.NDF boat.NDF). Adjectives said together go the same way:
               adjective:(and warm crowded) for 'warm and crowded'.
-            - Demonstratives, words for where like 'here', 'there' and 'inside', words like 'only',
-              'even' and 'still', 'ago' and 'later' after a noun, as in 'three winters ago', and other
-              conjunctions have no gloss: leave them out of the gloss line when the meaning mostly
-              survives, and gloss 'this' or 'that' with a noun as DEF.
+            - Demonstratives, words for where like 'here', 'there' and 'inside', words like 'only'
+              and 'even', and other conjunctions have no gloss: leave them out of the gloss line when
+              the meaning mostly survives, and gloss 'this' or 'that' with a noun as DEF.
+            - A phrase with 'ago' or 'later' after its noun, as in 'three winters ago' or 'a month
+              later', has no gloss either: leave out the whole phrase, not just 'ago' or 'later',
+              since time:(winter.PL 3) alone would say 'during three winters'.
             - The English line says what the gloss says and nothing more, since readers take it as the
               translation of what the gloss became. Write it fresh from the gloss: lowercase but for
               names, with no final period, though a question keeps its question mark. Keep 'the' and
