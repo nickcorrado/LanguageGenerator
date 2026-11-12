@@ -454,7 +454,7 @@ public static class Syntax
     //a copular clause's complement goes where an object would, so it precedes the copula in an OV
     //language, as in Turkish and Japanese, and follows it in a VO one. Where adjectives are verbal,
     //the adjective takes the verb's place instead, with no copula. A standard of comparison, if the
-    //clause has one, goes where obliques go, and a comparative's marker, if it has one, goes on the
+    //clause has one, goes as Standing says, and a comparative's marker, if it has one, goes on the
     //adjective, whether it's verbal or not. A copula with a modal is never dropped, since the modal
     //goes with it, as Russian has no copula in ty ostorožen 'you are careful' but has one in ty
     //dolžen byt' ostorožen 'you must be careful'
@@ -463,9 +463,10 @@ public static class Syntax
     {
         var predication = language.Predication;
         var subject = Subject(language, clause.Subject, Role.IntransitiveSubject);
-        //a standard goes nearest, as what the comparison calls for
+        var beforeAdjective = StandardBeforeAdjective(language);
         IReadOnlyList<(Closeness Rank, IReadOnlyList<Word> Words)> modifiers =
-            [(Closeness.Reason, adverbs), .. Adverbials(language, clause.Adverbs, clause.Obliques), (Closeness.Complement, standard)];
+            [(Closeness.Reason, adverbs), .. Adverbials(language, clause.Adverbs, clause.Obliques), (Closeness.Complement, beforeAdjective ? [] : standard)];
+        IReadOnlyList<Word> Standing(IReadOnlyList<Word> adjective) => beforeAdjective ? [.. standard, .. adjective] : adjective;
         if (PredicateAdjectives(language, clause.Complement) is var (adjectives, between) && predication.Adjectives == PredicativeAdjectives.Verbal)
         {
             //a property word inflects as a verb in a language whose adjectives are verbs
@@ -475,7 +476,7 @@ public static class Syntax
                 var verb = Predicate(language, lexeme with { PartOfSpeech = PartOfSpeech.Verb }, clause.Tense, clause.Aspect, clause.Subject, clause.Negative, modal, null);
                 return Graded(Intensified(language, verb, lexeme.Root, a), lexeme.Root, degree);
             }), between);
-            return Flat(Order(language.WordOrder, subject, predicate, null, WhereObliquesGo(language, modifiers)));
+            return Flat(Order(language.WordOrder, subject, Standing(predicate), null, WhereObliquesGo(language, modifiers)));
         }
 
         //a location is an oblique, and goes where obliques go, with the language's locational copula
@@ -499,13 +500,21 @@ public static class Syntax
         //language whose adjectives agree, agrees with the subject in number, gender and that case,
         //as in Latin canis magnus est 'the dog is big'; otherwise it's just its root
         var complement = clause.Complement.Value is Adjective adjective
-            ? Graded(PredicateComplement(language, adjective, clause.Subject), language.Lexicon.Adjective(adjective.Meaning).Root, degree)
+            ? Standing(Graded(PredicateComplement(language, adjective, clause.Subject), language.Lexicon.Adjective(adjective.Meaning).Root, degree))
             : PredicateComplement(language, clause.Complement, clause.Subject);
         var copula = modal is null && predication.Drops(clause.Tense, clause.Negative)
             ? []
             : Predicate(language, predication.Copula, clause.Tense, clause.Aspect, clause.Subject, clause.Negative, modal, null);
         return Flat(Order(language.WordOrder, subject, copula, complement, WhereObliquesGo(language, modifiers)));
     }
+
+    //a standard of comparison goes right before the adjective in an OV language, as Japanese Taroo
+    //yori takai 'Taro-from tall' and Turkish kedi-den büyük 'cat-from big' have it, which Dryer finds
+    //follows the order of object and verb as degree words don't. In a VO language it stays nearest
+    //the verb where obliques go, which comes after the adjective in all but the few VO languages whose
+    //obliques go first. An exceeded standard goes the same way, though whether an OV language puts
+    //its 'exceed' phrase first is a guess
+    private static bool StandardBeforeAdjective(Language language) => language.WordOrder.VerbPhraseDirectionality == HeadDirectionality.Final;
 
     //a locational standard takes its role's case or adposition, and a particle's standard the plain
     //case a subject takes, with the particle on its side. A standard that's exceeded is the object

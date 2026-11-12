@@ -107,12 +107,14 @@ Adverbs and manners go where obliques go, ordered as described under [Modifier o
 
 Languages largely agree on which modifiers go nearest their head, and differ mostly in which side they put them, so the order on one side mirrors the order on the other. `ModifierOrder` says this once for every language. Everything where obliques go is ranked by how near the verb it goes, nearest first:
 
-1. what the verb calls for: `recipient:`, `goal:`, `source:`, `agent:`, and a `standard:`
+1. what the verb calls for: `recipient:`, `goal:`, `source:`, `agent:`, and a `standard:` in a VO language
 2. how: `manner:`, `like:`, `instrument:`, `companion:`
 3. where: `location:`
 4. how often or how long: `often:`, `duration:`
 5. when: `when:`, `time:`
 6. why: `why`
+
+An OV language puts a `standard:` right before the adjective instead, as Japanese *Taroo yori takai* 'Taro-from tall' and Turkish *kedi-den büyük* 'cat-from big' do, since Dryer finds the order of adjective and standard follows the order of object and verb.
 
 After the verb they go nearest first, as English says 'she sang beautifully in the hall every night'; before it they're mirrored, as Japanese and Turkish say 'every night in the hall beautifully sang', so the nearest is always beside the verb. Those of one rank keep the order they're written in, so the order a clause file writes them in matters only within a rank.
 

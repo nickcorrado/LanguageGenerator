@@ -74,14 +74,29 @@ public class AdverbTests
         });
 
     [Fact]
-    public void Realize_Standard_GoesNearestTheVerbOfWhereObliquesGo() =>
-        Assert.All(GeneratedLanguages.Sample.Where(l => l.Comparison.Value is LocationalComparison or ParticleComparison), l =>
+    public void Realize_Standard_GoesRightBeforeTheAdjectiveInAnOVLanguage()
+    {
+        var languages = GeneratedLanguages.Sample.Where(l => l.Comparison.Value is not ConjoinedComparison).ToList();
+        Assert.All(languages, l =>
         {
             var sentence = Realized(l, new Comparative(DogIsBig with { Adverbs = [Now] }, new NounPhrase("cat", Number.Plural)));
-            var after = l.WordOrder.ObliquePosition == ObliquePosition.AfterVerbAndObject;
-
-            Assert.Equal(after, IndexOf(sentence, "cat") < IndexOf(sentence, "now"));
+            var (cat, big, now) = (IndexOf(sentence, "cat"), IndexOf(sentence, "big"), IndexOf(sentence, "now"));
+            if (l.WordOrder.VerbPhraseDirectionality == HeadDirectionality.Final)
+            {
+                //with nothing of the clause's between them, only the standard's own marker and the
+                //adjective's degree word
+                Assert.True(cat < big);
+                Root?[] clause = [l.Lexicon.Adverb("now").Root, l.Lexicon.Noun("dog").Root, l.Predication.Copula.Root];
+                Assert.DoesNotContain(sentence.Words.Skip(cat + 1).Take(big - cat - 1), w => clause.Contains(w.Word.Root));
+            }
+            else if (l.WordOrder.ObliquePosition == ObliquePosition.AfterVerbAndObject)
+            {
+                //nearest the verb where obliques go
+                Assert.True(big < cat && cat < now);
+            }
         });
+        Assert.Contains(languages, l => l.WordOrder.VerbPhraseDirectionality == HeadDirectionality.Final && l.WordOrder.ObliquePosition == ObliquePosition.BetweenObjectAndVerb);
+    }
 
     [Fact]
     public void Realize_Manner_MakesTheAdverbAsTheLanguageDoes()

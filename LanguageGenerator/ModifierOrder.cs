@@ -15,7 +15,8 @@ namespace LanguageGenerator;
 //so they need no ranks. Modifiers of a rank keep the order they're written in
 public enum Closeness
 {
-    //what the verb's meaning calls for, as giving does a recipient and going a goal
+    //what the verb's meaning calls for, as giving does a recipient and going a goal, and in a VO
+    //language a comparison's standard
     Complement,
     Manner,
     Place,
