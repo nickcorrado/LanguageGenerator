@@ -203,7 +203,8 @@ public class GeneratorTests
         {
             Assert.Equal(11, l.Lexicon.Count(x => x.PartOfSpeech == PartOfSpeech.Noun));
             Assert.Equal(8, l.Lexicon.Count(x => x.PartOfSpeech == PartOfSpeech.Verb));
-            Assert.Equal(Enum.GetValues<Role>().Length, l.RoleMarkers.Count);
+            //every role but the similative, which has a marker of its own
+            Assert.Equal(Enum.GetValues<Role>().Length - 1, l.RoleMarkers.Count);
         });
     }
 

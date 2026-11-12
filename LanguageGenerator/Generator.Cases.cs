@@ -124,6 +124,7 @@ public static partial class Generator
             _ => Oblique(role),
         };
 
-        return Enum.GetValues<Role>().ToDictionary(role => role, MarkerFor);
+        //a similative has a marker of its own, outside the map
+        return Enum.GetValues<Role>().Where(role => role != Role.Similative).ToDictionary(role => role, MarkerFor);
     }
 }

@@ -26,6 +26,8 @@ public class Language
     public required Possession Possession { get; init; }
     public required Commands Commands { get; init; }
     public required Comparison Comparison { get; init; }
+    public required DegreeMarking Degree { get; init; }
+    public required Similative Similative { get; init; }
     /// <summary>How the language marks a passive verb, or null where it has no passive.</summary>
     public required Passive? Passive { get; init; }
     public required Conjunctions Conjunctions { get; init; }

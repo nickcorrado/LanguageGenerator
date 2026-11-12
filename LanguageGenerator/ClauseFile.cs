@@ -165,7 +165,7 @@ public static class ClauseFile
         CopularCommand { Complement: NounPhrase noun } => [noun],
         CopularCommand { Complement: Oblique location } => [location.Argument],
         CopularCommand => [],
-        Comparative c => [.. ArgumentsOf(c.Clause), c.Standard],
+        Comparative c => [.. ArgumentsOf(c.Clause), .. Given(c.Standard)],
         Addressed a => [.. ArgumentsOf(a.Statement), a.Addressee],
         Coordinated c => [.. ArgumentsOf(c.First), .. ArgumentsOf(c.Second)],
         Subordinated s => [.. ArgumentsOf(s.Main), .. ArgumentsOf(s.Clause)],
@@ -183,10 +183,10 @@ public static class ClauseFile
         Coordination c => c.Items.SelectMany(NounsIn),
     };
 
-    //the roles a clause can have. An oblique role is written as its name in lowercase. A noun or
-    //adjective is what be says its subject is, a standard what an adjective compares it with, and an
-    //addressee who the clause is said to
-    private static readonly Dictionary<string, Role> ObliqueRoles = Oblique.Roles.ToDictionary(r => r.ToString().ToLowerInvariant());
+    //the roles a clause can have. An oblique role is written as its name in lowercase, but for the
+    //similative, which is like:. A noun or adjective is what be says its subject is, a standard what
+    //an adjective compares it with, and an addressee who the clause is said to
+    private static readonly Dictionary<string, Role> ObliqueRoles = Oblique.Roles.ToDictionary(r => r == Role.Similative ? "like" : r.ToString().ToLowerInvariant());
     private static readonly string[] Roles = ["subject", "object", "noun", "adjective", "standard", .. ObliqueRoles.Keys, "agent", "addressee"];
 
     //what the format can say, for describing it elsewhere, as the glosser's prompt does
@@ -225,9 +225,17 @@ public static class ClauseFile
         {
             throw new ClauseFormatException(features.Imperative
                 ? "A command can't compare yet."
-                : $"Only be takes a standard:, as in be subject:marta adjective:tall standard:(man.PL) for 'Marta is taller than the men'.", number);
+                : $"Only be takes a standard:, as in be subject:marta adjective:tall.CMPR standard:(man.PL) for 'Marta is taller than the men'.", number);
         }
-        if (features.Modality is { } modality && (features.Imperative || standard.HasValue))
+        if (roles.Compared && features.Imperative)
+        {
+            throw new ClauseFormatException("A command can't compare yet.", number);
+        }
+        if (standard.HasValue && !roles.Compared && roles.Complement is { Value: Adjective adjective })
+        {
+            throw new ClauseFormatException($"A standard: compares a comparative adjective:, as in adjective:{adjective.Meaning}.CMPR for 'more {adjective.Meaning} than'.", number);
+        }
+        if (features.Modality is { } modality && (features.Imperative || roles.Compared || standard.HasValue))
         {
             throw new ClauseFormatException(features.Imperative
                 ? $"A command can't take {modality.Gloss}: it already says what to do."
@@ -247,7 +255,7 @@ public static class ClauseFile
         else if (verb == "be")
         {
             var clause = ToCopularClause(features, roles, subject, number);
-            statement = standard.HasValue ? ToComparative(clause, standard.GetValueOrDefault(), number) : clause;
+            statement = roles.Compared || standard.HasValue ? ToComparative(clause, standard, number) : clause;
         }
         else if (features.Passive)
         {
@@ -301,6 +309,10 @@ public static class ClauseFile
             {
                 throw new ClauseFormatException("A comparison can't ask about its standard yet.", number);
             }
+            if (role == "like")
+            {
+                throw new ClauseFormatException($"A question can't ask what something is like yet, as in like:{WordOf(argument)}.", number);
+            }
             if (word == Interrogative.Where && role is not ("location" or "goal" or "source"))
             {
                 throw new ClauseFormatException($"where asks about a place, so it's location:where, goal:where for 'where to' or source:where for 'where from', not {role}:where.", number);
@@ -311,12 +323,13 @@ public static class ClauseFile
         static string WordOf(Argument argument) => ((QuestionWord)argument.Value!).Word.ToString().ToLowerInvariant();
     }
 
-    //'Marta is taller than the men': an adjective, said of the subject more than of the standard
-    private static Comparative ToComparative(CopularClause clause, Argument standard, int number)
+    //'Marta is taller than the men': an adjective, said of the subject more than of the standard, or
+    //with no standard, 'Marta is taller', more than of something already known
+    private static Comparative ToComparative(CopularClause clause, Argument? standard, int number)
     {
         if (clause.Complement.Value is not Adjective)
         {
-            throw new ClauseFormatException("A standard: compares an adjective:, as in adjective:tall standard:(man.PL) for 'taller than the men'.", number);
+            throw new ClauseFormatException("A standard: compares an adjective:, as in adjective:tall.CMPR standard:(man.PL) for 'taller than the men'.", number);
         }
         if (clause.Negative)
         {
@@ -336,8 +349,9 @@ public static class ClauseFile
     //Negative negates the verb, and ModalNegative the modal
     private record VerbFeatures(Tense? Tense, Aspect? Aspect, bool Negative, bool Imperative, bool Question, bool Passive, Modality? Modality, bool ModalNegative);
 
-    //the obliques keep the role they were written with, which is how be finds its location:
-    private record ClauseRoles(Dictionary<string, Argument> Arguments, List<(string Role, Oblique Oblique)> Obliques, Complement? Complement)
+    //the obliques keep the role they were written with, which is how be finds its location:.
+    //Compared is whether the adjective: is comparative, as tall.CMPR is
+    private record ClauseRoles(Dictionary<string, Argument> Arguments, List<(string Role, Oblique Oblique)> Obliques, Complement? Complement, bool Compared)
     {
         public Argument? Object => Arguments.TryGetValue("object", out var argument) ? argument : (Argument?)null;
     }
@@ -381,6 +395,7 @@ public static class ClauseFile
         var arguments = new Dictionary<string, Argument>();
         var obliques = new List<(string Role, Oblique Oblique)>();
         Complement? complement = null;
+        var compared = false;
         foreach (var token in tokens)
         {
             var colon = token.IndexOf(':');
@@ -416,8 +431,14 @@ public static class ClauseFile
                         _ => throw new ClauseFormatException($"be can't say its subject is {value} yet: the noun has to be a noun, not a pronoun.", number),
                     };
                     break;
+                case "adjective" when value.StartsWith('('):
+                    complement = ParseAdjectiveCoordination(value, number);
+                    break;
                 case "adjective":
-                    complement = value.StartsWith('(') ? ParseAdjectiveCoordination(value, number) : ParseAdjective(value, number);
+                    //only what be says of its subject can be comparative, so CMPR is taken off here
+                    //before the adjective is read
+                    compared = value.Split('.').Skip(1).Contains(Degree.Comparative.Gloss);
+                    complement = ParseAdjective(compared ? string.Join('.', value.Split('.').Where(p => p != Degree.Comparative.Gloss)) : value, number);
                     break;
                 case var name when ObliqueRoles.TryGetValue(name, out var oblique):
                     obliques.Add((role, new Oblique(oblique, ParseArgument(value, number))));
@@ -427,7 +448,7 @@ public static class ClauseFile
                     break;
             }
         }
-        return new ClauseRoles(arguments, obliques, complement);
+        return new ClauseRoles(arguments, obliques, complement, compared);
     }
 
     //a command is said to one person or several: as many as its subject says, or as its addressee
@@ -467,6 +488,10 @@ public static class ClauseFile
         if (roles.Obliques.Find(o => o.Role == "location") is { Oblique: { } location })
         {
             complement = location;
+        }
+        if (roles.Obliques.Any(o => o.Role == "like"))
+        {
+            throw new ClauseFormatException("be can't say what its subject is like yet: like: goes with other verbs, as in shine subject:3SG.N like:water.", number);
         }
         if (roles.Obliques.Find(o => o.Role != "location") is { Role: { } other })
         {
@@ -671,9 +696,13 @@ public static class ClauseFile
         {
             throw new ClauseFormatException($"{meaning} isn't an adjective: a question word goes in the role it asks about, as in subject:who.", number);
         }
+        if (features.Contains(Degree.Comparative))
+        {
+            throw new ClauseFormatException($"Only the adjective: be says of its subject can take CMPR yet, as in be subject:3SG adjective:{meaning}.CMPR, not one in a noun phrase or joined to another.", number);
+        }
         if (features.Count > 0)
         {
-            throw new ClauseFormatException($"'{meaning}' can't take {features[0].Gloss}: adjectives have no features yet.", number);
+            throw new ClauseFormatException($"'{meaning}' can't take {features[0].Gloss}: adjectives have no features but CMPR yet.", number);
         }
         return new Adjective(meaning);
     }

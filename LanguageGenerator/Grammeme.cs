@@ -100,6 +100,11 @@ public record Case(string Name, string Gloss) : Grammeme(Name, Gloss)
     /// The plain form in a language with only peripheral cases, covering everything they don't.
     /// </summary>
     public static Case Direct { get; } = new("Direct", "DIR");
+    /// <summary>
+    /// What something is like, as in 'it shines like water'. It's no case of the noun paradigm here,
+    /// only the gloss of a similative affix.
+    /// </summary>
+    public static Case Similative { get; } = new("Similative", "SIM");
 }
 
 /// <summary>
@@ -123,6 +128,9 @@ public enum Role
     Instrument,
     //who does what a passive verb says is done, as in 'carried by a figure'
     Agent,
+    //what something is or does something like, as in 'it shines like water'. It has a marker of
+    //its own, the language's Similative, rather than one from the semantic map of roles
+    Similative,
 }
 
 /// <summary>
@@ -231,6 +239,13 @@ public record Definiteness(string Name, string Gloss) : Grammeme(Name, Gloss)
 {
     public static Definiteness Definite { get; } = new("Definite", "DEF");
     public static Definiteness Indefinite { get; } = new("Indefinite", "NDF");
+}
+
+/// <summary>How much of a property an adjective says: more of it, as English -er does.</summary>
+//the plain degree is never marked, so it has no value here
+public record Degree(string Name, string Gloss) : Grammeme(Name, Gloss)
+{
+    public static Degree Comparative { get; } = new("Comparative", "CMPR");
 }
 
 //TODO politeness

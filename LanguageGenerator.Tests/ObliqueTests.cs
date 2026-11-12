@@ -80,7 +80,7 @@ public class ObliqueTests
     {
         foreach (var language in GeneratedLanguages.Sample)
         {
-            foreach (var role in Oblique.Roles)
+            foreach (var role in Oblique.Roles.Where(r => r != Role.Similative))
             {
                 var sentence = Walk(language, Stone(role));
                 var stone = IndexOf(sentence, "stone");

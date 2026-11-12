@@ -80,11 +80,19 @@ public static class GlossPrompt
               the queen is in the house
                 be  subject:queen.DEF  location:house.DEF
 
-            With adjective:, be can also say what its subject is compared with, as standard:, with the
-            adjective in its plain form, tall and not taller:
+            With adjective:, be can also compare its subject: CMPR on the adjective, in its plain
+            form, says 'more', as tall.CMPR for 'taller' or 'more tall', and standard: says what it's
+            compared with, if the sentence says:
 
               Marta is taller than the men
-                be  subject:marta  adjective:tall  standard:man.PL.DEF
+                be  subject:marta  adjective:tall.CMPR  standard:man.PL.DEF
+              the road is longer
+                be  subject:road.DEF  adjective:long.CMPR
+
+            What something is or does something like goes in like:, with any verb but be:
+
+              it shines like water
+                shine  subject:3SG.N  like:water
 
             A yes-no question has Q on its verb, glossed otherwise as the statement would be, with
             'do' left out. A question asking who, what, where or why has no Q: who or what goes in
@@ -162,8 +170,10 @@ public static class GlossPrompt
             - When a sentence can't be said even loosely, as with a question asking two things, or
               when, how, which or whose, or a question inside another clause, a modal other than ABIL,
               PERM, OBLIG or ADVS (like might, maybe or want to), a relative
-              clause, a comparison other than an adjective with be (like 'runs faster than' or
-              'stronger arms than yours'), or a command to anyone but 'you', like 'let's go', write instead one line: {CantExpress} (what's missing): the sentence.
+              clause, a comparison other than an adjective with be (like 'runs faster than',
+              'stronger arms than yours' or 'as tall as'), a comparison with a clause (like 'warmer
+              than it should be' or 'slower than before'), the most or a superlative (like 'the
+              tallest'), or a command to anyone but 'you', like 'let's go', write instead one line: {CantExpress} (what's missing): the sentence.
               This is better than a gloss that changes what the sentence means.
 
             Reply with each numbered sentence's number in brackets, followed on the same line by the
