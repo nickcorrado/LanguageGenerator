@@ -34,8 +34,9 @@ namespace LanguageGenerator;
 //with ABIL, PERM, OBLIG or ADVS says its subject can, may, must or should, as in find.OBLIG subject:2SG, and NEG
 //after one negates the modal, as swim.ABIL.NEG is 'can't swim', while NEG before one negates the
 //verb, as sing.NEG.OBLIG is 'must not sing'. time: says when, as in time:night, and duration: for how
-//long, as in duration:(year.PL 200). adverb: is a word saying when, how often or how, as in adverb:now,
-//and manner: an adjective saying how, as manner:careful is 'carefully'; a clause can have several of
+//long, as in duration:(year.PL 200). when: is a word saying when, as in when:now, often: one saying how
+//often or whether still, as in often:again, and manner: an adjective saying how, as manner:careful is
+//'carefully'; a clause can have several of
 //each, in the order they're said. INTS on an adjective says 'very', as in adjective:tired.INTS. Any clause can have an addressee, who it's said to, a bare noun as in addressee:marta, and
 //a command to a plural addressee is to all of them. Anything not given takes its unmarked value: present, imperfective, singular, exclusive for
 //'we' and masculine for a gendered pronoun. Whatever the generator can't express yet is an error,
@@ -188,10 +189,11 @@ public static class ClauseFile
 
     //the roles a clause can have. An oblique role is written as its name in lowercase, but for the
     //similative, which is like:. A noun or adjective is what be says its subject is, a standard what
-    //an adjective compares it with, and an addressee who the clause is said to. An adverb or a manner
-    //fills no role, but is written as one, and a clause can have any number of them
+    //an adjective compares it with, and an addressee who the clause is said to. An adverb fills no
+    //role, but is written as one named for what it says, and a clause can have any number of them
     private static readonly Dictionary<string, Role> ObliqueRoles = Oblique.Roles.ToDictionary(r => r == Role.Similative ? "like" : r.ToString().ToLowerInvariant());
-    private static readonly string[] Roles = ["subject", "object", "noun", "adjective", "standard", .. ObliqueRoles.Keys, "agent", "addressee", "adverb", "manner"];
+    private static readonly Dictionary<string, AdverbKind> AdverbRoles = Enum.GetValues<AdverbKind>().ToDictionary(k => k.ToString().ToLowerInvariant());
+    private static readonly string[] Roles = ["subject", "object", "noun", "adjective", "standard", .. ObliqueRoles.Keys, "agent", "addressee", .. AdverbRoles.Keys, "manner"];
 
     //what the format can say, for describing it elsewhere, as the glosser's prompt does
     public static IReadOnlyList<string> RoleNames => Roles;
@@ -414,6 +416,10 @@ public static class ClauseFile
                 throw new ClauseFormatException($"'{token}' needs a role, as in subject:{token}.", number);
             }
             var role = token[..colon];
+            if (role == "adverb")
+            {
+                throw new ClauseFormatException($"Say what an adverb says: when:{token[(colon + 1)..]} for when, often:{token[(colon + 1)..]} for how often or whether still, or manner: with an adjective for how, as manner:careful is 'carefully'.", number);
+            }
             if (role == "possessor")
             {
                 throw new ClauseFormatException($"A possessor goes inside its noun's parentheses, as in object:(house possessor:{token[(colon + 1)..]}).", number);
@@ -433,8 +439,8 @@ public static class ClauseFile
             var value = token[(colon + 1)..];
             switch (role)
             {
-                case "adverb":
-                    adverbs.Add(ParseAdverb(value, number));
+                case var name when AdverbRoles.TryGetValue(name, out var kind):
+                    adverbs.Add(ParseAdverb(value, kind, number));
                     break;
                 case "manner":
                     adverbs.Add(ParseManner(value, number));
@@ -765,12 +771,13 @@ public static class ClauseFile
     private static readonly HashSet<string> PlaceAdverbs =
         ["here", "there", "inside", "outside", "above", "below", "upstairs", "downstairs", "everywhere", "somewhere", "nowhere", "away", "upstream", "downstream"];
 
-    //a word of its own saying when, how often or how, with no glosses
-    private static Adverb ParseAdverb(string token, int number)
+    //a word of its own saying when or how often, with no glosses
+    private static Adverb ParseAdverb(string token, AdverbKind kind, int number)
     {
+        var role = kind.ToString().ToLowerInvariant();
         if (token.StartsWith('('))
         {
-            throw new ClauseFormatException($"An adverb is one word, as in adverb:now, not '{token}'. Write adverb: again for another.", number);
+            throw new ClauseFormatException($"An adverb is one word, as in {role}:{(kind == AdverbKind.When ? "now" : "again")}, not '{token}'. Write {role}: again for another.", number);
         }
         var (meaning, features) = ParseWord(token, number);
         if (meaning == "why" || QuestionWords.ContainsKey(meaning))
@@ -799,7 +806,7 @@ public static class ClauseFile
         {
             throw new ClauseFormatException($"'{meaning}' can't take {features[0].Gloss}: an adverb takes no glosses. For 'very slowly', write manner:slow.INTS.", number);
         }
-        return new Adverb(meaning);
+        return new Adverb(meaning, kind);
     }
 
     //the words of a clause, split on spaces outside parentheses, so that object:(dog big) is one

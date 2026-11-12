@@ -362,7 +362,7 @@ public static class LanguageDescription
         ];
         (Statement Clause, string Translation)[] adverbs =
         [
-            (new Clause("sleep", Tense.Present, Aspect.Imperfective, Phrase("dog", Number.Singular)) { Adverbs = [new Adverb("now")] }, "the dog is sleeping now"),
+            (new Clause("sleep", Tense.Present, Aspect.Imperfective, Phrase("dog", Number.Singular)) { Adverbs = [new Adverb("now", AdverbKind.When)] }, "the dog is sleeping now"),
             (new Clause("walk", Tense.Past, Aspect.Perfective, Phrase("person", Number.Singular)) { Adverbs = [new Manner(new Adjective("slow", true))] },
                 "the person walked very slowly"),
             (new CopularClause(new Adjective("big", true), Tense.Present, Aspect.Imperfective, Phrase("dog", Number.Singular)) { Obliques = [], Adverbs = [] }, "the dog is very big"),

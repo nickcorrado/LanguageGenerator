@@ -34,15 +34,19 @@ public class AdjectiveTests
     }
 
     [Fact]
-    public void Realize_Adjectives_GoOnTheNounPhrasesHeadSideInTheirGivenOrder()
+    public void Realize_Adjectives_GoOnTheNounPhrasesHeadSideNearestAsWritten()
     {
         foreach (var language in GeneratedLanguages.Sample)
         {
             var sentence = Sleep(language, BigOldDogs);
             var (dog, big, old) = (IndexOf(sentence, "dog"), IndexOf(sentence, "big"), IndexOf(sentence, "old"));
 
-            Assert.True(big < old);
-            if (language.WordOrder.NounPhraseDirectionality == HeadDirectionality.Initial)
+            //'big old dogs' is 'dogs old big' after the noun where the language mirrors them
+            if (language.WordOrder.NounPhraseDirectionality == HeadDirectionality.Initial && language.WordOrder.MirrorsAdjectives)
+            {
+                Assert.Equal([dog, dog + 1, dog + 2], [dog, old, big]);
+            }
+            else if (language.WordOrder.NounPhraseDirectionality == HeadDirectionality.Initial)
             {
                 Assert.Equal([dog, dog + 1, dog + 2], [dog, big, old]);
             }
@@ -51,6 +55,14 @@ public class AdjectiveTests
                 Assert.Equal([dog - 2, dog - 1, dog], [big, old, dog]);
             }
         }
+    }
+
+    [Fact]
+    public void Generate_AdjectivesAfterTheNoun_MostlyMirror()
+    {
+        var mirrored = Enumerable.Range(0, 4000).Count(seed => Generator.SelectWordOrder(new Random(seed)).MirrorsAdjectives) / 4000.0;
+
+        Assert.InRange(mirrored, 0.72, 0.78);
     }
 
     [Fact]

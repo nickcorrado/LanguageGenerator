@@ -96,10 +96,12 @@ public static class GlossPrompt
 
             A clause can say when, how often, how and for how long, with any number of each, in the
             order they're said, and be takes them too:
-            - adverb: is a word of its own saying when, how often or how, in its plain English form:
-              adverb:now, adverb:again, adverb:always, adverb:yesterday, adverb:suddenly.
-            - manner: is an adverb made from an adjective, written as the adjective: manner:careful for
-              'carefully', manner:slow for 'slowly'.
+            - when: is a word of its own saying when, in its plain English form: when:now,
+              when:yesterday, when:then, when:later, when:first.
+            - often: is a word of its own saying how often, or whether something still goes on:
+              often:again, often:always, often:never, often:still.
+            - manner: is how, written as an adjective even where English has a word of its own:
+              manner:careful for 'carefully', manner:sudden for 'suddenly', manner:good for 'well'.
             - time: is when, as a noun phrase: time:night for 'at night', time:(night last) for 'last
               night', time:harvest.DEF for 'at the harvest'.
             - duration: is for how long, as a noun phrase: duration:(year.PL 200) for 'for two hundred
@@ -108,7 +110,7 @@ public static class GlossPrompt
               tired', manner:slow.INTS for 'very slowly', adjective:small.CMPR.INTS for 'much smaller'.
 
               later, you wake suddenly
-                wake  subject:2SG  adverb:later  adverb:suddenly
+                wake  subject:2SG  when:later  manner:sudden
               you climb carefully
                 climb  subject:2SG  manner:careful
               the village was quiet at night

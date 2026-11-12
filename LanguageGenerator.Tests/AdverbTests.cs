@@ -12,8 +12,8 @@ public class AdverbTests
         Adverbs = [],
     };
     private static readonly Oblique AtTheHouse = new(Role.Location, new NounPhrase("house", Number.Singular));
-    private static readonly Adverb Now = new("now");
-    private static readonly Adverb Again = new("again");
+    private static readonly Adverb Now = new("now", AdverbKind.When);
+    private static readonly Adverb Again = new("again", AdverbKind.Often);
 
     private static Sentence Realized(Language l, Statement statement) => statement.Value switch
     {
@@ -42,14 +42,45 @@ public class AdverbTests
             Assert.Equal(IndexOf(located, "walk") < IndexOf(located, "house"), IndexOf(adverb, "walk") < IndexOf(adverb, "now"));
         });
 
+    //how far each of these roots is from the verb's, in words
+    private static int[] Distances(Sentence sentence, params string[] roots) =>
+        [.. roots.Select(r => Math.Abs(IndexOf(sentence, r) - IndexOf(sentence, "walk")))];
+
     [Fact]
-    public void Realize_Adverbs_GoInTheirOrderBeforeTheObliques() =>
+    public void Realize_Modifiers_GoNearerTheVerbByWhatTheySay() =>
         Assert.All(GeneratedLanguages.Sample, l =>
         {
-            var sentence = Realized(l, DogWalks with { Adverbs = [Now, Again], Obliques = [AtTheHouse] });
+            //written outermost first, as 'now, again, at the house, well, to the water' could be
+            var sentence = Realized(l, DogWalks with
+            {
+                Adverbs = [Now, Again, new Manner(new Adjective("good", false))],
+                Obliques = [AtTheHouse, new(Role.Goal, new NounPhrase("water", Number.Singular))],
+            });
 
-            Assert.True(IndexOf(sentence, "now") < IndexOf(sentence, "again"));
-            Assert.True(IndexOf(sentence, "again") < IndexOf(sentence, "house"));
+            var distances = Distances(sentence, "water", "good", "house", "again", "now");
+            Assert.Equal(distances.Order(), distances);
+        });
+
+    [Fact]
+    public void Realize_ModifiersOfARank_KeepTheirWrittenOrder() =>
+        Assert.All(GeneratedLanguages.Sample, l =>
+        {
+            var sentence = Realized(l, DogWalks with
+            {
+                Obliques = [new(Role.Source, new NounPhrase("tree", Number.Singular)), new(Role.Goal, new NounPhrase("water", Number.Singular))],
+            });
+
+            Assert.True(IndexOf(sentence, "tree") < IndexOf(sentence, "water"));
+        });
+
+    [Fact]
+    public void Realize_Standard_GoesNearestTheVerbOfWhereObliquesGo() =>
+        Assert.All(GeneratedLanguages.Sample.Where(l => l.Comparison.Value is LocationalComparison or ParticleComparison), l =>
+        {
+            var sentence = Realized(l, new Comparative(DogIsBig with { Adverbs = [Now] }, new NounPhrase("cat", Number.Plural)));
+            var after = l.WordOrder.ObliquePosition == ObliquePosition.AfterVerbAndObject;
+
+            Assert.Equal(after, IndexOf(sentence, "cat") < IndexOf(sentence, "now"));
         });
 
     [Fact]
@@ -239,7 +270,7 @@ public class AdverbTests
     [Fact]
     public void Parse_AdverbsMannersTimesAndDurations_KeepTheirOrder()
     {
-        var clause = Assert.IsType<Clause>(Parsed("walk  subject:dog  adverb:now  manner:slow.INTS  time:night  adverb:again  duration:(year 3)").Value);
+        var clause = Assert.IsType<Clause>(Parsed("walk  subject:dog  when:now  manner:slow.INTS  time:night  often:again  duration:(year 3)").Value);
 
         ValueList<Adverbial> adverbs = [Now, new Manner(new Adjective("slow", true)), Again];
         ValueList<Oblique> obliques = [new(Role.Time, new NounPhrase("night", Number.Singular)), new(Role.Duration, new NounPhrase("year", Number.Paucal, Count: 3))];
@@ -250,9 +281,9 @@ public class AdverbTests
     [Fact]
     public void Parse_Be_TakesTimesAndAdverbs()
     {
-        var big = Assert.IsType<CopularClause>(Parsed("be  subject:dog  adjective:big.INTS  time:night  adverb:now").Value);
+        var big = Assert.IsType<CopularClause>(Parsed("be  subject:dog  adjective:big.INTS  time:night  when:now").Value);
         var there = Assert.IsType<CopularClause>(Parsed("be  subject:dog  location:house  duration:(year 3)").Value);
-        var command = Assert.IsType<CopularCommand>(Parsed("be.IMP  adjective:careful  adverb:now").Value);
+        var command = Assert.IsType<CopularCommand>(Parsed("be.IMP  adjective:careful  when:now").Value);
 
         Assert.Equal(new Adjective("big", true), big.Complement.Value);
         Assert.Equal(new Oblique(Role.Time, new NounPhrase("night", Number.Singular)), Assert.Single(big.Obliques));
@@ -279,14 +310,15 @@ public class AdverbTests
         Assert.Contains("night", ClauseFile.Nouns(ClauseFile.Parse("x\n  be  subject:dog  adjective:big  time:night")).Select(n => n.Noun));
 
     [Theory]
-    [InlineData("walk  subject:dog  adverb:here", "words for where")]
-    [InlineData("walk  subject:dog  adverb:very", "very goes on an adjective as INTS")]
-    [InlineData("walk  subject:dog  adverb:not", "NEG on the verb")]
-    [InlineData("walk  subject:dog  adverb:now.PL", "an adverb takes no glosses")]
-    [InlineData("walk  subject:dog  adverb:why", "why fills no role")]
-    [InlineData("walk  subject:dog  adverb:who", "who isn't an adverb")]
-    [InlineData("walk  subject:dog  adverb:when", "A question can't ask when yet")]
-    [InlineData("walk  subject:dog  adverb:(now again)", "An adverb is one word")]
+    [InlineData("walk  subject:dog  adverb:now", "Say what an adverb says: when:now")]
+    [InlineData("walk  subject:dog  when:here", "words for where")]
+    [InlineData("walk  subject:dog  often:very", "very goes on an adjective as INTS")]
+    [InlineData("walk  subject:dog  often:not", "NEG on the verb")]
+    [InlineData("walk  subject:dog  when:now.PL", "an adverb takes no glosses")]
+    [InlineData("walk  subject:dog  when:why", "why fills no role")]
+    [InlineData("walk  subject:dog  when:who", "who isn't an adverb")]
+    [InlineData("walk  subject:dog  when:when", "A question can't ask when yet")]
+    [InlineData("walk  subject:dog  often:(again always)", "An adverb is one word, as in often:again")]
     [InlineData("walk  subject:dog  manner:slow.CMPR", "A manner can't compare yet")]
     [InlineData("walk  subject:dog  manner:(and slow quiet)", "manner: takes one adjective")]
     [InlineData("walk  subject:dog  manner:slow.ADV", "an adverb made from an adjective is written manner:slow")]
