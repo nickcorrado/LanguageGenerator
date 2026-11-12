@@ -155,25 +155,40 @@ public sealed partial class Glosser(IChatModel model, int batchSize = 20, int re
         return usage;
     }
 
-    //the numbered answers that parse go into glossed, and the rest come back with what's wrong
+    //the numbered answers that parse go into glossed, and the rest come back with what's wrong. An
+    //answer has to repeat its sentence, since a model that splits one sentence in two or skips one
+    //shifts every answer after it, and the shifted glosses all still parse
     private static List<(string Sentence, string Attempt, string Error)> Keep(IReadOnlyList<string> asked,
-        Dictionary<int, string> answers, Dictionary<string, string> glossed)
+        Dictionary<int, Answer> answers, Dictionary<string, string> glossed)
     {
         var failures = new List<(string Sentence, string Attempt, string Error)>();
         foreach (var (sentence, i) in asked.Select((s, i) => (s, i)))
         {
-            var attempt = answers.GetValueOrDefault(i + 1, "");
-            if (Check(attempt) is { } error)
+            var answer = answers.GetValueOrDefault(i + 1, new Answer("", ""));
+            var error = !Repeats(answer.Echo, sentence)
+                ? answer.Echo.Length == 0
+                    ? $"The answer didn't repeat its sentence after [{i + 1}]."
+                    : $"The answer numbered [{i + 1}] repeated \"{answer.Echo}\", not its own sentence, so the answers may have been out of step."
+                : Check(answer.Block);
+            if (error is not null)
             {
-                failures.Add((sentence, attempt, error));
+                failures.Add((sentence, answer.Block, error));
             }
             else
             {
-                glossed[sentence] = attempt;
+                glossed[sentence] = answer.Block;
             }
         }
         return failures;
     }
+
+    //whether an answer's echo is its sentence, whatever its spacing, case and punctuation
+    private static bool Repeats(string echo, string sentence) => Letters(echo) == Letters(sentence) && Letters(echo).Length > 0;
+
+    private static string Letters(string text) => string.Concat(text.Where(char.IsLetterOrDigit)).ToLowerInvariant();
+
+    /// <summary>One numbered answer: the sentence as the model repeated it, and its lines.</summary>
+    public record Answer(string Echo, string Block);
 
     //null if a sentence's lines are a usable gloss: clauses that parse, or a note that it can't be
     //expressed yet, and otherwise what's wrong
@@ -199,17 +214,19 @@ public sealed partial class Glosser(IChatModel model, int batchSize = 20, int re
         }
     }
 
-    //a reply's lines by the number in brackets before them, trimmed of blank lines at either end
-    public static Dictionary<int, string> Numbered(string reply)
+    //a reply's answers by the number in brackets before them, each with the sentence repeated after
+    //its number and its lines trimmed of blank lines at either end
+    public static Dictionary<int, Answer> Numbered(string reply)
     {
-        var answers = new Dictionary<int, string>();
+        var answers = new Dictionary<int, Answer>();
         int? current = null;
+        var echo = "";
         var lines = new List<string>();
         void Flush()
         {
             if (current is { } n && !answers.ContainsKey(n))
             {
-                answers[n] = string.Join("\n", lines.SkipWhile(string.IsNullOrWhiteSpace).Reverse().SkipWhile(string.IsNullOrWhiteSpace).Reverse());
+                answers[n] = new Answer(echo, string.Join("\n", lines.SkipWhile(string.IsNullOrWhiteSpace).Reverse().SkipWhile(string.IsNullOrWhiteSpace).Reverse()));
             }
             lines.Clear();
         }
@@ -220,6 +237,7 @@ public sealed partial class Glosser(IChatModel model, int batchSize = 20, int re
             {
                 Flush();
                 current = int.Parse(number.Groups[1].Value);
+                echo = number.Groups[2].Value;
             }
             else if (current is not null && !line.TrimStart().StartsWith("```"))
             {
@@ -272,7 +290,7 @@ public sealed partial class Glosser(IChatModel model, int batchSize = 20, int re
             .Select(s => s.Trim())
             .Where(s => s.Length > 0)];
 
-    [GeneratedRegex(@"^\s*\[(\d+)\]\s*$")]
+    [GeneratedRegex(@"^\s*\[(\d+)\]\s*(.*?)\s*$")]
     private static partial Regex NumberLine();
     [GeneratedRegex(@"\n\s*\n")]
     private static partial Regex ParagraphBreak();

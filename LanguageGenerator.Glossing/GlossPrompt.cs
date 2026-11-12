@@ -18,8 +18,9 @@ public static class GlossPrompt
         var roles = ClauseFile.RoleNames.Where(r => r is not ("noun" or "adjective"));
         return $"""
             You turn English into clause files for a language generator, which translates them into
-            invented languages. Each clause is a line of plain English saying what it means, then an
+            invented languages. Each clause is a line of plain English saying what its gloss says, then an
             indented line glossing it: the verb, then its arguments as role:word, separated by two spaces.
+            Only the gloss is translated; the English line is the translation shown under the result.
 
               the hunter saw the wolves
                 see.PST.PFV  subject:hunter.DEF  object:wolf.PL.DEF
@@ -140,8 +141,20 @@ public static class GlossPrompt
               object:(or rope.NDF boat.NDF). Adjectives said together go the same way:
               adjective:(and warm crowded) for 'warm and crowded'.
             - Demonstratives, adverbs and other conjunctions have no gloss: leave them out of the gloss
-              line when the meaning mostly survives, and gloss 'this' or 'that' with a noun as DEF. The English line is natural
-              English saying what the gloss does, so 'the' stays, but a dropped adverb goes.
+              line when the meaning mostly survives, and gloss 'this' or 'that' with a noun as DEF.
+            - The English line says what the gloss says and nothing more, since readers take it as the
+              translation of what the gloss became. Write it fresh from the gloss: lowercase but for
+              names, with no final period, though a question keeps its question mark. Keep 'the' and
+              'a', and leave out whatever the gloss left out, like an adverb, 'this', 'so' or 'here'.
+              Never copy the sentence you were given when the gloss says less. For 'Eat something
+              first.' write:
+
+                eat something
+                  eat.IMP  object:something
+
+              and not 'Eat something first.', since nothing in the gloss says 'first'. For 'She is
+              taller than most of the men here.', the English line is 'she is taller than most of the
+              men', without 'here'.
             - Paraphrase into what the format can say when that keeps the meaning, as with 'went' for
               walk.PST, or 'lives in' for be with location:.
             - Never drop a modal, like might, maybe or want to, that has no gloss: 'it might rain'
@@ -153,12 +166,15 @@ public static class GlossPrompt
               'stronger arms than yours'), or a command to anyone but 'you', like 'let's go', write instead one line: {CantExpress} (what's missing): the sentence.
               This is better than a gloss that changes what the sentence means.
 
-            Reply with each numbered sentence's lines after its number in brackets, and nothing else:
+            Reply with each numbered sentence's number in brackets, followed on the same line by the
+            sentence copied exactly as it was given, then its lines, and nothing else. Answer every
+            sentence once, in order, even one you'd split or can't express. The copy is only there to
+            check the answers line up; the English line under it is still written fresh from the gloss:
 
-              [1]
-              the two dogs slept in the old house
-                sleep.PST  subject:(dog.DEF 2)  location:(house.DEF old)
-              [2]
+              [1] The two old dogs slept in the house all afternoon.
+              the two old dogs slept in the house
+                sleep.PST  subject:(dog.DEF 2 old)  location:house.DEF
+              [2] When did they go?
               {CantExpress} (question with when): When did they go?
             """;
     }

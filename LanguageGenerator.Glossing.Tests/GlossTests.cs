@@ -17,7 +17,7 @@ public partial class GlossTests
             {
                 throw new ChatModelException("The server went away.");
             }
-            var reply = string.Join("\n", Numbered().Matches(user).Select(m => $"[{m.Groups[1].Value}]\n{answer(m.Groups[2].Value, Requests.Count)}"));
+            var reply = string.Join("\n", Numbered().Matches(user).Select(m => $"[{m.Groups[1].Value}] {m.Groups[2].Value}\n{answer(m.Groups[2].Value, Requests.Count)}"));
             return Task.FromResult(new ChatReply(reply, new TokenUsage(100, 10, 20)));
         }
 
@@ -34,8 +34,8 @@ public partial class GlossTests
 
     private static readonly string Text = "The dog slept. The cat slept. The bird slept. The fish slept. The wolf slept.";
 
-    //replies to noun requests in turn, and records them
-    private sealed class NounModel(params string[] replies) : IChatModel
+    //gives these replies to requests in turn, and records the requests
+    private sealed class ScriptedModel(params string[] replies) : IChatModel
     {
         public List<string> Requests { get; } = [];
         public string Name => "fake";
@@ -55,7 +55,7 @@ public partial class GlossTests
     [Fact]
     public async Task ClassifyNouns_TagsWhatTheModelListsAndTheRestAreThings()
     {
-        var model = new NounModel("marta F\nmiller HUM");
+        var model = new ScriptedModel("marta F\nmiller HUM");
 
         var result = await new Glosser(model).ClassifyNouns(Clauses("marta", "miller", "river"), NoNouns);
 
@@ -69,7 +69,7 @@ public partial class GlossTests
     [Fact]
     public async Task ClassifyNouns_KnownNouns_AreKeptAndNotAskedAbout()
     {
-        var model = new NounModel("miller HUM");
+        var model = new ScriptedModel("miller HUM");
         var known = new Dictionary<string, SemanticClass> { ["marta"] = SemanticClass.Male, ["old"] = SemanticClass.Thing };
 
         var result = await new Glosser(model).ClassifyNouns(Clauses("marta", "miller"), known);
@@ -83,7 +83,7 @@ public partial class GlossTests
     [Fact]
     public async Task ClassifyNouns_NothingNew_AsksNothing()
     {
-        var model = new NounModel();
+        var model = new ScriptedModel();
         var known = new Dictionary<string, SemanticClass> { ["marta"] = SemanticClass.Female };
 
         var result = await new Glosser(model).ClassifyNouns(Clauses("marta"), known);
@@ -95,8 +95,8 @@ public partial class GlossTests
     [Fact]
     public async Task ClassifyNouns_None_MeansThingsAndFences_AreIgnored()
     {
-        Assert.Equal(SemanticClass.Thing, (await new Glosser(new NounModel("NONE")).ClassifyNouns(Clauses("river"), NoNouns)).Nouns["river"]);
-        Assert.Equal(SemanticClass.Female, (await new Glosser(new NounModel("```\nmarta F\n```")).ClassifyNouns(Clauses("marta"), NoNouns)).Nouns["marta"]);
+        Assert.Equal(SemanticClass.Thing, (await new Glosser(new ScriptedModel("NONE")).ClassifyNouns(Clauses("river"), NoNouns)).Nouns["river"]);
+        Assert.Equal(SemanticClass.Female, (await new Glosser(new ScriptedModel("```\nmarta F\n```")).ClassifyNouns(Clauses("marta"), NoNouns)).Nouns["marta"]);
     }
 
     [Theory]
@@ -105,7 +105,7 @@ public partial class GlossTests
     [InlineData("river THING\nsomeone F")]
     public async Task ClassifyNouns_ABadReply_IsRetriedWithWhatsWrong(string bad)
     {
-        var model = new NounModel(bad, "marta F");
+        var model = new ScriptedModel(bad, "marta F");
 
         var result = await new Glosser(model).ClassifyNouns(Clauses("marta", "river"), NoNouns);
 
@@ -120,7 +120,7 @@ public partial class GlossTests
     {
         var known = new Dictionary<string, SemanticClass> { ["king"] = SemanticClass.Male };
 
-        var result = await new Glosser(new NounModel("what", "what", "what"), retries: 2).ClassifyNouns(Clauses("marta"), known);
+        var result = await new Glosser(new ScriptedModel("what", "what", "what"), retries: 2).ClassifyNouns(Clauses("marta"), known);
 
         Assert.NotNull(result.Error);
         Assert.Equal(known, result.Nouns);
@@ -292,9 +292,49 @@ public partial class GlossTests
     [Fact]
     public void Numbered_ReadsBlocksByNumber_IgnoringFencesAndBlankEdges()
     {
-        var answers = Glosser.Numbered("Sure!\n```\n[2]\n\nb\n  sleep subject:b\n\n[1]\na\n  sleep subject:a\n```\n");
+        var answers = Glosser.Numbered("Sure!\n```\n[2] B slept.\n\nb\n  sleep subject:b\n\n[1]  A slept.  \na\n  sleep subject:a\n```\n");
 
-        Assert.Equal("b\n  sleep subject:b", answers[2]);
-        Assert.Equal("a\n  sleep subject:a", answers[1]);
+        Assert.Equal(new Glosser.Answer("B slept.", "b\n  sleep subject:b"), answers[2]);
+        Assert.Equal(new Glosser.Answer("A slept.", "a\n  sleep subject:a"), answers[1]);
+    }
+
+    //a reply that splits the first sentence in two and drops the last, so that the other answers are
+    //each a sentence late, and then one that has them right
+    [Fact]
+    public async Task Gloss_AnswersOutOfStep_AreSentBackAndNotKept()
+    {
+        var shifted = "[1] The dog slept.\nthe dog slept\n  sleep.PST  subject:dog\n[2] The dog slept.\nit slept\n  sleep.PST  subject:3SG.N\n[3] The cat slept.\n" + Good("The cat slept.");
+        var fixedReply = "[1] The cat slept.\n" + Good("The cat slept.") + "\n[2] The bird slept.\n" + Good("The bird slept.");
+        var model = new ScriptedModel(shifted, fixedReply);
+
+        var result = await new Glosser(model).Gloss("The dog slept. The cat slept. The bird slept.");
+
+        Assert.Equal(2, model.Requests.Count);
+        Assert.Contains("repeated \"The dog slept.\", not its own sentence", model.Requests[1]);
+        Assert.Contains("[1] The cat slept.", model.Requests[1]);
+        Assert.Contains("[2] The bird slept.", model.Requests[1]);
+        Assert.Equal(["dog", "cat", "bird"], ClauseFile.Parse(result.Text).Select(e => ((Clause)e.Statement.Value!).Subject.Value is NounPhrase n ? n.Noun : ""));
+    }
+
+    [Fact]
+    public async Task Gloss_AnAnswerThatDoesntRepeatItsSentence_IsSentBack()
+    {
+        var model = new ScriptedModel("[1]\n" + Good("The dog slept."), "[1] The dog slept.\n" + Good("The dog slept."));
+
+        var result = await new Glosser(model).Gloss("The dog slept.");
+
+        Assert.Equal(2, model.Requests.Count);
+        Assert.Contains("didn't repeat its sentence", model.Requests[1]);
+        Assert.Single(ClauseFile.Parse(result.Text));
+    }
+
+    [Fact]
+    public async Task Gloss_ARepeatWithOtherQuotesAndCase_StillLinesUp()
+    {
+        var model = new ScriptedModel("[1] you're late, she says\n" + Good("The dog slept."));
+
+        await new Glosser(model).Gloss("\"You're late,\" she says.");
+
+        Assert.Single(model.Requests);
     }
 }
