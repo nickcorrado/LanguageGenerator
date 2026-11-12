@@ -53,6 +53,8 @@ public record Mood(string Name, string Gloss) : Grammeme(Name, Gloss)
     public static Mood Imperative { get; } = new("Imperative", "IMP");
     /// <summary>A negative command, as in 'don't go', where a language marks it apart.</summary>
     public static Mood Prohibitive { get; } = new("Prohibitive", "PROH");
+    /// <summary>A yes-no question, glossed Q as the Leipzig rules gloss a question marker.</summary>
+    public static Mood Interrogative { get; } = new("Interrogative", "Q");
 }
 
 /// <summary>

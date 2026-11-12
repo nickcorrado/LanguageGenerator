@@ -57,13 +57,14 @@ public static partial class Generator
         var conjunctions = GenerateConjunctions(stages.For("conjunctions"), phonology, syllableDropoff);
         var subordination = GenerateSubordination(stages.For("subordination"), morphology, wordOrder, phonology, syllableDropoff);
         var modals = GenerateModals(stages.For("modals"), morphology, wordOrder, predication, phonology, syllableDropoff);
+        var questions = GenerateQuestions(stages.For("questions"), morphology, wordOrder, phonology, syllableDropoff);
 
         //the lexicon comes last, once there are closed classes for it to avoid
         var lexiconSeed = stages.For("lexicon").Next();
         var extraSyllables = SelectExtraSyllables(SelectRootLengthNoise(stages.For("root length noise")), lexiconSeed, phonology, syllableDropoff);
         var lexicon = GenerateLexicon(lexiconSeed, extraSyllables, phonology, syllableDropoff, new Dictionary<PartOfSpeech, IEnumerable<Lexeme>>
         {
-            [PartOfSpeech.Noun] = pronouns.Forms.Values,
+            [PartOfSpeech.Noun] = [.. pronouns.Forms.Values, .. questions.Words.Values, questions.Why],
             [PartOfSpeech.Adjective] = [.. numerals.Words.Values, .. new[] { numerals.Many, numerals.Ordinals.First, numerals.Ordinals.Second }.OfType<Lexeme>()],
             [PartOfSpeech.Verb] = [predication.Copula, .. predication.LocationalCopula is { } locational ? [locational] : Array.Empty<Lexeme>(),
                 .. modals.Markers.Values.Select(m => m.Value).OfType<ModalVerb>().Select(m => m.Verb)],
@@ -94,6 +95,7 @@ public static partial class Generator
             Conjunctions = conjunctions,
             Subordination = subordination,
             Modals = modals,
+            Questions = questions,
         };
     }
 

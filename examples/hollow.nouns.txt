@@ -70,13 +70,16 @@ hand THING
 harvest THING
 head THING
 health THING
+here THING
 hill THING
 hollow THING
 home THING
+hum THING
 humming THING
 hunter HUM
 husband M
 inn THING
+inside THING
 item THING
 key THING
 king M
@@ -121,6 +124,7 @@ side THING
 sister F
 sky THING
 smoke THING
+soldier HUM
 someone HUM
 something THING
 son M

@@ -31,6 +31,7 @@ public class Language
     public required Conjunctions Conjunctions { get; init; }
     public required Subordination Subordination { get; init; }
     public required Modals Modals { get; init; }
+    public required Questions Questions { get; init; }
 
     public Gender? GenderOf(Lexeme noun) => Genders.Of(noun, Lexicon.ClassOf(noun.Root.Meaning));
 
