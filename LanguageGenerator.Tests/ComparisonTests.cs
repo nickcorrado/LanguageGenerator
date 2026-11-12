@@ -154,14 +154,13 @@ public class ComparisonTests
     {
         var language = GeneratedLanguages.Sample.First(l => l.MorphologicalProfile.Fusion != Fusion.Isolating);
         var rand = new Random(1);
-        DegreeMarking Draw(Comparison comparison) => Generator.GenerateDegree(rand, comparison, language.MorphologicalProfile, language.Phonology, 0.15);
+        DegreeMarking Draw(Comparison comparison) => Generator.GenerateDegree(rand, comparison, language.MorphologicalProfile, language.WordOrder, language.Phonology, 0.15);
 
         var drawn = Enumerable.Range(0, 4000).Select(_ => Draw(new LocationalComparison(Role.Source))).ToList();
         var words = drawn.Select(d => d.Marker.Value).OfType<DegreeWord>().ToList();
 
         Assert.InRange(drawn.Count(d => d.Marker.Value is DegreeAffix) / 4000.0, 0.22, 0.28);
-        //WALS 91A: a degree word before the adjective in 228 languages and after it in 193
-        Assert.InRange(words.Count(w => w.BeforeAdjective) / (double)words.Count, 0.51, 0.57);
+        Assert.All(words, w => Assert.Equal(language.WordOrder.AdjectivePhraseDirectionality == HeadDirectionality.Final, w.BeforeAdjective));
         Assert.InRange(drawn.Count(d => d.WithStandard) / 4000.0, 0.13, 0.17);
         Assert.InRange(Enumerable.Range(0, 4000).Count(_ => Draw(new ParticleComparison(null!, true)).WithStandard) / 4000.0, 0.57, 0.63);
         Assert.DoesNotContain(Enumerable.Range(0, 500).Select(_ => Draw(new ConjoinedComparison())), d => d.WithStandard);

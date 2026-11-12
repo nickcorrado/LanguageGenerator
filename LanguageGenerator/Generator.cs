@@ -54,8 +54,8 @@ public static partial class Generator
         var possession = GeneratePossession(stages.For("possession"), morphology, wordOrder, phonology, syllableDropoff);
         var commands = GenerateCommands(stages.For("commands"), morphology, wordOrder, phonology, syllableDropoff);
         var comparison = GenerateComparison(stages.For("comparison"), wordOrder, phonology, syllableDropoff);
-        var degree = GenerateDegree(stages.For("degree"), comparison, morphology, phonology, syllableDropoff);
-        var intensifier = GenerateIntensifier(stages.For("intensifier"), degree, phonology, syllableDropoff);
+        var degree = GenerateDegree(stages.For("degree"), comparison, morphology, wordOrder, phonology, syllableDropoff);
+        var intensifier = GenerateIntensifier(stages.For("intensifier"), degree, wordOrder, phonology, syllableDropoff);
         var manner = GenerateManner(stages.For("manner"), morphology, phonology, syllableDropoff);
         var similative = GenerateSimilative(stages.For("similative"), comparison, morphology, wordOrder, phonology, syllableDropoff);
         var passive = GeneratePassive(stages.For("passive"), alignment, morphology, phonology, syllableDropoff);

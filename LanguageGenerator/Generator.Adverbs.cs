@@ -3,19 +3,17 @@ namespace LanguageGenerator;
 //adverbs: 'very', manner adverbs, and how a duration is marked
 public static partial class Generator
 {
-    //'very' is a word beside the adjective, as nearly every language's is, on the side WALS 91A
-    //counts for degree words, which is the comparative's side where that's a word too. Its form is
-    //kept apart from the comparative's
-    public static DegreeWord GenerateIntensifier(Random rand, DegreeMarking degree, Phonology phonology, double dropoff)
+    //'very' is a word beside the adjective, as nearly every language's is, on the side the language
+    //puts degree words, as its comparative's is where that's a word too. Its form is kept apart
+    //from the comparative's
+    public static DegreeWord GenerateIntensifier(Random rand, DegreeMarking degree, WordOrder wordOrder, Phonology phonology, double dropoff)
     {
         var forms = new DistinctForms();
-        var before = Sampling.Categorical(rand, DegreeWordBeforeCounts);
         if (degree.Marker.Value is DegreeWord comparative)
         {
             forms.Take(comparative.Marker.Form);
-            before = comparative.BeforeAdjective;
         }
-        return new DegreeWord(new Particle(forms.Draw(() => MarkerForm(rand, false, phonology, dropoff)), [Degree.Intensive]), before);
+        return new DegreeWord(new Particle(forms.Draw(() => MarkerForm(rand, false, phonology, dropoff)), [Degree.Intensive]), DegreeWordBefore(wordOrder));
     }
 
     private enum MannerType { Bare, Affix, Word }

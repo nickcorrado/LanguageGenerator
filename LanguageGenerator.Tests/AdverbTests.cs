@@ -153,30 +153,19 @@ public class AdverbTests
         });
 
     [Fact]
-    public void Generate_Intensifier_IsAWordOnTheComparativesSide()
+    public void Generate_DegreeWords_GoOnTheAdjectivePhrasesSide()
     {
         Assert.All(GeneratedLanguages.Sample, l =>
         {
+            var before = l.WordOrder.AdjectivePhraseDirectionality == HeadDirectionality.Final;
             Assert.Equal(Degree.Intensive, Assert.Single(l.Intensifier.Marker.Grammemes));
+            Assert.Equal(before, l.Intensifier.BeforeAdjective);
             if (l.Degree.Marker.Value is DegreeWord comparative)
             {
-                Assert.Equal(comparative.BeforeAdjective, l.Intensifier.BeforeAdjective);
+                Assert.Equal(before, comparative.BeforeAdjective);
             }
         });
         Assert.True(GeneratedLanguages.Sample.Count(l => l.Degree.Marker.Value is DegreeWord w && w.Marker.Form.SequenceEqual(l.Intensifier.Marker.Form)) < 5);
-    }
-
-    [Fact]
-    public void GenerateIntensifier_BesideAnAffix_MatchesTheWalsCounts()
-    {
-        var language = GeneratedLanguages.Sample[0];
-        var rand = new Random(1);
-        var affix = new DegreeMarking(new DegreeAffix(new Affix([], [Degree.Comparative]), ExponentPosition.Suffix), false);
-
-        var drawn = Enumerable.Range(0, 4000).Select(_ => Generator.GenerateIntensifier(rand, affix, language.Phonology, 0.15)).ToList();
-
-        //WALS 91A: a degree word before the adjective in 228 languages and after it in 193
-        Assert.InRange(drawn.Count(w => w.BeforeAdjective) / 4000.0, 0.51, 0.57);
     }
 
     [Fact]
