@@ -34,8 +34,8 @@ public static class GlossPrompt
               'Could' is ABIL.PST, and 'will be able to' ABIL.FUT. NEG after the modal negates the
               modal, and NEG before it the verb:
 
-                you cannot swim in armor
-                  swim.ABIL.NEG  subject:2SG  location:armor
+                you cannot swim in the river
+                  swim.ABIL.NEG  subject:2SG  location.in:river.DEF
                 you must not sing
                   sing.NEG.OBLIG  subject:2SG
                 you must be careful
@@ -51,6 +51,9 @@ public static class GlossPrompt
               'water' or 'his dogs' are, and so is a possessed noun: 'the king's house' is
               (house possessor:king.DEF), since 'the' goes with 'king'.
             - Unmarked defaults: present, imperfective, affirmative, singular. Leave defaults out.
+            - There's no perfect, so 'has fallen' or 'have watched' is a past, PST, with PFV when it's
+              done and over, and its English line says it in the past: 'I have watched them for years'
+              is watch.PST and 'I watched them for years'. A present with PFV is never right for it.
 
             Pronouns are a person and number instead of a word, as in subject:1SG or object:3PL, then
             optionally .INCL or .EXCL for 'we' (whether it includes the hearer), and a gender for a
@@ -72,6 +75,12 @@ public static class GlossPrompt
             location.on:table.DEF and 'among the trees' location.between:tree.PL.DEF. Use one
             whenever the English says more than 'at', 'to' or 'from', since a language may tell
             them apart.
+
+            These roles are for physical places and movement only. English uses the same words for
+            much else, and none of it is a place: 'she bites through the thread' cuts the thread, so
+            it's object:thread.DEF; 'against the wind' is opposing it, not touching it; 'in a line'
+            and 'in silence' say how; 'in armor' says what's worn. Gloss what such a phrase means, or
+            leave it out of the gloss and the English line when the meaning mostly survives.
 
             A noun with adjectives goes in parentheses, noun
             first, as in object:(wolf.PL.DEF big gray). So does a number, in digits from 1 to {NumeralSystem.Largest}, as in
@@ -166,8 +175,11 @@ public static class GlossPrompt
               English line, as in 'the hunter saw the wolves' and 'he ran'.
 
                 hunters sit by the fire and argue
-                  sit  subject:hunter.PL  location:fire.DEF
+                  sit  subject:hunter.PL  location.beside:fire.DEF
                   and  argue  subject:hunter.PL
+
+              The English line is still the whole sentence, every clause in it, as here, and so is
+              it for a clause under another, below.
 
             - A clause under another, saying if, when, before, after, until, because or in order to,
               goes on an indented line of its own starting with if, when, before, after, until,
@@ -192,7 +204,8 @@ public static class GlossPrompt
               later', has no gloss either: leave out the whole phrase, not just 'ago' or 'later',
               since time:(winter.PL 3) alone would say 'during three winters'.
             - The English line says what the gloss says and nothing more, since readers take it as the
-              translation of what the gloss became. Write it fresh from the gloss: lowercase but for
+              translation of what the gloss became, and everything the gloss says, every joined or
+              subordinate clause included. Write it fresh from the gloss: lowercase but for
               names, with no final period, though a question keeps its question mark. Keep 'the' and
               'a', and leave out whatever the gloss left out, like 'only', 'this', 'so' or 'here'.
               Never copy the sentence you were given when the gloss says less. For 'Eat only the
@@ -208,6 +221,9 @@ public static class GlossPrompt
               walk.PST, or 'lives in' for be with location:.
             - Never drop a modal, like might, maybe or want to, that has no gloss: 'it might rain'
               doesn't say 'it rains'.
+            - Never drop or paraphrase away a word that negates, like 'nobody', 'nothing' or 'no':
+              'nobody believes him' is subject:nobody, not 'people do not believe him', and 'she
+              says no' keeps object:no.
             - When a sentence can't be said even loosely, as with a question asking two things, or
               when, how, how long, which or whose, or a question inside another clause, a modal other than ABIL,
               PERM, OBLIG or ADVS (like might, maybe or want to), a relative
