@@ -35,7 +35,7 @@ public static class RoleMap
     /// tends to have the ones above it, and a region is named for its highest.
     /// </summary>
     public static IReadOnlyList<Role> Roles { get; } =
-        [Role.Possessor, Role.Recipient, Role.Location, Role.Source, Role.Instrument, Role.Companion, Role.Goal, Role.Agent, Role.Time];
+        [Role.Possessor, Role.Recipient, Role.Location, Role.Source, Role.Instrument, Role.Companion, Role.Goal, Role.Route, Role.Agent, Role.Time];
 
     /// <summary>
     /// Each pair of roles languages mark alike, with the chance that a language does. Only the first
@@ -67,6 +67,12 @@ public static class RoleMap
         //a time is marked like a place in most languages, as English at night, Turkish gece-de
         //'night-LOC' and Japanese ni; a guess, since WALS doesn't count it
         (Role.Time, Role.Location, 0.6),
+        //a route is marked like a place in many languages, like an instrument in Russian, which
+        //says shel lesom 'went forest-INS' for 'went through the forest', and like a source in some
+        //Australian languages; guesses, since WALS doesn't count it
+        (Role.Route, Role.Location, 0.2),
+        (Role.Route, Role.Instrument, 0.15),
+        (Role.Route, Role.Source, 0.15),
     ];
 
     public static int Rank(Role role) => Roles.ToList().IndexOf(role) is var rank and >= 0
@@ -85,6 +91,7 @@ public static class RoleMap
         Role.Instrument => Case.Instrumental,
         Role.Companion => Case.Comitative,
         Role.Goal => Case.Allative,
+        Role.Route => Case.Perlative,
         Role.Agent => null,
         Role.Time => null,
         _ => throw new ArgumentOutOfRangeException(nameof(head), head, "Only oblique roles are on the map."),
@@ -99,6 +106,7 @@ public static class RoleMap
         Role.Instrument => "using",
         Role.Companion => "with",
         Role.Goal => "toward",
+        Role.Route => "via",
         Role.Agent => "by",
         Role.Time => "during",
         _ => throw new ArgumentOutOfRangeException(nameof(head), head, "Only oblique roles are on the map."),

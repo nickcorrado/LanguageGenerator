@@ -56,7 +56,7 @@ public class VocativeTests
             var vocative = sentence.Words.Any(w => w.Gloss.Contains("VOC"));
 
             Assert.True(person < dog && person < sleep);
-            Assert.Equal(l.RoleMarkers[Role.Addressee].Value is Case { Name: "Vocative" }, vocative);
+            Assert.Equal(l.RoleMarkers[Role.Addressee].Case is { Name: "Vocative" }, vocative);
         });
     }
 

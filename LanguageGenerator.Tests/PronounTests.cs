@@ -178,10 +178,14 @@ public class PronounTests
     [Fact]
     public void Generate_NounsWithACaseSlotOfTheirOwn_ShareItWithPronouns()
     {
-        var sharing = GeneratedLanguages.Sample.Where(l => l.Paradigms.Nouns.Slots.Any(s => s.Categories is [var only] && only.Is<Case>())).ToList();
+        //a localization goes with case, in a slot of its own or fused with it
+        static bool Spatial(InflectionalCategory c) => c.Is<Case>() || c.Is<Localization>();
+        var sharing = GeneratedLanguages.Sample.Where(l => l.Paradigms.Nouns.Categories.Has<Case>()
+            && l.Paradigms.Nouns.Slots.Where(s => s.Categories.Any(Spatial)).All(s => s.Categories.All(Spatial))).ToList();
 
         Assert.NotEmpty(sharing);
-        Assert.All(sharing, l => Assert.Same(l.Paradigms.Nouns.Slots.Single(s => s.Categories is [var only] && only.Is<Case>()), Assert.Single(l.Pronouns.Paradigm.Slots)));
+        Assert.Contains(sharing, l => l.Paradigms.Nouns.Categories.Has<Localization>());
+        Assert.All(sharing, l => Assert.Equal(l.Paradigms.Nouns.Slots.Where(s => s.Categories.Any(Spatial)), l.Pronouns.Paradigm.Slots));
     }
 
     [Fact]

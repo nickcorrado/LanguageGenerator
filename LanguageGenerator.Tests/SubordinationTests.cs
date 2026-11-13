@@ -151,13 +151,13 @@ public class SubordinationTests
             var sleep = IndexOf(sentence, "sleep");
 
             Assert.DoesNotContain(sentence.Words, w => w.Word.Morphemes.Any(IsMarker));
-            switch (l.RoleMarkers[l.Subordination.Markers[Subordinator.Purpose].MarkedAs!.Value].Value)
+            switch (l.RoleMarkers[l.Subordination.Markers[Subordinator.Purpose].MarkedAs!.Value])
             {
                 //a case particle can come before the verb, and the main clause has only core cases
-                case Case c:
+                case { Case: { } c, Adposition: null }:
                     Assert.Contains(c.Gloss, string.Join(" ", sentence.Words.Select(w => w.Gloss)).Split('-', '.', ' ', '[', ']'));
                     break;
-                case Adposition a:
+                case { Adposition: { } a }:
                     Assert.InRange(IndexOf(sentence, a.Lexeme.Root), sleep - 1, sleep + 1);
                     break;
             }

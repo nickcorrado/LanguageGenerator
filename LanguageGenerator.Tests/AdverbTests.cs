@@ -11,7 +11,7 @@ public class AdverbTests
         Obliques = [],
         Adverbs = [],
     };
-    private static readonly Oblique AtTheHouse = new(Role.Location, new NounPhrase("house", Number.Singular));
+    private static readonly Oblique AtTheHouse = new(Role.Location, new NounPhrase("house", Number.Singular), Configuration.At);
     private static readonly Adverb Now = new("now", AdverbKind.When);
     private static readonly Adverb Again = new("again", AdverbKind.Often);
 
@@ -54,7 +54,7 @@ public class AdverbTests
             var sentence = Realized(l, DogWalks with
             {
                 Adverbs = [Now, Again, new Manner(new Adjective("good", false))],
-                Obliques = [AtTheHouse, new(Role.Goal, new NounPhrase("water", Number.Singular))],
+                Obliques = [AtTheHouse, new(Role.Goal, new NounPhrase("water", Number.Singular), Configuration.At)],
             });
 
             var distances = Distances(sentence, "water", "good", "house", "again", "now");
@@ -67,7 +67,7 @@ public class AdverbTests
         {
             var sentence = Realized(l, DogWalks with
             {
-                Obliques = [new(Role.Source, new NounPhrase("tree", Number.Singular)), new(Role.Goal, new NounPhrase("water", Number.Singular))],
+                Obliques = [new(Role.Source, new NounPhrase("tree", Number.Singular), Configuration.At), new(Role.Goal, new NounPhrase("water", Number.Singular), Configuration.At)],
             });
 
             Assert.True(IndexOf(sentence, "tree") < IndexOf(sentence, "water"));
@@ -218,7 +218,7 @@ public class AdverbTests
         Assert.All(GeneratedLanguages.Sample, l =>
         {
             var marker = l.RoleMarkers[Role.Duration];
-            Assert.True(marker.Equals(l.RoleMarkers[Role.DirectObject]) || marker.Equals(l.RoleMarkers[Role.Time]) || marker.Value is Adposition { Gloss: "for" },
+            Assert.True(marker.Equals(l.RoleMarkers[Role.DirectObject]) || marker.Equals(l.RoleMarkers[Role.Time]) || marker.Adposition is { Gloss: "for" },
                 $"{marker} is like nothing.");
         });
 
@@ -229,14 +229,14 @@ public class AdverbTests
 
         Assert.InRange(share, 0.5, 0.7);
         Assert.All(GeneratedLanguages.Sample.Where(l => !l.RoleMarkers[Role.Time].Equals(l.RoleMarkers[Role.Location])), l =>
-            Assert.Equal("during", Assert.IsType<Adposition>(l.RoleMarkers[Role.Time].Value).Gloss));
+            Assert.Equal("during", Assert.IsType<Adposition>(l.RoleMarkers[Role.Time].Adposition).Gloss));
     }
 
     [Fact]
     public void Realize_CopularClause_SaysItsAdverbsAndTimes() =>
         Assert.All(GeneratedLanguages.Sample, l =>
         {
-            Oblique sunrise = new(Role.Time, new NounPhrase("sun", Number.Singular));
+            Oblique sunrise = new(Role.Time, new NounPhrase("sun", Number.Singular), Configuration.At);
             CopularClause[] clauses =
             [
                 DogIsBig with { Adverbs = [Now], Obliques = [sunrise] },
@@ -277,7 +277,7 @@ public class AdverbTests
         var clause = Assert.IsType<Clause>(Parsed("walk  subject:dog  when:now  manner:slow.INTS  time:night  often:again  duration:(year 3)").Value);
 
         ValueList<Adverbial> adverbs = [Now, new Manner(new Adjective("slow", true)), Again];
-        ValueList<Oblique> obliques = [new(Role.Time, new NounPhrase("night", Number.Singular)), new(Role.Duration, new NounPhrase("year", Number.Paucal, Count: 3))];
+        ValueList<Oblique> obliques = [new(Role.Time, new NounPhrase("night", Number.Singular), Configuration.At), new(Role.Duration, new NounPhrase("year", Number.Paucal, Count: 3), Configuration.At)];
         Assert.Equal(adverbs, clause.Adverbs);
         Assert.Equal(obliques, clause.Obliques);
     }
@@ -290,7 +290,7 @@ public class AdverbTests
         var command = Assert.IsType<CopularCommand>(Parsed("be.IMP  adjective:careful  when:now").Value);
 
         Assert.Equal(new Adjective("big", true), big.Complement.Value);
-        Assert.Equal(new Oblique(Role.Time, new NounPhrase("night", Number.Singular)), Assert.Single(big.Obliques));
+        Assert.Equal(new Oblique(Role.Time, new NounPhrase("night", Number.Singular), Configuration.At), Assert.Single(big.Obliques));
         Assert.Equal(Now, Assert.Single(big.Adverbs).Value);
         Assert.Equal(Role.Location, Assert.IsType<Oblique>(there.Complement.Value).Role);
         Assert.Equal(Role.Duration, Assert.Single(there.Obliques).Role);

@@ -85,10 +85,10 @@ public class PassiveTests
         Assert.All(GeneratedLanguages.Sample.Where(l => l.Passive is not null), l =>
         {
             var sentence = Syntax.Realize(l, EatenBy(Cat), "x");
-            var marked = l.RoleMarkers[Role.Agent].Value switch
+            var marked = l.RoleMarkers[Role.Agent] switch
             {
-                Case c => sentence.Words.Any(w => w.Gloss.Split('-', '.', '[', ']').Contains(c.Gloss)),
-                Adposition a => IndexOf(sentence, a.Lexeme.Root) >= 0,
+                { Adposition: { } a } => IndexOf(sentence, a.Lexeme.Root) >= 0,
+                { Case: { } c } => sentence.Words.Any(w => w.Gloss.Split('-', '.', '[', ']').Contains(c.Gloss)),
                 _ => false,
             };
 
@@ -111,8 +111,8 @@ public class PassiveTests
     public void Generate_AgentsCase_IsAlwaysOneItSharesWithAnotherRole()
     {
         //an agent never has a case of its own, so where it has one, another role's region is its own
-        Assert.All(GeneratedLanguages.Sample.Where(l => l.RoleMarkers[Role.Agent].Value is Case), l =>
-            Assert.Contains(RoleMap.Roles.Where(r => r != Role.Agent), r => l.RoleMarkers[r].Value is Case c && c == (Case)l.RoleMarkers[Role.Agent].Value!));
-        Assert.Contains(GeneratedLanguages.Sample, l => l.RoleMarkers[Role.Agent].Value is Adposition { Lexeme.Root.Meaning: "by" });
+        Assert.All(GeneratedLanguages.Sample.Where(l => l.RoleMarkers[Role.Agent].Adposition is null && l.RoleMarkers[Role.Agent].Case is not null), l =>
+            Assert.Contains(RoleMap.Roles.Where(r => r != Role.Agent), r => l.RoleMarkers[r] == l.RoleMarkers[Role.Agent]));
+        Assert.Contains(GeneratedLanguages.Sample, l => l.RoleMarkers[Role.Agent].Adposition is { Lexeme.Root.Meaning: "by" });
     }
 }

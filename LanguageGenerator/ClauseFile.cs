@@ -327,6 +327,10 @@ public static class ClauseFile
             {
                 throw new ClauseFormatException($"where asks about a place, so it's location:where, goal:where for 'where to' or source:where for 'where from', not {role}:where.", number);
             }
+            if (roles.Obliques.Any(o => o.Oblique.Argument.Value is QuestionWord && o.Oblique.Configuration != Configuration.At))
+            {
+                throw new ClauseFormatException($"A question word can't take a configuration yet, as in 'under what?'.", number);
+            }
         }
         return true;
 
@@ -415,7 +419,7 @@ public static class ClauseFile
             {
                 throw new ClauseFormatException($"'{token}' needs a role, as in subject:{token}.", number);
             }
-            var role = token[..colon];
+            var (role, configuration) = ParseConfiguration(token[..colon], number);
             if (role == "adverb")
             {
                 throw new ClauseFormatException($"Say what an adverb says: when:{token[(colon + 1)..]} for when, often:{token[(colon + 1)..]} for how often or whether still, or manner: with an adjective for how, as manner:careful is 'carefully'.", number);
@@ -463,14 +467,41 @@ public static class ClauseFile
                     complement = ParseAdjective(compared ? string.Join('.', value.Split('.').Where(p => p != Degree.Comparative.Gloss)) : value, number);
                     break;
                 case var name when ObliqueRoles.TryGetValue(name, out var oblique):
-                    obliques.Add((role, new Oblique(oblique, ParseArgument(value, number))));
+                    if (configuration != Configuration.At && !Oblique.Spatial.Contains(oblique))
+                    {
+                        throw new ClauseFormatException($"Only a role saying where can say in, on or under, as location., goal., source. and route. do, not {role}.", number);
+                    }
+                    obliques.Add((role, new Oblique(oblique, ParseArgument(value, number), configuration)));
                     break;
+                case var _ when configuration != Configuration.At:
+                    throw new ClauseFormatException($"Only a role saying where can say in, on or under, as location., goal., source. and route. do, not {role}.", number);
                 default:
                     arguments[role] = ParseArgument(value, number);
                     break;
             }
         }
         return new ClauseRoles(arguments, obliques, complement, compared, adverbs);
+    }
+
+    //where relative to a place a spatial role says, written after the role with a period, as in
+    //goal.in:river for 'into the river'. A role with none is At, which is never written
+    private static readonly Dictionary<string, Configuration> Configurations = Enum.GetValues<Configuration>()
+        .Where(c => c != Configuration.At)
+        .ToDictionary(c => c == Configuration.InFront ? "front" : c.ToString().ToLowerInvariant());
+
+    public static IReadOnlyList<string> ConfigurationNames => [.. Configurations.Keys];
+
+    private static (string Role, Configuration Configuration) ParseConfiguration(string written, int number)
+    {
+        var parts = written.Split('.');
+        return parts switch
+        {
+            [var role] => (role, Configuration.At),
+            [var role, "at"] => throw new ClauseFormatException($"{role}:, with nothing after it, already means at, so {role}.at: is just {role}:.", number),
+            [var role, var name] when Configurations.TryGetValue(name, out var configuration) => (role, configuration),
+            [var role, var name] => throw new ClauseFormatException($"'{name}' isn't a configuration. After {role}. can come {string.Join(", ", Configurations.Keys)}.", number),
+            _ => throw new ClauseFormatException($"A role takes one configuration, as in goal.in: for 'into', not {written}.", number),
+        };
     }
 
     //a command is said to one person or several: as many as its subject says, or as its addressee

@@ -88,7 +88,7 @@ public class ModalTests
             DogEatsFish(false),
             new PassiveClause("eat", Tense.Past, Aspect.Perfective, Fish, Dog, false, []) { Adverbs = [] },
             new CopularClause(new Adjective("big", false), Tense.Present, Aspect.Imperfective, Dog) { Obliques = [], Adverbs = [] },
-            new CopularClause(new Oblique(Role.Location, new NounPhrase("house", Number.Singular)), Tense.Present, Aspect.Imperfective, Dog) { Obliques = [], Adverbs = [] },
+            new CopularClause(new Oblique(Role.Location, new NounPhrase("house", Number.Singular), Configuration.At), Tense.Present, Aspect.Imperfective, Dog) { Obliques = [], Adverbs = [] },
         };
         Assert.All(GeneratedLanguages.Sample, l =>
         {

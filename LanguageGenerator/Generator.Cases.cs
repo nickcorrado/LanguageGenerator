@@ -36,7 +36,7 @@ public static partial class Generator
     //how likely a region is to get a case of its own, by its head's place in Blake's hierarchy, so
     //a language with any oblique case most likely has a genitive and a dative. A guess: Blake's
     //hierarchy is a tendency, and an instrumental without a dative is rare but real
-    private static readonly int[] CaseWeightsByRank = [8, 6, 5, 4, 3, 2, 2];
+    private static readonly int[] CaseWeightsByRank = [8, 6, 5, 4, 3, 2, 2, 2];
 
     /// <summary>
     /// A language's cases: the core ones its alignment needs, a case for each of some of its regions,
@@ -92,38 +92,68 @@ public static partial class Generator
         return words;
     }
 
-    //a role gets its region's case if the language has one, and otherwise its region's adposition. A
-    //duration is marked like the role it's like, or with its own word
-    public static Dictionary<Role, RoleMarker> SelectRoleMarkers(MorphosyntacticAlignment alignment, IReadOnlyList<Case> cases, IReadOnlyList<RoleRegion> regions, WordOrder wordOrder,
-        IReadOnlyDictionary<Role, Lexeme> adpositions, (Role? Like, Lexeme? Word) duration)
+    //each adposition governs a case, where the language has cases: mostly the object's, as the
+    //accusative is governed in Latin and Turkish, often the genitive, as in Russian, Hindi and the
+    //Turkish postpositions made from nouns, and sometimes the dative, as German mit takes it. Guesses,
+    //since WALS doesn't count these
+    private static Case? GovernedCase(Random rand, MorphosyntacticAlignment alignment, IReadOnlyList<Case> cases)
     {
-        var type = wordOrder.AdpositionalPhraseDirectionality == HeadDirectionality.Initial ? AdpositionType.Preposition : AdpositionType.Postposition;
-        //a simplification: real languages often pick the governed case per adposition
-        Case? governs = alignment switch
+        Case? core = alignment switch
         {
             MorphosyntacticAlignment.NominativeAccusative => Case.Accusative,
             MorphosyntacticAlignment.ErgativeAbsolutive => Case.Absolutive,
             _ => null,
         };
+        var options = new List<(int Option, int Weight)> { (0, 6) };
+        if (cases.Contains(Case.Genitive))
+        {
+            options.Add((1, 3));
+        }
+        if (cases.Contains(Case.Dative))
+        {
+            options.Add((2, 1));
+        }
+        return Sampling.Categorical(rand, [.. options]) switch
+        {
+            1 => Case.Genitive,
+            2 => Case.Dative,
+            _ => core,
+        };
+    }
+
+    //a role gets its region's case if the language has one, and otherwise its region's adposition,
+    //with the case that adposition governs. A duration is marked like the role it's like, or with
+    //its own word
+    public static Dictionary<Role, RoleMarker> SelectRoleMarkers(Random rand, MorphosyntacticAlignment alignment, IReadOnlyList<Case> cases, IReadOnlyList<RoleRegion> regions,
+        WordOrder wordOrder, IReadOnlyDictionary<Role, Lexeme> adpositions, (Role? Like, Lexeme? Word) duration)
+    {
+        var type = wordOrder.AdpositionalPhraseDirectionality == HeadDirectionality.Initial ? AdpositionType.Preposition : AdpositionType.Postposition;
+        //one draw for each word, so the roles in a region share its case as they share the word
+        var governed = new Dictionary<Lexeme, Case?>();
+        foreach (var word in adpositions.Values.Concat(duration.Word is { } own ? [own] : []).Distinct())
+        {
+            governed[word] = GovernedCase(rand, alignment, cases);
+        }
+        RoleMarker Adpositional(Lexeme word) => new(governed[word], new Adposition(word, type));
 
         RoleMarker Core(Case nominativeAccusative, Case ergativeAbsolutive) => alignment switch
         {
-            MorphosyntacticAlignment.NominativeAccusative => nominativeAccusative,
-            MorphosyntacticAlignment.ErgativeAbsolutive => ergativeAbsolutive,
-            _ => new Unmarked(),
+            MorphosyntacticAlignment.NominativeAccusative => new(nominativeAccusative, null),
+            MorphosyntacticAlignment.ErgativeAbsolutive => new(ergativeAbsolutive, null),
+            _ => new(null, null),
         };
         RoleMarker Oblique(Role role) => regions.First(r => r.Contains(role)).Case is { } @case && cases.Contains(@case)
-            ? @case
-            : new Adposition(adpositions[role], type, governs);
+            ? new(@case, null)
+            : Adpositional(adpositions[role]);
 
         RoleMarker MarkerFor(Role role) => role switch
         {
             Role.IntransitiveSubject => Core(Case.Nominative, Case.Absolutive),
             Role.TransitiveSubject => Core(Case.Nominative, Case.Ergative),
             Role.DirectObject => Core(Case.Accusative, Case.Absolutive),
-            Role.Addressee => cases.Contains(Case.Vocative) ? Case.Vocative : new Unmarked(),
+            Role.Addressee => new(cases.Contains(Case.Vocative) ? Case.Vocative : null, null),
             Role.Duration => duration.Like is { } like ? MarkerFor(like)
-                : new Adposition(duration.Word ?? throw new ArgumentException("A duration is like another role or has a word of its own.", nameof(duration)), type, governs),
+                : Adpositional(duration.Word ?? throw new ArgumentException("A duration is like another role or has a word of its own.", nameof(duration))),
             _ => Oblique(role),
         };
 

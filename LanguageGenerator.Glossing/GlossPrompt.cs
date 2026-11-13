@@ -59,8 +59,21 @@ public static class GlossPrompt
             refers to. 'You' is 2SG or 2PL, as context shows.
 
             Roles: {string.Join(", ", roles)}. A recipient is who something is given or said to, a
-            goal where something goes, a source where it comes from, a companion who it's done with,
-            and an instrument what it's done with. A noun with adjectives goes in parentheses, noun
+            goal where something goes, a source where it comes from, a route the way it goes, as in
+            'through the forest' or 'along the river', a companion who it's done with, and an
+            instrument what it's done with.
+
+            A location, goal, source or route can say where relative to its place, written after the
+            role with a period: {string.Join(", ", ClauseFile.ConfigurationNames)}, where front is 'in
+            front of'. With none, it's plain 'at', 'to', 'from' or 'via'. So 'into the river' is
+            goal.in:river.DEF, 'out of your ears' source.in:(ear.PL possessor:2SG), 'from under the
+            table' source.under:table.DEF, 'through the forest' route.in:forest.DEF, 'across the
+            bridge' route.over:bridge.DEF, 'past the mill' route.beside:mill.DEF, 'on the table'
+            location.on:table.DEF and 'among the trees' location.between:tree.PL.DEF. Use one
+            whenever the English says more than 'at', 'to' or 'from', since a language may tell
+            them apart.
+
+            A noun with adjectives goes in parentheses, noun
             first, as in object:(wolf.PL.DEF big gray). So does a number, in digits from 1 to {NumeralSystem.Largest}, as in
             subject:(wolf 3 gray); it gives the noun its number, so leave that out. So does an
             ordinal, in digits with its English ending, as in object:(door.DEF 2nd) for 'the second door',
@@ -78,7 +91,7 @@ public static class GlossPrompt
               the gate was locked
                 be.PST  subject:gate.DEF  adjective:locked
               the queen is in the house
-                be  subject:queen.DEF  location:house.DEF
+                be  subject:queen.DEF  location.in:house.DEF
 
             With adjective:, be can also compare its subject: CMPR on the adjective, in its plain
             form, says 'more', as tall.CMPR for 'taller' or 'more tall', and standard: says what it's
@@ -211,7 +224,7 @@ public static class GlossPrompt
 
               [1] The two old dogs slept in the house all afternoon.
               the two old dogs slept in the house
-                sleep.PST  subject:(dog.DEF 2 old)  location:house.DEF
+                sleep.PST  subject:(dog.DEF 2 old)  location.in:house.DEF
               [2] When did they go?
               {CantExpress} (question with when): When did they go?
             """;

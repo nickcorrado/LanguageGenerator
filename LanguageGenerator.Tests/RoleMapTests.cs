@@ -127,7 +127,7 @@ public class RoleMapTests
         //that share it too
         Assert.All(GeneratedLanguages.Sample, l =>
         {
-            var byCase = RoleMap.Roles.Where(r => l.RoleMarkers[r].Value is Case).GroupBy(r => (Case)l.RoleMarkers[r].Value!);
+            var byCase = RoleMap.Roles.Where(r => l.RoleMarkers[r] is { Case: not null, Adposition: null }).GroupBy(r => l.RoleMarkers[r].Case!);
             Assert.All(byCase, group => Assert.Equal(RoleMap.CaseFor(group.OrderBy(RoleMap.Rank).First()), group.Key));
         });
     }

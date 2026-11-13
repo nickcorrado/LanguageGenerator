@@ -59,13 +59,13 @@ A yes-no question has `Q` on its verb. A question asking who, what, where or why
 | `get.PST  subject:2SG  object:3SG.N  source:where` | 'where did you get that?' |
 | `come.PST.NEG  subject:2SG  why` | 'why didn't you come?' |
 
-`where` asks about a place, so it's `location:where`, `goal:where` for 'where to' or `source:where` for 'where from'. A question asks one thing, and its question word fills a role directly, not inside a noun phrase, as 'whose' would, or a coordination. Questions with 'when', 'how' or 'which', `noun:who` for 'who are you?', and a question joined to or under another clause can't be said yet.
+`where` asks about a place, so it's `location:where`, `goal:where` for 'where to' or `source:where` for 'where from'. A question asks one thing, and its question word fills a role directly, not inside a noun phrase, as 'whose' would, or a coordination. A question word can't take a configuration, as in 'under what?'. Questions with 'when', 'how' or 'which', `noun:who` for 'who are you?', and a question joined to or under another clause can't be said yet.
 
 How a language marks a yes-no question follows WALS 116A: a particle, which goes first, last or after the first word as WALS 92A counts them for OV and VO languages; an affix on the finite verb, outside everything else on it; the finite verb first, as German does; or intonation alone, which the text doesn't show. A content question puts its question word first, with the rest of its phrase, in the share of languages WALS 93A counts for each word order, as English does, and otherwise leaves it in place, as Mandarin and Japanese do, with `why` where obliques go. The particle and affix are glossed `Q`, as the Leipzig rules gloss a question marker, and the question words by what they ask, `who`, `what`, `where` and `why`. A question word takes its role's case and adposition as a noun would, so 'where from' can be 'where-ABL'.
 
 ### `be`
 
-The verb `be` says what its subject is, with `noun:fool` or `adjective:big` in place of an object, or where it is, with `location:house`.
+The verb `be` says what its subject is, with `noun:fool` or `adjective:big` in place of an object, or where it is, with `location:house`, or a configuration, as in `location.under:house` (see [Places](#places)).
 
 `be.IMP` says what or where to be, as in `be.IMP  adjective:careful`.
 
@@ -103,11 +103,34 @@ Words for where, like *here*, *there* and *inside*, can't be said yet, and neith
 
 Adverbs and manners go where obliques go, ordered as described under [Modifier order](#modifier-order). An adverb is its bare root. A manner adverb is the adjective itself, as German *schnell* is 'quick' and 'quickly'; the adjective with an affix, as English *-ly* and Turkish *-ce* make one, glossed `ADV` as the Leipzig rules have it; or the adjective with a word beside it, as Mandarin *de* and Japanese *ni*, glossed `ADV` too. WALS doesn't count these, so the odds are guesses. A time is marked like a place in most languages, sharing the location's case or adposition, and otherwise by an adposition of its own glossed `during`. A duration is marked like the object, as Latin *duos annos* 'for two years' is accusative, like a time, or by an adposition glossed `for`. 'Very' is a word on the side the language puts degree words, the comparative's side where that's a word too, and is glossed `INTS`, as grammars commonly gloss an intensifier.
 
+### Places
+
+`location:`, `goal:`, `source:` and `route:` say where something is, where it goes to, where it comes from and which way it goes. Each can also say where relative to its place, written after the role with a period:
+
+| Written | Means |
+| --- | --- |
+| `be  subject:key.DEF  location.under:table.DEF` | 'the key is under the table' |
+| `walk.PST  subject:3SG.M  goal.in:river.DEF` | 'he walked into the river' |
+| `pull.IMP  object:wax.DEF  source.in:(ear.PL possessor:2SG)` | 'pull the wax out of your ears' |
+| `crawl.PST  subject:cat.DEF  source.under:bed.DEF` | 'the cat crawled out from under the bed' |
+| `walk.PST  subject:1PL  route.in:forest.DEF` | 'we walked through the forest' |
+| `walk.PST  subject:1PL  route.beside:mill.DEF` | 'we walked past the mill' |
+| `bark  subject:dog.NDF  location.behind:mill.DEF` | 'a dog barks behind the mill' |
+
+The configurations are `in`, `on`, `under`, `over`, `behind`, `front` for 'in front of', `beside`, `between`, which is 'among' too, `around` and `against`. A role with none is plain: 'at', 'to', 'from' or 'via'.
+
+This follows grammars of space in splitting a spatial phrase into its path, which the role says, and its configuration, which English fuses with it in *into*, *onto* and *out of*. Each language decides how much of it to say:
+
+- **Which configurations it tells apart.** Languages merge neighbors on Levinson and Meira's map of topological relations, as Spanish *en* covers in, on and at, Japanese *ue* on and over, and German *an* on and against, and many leave in or on to their plain locative, as Japanese *ni* does. A configuration a language merges with 'at' is said just like the plain role. The merges' odds are guesses, since WALS doesn't count them.
+- **How it marks each it tells apart.** An adposition, as English *under*, which goes beside the place with the role's case, if the role has one, as Latin *sub mensā* 'under the table' has the ablative, and with a case of its own otherwise. A role marked by an adposition keeps that outside it, as English says 'from under', except a location, whose 'at' the configuration's word replaces. Or a relational noun, a noun for part of the place, possessed by it, which then takes the role's marker as any noun would, as Japanese *tsukue no shita ni* is 'desk GEN bottom LOC' and Turkish *masa-nın alt-ın-da* 'table-GEN bottom-3SG-LOC'. Most are words like 'inside', 'top', 'back' and 'side', and some are the body parts Heine and Svorou find becoming them, like 'belly' for inside and 'face' for in front; each is an ordinary noun of the language. Or a localization, a category of the noun beside its case, as Finnish *talo-ssa* 'in the house' fuses one with its locative and Lezgian stacks one inside its case. Only a language whose nouns inflect, and whose location has a case, has localizations, and in and on are likelier ones than the rest. A language mostly sticks to one of the three, but can mix them, as Finnish has cases for in and on and postpositions for under and behind. Svorou finds relational nouns the commonest source of spatial words, and spatial cases beyond a locative are a minority, mostly in Uralic and the Caucasus, which the odds follow, though they're guesses too.
+
+A localization is glossed as grammars of Daghestanian languages gloss them: `IN`, `SUPER` for on, `SUB` for under, `ANTE` for in front of, `APUD` for beside, `INTER` for between, `CIRC` for around and `CONT` for against, with `SUPRA` for over and `RETRO` for behind coined here. A route takes `PERL`, for the perlative, where it has a case of its own, and is otherwise marked like a place, an instrument, as Russian *šël lesom* 'went forest-INS' is 'went through the forest', or a source, or by an adposition glossed `via`.
+
 ### Modifier order
 
 Languages largely agree on which modifiers go nearest their head, and differ mostly in which side they put them, so the order on one side mirrors the order on the other. `ModifierOrder` says this once for every language. Everything where obliques go is ranked by how near the verb it goes, nearest first:
 
-1. what the verb calls for: `recipient:`, `goal:`, `source:`, `agent:`, and a `standard:` in a VO language
+1. what the verb calls for: `recipient:`, `goal:`, `source:`, `route:`, `agent:`, and a `standard:` in a VO language
 2. how: `manner:`, `like:`, `instrument:`, `companion:`
 3. where: `location:`
 4. how often or how long: `often:`, `duration:`
@@ -130,6 +153,7 @@ Adjectives are written in English order, which already puts the nearest last, so
 | `location:` | Where |
 | `goal:` | To where |
 | `source:` | From where |
+| `route:` | Which way, as in 'through' or 'along' |
 | `recipient:` | To whom |
 | `companion:` | With whom |
 | `instrument:` | With what |
