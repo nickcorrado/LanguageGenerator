@@ -81,7 +81,44 @@ With an adjective, `be` can compare its subject: `CMPR` on the adjective says 'm
 
 `CMPR` goes only on the adjective `be` says of its subject, not on one in a noun phrase or joined to another, and a comparison can't be negated, take a modal or be a command yet. `like:` says what something is or does something like, with any verb but `be`.
 
-How a language marks the standard follows WALS 121A: marked like a place, mostly 'from', as in Turkish ('tall from the men'); with a particle like English *than*; as the object of a verb meaning 'exceed', as in Yoruba ('he is big, exceeds the elephant'); or as two clauses, 'Marta is tall, the men are not tall'. Every language marks a comparative adjective with no standard, with a word or an affix glossed `CMPR`, as Turkish says *daha büyük* 'more big', and some also mark it beside a standard, as English *-er* does. A degree word goes before or after the adjective as WALS 91A counts. 'Like' is a word on the side of the phrase the language's adpositions go, or an affix on its edge glossed `SIM`.
+How a language marks the standard follows WALS 121A: marked like a place, mostly 'from', as in Turkish ('tall from the men'); with a particle like English *than*; as the object of a verb meaning 'exceed', as in Yoruba ('he is big, exceeds the elephant'); or as two clauses, 'Marta is tall, the men are not tall'. Every language marks a comparative adjective with no standard, with a word or an affix glossed `CMPR`, as Turkish says *daha büyük* 'more big', and some also mark it beside a standard, as English *-er* does. A degree word goes before the adjective in a language whose adjective phrases are head-final and after it in one whose are head-initial, which leans with the order of verb and object as WALS 83A and 91A count together. 'Like' is a word on the side of the phrase the language's adpositions go, or an affix on its edge glossed `SIM`.
+
+### Adverbs
+
+A clause can say when, how often, how and for how long, with any number of each:
+
+| Written | Means |
+| --- | --- |
+| `wake.PST  subject:2SG  when:later  manner:sudden` | 'later, you woke suddenly' |
+| `start.PST  subject:3PL  often:again` | 'they started again' |
+| `climb  subject:2SG  manner:careful` | 'you climb carefully' |
+| `sleep.PST  subject:3PL  time:(night last)` | 'they slept last night' |
+| `stand.PST  subject:1SG  duration:(year.PL 200)` | 'I stood for two hundred years' |
+| `be  subject:1SG  adjective:tired.INTS` | 'I am very tired' |
+| `walk  subject:3SG  manner:slow.INTS` | 'she walks very slowly' |
+
+`when:` is a word of its own saying when, like *now*, *then* or *yesterday*, and `often:` one saying how often or whether something still goes on, like *again*, *always* or *still*; the language coins a root for each. `manner:` says how, as an adjective the language makes into an adverb its own way, so 'carefully' is `manner:careful`, 'suddenly' `manner:sudden` and 'well' `manner:good`. Which role an adverb is in says how near the verb it goes, so nothing has to know English adverbs by name. `time:` and `duration:` take a noun phrase, as other roles do, and `be` takes them too. `INTS` on any adjective says 'very', or 'much' with `CMPR`, as `small.CMPR.INTS` is 'much smaller'.
+
+Words for where, like *here*, *there* and *inside*, can't be said yet, and neither can *ago* or *later* after a noun, a manner that compares, as in 'more slowly', or a question asking when, how or for how long.
+
+Adverbs and manners go where obliques go, ordered as described under [Modifier order](#modifier-order). An adverb is its bare root. A manner adverb is the adjective itself, as German *schnell* is 'quick' and 'quickly'; the adjective with an affix, as English *-ly* and Turkish *-ce* make one, glossed `ADV` as the Leipzig rules have it; or the adjective with a word beside it, as Mandarin *de* and Japanese *ni*, glossed `ADV` too. WALS doesn't count these, so the odds are guesses. A time is marked like a place in most languages, sharing the location's case or adposition, and otherwise by an adposition of its own glossed `during`. A duration is marked like the object, as Latin *duos annos* 'for two years' is accusative, like a time, or by an adposition glossed `for`. 'Very' is a word on the side the language puts degree words, the comparative's side where that's a word too, and is glossed `INTS`, as grammars commonly gloss an intensifier.
+
+### Modifier order
+
+Languages largely agree on which modifiers go nearest their head, and differ mostly in which side they put them, so the order on one side mirrors the order on the other. `ModifierOrder` says this once for every language. Everything where obliques go is ranked by how near the verb it goes, nearest first:
+
+1. what the verb calls for: `recipient:`, `goal:`, `source:`, `agent:`, and a `standard:` in a VO language
+2. how: `manner:`, `like:`, `instrument:`, `companion:`
+3. where: `location:`
+4. how often or how long: `often:`, `duration:`
+5. when: `when:`, `time:`
+6. why: `why`
+
+An OV language puts a `standard:` right before the adjective instead, as Japanese *Taroo yori takai* 'Taro-from tall' and Turkish *kedi-den büyük* 'cat-from big' do, since Dryer finds the order of adjective and standard follows the order of object and verb.
+
+After the verb they go nearest first, as English says 'she sang beautifully in the hall every night'; before it they're mirrored, as Japanese and Turkish say 'every night in the hall beautifully sang', so the nearest is always beside the verb. Those of one rank keep the order they're written in, so the order a clause file writes them in matters only within a rank.
+
+Adjectives are written in English order, which already puts the nearest last, so they need no ranks: before the noun they keep it, and after it most languages mirror it, so 'big gray wolves' is 'wolves gray big', as in Welsh and Indonesian. A quarter keep the English order after the noun instead, as some Romance does; WALS doesn't count this, so that's a guess from Cinque's survey.
 
 ## Roles
 
@@ -97,9 +134,14 @@ How a language marks the standard follows WALS 121A: marked like a place, mostly
 | `companion:` | With whom |
 | `instrument:` | With what |
 | `like:` | Like what |
+| `time:` | When |
+| `duration:` | For how long |
 | `agent:` | Who does it, in a passive |
 | `standard:` | What the subject of `be` is compared with |
 | `addressee:` | Who the clause is said to |
+| `when:` | When, as a word of its own |
+| `often:` | How often, or whether still, as a word of its own |
+| `manner:` | How, as an adjective |
 
 Any clause can be said to someone, with `addressee:marta` or `addressee:(man old)`, a bare noun that comes first in the vocative case where the language has one. A command to a plural addressee, as in `addressee:child.PL`, is to all of them.
 

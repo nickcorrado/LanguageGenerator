@@ -35,7 +35,7 @@ public class CoordinationTests
     {
         var clause = Assert.IsType<CopularClause>(Parsed("be  subject:inn.DEF  adjective:(and warm crowded)").Value);
 
-        Assert.Equal(new AdjectiveCoordination(Conjunction.And, [new("warm"), new("crowded")]), clause.Complement.Value);
+        Assert.Equal(new AdjectiveCoordination(Conjunction.And, [new("warm", false), new("crowded", false)]), clause.Complement.Value);
     }
 
     [Fact]
@@ -99,7 +99,7 @@ public class CoordinationTests
     private static readonly NounPhrase Cat = new("cat", Number.Singular);
     private static readonly NounPhrase Birds = new("bird", Number.Plural);
 
-    private static Sentence Saw(Language l, Argument subject) => Syntax.Realize(l, new Clause("see", Tense.Past, Aspect.Perfective, subject, Birds), "x");
+    private static Sentence Saw(Language l, Argument subject) => Syntax.Realize(l, new Clause("see", Tense.Past, Aspect.Perfective, subject, Birds) { Adverbs = [] }, "x");
 
     private static string VerbGloss(Sentence sentence) => sentence.Words[IndexOf(sentence, "see")].Gloss;
 
@@ -177,8 +177,8 @@ public class CoordinationTests
     [Fact]
     public void Realize_ClausesJoined_AreEachAsTheyWouldBeAloneWithTheConjunctionBetween()
     {
-        var first = new Clause("sleep", Tense.Past, Aspect.Imperfective, Dog);
-        var second = new Clause("sleep", Tense.Past, Aspect.Imperfective, Cat);
+        var first = new Clause("sleep", Tense.Past, Aspect.Imperfective, Dog) { Adverbs = [] };
+        var second = new Clause("sleep", Tense.Past, Aspect.Imperfective, Cat) { Adverbs = [] };
 
         Assert.All(GeneratedLanguages.Sample, l =>
         {
@@ -198,7 +198,7 @@ public class CoordinationTests
     {
         Assert.All(GeneratedLanguages.Sample, l =>
         {
-            var sentence = Syntax.Realize(l, new CopularClause(new AdjectiveCoordination(Conjunction.And, [new("big"), new("old")]), Tense.Present, Aspect.Imperfective, Dog), "x");
+            var sentence = Syntax.Realize(l, new CopularClause(new AdjectiveCoordination(Conjunction.And, [new("big", false), new("old", false)]), Tense.Present, Aspect.Imperfective, Dog) { Obliques = [], Adverbs = [] }, "x");
 
             Assert.True(IndexOf(sentence, "big") >= 0 && IndexOf(sentence, "old") > IndexOf(sentence, "big"));
         });

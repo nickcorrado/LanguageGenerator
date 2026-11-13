@@ -14,6 +14,11 @@ public static partial class Generator
         (ConstituentWordOrder.OVS, 0.01),
     ];
 
+    //Cinque finds adjectives after the noun mostly in the mirror of the order before it, as Welsh,
+    //Indonesian and Thai have them, and in the same order in fewer, as in some Romance. WALS doesn't
+    //count it, so the odds are a guess
+    private const double MirroredAdjectivesChance = 0.75;
+
     public static WordOrder SelectWordOrder(Random rand)
     {
         var roll = rand.NextDouble();
@@ -40,6 +45,7 @@ public static partial class Generator
             NounPhraseDirectionality = Sampling.Categorical(rand, objectFirst ? ObjectVerbNounPhraseCounts : VerbObjectNounPhraseCounts),
             AdjectivePhraseDirectionality = Sampling.Categorical(rand, objectFirst ? ObjectVerbAdjectivePhraseCounts : VerbObjectAdjectivePhraseCounts),
             ObliquePosition = SelectObliquePosition(rand, order),
+            MirrorsAdjectives = rand.NextDouble() < MirroredAdjectivesChance,
         };
     }
 

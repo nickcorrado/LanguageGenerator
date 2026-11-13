@@ -28,9 +28,10 @@ public static partial class Generator
             _ => new ConjoinedComparison(),
         };
 
-    // https://wals.info/feature/91A: a degree word before the adjective in 228 languages and after
-    //it in 193. The 60 with no dominant order are left out
-    private static readonly (bool Value, int Languages)[] DegreeWordBeforeCounts = [(true, 228), (false, 193)];
+    //a degree word goes before the adjective in a language whose adjective phrases are head-final,
+    //and after it in one whose are head-initial, which word order draws from WALS 83A and 91A
+    //together, so that it leans the way the language's verb and object go
+    private static bool DegreeWordBefore(WordOrder wordOrder) => wordOrder.AdjectivePhraseDirectionality == HeadDirectionality.Final;
 
     //WALS doesn't count how a comparative adjective is marked, so these are guesses: most languages
     //say 'more' with a word of its own, as Turkish daha and Mandarin geng, and fewer with an affix,
@@ -48,13 +49,13 @@ public static partial class Generator
         _ => 0.15,
     };
 
-    public static DegreeMarking GenerateDegree(Random rand, Comparison comparison, MorphologicalProfile morphology, Phonology phonology, double dropoff)
+    public static DegreeMarking GenerateDegree(Random rand, Comparison comparison, MorphologicalProfile morphology, WordOrder wordOrder, Phonology phonology, double dropoff)
     {
         var affix = morphology.Fusion != Fusion.Isolating && rand.NextDouble() < DegreeAffixChance;
         DegreeMarker marker = affix
             ? new DegreeAffix(new Affix(MarkerForm(rand, true, phonology, dropoff), [Degree.Comparative]),
                 rand.NextDouble() < PrefixChance(morphology) ? ExponentPosition.Prefix : ExponentPosition.Suffix)
-            : new DegreeWord(new Particle(MarkerForm(rand, false, phonology, dropoff), [Degree.Comparative]), Sampling.Categorical(rand, DegreeWordBeforeCounts));
+            : new DegreeWord(new Particle(MarkerForm(rand, false, phonology, dropoff), [Degree.Comparative]), DegreeWordBefore(wordOrder));
         return new DegreeMarking(marker, rand.NextDouble() < DegreeWithStandardChance(comparison));
     }
 

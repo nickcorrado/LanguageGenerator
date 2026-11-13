@@ -9,7 +9,7 @@ public class QuestionTests
     //only the basic meanings, since coining new ones would add to the shared sample's lexicons
     private static readonly NounPhrase Dog = new("dog", Number.Singular);
     private static readonly NounPhrase Fish = new("fish", Number.Singular);
-    private static Clause DogEats(Argument food) => new("eat", Tense.Present, Aspect.Imperfective, Dog, food);
+    private static Clause DogEats(Argument food) => new("eat", Tense.Present, Aspect.Imperfective, Dog, food) { Adverbs = [] };
     private static Clause DogEatsFish => DogEats(Fish);
 
     private static Sentence Realized(Language language, Statement statement) => Syntax.Realize(language, statement, "x");
@@ -209,14 +209,14 @@ public class QuestionTests
         var clauses = new Statement[]
         {
             new Question(DogEatsFish, false),
-            new Question(new Clause("eat", Tense.Past, Aspect.Perfective, who, Fish), false),
-            new Question(new PassiveClause("eat", Tense.Past, Aspect.Perfective, Fish, who, false, []), false),
-            new Question(new PassiveClause("eat", Tense.Past, Aspect.Perfective, Fish, null, false, []), true),
-            new Question(new CopularClause(new Adjective("big"), Tense.Present, Aspect.Imperfective, Dog), false),
-            new Question(new CopularClause(new Oblique(Role.Location, new QuestionWord(Interrogative.Where)), Tense.Present, Aspect.Imperfective, Dog), false),
-            new Question(new CopularClause(new Oblique(Role.Location, house), Tense.Present, Aspect.Imperfective, who), false),
-            new Question(new Comparative(new CopularClause(new Adjective("big"), Tense.Present, Aspect.Imperfective, Dog), Fish), false),
-            new Question(new Comparative(new CopularClause(new Adjective("big"), Tense.Present, Aspect.Imperfective, Dog), Fish), true),
+            new Question(new Clause("eat", Tense.Past, Aspect.Perfective, who, Fish) { Adverbs = [] }, false),
+            new Question(new PassiveClause("eat", Tense.Past, Aspect.Perfective, Fish, who, false, []) { Adverbs = [] }, false),
+            new Question(new PassiveClause("eat", Tense.Past, Aspect.Perfective, Fish, null, false, []) { Adverbs = [] }, true),
+            new Question(new CopularClause(new Adjective("big", false), Tense.Present, Aspect.Imperfective, Dog) { Obliques = [], Adverbs = [] }, false),
+            new Question(new CopularClause(new Oblique(Role.Location, new QuestionWord(Interrogative.Where)), Tense.Present, Aspect.Imperfective, Dog) { Obliques = [], Adverbs = [] }, false),
+            new Question(new CopularClause(new Oblique(Role.Location, house), Tense.Present, Aspect.Imperfective, who) { Obliques = [], Adverbs = [] }, false),
+            new Question(new Comparative(new CopularClause(new Adjective("big", false), Tense.Present, Aspect.Imperfective, Dog) { Obliques = [], Adverbs = [] }, Fish), false),
+            new Question(new Comparative(new CopularClause(new Adjective("big", false), Tense.Present, Aspect.Imperfective, Dog) { Obliques = [], Adverbs = [] }, Fish), true),
             new Question(new Modalized(DogEatsFish, Modality.Obligation, true), true),
             new Addressed(new Question(DogEatsFish, false), Dog),
         };

@@ -33,7 +33,11 @@ namespace LanguageGenerator;
 //agent: is who does it, if anyone says, as in carry.PASS subject:light.DEF agent:(figure.NDF small). A verb
 //with ABIL, PERM, OBLIG or ADVS says its subject can, may, must or should, as in find.OBLIG subject:2SG, and NEG
 //after one negates the modal, as swim.ABIL.NEG is 'can't swim', while NEG before one negates the
-//verb, as sing.NEG.OBLIG is 'must not sing'. Any clause can have an addressee, who it's said to, a bare noun as in addressee:marta, and
+//verb, as sing.NEG.OBLIG is 'must not sing'. time: says when, as in time:night, and duration: for how
+//long, as in duration:(year.PL 200). when: is a word saying when, as in when:now, often: one saying how
+//often or whether still, as in often:again, and manner: an adjective saying how, as manner:careful is
+//'carefully'; a clause can have several of
+//each, in the order they're said. INTS on an adjective says 'very', as in adjective:tired.INTS. Any clause can have an addressee, who it's said to, a bare noun as in addressee:marta, and
 //a command to a plural addressee is to all of them. Anything not given takes its unmarked value: present, imperfective, singular, exclusive for
 //'we' and masculine for a gendered pronoun. Whatever the generator can't express yet is an error,
 //never dropped
@@ -158,13 +162,13 @@ public static class ClauseFile
     {
         Clause c => [c.Subject, .. Given(c.Object), .. c.Obliques.Select(o => o.Argument)],
         PassiveClause c => [c.Patient, .. Given(c.Agent), .. c.Obliques.Select(o => o.Argument)],
-        CopularClause { Complement: NounPhrase noun } c => [c.Subject, noun],
-        CopularClause { Complement: Oblique location } c => [c.Subject, location.Argument],
-        CopularClause c => [c.Subject],
+        CopularClause { Complement: NounPhrase noun } c => [c.Subject, noun, .. c.Obliques.Select(o => o.Argument)],
+        CopularClause { Complement: Oblique location } c => [c.Subject, location.Argument, .. c.Obliques.Select(o => o.Argument)],
+        CopularClause c => [c.Subject, .. c.Obliques.Select(o => o.Argument)],
         Command c => [.. Given(c.Object), .. c.Obliques.Select(o => o.Argument)],
-        CopularCommand { Complement: NounPhrase noun } => [noun],
-        CopularCommand { Complement: Oblique location } => [location.Argument],
-        CopularCommand => [],
+        CopularCommand { Complement: NounPhrase noun } c => [noun, .. c.Obliques.Select(o => o.Argument)],
+        CopularCommand { Complement: Oblique location } c => [location.Argument, .. c.Obliques.Select(o => o.Argument)],
+        CopularCommand c => [.. c.Obliques.Select(o => o.Argument)],
         Comparative c => [.. ArgumentsOf(c.Clause), .. Given(c.Standard)],
         Addressed a => [.. ArgumentsOf(a.Statement), a.Addressee],
         Coordinated c => [.. ArgumentsOf(c.First), .. ArgumentsOf(c.Second)],
@@ -185,9 +189,11 @@ public static class ClauseFile
 
     //the roles a clause can have. An oblique role is written as its name in lowercase, but for the
     //similative, which is like:. A noun or adjective is what be says its subject is, a standard what
-    //an adjective compares it with, and an addressee who the clause is said to
+    //an adjective compares it with, and an addressee who the clause is said to. An adverb fills no
+    //role, but is written as one named for what it says, and a clause can have any number of them
     private static readonly Dictionary<string, Role> ObliqueRoles = Oblique.Roles.ToDictionary(r => r == Role.Similative ? "like" : r.ToString().ToLowerInvariant());
-    private static readonly string[] Roles = ["subject", "object", "noun", "adjective", "standard", .. ObliqueRoles.Keys, "agent", "addressee"];
+    private static readonly Dictionary<string, AdverbKind> AdverbRoles = Enum.GetValues<AdverbKind>().ToDictionary(k => k.ToString().ToLowerInvariant());
+    private static readonly string[] Roles = ["subject", "object", "noun", "adjective", "standard", .. ObliqueRoles.Keys, "agent", "addressee", .. AdverbRoles.Keys, "manner"];
 
     //what the format can say, for describing it elsewhere, as the glosser's prompt does
     public static IReadOnlyList<string> RoleNames => Roles;
@@ -313,6 +319,10 @@ public static class ClauseFile
             {
                 throw new ClauseFormatException($"A question can't ask what something is like yet, as in like:{WordOf(argument)}.", number);
             }
+            if (role is "time" or "duration")
+            {
+                throw new ClauseFormatException($"A question can't ask when or for how long yet, as in {role}:{WordOf(argument)}.", number);
+            }
             if (word == Interrogative.Where && role is not ("location" or "goal" or "source"))
             {
                 throw new ClauseFormatException($"where asks about a place, so it's location:where, goal:where for 'where to' or source:where for 'where from', not {role}:where.", number);
@@ -351,9 +361,10 @@ public static class ClauseFile
 
     //the obliques keep the role they were written with, which is how be finds its location:.
     //Compared is whether the adjective: is comparative, as tall.CMPR is
-    private record ClauseRoles(Dictionary<string, Argument> Arguments, List<(string Role, Oblique Oblique)> Obliques, Complement? Complement, bool Compared)
+    private record ClauseRoles(Dictionary<string, Argument> Arguments, List<(string Role, Oblique Oblique)> Obliques, Complement? Complement, bool Compared, List<Adverbial> Adverbs)
     {
         public Argument? Object => Arguments.TryGetValue("object", out var argument) ? argument : (Argument?)null;
+        public ValueList<Oblique> AllObliques => [.. Obliques.Select(o => o.Oblique)];
     }
 
     private static VerbFeatures ParseVerbFeatures(string verb, IReadOnlyList<Grammeme> glosses, int number)
@@ -394,6 +405,7 @@ public static class ClauseFile
     {
         var arguments = new Dictionary<string, Argument>();
         var obliques = new List<(string Role, Oblique Oblique)>();
+        var adverbs = new List<Adverbial>();
         Complement? complement = null;
         var compared = false;
         foreach (var token in tokens)
@@ -404,6 +416,10 @@ public static class ClauseFile
                 throw new ClauseFormatException($"'{token}' needs a role, as in subject:{token}.", number);
             }
             var role = token[..colon];
+            if (role == "adverb")
+            {
+                throw new ClauseFormatException($"Say what an adverb says: when:{token[(colon + 1)..]} for when, often:{token[(colon + 1)..]} for how often or whether still, or manner: with an adjective for how, as manner:careful is 'carefully'.", number);
+            }
             if (role == "possessor")
             {
                 throw new ClauseFormatException($"A possessor goes inside its noun's parentheses, as in object:(house possessor:{token[(colon + 1)..]}).", number);
@@ -423,6 +439,12 @@ public static class ClauseFile
             var value = token[(colon + 1)..];
             switch (role)
             {
+                case var name when AdverbRoles.TryGetValue(name, out var kind):
+                    adverbs.Add(ParseAdverb(value, kind, number));
+                    break;
+                case "manner":
+                    adverbs.Add(ParseManner(value, number));
+                    break;
                 case "noun":
                     complement = ParseArgument(value, number).Value switch
                     {
@@ -448,7 +470,7 @@ public static class ClauseFile
                     break;
             }
         }
-        return new ClauseRoles(arguments, obliques, complement, compared);
+        return new ClauseRoles(arguments, obliques, complement, compared, adverbs);
     }
 
     //a command is said to one person or several: as many as its subject says, or as its addressee
@@ -467,14 +489,23 @@ public static class ClauseFile
         }
         if (verb == "be")
         {
-            return new CopularCommand(CopularComplement(roles, number), told, features.Negative);
+            return new CopularCommand(CopularComplement(roles, number), told, features.Negative) { Obliques = CopularObliques(roles), Adverbs = [.. roles.Adverbs] };
         }
         RejectComplement(verb, roles, number);
-        return new Command(verb, told, roles.Object, features.Negative, [.. roles.Obliques.Select(o => o.Oblique)]);
+        return new Command(verb, told, roles.Object, features.Negative, roles.AllObliques) { Adverbs = [.. roles.Adverbs] };
     }
 
     private static CopularClause ToCopularClause(VerbFeatures features, ClauseRoles roles, Argument subject, int number) =>
-        new(CopularComplement(roles, number), features.Tense ?? Tense.Present, features.Aspect ?? Aspect.Imperfective, subject, features.Negative);
+        new(CopularComplement(roles, number), features.Tense ?? Tense.Present, features.Aspect ?? Aspect.Imperfective, subject, features.Negative)
+        {
+            Obliques = CopularObliques(roles),
+            Adverbs = [.. roles.Adverbs],
+        };
+
+    //the only obliques be takes besides a location: when, and for how long
+    private static readonly string[] CopularRoles = ["time", "duration"];
+
+    private static ValueList<Oblique> CopularObliques(ClauseRoles roles) => [.. roles.Obliques.Where(o => CopularRoles.Contains(o.Role)).Select(o => o.Oblique)];
 
     //what be says its subject is, or where it is
     private static Complement CopularComplement(ClauseRoles roles, int number)
@@ -493,9 +524,9 @@ public static class ClauseFile
         {
             throw new ClauseFormatException("be can't say what its subject is like yet: like: goes with other verbs, as in shine subject:3SG.N like:water.", number);
         }
-        if (roles.Obliques.Find(o => o.Role != "location") is { Role: { } other })
+        if (roles.Obliques.Find(o => o.Role != "location" && !CopularRoles.Contains(o.Role)) is { Role: { } other })
         {
-            throw new ClauseFormatException($"be can't take {A(other)} yet, only a noun:, adjective: or location: saying what or where its subject is.", number);
+            throw new ClauseFormatException($"be can't take {A(other)} yet, only a noun:, adjective: or location: saying what or where its subject is, and time: or duration:.", number);
         }
         if (!complement.HasValue)
         {
@@ -513,15 +544,20 @@ public static class ClauseFile
             throw new ClauseFormatException($"A passive has no object: what's done to is its subject, as in {verb}.PASS subject:light.", number);
         }
         var agent = roles.Arguments.TryGetValue("agent", out var by) ? by : (Argument?)null;
-        return new PassiveClause(verb, features.Tense ?? Tense.Present, features.Aspect ?? Aspect.Imperfective, subject, agent, features.Negative,
-            [.. roles.Obliques.Select(o => o.Oblique)]);
+        return new PassiveClause(verb, features.Tense ?? Tense.Present, features.Aspect ?? Aspect.Imperfective, subject, agent, features.Negative, roles.AllObliques)
+        {
+            Adverbs = [.. roles.Adverbs],
+        };
     }
 
     private static Clause ToClause(string verb, VerbFeatures features, ClauseRoles roles, Argument subject, int number)
     {
         RejectComplement(verb, roles, number);
         return new Clause(verb, features.Tense ?? Tense.Present, features.Aspect ?? Aspect.Imperfective, subject, roles.Object,
-            Negative: features.Negative, Obliques: [.. roles.Obliques.Select(o => o.Oblique)]);
+            Negative: features.Negative, Obliques: roles.AllObliques)
+        {
+            Adverbs = [.. roles.Adverbs],
+        };
     }
 
     private static void RejectComplement(string verb, ClauseRoles roles, int number)
@@ -689,6 +725,7 @@ public static class ClauseFile
         return new AdjectiveCoordination(conjunction, [.. items.Select(item => ParseAdjective(item, number))]);
     }
 
+    //an adjective, maybe with INTS for 'very'
     private static Adjective ParseAdjective(string token, int number)
     {
         var (meaning, features) = ParseWord(token, number);
@@ -700,11 +737,76 @@ public static class ClauseFile
         {
             throw new ClauseFormatException($"Only the adjective: be says of its subject can take CMPR yet, as in be subject:3SG adjective:{meaning}.CMPR, not one in a noun phrase or joined to another.", number);
         }
+        if (features.Contains(Derivation.Adverbial))
+        {
+            throw new ClauseFormatException($"'{meaning}' can't take ADV: an adverb made from an adjective is written manner:{meaning}, as in climb subject:2SG manner:careful for 'you climb carefully'.", number);
+        }
+        if (features.Count(f => f == Degree.Intensive) > 1)
+        {
+            throw new ClauseFormatException($"'{meaning}' has more than one INTS.", number);
+        }
+        if (features.Find(f => f != Degree.Intensive) is { } other)
+        {
+            throw new ClauseFormatException($"'{meaning}' can't take {other.Gloss}: adjectives have no features but CMPR and INTS yet.", number);
+        }
+        return new Adjective(meaning, features.Contains(Degree.Intensive));
+    }
+
+    //how something is done, as an adjective: manner:careful is 'carefully', and manner:slow.INTS
+    //'very slowly'
+    private static Manner ParseManner(string token, int number)
+    {
+        if (token.StartsWith('('))
+        {
+            throw new ClauseFormatException($"manner: takes one adjective, as in manner:careful, not '{token}'. Write manner: again for another.", number);
+        }
+        if (token.Split('.').Skip(1).Contains(Degree.Comparative.Gloss))
+        {
+            throw new ClauseFormatException("A manner can't compare yet, as in 'more slowly'.", number);
+        }
+        return new Manner(ParseAdjective(token, number));
+    }
+
+    //words for where wait on demonstratives and spatial adpositions, which most languages make them from
+    private static readonly HashSet<string> PlaceAdverbs =
+        ["here", "there", "inside", "outside", "above", "below", "upstairs", "downstairs", "everywhere", "somewhere", "nowhere", "away", "upstream", "downstream"];
+
+    //a word of its own saying when or how often, with no glosses
+    private static Adverb ParseAdverb(string token, AdverbKind kind, int number)
+    {
+        var role = kind.ToString().ToLowerInvariant();
+        if (token.StartsWith('('))
+        {
+            throw new ClauseFormatException($"An adverb is one word, as in {role}:{(kind == AdverbKind.When ? "now" : "again")}, not '{token}'. Write {role}: again for another.", number);
+        }
+        var (meaning, features) = ParseWord(token, number);
+        if (meaning == "why" || QuestionWords.ContainsKey(meaning))
+        {
+            throw new ClauseFormatException(meaning == "why"
+                ? "why fills no role, so it's written on its own, as in leave.PST subject:3SG why."
+                : $"{meaning} isn't an adverb: a question word goes in the role it asks about, as in subject:who.", number);
+        }
+        if (meaning is "when" or "how")
+        {
+            throw new ClauseFormatException($"A question can't ask {meaning} yet.", number);
+        }
+        if (meaning is "very" or "much")
+        {
+            throw new ClauseFormatException($"{meaning} goes on an adjective as INTS, as in adjective:tired.INTS or manner:slow.INTS.", number);
+        }
+        if (meaning == "not")
+        {
+            throw new ClauseFormatException("not is NEG on the verb, as in see.NEG.", number);
+        }
+        if (PlaceAdverbs.Contains(meaning))
+        {
+            throw new ClauseFormatException($"'{meaning}' can't be said yet: words for where, like here and there, wait on demonstratives and spatial adpositions.", number);
+        }
         if (features.Count > 0)
         {
-            throw new ClauseFormatException($"'{meaning}' can't take {features[0].Gloss}: adjectives have no features but CMPR yet.", number);
+            throw new ClauseFormatException($"'{meaning}' can't take {features[0].Gloss}: an adverb takes no glosses. For 'very slowly', write manner:slow.INTS.", number);
         }
-        return new Adjective(meaning);
+        return new Adverb(meaning, kind);
     }
 
     //the words of a clause, split on spaces outside parentheses, so that object:(dog big) is one

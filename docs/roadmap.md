@@ -1,12 +1,12 @@
 # Roadmap
 
-[examples/hollow.txt](../examples/hollow.txt), a short text adventure, is the test of what real text needs. The front end refuses 24 of its 190 sentences. Refusals are the easy part, though: a refusal names what's missing, while a sentence that glosses can still lose half of what it said. *A dog barks somewhere behind the mill* comes out as 'a dog barks at the mill', *they pass so close that you could touch them* as two unconnected clauses, 'they pass near you' and 'you could touch them', and *at dusk* doesn't come out at all. So this list counts both.
+[examples/hollow.txt](../examples/hollow.txt), a short text adventure, is the test of what real text needs. The front end refuses 23 of its 190 sentences. Refusals are the easy part, though: a refusal names what's missing, while a sentence that glosses can still lose half of what it said. *A dog barks somewhere behind the mill* comes out as 'a dog barks at the mill', *they pass so close that you could touch them* as just 'they pass very close', and *at dusk* doesn't come out at all. So this list counts both.
 
 ## Clauses
 
 Roughly in the order to build them, since the later ones lean on the earlier ones.
 
-- **Adverbs.** Manner (*carefully*, *slowly*), time (*now*, *yesterday*, *last night*, *a month later*), place (*here*, *upstream*) and degree (*very*, *much*), along with durations like *for two hundred years*. All of them are left out of glosses today.
+- **More adverbs.** Words for where (*here*, *there*, *upstream*), which come with demonstratives and spatial adpositions; *ago* and *later* after a noun (*three winters ago*, *a month later*); manners that compare (*more slowly*); and a time first in the clause, as many languages put one, where today every adverb goes with the obliques, ranked by how near the verb it goes.
 - **Spatial adpositions.** *In*, *on*, *under*, *behind*, *between* and *in front of* all collapse into `location:`, and *against* can't be said. They're often nouns, as in 'at the house's underside', and a language can use an adposition and a case together, so this comes with a rework of how role markers are chosen. A noun phrase should be able to take one too, for *the old woman from the gate*.
 - **Existentials.** 'There is a dog in the house', which many languages say unlike 'the dog is in the house'.
 - **More modals.** Epistemic modals (*might*, *must be*, *maybe*), which often share markers with the situational ones that are there now, and which apply to a clause's tense rather than taking it, as *he must have left* is certain now about a past. A modal on a command or a comparison. Languages whose negation is an affix could show its scope by where it goes, as Turkish *git-me-meli* 'must not go' puts it inside the modal and *gid-eme-z* 'cannot go' outside, and some languages put a modal's verb in a subjunctive, as Greek and the Balkan languages do, where today it's always bare.
@@ -25,7 +25,7 @@ Roughly in the order to build them, since the later ones lean on the earlier one
 - **Quantifiers and indefinites.** *All*, *each*, *most*, *few*, *someone*, *everything*, and above all *nobody*, which can only be 'anyone' with a negated verb, a word the language coins as if it were a noun. Languages differ in whether a negative indefinite takes ordinary negation too.
 - **Nouns modifying nouns.** `(key small iron)` and `(bow short yew)` pass a noun off as an adjective, and the parser can't tell. These need a form of their own, a compound, a genitive or a derived adjective, as each language prefers.
 - **Measure phrases.** *A bowl of stew*, by a genitive or plain apposition, and numeral classifiers in the languages that have them.
-- **Particles of focus.** *Only*, *still*, *just*, *again*, *even*.
+- **Particles of focus.** *Only*, *just*, *even*.
 - **Direction on verbs.** *Walk down*, *turn around*, *hold up*, whose particles are dropped today.
 
 ## Game text

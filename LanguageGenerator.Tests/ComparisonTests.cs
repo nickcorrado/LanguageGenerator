@@ -4,7 +4,7 @@ namespace LanguageGenerator.Tests;
 
 public class ComparisonTests
 {
-    private static readonly CopularClause DogIsBig = new(new Adjective("big"), Tense.Present, Aspect.Imperfective, new NounPhrase("dog", Number.Singular));
+    private static readonly CopularClause DogIsBig = new(new Adjective("big", false), Tense.Present, Aspect.Imperfective, new NounPhrase("dog", Number.Singular)) { Obliques = [], Adverbs = [] };
     private static readonly NounPhrase Cats = new("cat", Number.Plural);
 
     //'the dog is bigger than the cats', in only the basic meanings, since coining new ones would add
@@ -43,7 +43,7 @@ public class ComparisonTests
     {
         var comparative = Assert.IsType<Comparative>(Parsed("be  subject:marta  adjective:tall.CMPR  standard:man.PL.DEF").Value);
 
-        Assert.Equal(new Adjective("tall"), comparative.Clause.Complement.Value);
+        Assert.Equal(new Adjective("tall", false), comparative.Clause.Complement.Value);
         Assert.Equal(new NounPhrase("man", Number.Plural, Definiteness: Definiteness.Definite), comparative.Standard.Value);
     }
 
@@ -134,7 +134,7 @@ public class ComparisonTests
             Assert.True(verb >= 0);
             Assert.True(l.WordOrder.VerbPhraseDirectionality == HeadDirectionality.Initial ? verb < cat : verb > cat);
             //the standard is said as an object is
-            var seen = Syntax.Realize(l, new Clause("see", Tense.Present, Aspect.Imperfective, new NounPhrase("dog", Number.Singular), Cats), "x");
+            var seen = Syntax.Realize(l, new Clause("see", Tense.Present, Aspect.Imperfective, new NounPhrase("dog", Number.Singular), Cats) { Adverbs = [] }, "x");
             Assert.Equal(seen.Words[IndexOf(seen, "cat")].Gloss, sentence.Words[cat].Gloss);
         });
         Assert.NotEmpty(languages);
@@ -154,14 +154,13 @@ public class ComparisonTests
     {
         var language = GeneratedLanguages.Sample.First(l => l.MorphologicalProfile.Fusion != Fusion.Isolating);
         var rand = new Random(1);
-        DegreeMarking Draw(Comparison comparison) => Generator.GenerateDegree(rand, comparison, language.MorphologicalProfile, language.Phonology, 0.15);
+        DegreeMarking Draw(Comparison comparison) => Generator.GenerateDegree(rand, comparison, language.MorphologicalProfile, language.WordOrder, language.Phonology, 0.15);
 
         var drawn = Enumerable.Range(0, 4000).Select(_ => Draw(new LocationalComparison(Role.Source))).ToList();
         var words = drawn.Select(d => d.Marker.Value).OfType<DegreeWord>().ToList();
 
         Assert.InRange(drawn.Count(d => d.Marker.Value is DegreeAffix) / 4000.0, 0.22, 0.28);
-        //WALS 91A: a degree word before the adjective in 228 languages and after it in 193
-        Assert.InRange(words.Count(w => w.BeforeAdjective) / (double)words.Count, 0.51, 0.57);
+        Assert.All(words, w => Assert.Equal(language.WordOrder.AdjectivePhraseDirectionality == HeadDirectionality.Final, w.BeforeAdjective));
         Assert.InRange(drawn.Count(d => d.WithStandard) / 4000.0, 0.13, 0.17);
         Assert.InRange(Enumerable.Range(0, 4000).Count(_ => Draw(new ParticleComparison(null!, true)).WithStandard) / 4000.0, 0.57, 0.63);
         Assert.DoesNotContain(Enumerable.Range(0, 500).Select(_ => Draw(new ConjoinedComparison())), d => d.WithStandard);
@@ -222,7 +221,7 @@ public class ComparisonTests
         Assert.Contains(languages, l => !l.Degree.WithStandard);
     }
 
-    private static readonly Clause DogWalks = new("walk", Tense.Present, Aspect.Imperfective, new NounPhrase("dog", Number.Singular));
+    private static readonly Clause DogWalks = new("walk", Tense.Present, Aspect.Imperfective, new NounPhrase("dog", Number.Singular)) { Adverbs = [] };
 
     //'the dog walks like a cat'
     private static Sentence WalksLikeACat(Language l) => Syntax.Realize(l, DogWalks with { Obliques = [new(Role.Similative, new NounPhrase("cat", Number.Singular))] }, "x");
@@ -279,7 +278,7 @@ public class ComparisonTests
     {
         var comparative = Assert.IsType<Comparative>(Parsed("be  subject:marta  adjective:tall.CMPR").Value);
 
-        Assert.Equal(new Adjective("tall"), comparative.Clause.Complement.Value);
+        Assert.Equal(new Adjective("tall", false), comparative.Clause.Complement.Value);
         Assert.Null(comparative.Standard);
     }
 

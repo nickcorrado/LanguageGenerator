@@ -33,8 +33,8 @@ public class ValueListTests
     [Fact]
     public void InARecord_GivesItValueEquality()
     {
-        Assert.Equal(new NounPhrase("dog", Number.Plural, [new("big")]), new NounPhrase("dog", Number.Plural, [new("big")]));
-        Assert.NotEqual(new NounPhrase("dog", Number.Plural, [new("big")]), new NounPhrase("dog", Number.Plural, [new("small")]));
+        Assert.Equal(new NounPhrase("dog", Number.Plural, [new("big", false)]), new NounPhrase("dog", Number.Plural, [new("big", false)]));
+        Assert.NotEqual(new NounPhrase("dog", Number.Plural, [new("big", false)]), new NounPhrase("dog", Number.Plural, [new("small", false)]));
         Assert.Equal(new NounPhrase("dog", Number.Plural), new NounPhrase("dog", Number.Plural, []));
     }
 }

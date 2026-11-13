@@ -47,13 +47,16 @@ public static partial class Generator
         var adjectiveAgreement = SelectAdjectiveAgreement(stages.For("adjective agreement"), predication);
         var genders = GenerateGenders(stages.For("genders"), morphology, paradigms, phonology, syllableDropoff);
         var adpositions = GenerateAdpositions(stages.For("adpositions"), regions, cases, phonology, syllableDropoff);
-        var roleMarkers = SelectRoleMarkers(alignment, cases, regions, wordOrder, adpositions);
+        var duration = GenerateDuration(stages.For("duration"), adpositions, phonology, syllableDropoff);
+        var roleMarkers = SelectRoleMarkers(alignment, cases, regions, wordOrder, adpositions, duration);
         var numerals = GenerateNumerals(stages.For("numerals"), morphology, phonology, syllableDropoff);
         var articles = GenerateArticles(stages.For("articles"), morphology, genders, numerals, phonology, syllableDropoff);
         var possession = GeneratePossession(stages.For("possession"), morphology, wordOrder, phonology, syllableDropoff);
         var commands = GenerateCommands(stages.For("commands"), morphology, wordOrder, phonology, syllableDropoff);
         var comparison = GenerateComparison(stages.For("comparison"), wordOrder, phonology, syllableDropoff);
-        var degree = GenerateDegree(stages.For("degree"), comparison, morphology, phonology, syllableDropoff);
+        var degree = GenerateDegree(stages.For("degree"), comparison, morphology, wordOrder, phonology, syllableDropoff);
+        var intensifier = GenerateIntensifier(stages.For("intensifier"), degree, wordOrder, phonology, syllableDropoff);
+        var manner = GenerateManner(stages.For("manner"), morphology, phonology, syllableDropoff);
         var similative = GenerateSimilative(stages.For("similative"), comparison, morphology, wordOrder, phonology, syllableDropoff);
         var passive = GeneratePassive(stages.For("passive"), alignment, morphology, phonology, syllableDropoff);
         var conjunctions = GenerateConjunctions(stages.For("conjunctions"), phonology, syllableDropoff);
@@ -96,6 +99,8 @@ public static partial class Generator
             Comparison = comparison,
             Degree = degree,
             Similative = similative,
+            Intensifier = intensifier,
+            Manner = manner,
             Passive = passive,
             Conjunctions = conjunctions,
             Subordination = subordination,

@@ -191,7 +191,7 @@ public class GeneratorTests
     [InlineData(ConstituentWordOrder.SVO, HeadDirectionality.Final, HeadDirectionality.Final, HeadDirectionality.Initial, HeadDirectionality.Initial)]
     public void HeadDirectionality_IsWhicheverWayMostPhrasesGo(ConstituentWordOrder order, HeadDirectionality noun, HeadDirectionality adjective, HeadDirectionality adposition, HeadDirectionality expected)
     {
-        var wordOrder = new WordOrder { ConstituentWordOrder = order, NounPhraseDirectionality = noun, AdjectivePhraseDirectionality = adjective, AdpositionalPhraseDirectionality = adposition, ObliquePosition = ObliquePosition.AfterVerbAndObject };
+        var wordOrder = new WordOrder { ConstituentWordOrder = order, NounPhraseDirectionality = noun, AdjectivePhraseDirectionality = adjective, AdpositionalPhraseDirectionality = adposition, ObliquePosition = ObliquePosition.AfterVerbAndObject, MirrorsAdjectives = true };
 
         Assert.Equal(expected, wordOrder.HeadDirectionality);
     }

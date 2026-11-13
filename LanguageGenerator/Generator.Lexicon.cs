@@ -7,6 +7,7 @@ public static partial class Generator
     private static readonly string[] NounMeanings = ["person", "dog", "cat", "fish", "bird", "tree", "stone", "water", "fire", "sun", "house"];
     private static readonly string[] VerbMeanings = ["see", "eat", "drink", "sleep", "walk", "give", "know", "hear"];
     private static readonly string[] AdjectiveMeanings = ["big", "small", "good", "old"];
+    private static readonly string[] AdverbMeanings = ["now", "again"];
 
     //a lexicon that coins each root from its own Random, seeded by the language and the meaning,
     //so that a root never depends on which other words were coined, or in what order. A root is
@@ -40,6 +41,10 @@ public static partial class Generator
         foreach (var meaning in AdjectiveMeanings)
         {
             lexicon.Adjective(meaning);
+        }
+        foreach (var meaning in AdverbMeanings)
+        {
+            lexicon.Adverb(meaning);
         }
         return lexicon;
     }

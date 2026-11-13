@@ -37,6 +37,7 @@ coast THING
 control THING
 crow ANIM
 current THING
+day THING
 decision THING
 dog ANIM
 door THING
@@ -49,6 +50,7 @@ ear THING
 edge THING
 end THING
 ending THING
+evening THING
 everyone HUM
 everything THING
 eye THING
@@ -97,11 +99,13 @@ marta F
 middle THING
 mill THING
 miller HUM
+moment THING
 moon THING
 morning THING
 moss THING
 net THING
 night THING
+no THING
 nobody THING
 north THING
 nothing THING
@@ -112,6 +116,7 @@ person HUM
 pole THING
 price THING
 purse THING
+rain THING
 rat ANIM
 rest THING
 river THING
@@ -138,8 +143,10 @@ stranger HUM
 sun THING
 sword THING
 table THING
+talk THING
 thing THING
 thread THING
+time THING
 tooth THING
 torch THING
 tower THING
@@ -154,9 +161,12 @@ watchtower THING
 water THING
 wax THING
 well THING
+while THING
 wind THING
 wine THING
+winter THING
 woman F
 wood THING
 word THING
+year THING
 yew THING

@@ -9,6 +9,7 @@ public class RoleMarkerTests
         AdjectivePhraseDirectionality = HeadDirectionality.Final,
         AdpositionalPhraseDirectionality = HeadDirectionality.Final,
         ObliquePosition = ObliquePosition.AfterVerbAndObject,
+        MirrorsAdjectives = true,
     };
 
     //every oblique role in a region of its own
@@ -19,8 +20,13 @@ public class RoleMarkerTests
         regions.SelectMany(r => r.Roles.Select(role => (role, Word: new Lexeme(new Root([], r.Gloss), PartOfSpeech.Adposition))))
             .ToDictionary(x => x.role, x => x.Word);
 
+    //a duration marked like the object, unless a test says otherwise
+    private static Dictionary<Role, string> Markers(MorphosyntacticAlignment alignment, List<Case> cases, List<RoleRegion> regions,
+        (Role? Like, Lexeme? Word) duration) =>
+        Generator.SelectRoleMarkers(alignment, cases, regions, Postpositional, Adpositions(regions), duration).ToDictionary(kv => kv.Key, kv => kv.Value.ToString());
+
     private static Dictionary<Role, string> Markers(MorphosyntacticAlignment alignment, List<Case> cases, List<RoleRegion> regions) =>
-        Generator.SelectRoleMarkers(alignment, cases, regions, Postpositional, Adpositions(regions)).ToDictionary(kv => kv.Key, kv => kv.Value.ToString());
+        Markers(alignment, cases, regions, (Role.DirectObject, null));
 
     [Fact]
     public void SelectRoleMarkers_NominativeAccusative_MarksBothSubjectsAlike()

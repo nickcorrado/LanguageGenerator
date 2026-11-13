@@ -9,7 +9,7 @@ public class PassiveTests
     //only the basic meanings, since coining new ones would add to the shared sample's lexicons
     private static readonly NounPhrase Fish = new("fish", Number.Singular);
     private static readonly NounPhrase Cat = new("cat", Number.Singular);
-    private static PassiveClause EatenBy(Argument? agent) => new("eat", Tense.Past, Aspect.Perfective, Fish, agent, false, []);
+    private static PassiveClause EatenBy(Argument? agent) => new("eat", Tense.Past, Aspect.Perfective, Fish, agent, false, []) { Adverbs = [] };
 
     private static IEnumerable<string> Glosses(Sentence sentence) => sentence.Words.Select(w => w.Gloss);
 
@@ -72,7 +72,7 @@ public class PassiveTests
         Assert.All(GeneratedLanguages.Sample.Where(l => l.Passive is not null), l =>
         {
             var passive = Syntax.Realize(l, EatenBy(null), "x");
-            var intransitive = Syntax.Realize(l, new Clause("sleep", Tense.Past, Aspect.Perfective, Fish), "x");
+            var intransitive = Syntax.Realize(l, new Clause("sleep", Tense.Past, Aspect.Perfective, Fish) { Adverbs = [] }, "x");
 
             Assert.Contains(passive.Words.SelectMany(w => w.Word.Morphemes), m => m.Value is Affix { Grammemes: [Voice] } or Particle { Grammemes: [Voice] });
             Assert.Equal(intransitive.Words[IndexOf(intransitive, "fish")].Gloss, passive.Words[IndexOf(passive, "fish")].Gloss);
@@ -101,8 +101,8 @@ public class PassiveTests
     {
         Assert.All(GeneratedLanguages.Sample.Where(l => l.Passive is null), l =>
         {
-            Assert.Equal(Glosses(Syntax.Realize(l, new Clause("eat", Tense.Past, Aspect.Perfective, Cat, Fish), "x")), Glosses(Syntax.Realize(l, EatenBy(Cat), "x")));
-            Assert.Equal(Glosses(Syntax.Realize(l, new Clause("eat", Tense.Past, Aspect.Perfective, new Pronoun(Person.Third, Number.Plural), Fish), "x")),
+            Assert.Equal(Glosses(Syntax.Realize(l, new Clause("eat", Tense.Past, Aspect.Perfective, Cat, Fish) { Adverbs = [] }, "x")), Glosses(Syntax.Realize(l, EatenBy(Cat), "x")));
+            Assert.Equal(Glosses(Syntax.Realize(l, new Clause("eat", Tense.Past, Aspect.Perfective, new Pronoun(Person.Third, Number.Plural), Fish) { Adverbs = [] }, "x")),
                 Glosses(Syntax.Realize(l, EatenBy(null), "x")));
         });
     }

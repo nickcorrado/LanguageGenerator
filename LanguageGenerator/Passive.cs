@@ -35,4 +35,7 @@ public record Passive(Morpheme Marker, ExponentPosition Position)
 /// A clause about what's done to its patient, as in 'each light is carried by a small figure', with
 /// who does it, if anyone says.
 /// </summary>
-public record PassiveClause(string Verb, Tense Tense, Aspect Aspect, Argument Patient, Argument? Agent, bool Negative, ValueList<Oblique> Obliques);
+public record PassiveClause(string Verb, Tense Tense, Aspect Aspect, Argument Patient, Argument? Agent, bool Negative, ValueList<Oblique> Obliques)
+{
+    public required ValueList<Adverbial> Adverbs { get; init; }
+}
