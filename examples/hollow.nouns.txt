@@ -16,6 +16,7 @@ bird ANIM
 boat THING
 boot THING
 bow THING
+bowl THING
 boy M
 branch THING
 bread THING
@@ -36,6 +37,7 @@ clothing THING
 coast THING
 control THING
 crow ANIM
+cup THING
 current THING
 day THING
 decision THING
