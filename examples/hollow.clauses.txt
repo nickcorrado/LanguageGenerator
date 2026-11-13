@@ -19,8 +19,8 @@ smoke rises from twelve chimneys
   rise  subject:smoke  source:(chimney.PL 12)
 
 # > A dog barks somewhere behind the mill.
-a dog barks at the mill
-  bark  subject:dog.NDF  location:mill.DEF
+a dog barks behind the mill
+  bark  subject:dog.NDF  location.behind:mill.DEF
 
 # > You arrive at dusk with an empty purse and a sword that has seen better days.
 # can't express yet (relative clause): You arrive at dusk with an empty purse and a sword that has seen better days.
@@ -31,7 +31,7 @@ the gate is open
 
 # > An old woman sits beside it, mending a net.
 an old woman sits beside it
-  sit  subject:(woman.NDF old)  location:3SG.N
+  sit  subject:(woman.NDF old)  location.beside:3SG.N
 she mends a net
   mend  subject:3SG.F  object:net.NDF
 
@@ -74,7 +74,7 @@ the inn is warm and crowded
 
 # > Hunters sit by the fire and argue about the price of furs.
 hunters sit by the fire and argue the price of furs
-  sit  subject:hunter.PL  location:fire.DEF
+  sit  subject:hunter.PL  location.beside:fire.DEF
   and  argue  subject:hunter.PL  object:(price.DEF possessor:fur.PL)
 
 # > A boy carries bread to the long table.
@@ -88,7 +88,7 @@ everyone stops talking when you enter
 
 # > Marta wipes her hands on her apron.
 Marta wipes her hands on her apron
-  wipe  subject:marta  object:(hand.PL possessor:3SG.F)  location:(apron possessor:3SG.F)
+  wipe  subject:marta  object:(hand.PL possessor:3SG.F)  location.on:(apron possessor:3SG.F)
 
 # > She is taller than most of the men here.
 she is taller than most of the men
@@ -147,7 +147,7 @@ my sister's son did not come home last night
 
 # > "The miller saw lights in the forest.
 the miller saw lights in the forest
-  see.PST.PFV  subject:miller.DEF  object:light.PL  location:forest.DEF
+  see.PST.PFV  subject:miller.DEF  object:light.PL  location.in:forest.DEF
 
 # > He says they moved against the wind.
 he says
@@ -189,7 +189,7 @@ nobody answered
 
 # > She puts a small iron key on the table.
 she puts a small iron key on the table
-  put  subject:3SG.F  object:(key.NDF small iron)  location:table.DEF
+  put  subject:3SG.F  object:(key.NDF small iron)  goal.on:table.DEF
 
 # > "This opens the old watchtower.
 it opens the old watchtower
@@ -238,7 +238,7 @@ find the watchtower
 
 # > The watchtower stands on a hill north of the village.
 the watchtower stands on a north hill
-  stand  subject:watchtower.DEF  location:(hill.NDF north)
+  stand  subject:watchtower.DEF  location.on:(hill.NDF north)
 
 # > Its door is swollen with rain, but the key still turns.
 its door is swollen with rain but the key still turns
@@ -255,7 +255,7 @@ you climb carefully
 
 # > On the top floor you find a table, a broken chair, and a chest.
 you find a table, a broken chair and a chest on the top floor
-  find  subject:2SG  object:(and table.NDF (chair.NDF broken) chest.NDF)  location:(floor.DEF top)
+  find  subject:2SG  object:(and table.NDF (chair.NDF broken) chest.NDF)  location.on:(floor.DEF top)
 
 # > The chest is locked.
 the chest is locked
@@ -282,23 +282,23 @@ press the left button to open your bag
 
 # > The map is rolled inside a leather tube.
 the map is rolled in a leather tube
-  roll.PASS  subject:map.DEF  location:(tube.NDF leather)
+  roll.PASS  subject:map.DEF  location.in:(tube.NDF leather)
 
 # > Someone has drawn a red circle around the old stone circle in the deep woods.
-someone drew a red circle at the old stone circle
-  draw.PST.PFV  subject:someone  object:(circle.NDF red)  location:(circle.DEF old stone)
+someone drew a red circle around the old stone circle
+  draw.PST.PFV  subject:someone  object:(circle.NDF red)  location.around:(circle.DEF old stone)
 the old stone circle is in the deep woods
-  be  subject:(circle.DEF old stone)  location:(wood.PL.DEF deep)
+  be  subject:(circle.DEF old stone)  location.in:(wood.PL.DEF deep)
 
 # > Beneath it, in a shaking hand, someone has written three words: Do not sing.
-someone wrote three words at it shakily
-  write.PST.PFV  subject:someone  object:(word.PL 3)  location:3SG.N  manner:shaking
+someone wrote three words under it shakily
+  write.PST.PFV  subject:someone  object:(word.PL 3)  location.under:3SG.N  manner:shaking
 don't sing
   sing.IMP.NEG
 
 # > You hear footsteps on the stairs below you.
 you hear footsteps on the stairs
-  hear  subject:2SG  object:footstep.PL  location:stair.PL.DEF
+  hear  subject:2SG  object:footstep.PL  location.on:stair.PL.DEF
 
 # > They stop.
 they stop
@@ -309,7 +309,7 @@ they stop
 
 # > A pale figure stands in the doorway.
 a pale figure stands in the doorway
-  stand  subject:(figure.NDF pale)  location:doorway.DEF
+  stand  subject:(figure.NDF pale)  location.in:doorway.DEF
 
 # > It wears the clothes of a child, but its face is wrong.
 it wears a child's clothes, but its face is wrong
@@ -323,7 +323,7 @@ it tilts its head and begins the hum
 
 # > Your sword is in your hand before you know it.
 your sword is in your hand before you know it
-  be  subject:(sword possessor:2SG)  location:(hand possessor:2SG)
+  be  subject:(sword possessor:2SG)  location.in:(hand possessor:2SG)
   before  know  subject:2SG  object:3SG.N
 
 # > The thing does not move.
@@ -336,9 +336,9 @@ slowly, it raises one finger and points at the map
   and  point  subject:3SG.N  goal:map.DEF
 
 # > Then it turns and walks down the stairs, and the humming fades.
-then it turns and walks to the stairs, and the humming fades
+then it turns and walks down the stairs, and the humming fades
   turn  subject:3SG.N  when:then
-  and  walk  subject:3SG.N  goal:stair.PL.DEF
+  and  walk  subject:3SG.N  route:stair.PL.DEF
   and  fade  subject:humming.DEF
 
 # > You wait a long time before you follow it.
@@ -352,7 +352,7 @@ the stairs are empty
 
 # > There are small wet footprints in the dust.
 small wet footprints are in the dust
-  be  subject:(footprint.PL small wet)  location:dust.DEF
+  be  subject:(footprint.PL small wet)  location.in:dust.DEF
 
 # > Item: Rusty Key.
 # can't express yet (a label with no verb): Item: Rusty Key.
@@ -363,14 +363,14 @@ it is an old iron key
 
 # > It opens a door somewhere in the north.
 it opens a door in the north
-  open  subject:3SG.N  object:door.NDF  location:north.DEF
+  open  subject:3SG.N  object:door.NDF  location.in:north.DEF
 
 # > Item: Healing Moss.
 # can't express yet (a label with no verb): Item: Healing Moss.
 
 # > Grows on the shaded side of stones.
 it grows on the shaded side of stones
-  grow  subject:3SG.N  location:(side.DEF shaded possessor:stone.PL)
+  grow  subject:3SG.N  location.on:(side.DEF shaded possessor:stone.PL)
 
 # > Restores a little health when eaten.
 it restores a little health when it is eaten
@@ -452,7 +452,7 @@ my brother heard it
 
 # > He walked into the river with his boots on."
 he walked into the river with his boots
-  walk.PST.PFV  subject:3SG.M  goal:river.DEF  companion:(boot.PL possessor:3SG.M)
+  walk.PST.PFV  subject:3SG.M  goal.in:river.DEF  companion:(boot.PL possessor:3SG.M)
 
 # > "What do they want?"
 what do they want?
@@ -470,7 +470,7 @@ I don't know
 
 # > He presses a small bag into your hand.
 he presses a small bag into your hand
-  press  subject:3SG.M  object:(bag.NDF small)  goal:(hand possessor:2SG)
+  press  subject:3SG.M  object:(bag.NDF small)  goal.in:(hand possessor:2SG)
 
 # > It contains wax.
 it contains wax
@@ -497,7 +497,7 @@ the trees are older than the village
 
 # > Their branches close over the path and shut out the sun.
 their branches close over the path
-  close  subject:(branch.PL possessor:3PL)  location:path.DEF
+  close  subject:(branch.PL possessor:3PL)  location.over:path.DEF
   and  block  subject:(branch.PL possessor:3PL)  object:sun.DEF
 
 # > Birds do not sing here.
@@ -534,7 +534,7 @@ the bridge fell
 
 # > A ferryman sits on the far bank with his back to you.
 a ferryman sits on the far bank
-  sit  subject:ferryman.NDF  location:(bank.DEF far)
+  sit  subject:ferryman.NDF  location.on:(bank.DEF far)
 his back is at you
   be  subject:(back possessor:3SG.M)  location:2SG
 
@@ -561,12 +561,12 @@ the current is strong
 
 # > You cross on the fallen tree.
 you cross on the fallen tree
-  cross  subject:2SG  location:(tree.DEF fallen)
+  cross  subject:2SG  route.on:(tree.DEF fallen)
 
 # > Halfway over, you look down and see faces in the water.
 you look
   look  subject:2SG
-  and  see  subject:2SG  object:face.PL  location:water.DEF
+  and  see  subject:2SG  object:face.PL  location.in:water.DEF
 
 # > They are looking up at you.
 they are looking at you
@@ -590,7 +590,7 @@ his hand still holds his pole
 
 # > You make camp in a hollow between two roots.
 you make camp in a hollow
-  make  subject:2SG  object:camp  location:hollow.NDF
+  make  subject:2SG  object:camp  location.in:hollow.NDF
 
 # > You light a small fire and eat the last of the bread.
 you light a small fire
@@ -608,7 +608,7 @@ the fire is out and someone sings
 
 # > Press the wax into your ears now.
 press the wax into your ears now
-  press.IMP  object:wax.DEF  goal:(ear.PL possessor:2SG)  when:now
+  press.IMP  object:wax.DEF  goal.in:(ear.PL possessor:2SG)  when:now
 
 # > If you do not have wax, you will lose control of your character.
 you will lose the control of your character
@@ -621,8 +621,8 @@ the song stops or you do not hear it now
   or  hear.NEG  subject:2SG  object:3SG.N  when:now
 
 # > Lights move between the trees, soft and blue.
-soft blue lights move in the trees
-  move  subject:(light.PL soft blue)  location:tree.PL.DEF
+soft blue lights move between the trees
+  move  subject:(light.PL soft blue)  location.between:tree.PL.DEF
 
 # > They pass so close that you could touch them.
 they pass very close
@@ -658,12 +658,12 @@ nine stones lean like old men
   lean  subject:(stone 9)  like:(man.PL old)
 
 # > The children stand in front of the stones, one to each.
-the children stand at the stones
-  stand  subject:child.PL.DEF  location:stone.PL.DEF
+the children stand in front of the stones
+  stand  subject:child.PL.DEF  location.front:stone.PL.DEF
 
 # > In the middle of the circle, a woman is waiting.
 a woman is waiting in the circle's middle
-  wait  subject:woman.NDF  location:(middle possessor:circle.DEF)
+  wait  subject:woman.NDF  location.in:(middle possessor:circle.DEF)
 
 # > It is the old woman from the gate.
 it is the gate's old woman
@@ -773,7 +773,7 @@ your decision will change the ending of the story
 if you take the net, the children will go home, and you will remain in the circle always
   go.FUT  subject:child.PL.DEF  goal:home
   if  take  subject:2SG  object:net.DEF
-  and  remain.FUT  subject:2SG  location:circle.DEF  often:always
+  and  remain.FUT  subject:2SG  location.in:circle.DEF  often:always
 
 # > If you refuse, you must fight the old woman.
 you must fight the old woman
