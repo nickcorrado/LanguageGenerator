@@ -4,7 +4,7 @@ public class NounFileTests
 {
     //a fresh language with this many genders, since the sample's are shared and classifying changes one
     private static Language WithGenders(NounGenders genders) =>
-        Enumerable.Range(0, 300).Select(seed => Generator.Generate(seed)).First(l => l.Genders.Genders == genders);
+        Enumerable.Range(0, 300).Select(seed => Generator.Generate(seed, LanguageSpec.Free)).First(l => l.Genders.Genders == genders);
 
     [Fact]
     public void Parse_ReadsEveryTagAndSkipsComments()

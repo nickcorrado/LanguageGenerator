@@ -40,6 +40,11 @@ public class Language
     public required Subordination Subordination { get; init; }
     public required Modals Modals { get; init; }
     public required Questions Questions { get; init; }
+    /// <summary>
+    /// How steeply sounds get rarer down the inventory, which is ordered commonest first: each is
+    /// (1 - Dropoff) times as likely as the one before it.
+    /// </summary>
+    public required double Dropoff { get; init; }
 
     public Gender? GenderOf(Lexeme noun) => Genders.Of(noun, Lexicon.ClassOf(noun.Root.Meaning));
 

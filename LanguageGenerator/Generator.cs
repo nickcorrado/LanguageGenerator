@@ -6,15 +6,21 @@
 public static partial class Generator
 {
     //each stage draws from its own Random, so it doesn't matter what order they run in, or how much
-    //any of them draws. They're in this order only because each needs what's above it
-    public static Language Generate(int seed)
+    //any of them draws. They're in this order only because each needs what's above it. A stage with
+    //settings is drawn to match the spec, which fixes nothing for LanguageSpec.Free
+    public static Language Generate(int seed, LanguageSpec spec)
     {
+        if (spec.Problems() is [_, ..] problems)
+        {
+            throw new SpecException(string.Join(Environment.NewLine, problems));
+        }
         var stages = new Stages(seed);
-        var syllableDropoff = 0.15;
+        var syllableDropoff = stages.Draw(spec, Settings.DropoffStage, _ => 0.15);
 
-        var vowels = GenerateVowels(stages.For("vowels"));
-        var consonants = GenerateConsonants(stages.For("consonants"));
-        var syllableRule = SelectSyllableRule(stages.For("syllable rule"), vowels, consonants);
+        var vowels = stages.Draw(spec, Settings.VowelStage, rand => GenerateVowels(rand));
+        var consonants = stages.Draw(spec, Settings.ConsonantStage, rand => GenerateConsonants(rand));
+        var shape = stages.Draw(spec, Settings.SyllableStage, SelectSyllableShape);
+        var syllableRule = new SyllableRule(shape.Template, vowels, consonants, shape.Codas);
         var syllableContact = SelectSyllableContact(stages.For("syllable contact"), syllableRule);
         var phonology = new Phonology
         {
@@ -23,18 +29,18 @@ public static partial class Generator
             SyllableRule = syllableRule,
             SoundChanges = SelectSoundChanges(stages.For("sound changes"), syllableRule, vowels),
             SyllableChanges = SelectSyllableChanges(stages.For("syllable changes"), syllableRule, vowels, syllableContact),
-            ClusterRepair = stages.For("cluster repair").NextDouble() < 0.6 ? ClusterRepair.Epenthesis : ClusterRepair.Deletion,
+            ClusterRepair = stages.Draw(spec, Settings.ClusterRepairStage, SelectClusterRepair),
             EpentheticVowel = SelectEpentheticVowel(vowels),
-            Stress = SelectStress(stages.For("stress")),
+            Stress = stages.Draw(spec, Settings.StressStage, SelectStress),
             SyllableContact = syllableContact,
         };
         var orthography = SelectOrthography(stages.For("orthography"), vowels, consonants);
 
         //word order comes first because how isolating a language is, and how much it prefixes, depend on it
-        var wordOrder = SelectWordOrder(stages.For("word order"));
-        var morphology = SelectMorphologicalProfile(stages.For("morphology"), wordOrder.ConstituentWordOrder);
+        var wordOrder = stages.Draw(spec, Settings.WordOrderStage, SelectWordOrder);
+        var morphology = stages.Draw(spec, Settings.MorphologyStage, rand => SelectMorphologicalProfile(rand, wordOrder.ConstituentWordOrder));
 
-        var alignment = SelectAlignment(stages.For("alignment"));
+        var alignment = stages.Draw(spec, Settings.AlignmentStage, SelectAlignment);
         var regions = SelectRegions(stages.For("role regions"));
         var cases = SelectCases(stages.For("cases"), alignment, regions, 0.65);
         var configurations = GenerateConfigurations(stages.For("configurations"), morphology, wordOrder, alignment, regions, cases, phonology, syllableDropoff);
@@ -114,8 +120,15 @@ public static partial class Generator
             Subordination = subordination,
             Modals = modals,
             Questions = questions,
+            Dropoff = syllableDropoff,
         };
     }
+
+    /// <summary>How many times a stage is drawn, at most, to find a draw that matches a spec.</summary>
+    //each draw of a stage with settings takes microseconds, and the rarest combination the odds give
+    //is about one in 50,000, so this finds nearly any value the odds can give, and gives up on one
+    //they can't in a fraction of a second
+    public const int DrawLimit = 100_000;
 
     //a Random for each stage of generating a language, from the language's seed and the stage's name.
     //A name can only be used once, since two stages sharing one would draw the very same numbers
@@ -126,6 +139,30 @@ public static partial class Generator
         public Random For(string stage) => used.Add(stage)
             ? Sampling.For(seed, stage)
             : throw new ArgumentException($"The stage '{stage}' was named twice.", nameof(stage));
+
+        //a stage drawn to match the spec. The first draw is what the stage would be with no spec,
+        //so a seed whose draw already matches keeps its language. Otherwise the stage is drawn again,
+        //each time from a Random of its own, until a draw matches every fixed setting that a draw
+        //can match, which keeps the odds of the rest conditional on them; and if none does within
+        //the limit, as for a value the odds never give, the closest draw is kept. Any fixed value
+        //the kept draw still lacks, as an inventory or a number always would, is written into it
+        public T Draw<T>(LanguageSpec spec, Stage<T> stage, Func<Random, T> draw)
+        {
+            var result = draw(For(stage.Name));
+            var settings = stage.Settings.Where(s => spec.Allowed(s) is not null).ToList();
+            var redrawable = settings.Where(s => s.Redrawable).ToList();
+            int Matching(T drawn) => redrawable.Count(s => s.Matches(drawn, spec.Allowed(s)!));
+            var best = Matching(result);
+            for (int attempt = 1; best < redrawable.Count && attempt < DrawLimit; attempt++)
+            {
+                var drawn = draw(Sampling.For(seed, $"{stage.Name} #{attempt}"));
+                if (Matching(drawn) is var matching && matching > best)
+                {
+                    (result, best) = (drawn, matching);
+                }
+            }
+            return settings.Aggregate(result, (drawn, s) => s.Matches(drawn, spec.Allowed(s)!) ? drawn : s.Write(drawn, spec.Allowed(s)!));
+        }
     }
 
     //short forms for a closed class of words or affixes, kept distinct from each other where the

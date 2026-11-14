@@ -192,7 +192,7 @@ public class QuestionTests
     [InlineData(1430)]
     public void Realize_InvertingLanguage_PutsTheVerbAfterAFrontedQuestionWord(int seed)
     {
-        var l = Generator.Generate(seed);
+        var l = Generator.Generate(seed, LanguageSpec.Free);
         Assert.True(l.Questions is { Polar.Value: QuestionInversion, FrontsQuestionWords: true });
 
         var sentence = Realized(l, new Question(DogEats(new QuestionWord(Interrogative.What)), false));
