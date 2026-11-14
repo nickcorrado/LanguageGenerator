@@ -165,8 +165,8 @@ public class CommandTests
         var hunter = new NounPhrase("hunter", Number.Singular);
         var inn = new NounPhrase("inn", Number.Singular);
 
-        var told = Syntax.Realize(language, new Command("give", Number.Singular, hunter, Obliques: [new(Role.Goal, inn)]) { Adverbs = [] }, "");
-        var said = Syntax.Realize(language, new Clause("give", Tense.Present, Aspect.Imperfective, new NounPhrase("dog", Number.Singular), hunter, Obliques: [new(Role.Goal, inn)]) { Adverbs = [] }, "");
+        var told = Syntax.Realize(language, new Command("give", Number.Singular, hunter, Obliques: [new(Role.Goal, inn, Configuration.At)]) { Adverbs = [] }, "");
+        var said = Syntax.Realize(language, new Clause("give", Tense.Present, Aspect.Imperfective, new NounPhrase("dog", Number.Singular), hunter, Obliques: [new(Role.Goal, inn, Configuration.At)]) { Adverbs = [] }, "");
 
         Assert.Equal(said.Words.Single(w => w.Word.Root?.Meaning == "hunter").Gloss, told.Words.Single(w => w.Word.Root?.Meaning == "hunter").Gloss);
         Assert.Equal(said.Words.Single(w => w.Word.Root?.Meaning == "inn").Gloss, told.Words.Single(w => w.Word.Root?.Meaning == "inn").Gloss);
@@ -181,7 +181,7 @@ public class CommandTests
             {
                 foreach (var negative in new[] { false, true })
                 {
-                    Assert.NotEmpty(Syntax.Realize(language, new Command("eat", number, new NounPhrase("fish", Number.Plural), negative, [new(Role.Location, new NounPhrase("house", Number.Singular))]) { Adverbs = [] }, "").Text);
+                    Assert.NotEmpty(Syntax.Realize(language, new Command("eat", number, new NounPhrase("fish", Number.Plural), negative, [new(Role.Location, new NounPhrase("house", Number.Singular), Configuration.At)]) { Adverbs = [] }, "").Text);
                 }
             }
         }
@@ -195,7 +195,7 @@ public class CommandTests
         Assert.Equal(new CopularCommand(new Adjective("careful", false), Number.Singular, false) { Obliques = [], Adverbs = [] }, Parsed("be.IMP  adjective:careful").Value);
         Assert.Equal(new CopularCommand(new NounPhrase("fool", Number.Singular, Definiteness: Definiteness.Indefinite), Number.Plural, true) { Obliques = [], Adverbs = [] },
             Parsed("be.IMP.NEG  subject:2PL  noun:fool.NDF").Value);
-        Assert.Equal(new CopularCommand(new Oblique(Role.Location, new NounPhrase("house", Number.Singular, Definiteness: Definiteness.Definite)), Number.Singular, false) { Obliques = [], Adverbs = [] },
+        Assert.Equal(new CopularCommand(new Oblique(Role.Location, new NounPhrase("house", Number.Singular, Definiteness: Definiteness.Definite), Configuration.At), Number.Singular, false) { Obliques = [], Adverbs = [] },
             Parsed("be.IMP  location:house.DEF").Value);
     }
 
@@ -236,7 +236,7 @@ public class CommandTests
     {
         Assert.All(Sample, l =>
         {
-            var sentence = Syntax.Realize(l, new CopularCommand(new Oblique(Role.Location, new NounPhrase("house", Number.Singular)), Number.Singular, false) { Obliques = [], Adverbs = [] }, "");
+            var sentence = Syntax.Realize(l, new CopularCommand(new Oblique(Role.Location, new NounPhrase("house", Number.Singular), Configuration.At), Number.Singular, false) { Obliques = [], Adverbs = [] }, "");
 
             Assert.Contains(l.Predication.CopulaFor(locational: true).Root, sentence.Words.Select(w => w.Word.Root));
         });

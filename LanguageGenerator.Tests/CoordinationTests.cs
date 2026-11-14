@@ -116,7 +116,7 @@ public class CoordinationTests
                 case AndWord and:
                     Assert.InRange(IndexOf(sentence, and.Word.Root), dog + 1, cat - 1);
                     break;
-                case AndWith when l.RoleMarkers[Role.Companion].Value is Adposition with:
+                case AndWith when l.RoleMarkers[Role.Companion].Adposition is { } with:
                     Assert.True(IndexOf(sentence, with.Lexeme.Root) > dog);
                     break;
                 case AndJuxtaposed:

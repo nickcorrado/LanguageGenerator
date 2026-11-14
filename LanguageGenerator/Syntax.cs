@@ -18,13 +18,17 @@ public record NounPhrase(string Noun, Number Number, ValueList<Adjective> Adject
 //what agrees with one depends on the language, so that's Syntax.AgreementOf's to say
 public union Argument(NounPhrase, Pronoun, Coordination, QuestionWord);
 /// <summary>
-/// A phrase saying where, to where, from where, to whom, with whom or with what something happened,
-/// what it was like, when it happened or for how long.
+/// A phrase saying where, to where, from where, which way, to whom, with whom or with what something
+/// happened, what it was like, when it happened or for how long. A spatial one says where relative
+/// to its place too, so 'into the river' is a goal In the river.
 /// </summary>
-public record Oblique(Role Role, Argument Argument)
+public record Oblique(Role Role, Argument Argument, Configuration Configuration)
 {
     public static IReadOnlyList<Role> Roles { get; } =
-        [Role.Recipient, Role.Location, Role.Goal, Role.Source, Role.Companion, Role.Instrument, Role.Similative, Role.Time, Role.Duration];
+        [Role.Recipient, Role.Location, Role.Goal, Role.Source, Role.Route, Role.Companion, Role.Instrument, Role.Similative, Role.Time, Role.Duration];
+
+    /// <summary>The roles that say where, which can take a configuration.</summary>
+    public static IReadOnlyList<Role> Spatial { get; } = [Role.Location, Role.Goal, Role.Source, Role.Route];
 }
 
 //obliques and adverbs are each in the order they're written, which ModifierOrder keeps for those
@@ -181,18 +185,13 @@ public static class Syntax
     //including one with a modal, which stays balanced
     private static IReadOnlyList<Word>? Deranked(Language language, Statement statement, bool dropSubject, Role? markedAs)
     {
-        var marker = markedAs is { } role ? language.RoleMarkers[role].Value : null;
+        var marker = markedAs is { } role ? language.RoleMarkers[role] : null;
         IReadOnlyList<Word> Verb(Lexeme verb, bool negative)
         {
-            var words = marker is Case @case ? AsNoun(language, verb, @case) : [new Word([verb.Root])];
+            var words = marker is { Case: { } @case, Adposition: null } ? AsNoun(language, verb, @case) : [new Word([verb.Root])];
             return negative ? language.Negation.Apply(words) : words;
         }
-        IReadOnlyList<Word> Adpositioned(IReadOnlyList<Word> clause) => marker switch
-        {
-            Adposition { Type: AdpositionType.Preposition } a => [new Word([a.Lexeme.Root]), .. clause],
-            Adposition a => [.. clause, new Word([a.Lexeme.Root])],
-            _ => clause,
-        };
+        IReadOnlyList<Word> Adpositioned(IReadOnlyList<Word> clause) => WithAdposition(clause, marker?.Adposition);
 
         switch (statement.Value)
         {
@@ -405,14 +404,50 @@ public static class Syntax
         }
     }
 
-    //an oblique takes its role's case, and its adposition, if the role has one, before or after it
+    //an oblique takes its role's case, and its adposition, if the role has one, before or after it,
+    //and its configuration's marker, if it has one the language tells apart from At
     private static IReadOnlyList<Word> Oblique(Language language, Oblique oblique)
     {
         if (!LanguageGenerator.Oblique.Roles.Contains(oblique.Role))
         {
             throw new ArgumentException($"{oblique.Role} isn't an oblique role.", nameof(oblique));
         }
-        return Marked(language, oblique.Argument, oblique.Role);
+        if (oblique.Configuration != Configuration.At && !LanguageGenerator.Oblique.Spatial.Contains(oblique.Role))
+        {
+            throw new ArgumentException($"Only a role saying where takes a configuration, not {oblique.Role}.", nameof(oblique));
+        }
+        return language.Configurations.Markers.TryGetValue(oblique.Configuration, out var marker)
+            ? Placed(language, oblique.Argument, oblique.Role, marker)
+            : Marked(language, oblique.Argument, oblique.Role);
+    }
+
+    //a place with its configuration and its role's marker together.
+    //A relational noun is possessed by the place and takes the role's marker itself, as Turkish
+    //masa-nın alt-ın-da is 'table-GEN bottom-3SG-LOC' for 'under the table'.
+    //An adposition goes beside the place with the role's case, if the role has one, as Latin sub
+    //mensā 'under the table' has the ablative, and the case it governs otherwise. A role marked by an
+    //adposition keeps it outside, as English says 'from under the table', except a location, whose
+    //plain 'at' the configuration's word replaces.
+    //A localization goes in the noun beside the role's case, and the role's adposition, if it has one,
+    //outside it
+    private static IReadOnlyList<Word> Placed(Language language, Argument place, Role role, ConfigurationMarker marker)
+    {
+        var path = language.RoleMarkers[role];
+        switch (marker.Value)
+        {
+            case RelationalNoun noun:
+                return Marked(language, new NounPhrase(noun.Meaning, Number.Singular, Possessor: place), role);
+            case SpatialAdposition adposition:
+            {
+                var @case = (path.Adposition is null ? path.Case : adposition.Governs) ?? Citation(language);
+                var phrase = WithAdposition(Inflect(language, place, @case, Localization.None), adposition.Adposition);
+                return role == Role.Location ? phrase : WithAdposition(phrase, path.Adposition);
+            }
+            case SpatialCase spatial:
+                return WithAdposition(Inflect(language, place, CaseFor(language, path), spatial.Localization), path.Adposition);
+            default:
+                throw new InvalidOperationException();
+        }
     }
 
     //a phrase marked for a role: its case, and its adposition, if the role has one, before or after it
@@ -422,14 +457,15 @@ public static class Syntax
         {
             return Likened(language, argument);
         }
-        var phrase = Inflect(language, argument, role);
-        return language.RoleMarkers[role] switch
-        {
-            Adposition { Type: AdpositionType.Preposition } a => [new Word([a.Lexeme.Root]), .. phrase],
-            Adposition a => [.. phrase, new Word([a.Lexeme.Root])],
-            _ => phrase,
-        };
+        return WithAdposition(Inflect(language, argument, role), language.RoleMarkers[role].Adposition);
     }
+
+    private static IReadOnlyList<Word> WithAdposition(IReadOnlyList<Word> phrase, Adposition? adposition) => adposition switch
+    {
+        null => phrase,
+        { Type: AdpositionType.Preposition } a => [new Word([a.Lexeme.Root]), .. phrase],
+        { } a => [.. phrase, new Word([a.Lexeme.Root])],
+    };
 
     //what something is likened to, in the plain case a subject takes, with the language's word for
     //'like' on its side of the phrase, or its affix on the phrase's edge, outside everything else
@@ -853,32 +889,33 @@ public static class Syntax
         new([.. words.Select(language.Phonology.Realize)], translation, language.Orthography);
 
     private static IReadOnlyList<Word> Inflect(Language language, Argument argument, Role role) =>
-        Inflect(language, argument, CaseFor(language, language.RoleMarkers[role]));
+        Inflect(language, argument, CaseFor(language, language.RoleMarkers[role]), Localization.None);
 
     //a noun phrase on its own, in the case a noun is cited in, as in a dictionary or a name
-    public static IReadOnlyList<Word> Cited(Language language, NounPhrase phrase) => Inflect(language, phrase, Citation(language));
+    public static IReadOnlyList<Word> Cited(Language language, NounPhrase phrase) => Inflect(language, phrase, Citation(language), Localization.None);
 
-    private static IReadOnlyList<Word> Inflect(Language language, Argument argument, Case @case)
+    //a localization is None for anything that isn't a place with a configuration in the noun
+    private static IReadOnlyList<Word> Inflect(Language language, Argument argument, Case @case, Localization localization)
     {
         var nouns = language.Paradigms.Nouns;
         var pronouns = language.Pronouns.Paradigm;
         return argument switch
         {
-            NounPhrase phrase => Possessed(language, phrase, language.Articles.Apply(Modified(language, phrase, Features(nouns, [NumberOf(language, phrase), @case])),
+            NounPhrase phrase => Possessed(language, phrase, language.Articles.Apply(Modified(language, phrase, Features(nouns, [NumberOf(language, phrase), @case, localization])),
                 language.Lexicon.Noun(phrase.Noun).Root, phrase.Definiteness, phrase.Number, language.GenderOf(language.Lexicon.Noun(phrase.Noun)))),
-            Pronoun pronoun => pronouns.Inflect(language.Pronouns.For(pronoun), Features(pronouns, [@case])),
-            Coordination coordination => Joined(language, coordination, @case),
-            QuestionWord question => nouns.Inflect(language.Questions.Words[question.Word], Features(nouns, [Number.Singular, @case])),
+            Pronoun pronoun => pronouns.Inflect(language.Pronouns.For(pronoun), Features(pronouns, [@case, localization])),
+            Coordination coordination => Joined(language, coordination, @case, localization),
+            QuestionWord question => nouns.Inflect(language.Questions.Words[question.Word], Features(nouns, [Number.Singular, @case, localization])),
         };
     }
 
     //each part in the case, with the language's 'and' or 'or' between each two, or for 'and' in a
     //language whose 'and' is 'with', every part after the first marked as a companion. An adposition
     //for the whole is said once, outside it all
-    private static IReadOnlyList<Word> Joined(Language language, Coordination coordination, Case @case)
+    private static IReadOnlyList<Word> Joined(Language language, Coordination coordination, Case @case, Localization localization)
     {
         var conjunctions = language.Conjunctions;
-        var parts = coordination.Items.Select(item => Inflect(language, item, @case)).ToList();
+        var parts = coordination.Items.Select(item => Inflect(language, item, @case, localization)).ToList();
         return (coordination.Conjunction, conjunctions.NounAnd.Value) switch
         {
             (Conjunction.Or, _) => Join(parts, conjunctions.Or),
@@ -914,7 +951,7 @@ public static class Syntax
         {
             return possessed;
         }
-        var owner = possession.MarksPossessor ? Marked(language, possessor, Role.Possessor) : Inflect(language, possessor, Citation(language));
+        var owner = possession.MarksPossessor ? Marked(language, possessor, Role.Possessor) : Inflect(language, possessor, Citation(language), Localization.None);
         return possession.PossessorFirst ? [.. owner, .. possessed] : [.. possessed, .. owner];
     }
 
@@ -972,14 +1009,8 @@ public static class Syntax
         return [.. noun.Take(main), .. words, .. noun.Skip(main + 1)];
     }
 
-    //the case a noun takes for a role. Roles marked some other way still need a value for the
-    //Case category: an adposition's governed case, or the plain citation case
-    private static Case CaseFor(Language language, RoleMarker marker) => marker switch
-    {
-        Case c => c,
-        Adposition a => a.Governs ?? Citation(language),
-        Unmarked => Citation(language),
-    };
+    //the case a noun takes for a role, which is the plain citation case where the role has none
+    private static Case CaseFor(Language language, RoleMarker marker) => marker.Case ?? Citation(language);
 
     //the plain case a noun is cited in
     private static Case Citation(Language language) => language.MorphosyntacticAlignment switch

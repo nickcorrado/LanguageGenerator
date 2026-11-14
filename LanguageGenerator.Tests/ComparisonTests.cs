@@ -81,11 +81,11 @@ public class ComparisonTests
         Assert.All(GeneratedLanguages.Sample.Where(l => l.Comparison.Value is LocationalComparison), l =>
         {
             var sentence = Bigger(l);
-            var marked = l.RoleMarkers[((LocationalComparison)l.Comparison.Value!).Role].Value switch
+            var marked = l.RoleMarkers[((LocationalComparison)l.Comparison.Value!).Role] switch
             {
-                Case c => sentence.Words[IndexOf(sentence, "cat")].Gloss.Split('-', '.', '[', ']').Contains(c.Gloss)
+                { Adposition: { } a } => IndexOf(sentence, a.Lexeme.Root) >= 0,
+                { Case: { } c } => sentence.Words[IndexOf(sentence, "cat")].Gloss.Split('-', '.', '[', ']').Contains(c.Gloss)
                     || sentence.Words.Any(w => w.Word.Morphemes.Any(m => m.Value is Particle { Grammemes: var g } && g.Contains(c))),
-                Adposition a => IndexOf(sentence, a.Lexeme.Root) >= 0,
                 _ => true,
             };
 
@@ -224,7 +224,7 @@ public class ComparisonTests
     private static readonly Clause DogWalks = new("walk", Tense.Present, Aspect.Imperfective, new NounPhrase("dog", Number.Singular)) { Adverbs = [] };
 
     //'the dog walks like a cat'
-    private static Sentence WalksLikeACat(Language l) => Syntax.Realize(l, DogWalks with { Obliques = [new(Role.Similative, new NounPhrase("cat", Number.Singular))] }, "x");
+    private static Sentence WalksLikeACat(Language l) => Syntax.Realize(l, DogWalks with { Obliques = [new(Role.Similative, new NounPhrase("cat", Number.Singular), Configuration.At)] }, "x");
 
     [Fact]
     public void Generate_SimilativeWords_GoOnTheirAdpositionsSide() =>
@@ -268,7 +268,7 @@ public class ComparisonTests
         Assert.All(GeneratedLanguages.Sample, l =>
         {
             var simile = WalksLikeACat(l);
-            var located = Syntax.Realize(l, DogWalks with { Obliques = [new(Role.Location, new NounPhrase("cat", Number.Singular))] }, "x");
+            var located = Syntax.Realize(l, DogWalks with { Obliques = [new(Role.Location, new NounPhrase("cat", Number.Singular), Configuration.At)] }, "x");
 
             Assert.Equal(IndexOf(located, "walk") < IndexOf(located, "cat"), IndexOf(simile, "walk") < IndexOf(simile, "cat"));
         });
@@ -287,7 +287,7 @@ public class ComparisonTests
     {
         var clause = Assert.IsType<Clause>(Parsed("shine  subject:3SG.N  like:water").Value);
 
-        Assert.Equal(new Oblique(Role.Similative, new NounPhrase("water", Number.Singular)), Assert.Single(clause.Obliques));
+        Assert.Equal(new Oblique(Role.Similative, new NounPhrase("water", Number.Singular), Configuration.At), Assert.Single(clause.Obliques));
     }
 
     [Theory]

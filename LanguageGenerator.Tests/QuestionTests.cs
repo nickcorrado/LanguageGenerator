@@ -135,8 +135,8 @@ public class QuestionTests
             Assert.Equal(-1, MarkerAt(question));
             if (l.Questions.FrontsQuestionWords)
             {
-                //the object's case is on the word itself or a particle before it, if anywhere
-                Assert.InRange(IndexOf(question, what), 0, 1);
+                //the object's case and number are on the word itself or particles before it, if anywhere
+                Assert.InRange(IndexOf(question, what), 0, l.Paradigms.Nouns.Slots.Count(s => s.Position == ExponentPosition.PrecedingParticle));
             }
             else
             {
@@ -147,13 +147,13 @@ public class QuestionTests
     [Fact]
     public void Realize_FrontedQuestionWord_TakesItsAdpositionWithIt()
     {
-        var languages = GeneratedLanguages.Sample.Where(l => l.Questions.FrontsQuestionWords && l.RoleMarkers[Role.Source].Value is Adposition).ToList();
+        var languages = GeneratedLanguages.Sample.Where(l => l.Questions.FrontsQuestionWords && l.RoleMarkers[Role.Source].Adposition is not null).ToList();
         Assert.NotEmpty(languages);
         Assert.All(languages, l =>
         {
-            var clause = DogEatsFish with { Obliques = [new Oblique(Role.Source, new QuestionWord(Interrogative.Where))] };
+            var clause = DogEatsFish with { Obliques = [new Oblique(Role.Source, new QuestionWord(Interrogative.Where), Configuration.At)] };
             var sentence = Realized(l, new Question(clause, false));
-            var adposition = (Adposition)l.RoleMarkers[Role.Source].Value!;
+            var adposition = l.RoleMarkers[Role.Source].Adposition!;
             var where = IndexOf(sentence, l.Questions.Words[Interrogative.Where].Root);
             var from = IndexOf(sentence, adposition.Lexeme.Root);
 
@@ -177,7 +177,7 @@ public class QuestionTests
         Assert.All(languages, l =>
         {
             var house = new NounPhrase("house", Number.Singular);
-            var withOblique = Realized(l, DogEatsFish with { Obliques = [new Oblique(Role.Location, house)] });
+            var withOblique = Realized(l, DogEatsFish with { Obliques = [new Oblique(Role.Location, house, Configuration.At)] });
             var why = Realized(l, new Question(DogEatsFish, true));
 
             //where the oblique's phrase starts, before any adposition, case particle or article
@@ -213,8 +213,8 @@ public class QuestionTests
             new Question(new PassiveClause("eat", Tense.Past, Aspect.Perfective, Fish, who, false, []) { Adverbs = [] }, false),
             new Question(new PassiveClause("eat", Tense.Past, Aspect.Perfective, Fish, null, false, []) { Adverbs = [] }, true),
             new Question(new CopularClause(new Adjective("big", false), Tense.Present, Aspect.Imperfective, Dog) { Obliques = [], Adverbs = [] }, false),
-            new Question(new CopularClause(new Oblique(Role.Location, new QuestionWord(Interrogative.Where)), Tense.Present, Aspect.Imperfective, Dog) { Obliques = [], Adverbs = [] }, false),
-            new Question(new CopularClause(new Oblique(Role.Location, house), Tense.Present, Aspect.Imperfective, who) { Obliques = [], Adverbs = [] }, false),
+            new Question(new CopularClause(new Oblique(Role.Location, new QuestionWord(Interrogative.Where), Configuration.At), Tense.Present, Aspect.Imperfective, Dog) { Obliques = [], Adverbs = [] }, false),
+            new Question(new CopularClause(new Oblique(Role.Location, house, Configuration.At), Tense.Present, Aspect.Imperfective, who) { Obliques = [], Adverbs = [] }, false),
             new Question(new Comparative(new CopularClause(new Adjective("big", false), Tense.Present, Aspect.Imperfective, Dog) { Obliques = [], Adverbs = [] }, Fish), false),
             new Question(new Comparative(new CopularClause(new Adjective("big", false), Tense.Present, Aspect.Imperfective, Dog) { Obliques = [], Adverbs = [] }, Fish), true),
             new Question(new Modalized(DogEatsFish, Modality.Obligation, true), true),

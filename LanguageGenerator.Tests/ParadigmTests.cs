@@ -277,7 +277,7 @@ public class ParadigmTests
     [Fact]
     public void SelectNounCategories_OnlyPeripheralCases_AddsADirectCase()
     {
-        var categories = Generator.SelectNounCategories(new Random(0), MorphosyntacticAlignment.None, [Case.Dative]);
+        var categories = Generator.SelectNounCategories(new Random(0), MorphosyntacticAlignment.None, [Case.Dative], []);
 
         Assert.Equal(["DIR", "DAT"], categories.Single(c => c.Is<Case>()).Values.Select(v => v.Gloss));
     }

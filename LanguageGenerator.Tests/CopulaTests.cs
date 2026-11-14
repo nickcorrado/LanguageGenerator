@@ -151,7 +151,7 @@ public class CopulaTests
     }
 
     private static Sentence DogIsInTheHouse(Language l, Tense tense, bool negative = false) =>
-        Syntax.Realize(l, new CopularClause(new Oblique(Role.Location, new NounPhrase("house", Number.Singular)), tense, Aspect.Imperfective, new NounPhrase("dog", Number.Singular), negative) { Obliques = [], Adverbs = [] }, "the dog is in the house");
+        Syntax.Realize(l, new CopularClause(new Oblique(Role.Location, new NounPhrase("house", Number.Singular), Configuration.At), tense, Aspect.Imperfective, new NounPhrase("dog", Number.Singular), negative) { Obliques = [], Adverbs = [] }, "the dog is in the house");
 
     [Fact]
     public void GenerateLocationalPredication_ManyDraws_MatchTheWalsCounts()
@@ -183,12 +183,12 @@ public class CopulaTests
 
             Assert.Equal(locational is null, HasCopula(sentence));
             Assert.Equal(locational is not null, IndexOf(sentence, "be.at") >= 0);
-            switch (language.RoleMarkers[Role.Location].Value)
+            switch (language.RoleMarkers[Role.Location])
             {
-                case Adposition a:
+                case { Adposition: { } a }:
                     Assert.Contains(sentence.Words, w => w.Word.Root == a.Lexeme.Root);
                     break;
-                case Case c:
+                case { Case: { } c }:
                     Assert.Contains(sentence.Words, w => w.Gloss.Split('-', '.', '[', ']').Contains(c.Gloss));
                     break;
             }
@@ -224,7 +224,7 @@ public class CopulaTests
     [Fact]
     public void Realize_CopularClauseWithAnotherOblique_Throws()
     {
-        var clause = new CopularClause(new Oblique(Role.Goal, new NounPhrase("house", Number.Singular)), Tense.Past, Aspect.Imperfective, new NounPhrase("dog", Number.Singular)) { Obliques = [], Adverbs = [] };
+        var clause = new CopularClause(new Oblique(Role.Goal, new NounPhrase("house", Number.Singular), Configuration.At), Tense.Past, Aspect.Imperfective, new NounPhrase("dog", Number.Singular)) { Obliques = [], Adverbs = [] };
 
         Assert.Throws<ArgumentException>(() => Syntax.Realize(GeneratedLanguages.Sample[0], clause, "x"));
     }

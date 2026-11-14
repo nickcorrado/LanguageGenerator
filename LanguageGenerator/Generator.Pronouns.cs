@@ -57,12 +57,14 @@ public static partial class Generator
 
         //pronouns take the nouns' case markers where nouns mark case in a slot of its own, as in
         //Turkish ben-i 'me', like ev-i 'the house'. Where case is fused with number, pronouns get
-        //case markers of their own, since a pronoun's number is already part of it
+        //case markers of their own, since a pronoun's number is already part of it. A localization
+        //goes with case, as 'under it' is as spatial as 'under the table'
         var nouns = paradigms.Nouns;
-        var caseCategory = nouns.Categories.FirstOrDefault(c => c.Is<Case>());
-        List<InflectionalCategory> categories = caseCategory is null ? [] : [caseCategory];
-        var paradigm = nouns.Slots.FirstOrDefault(s => s.Categories is [var only] && only.Is<Case>()) is { } caseSlot
-            ? new Paradigm { PartOfSpeech = PartOfSpeech.Pronoun, Categories = categories, Slots = [caseSlot] }
+        static bool Takes(InflectionalCategory category) => category.Is<Case>() || category.Is<Localization>();
+        List<InflectionalCategory> categories = [.. nouns.Categories.Where(Takes)];
+        List<ExponentSlot> slots = [.. nouns.Slots.Where(s => s.Categories.All(Takes))];
+        var paradigm = slots.Sum(s => s.Categories.Count) == categories.Count
+            ? new Paradigm { PartOfSpeech = PartOfSpeech.Pronoun, Categories = categories, Slots = slots }
             : GenerateParadigm(rand, PartOfSpeech.Pronoun, categories, morphology, wordOrder.AdpositionalPhraseDirectionality, phonology, dropoff);
 
         var agrees = paradigms.Verbs.Categories.Has<Person>();

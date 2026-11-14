@@ -201,7 +201,9 @@ public class GeneratorTests
     {
         Assert.All(GeneratedLanguages.Sample, l =>
         {
-            Assert.Equal(11, l.Lexicon.Count(x => x.PartOfSpeech == PartOfSpeech.Noun));
+            //with a noun for each configuration marked by one
+            var relational = l.Configurations.Markers.Values.Select(m => m.Value).OfType<RelationalNoun>().Distinct().Count();
+            Assert.Equal(11 + relational, l.Lexicon.Count(x => x.PartOfSpeech == PartOfSpeech.Noun));
             Assert.Equal(8, l.Lexicon.Count(x => x.PartOfSpeech == PartOfSpeech.Verb));
             //every role but the similative, which has a marker of its own
             Assert.Equal(Enum.GetValues<Role>().Length - 1, l.RoleMarkers.Count);

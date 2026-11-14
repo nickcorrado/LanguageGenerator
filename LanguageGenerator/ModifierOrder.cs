@@ -31,7 +31,7 @@ public static class ModifierOrder
     /// <summary>How near the verb a phrase in this role goes.</summary>
     public static Closeness Of(Role role) => role switch
     {
-        Role.Recipient or Role.Goal or Role.Source or Role.Agent => Closeness.Complement,
+        Role.Recipient or Role.Goal or Role.Source or Role.Route or Role.Agent => Closeness.Complement,
         Role.Similative or Role.Instrument or Role.Companion => Closeness.Manner,
         Role.Location => Closeness.Place,
         Role.Duration => Closeness.Extent,

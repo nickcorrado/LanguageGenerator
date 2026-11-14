@@ -14,7 +14,7 @@ public class ClauseFileTests
     {
         var entry = Single("drink the wine\n  drink.IMP  object:wine  location:house");
 
-        Assert.Equal(new Command("drink", Number.Singular, new NounPhrase("wine", Number.Singular), Obliques: [new(Role.Location, new NounPhrase("house", Number.Singular))]) { Adverbs = [] }, entry.Statement.Value);
+        Assert.Equal(new Command("drink", Number.Singular, new NounPhrase("wine", Number.Singular), Obliques: [new(Role.Location, new NounPhrase("house", Number.Singular), Configuration.At)]) { Adverbs = [] }, entry.Statement.Value);
     }
 
     [Fact]
@@ -68,9 +68,9 @@ public class ClauseFileTests
 
         Assert.Equal(new Clause("walk", Tense.Past, Aspect.Imperfective, new Pronoun(Person.First, Number.Plural), Obliques:
         [
-            new(Role.Source, new NounPhrase("village", Number.Singular)),
-            new(Role.Goal, new NounPhrase("river", Number.Singular, [new("big", false)])),
-            new(Role.Companion, new Pronoun(Person.Second, Number.Singular)),
+            new(Role.Source, new NounPhrase("village", Number.Singular), Configuration.At),
+            new(Role.Goal, new NounPhrase("river", Number.Singular, [new("big", false)]), Configuration.At),
+            new(Role.Companion, new Pronoun(Person.Second, Number.Singular), Configuration.At),
         ]) { Adverbs = [] }, clause);
         Assert.NotEqual(clause with { Obliques = [.. clause.Obliques.Reverse()] }, clause);
     }
@@ -187,7 +187,7 @@ public class ClauseFileTests
     [Fact]
     public void Parse_BeWithALocation_SaysWhereItsSubjectIs()
     {
-        Assert.Equal(new CopularClause(new Oblique(Role.Location, new NounPhrase("house", Number.Singular, [new("big", false)])), Tense.Past, Aspect.Imperfective, new NounPhrase("dog", Number.Singular), Negative: true) { Obliques = [], Adverbs = [] },
+        Assert.Equal(new CopularClause(new Oblique(Role.Location, new NounPhrase("house", Number.Singular, [new("big", false)]), Configuration.At), Tense.Past, Aspect.Imperfective, new NounPhrase("dog", Number.Singular), Negative: true) { Obliques = [], Adverbs = [] },
             Single("the dog wasn't in the big house\n  be.PST.NEG location:(house big) subject:dog").Statement.Value);
     }
 

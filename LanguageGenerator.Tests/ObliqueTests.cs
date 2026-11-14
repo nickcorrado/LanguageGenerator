@@ -9,7 +9,7 @@ public class ObliqueTests
     private static Sentence Walk(Language language, params Oblique[] obliques) =>
         Syntax.Realize(language, new Clause("walk", Tense.Past, Aspect.Perfective, new NounPhrase("dog", Number.Singular), Obliques: [.. obliques]) { Adverbs = [] }, "x");
 
-    private static Oblique Stone(Role role) => new(role, new NounPhrase("stone", Number.Singular));
+    private static Oblique Stone(Role role) => new(role, new NounPhrase("stone", Number.Singular), Configuration.At);
 
     [Fact]
     public void GenerateAdpositions_ManyDraws_GiveEachRegionWithoutACaseOneWord()
@@ -71,7 +71,7 @@ public class ObliqueTests
     [Fact]
     public void Generate_AnyLanguage_HasPrepositionsOrPostpositionsByItsAdpositionalPhrases()
     {
-        Assert.All(GeneratedLanguages.Sample, l => Assert.All(l.RoleMarkers.Values.Select(m => m.Value).OfType<Adposition>(), a =>
+        Assert.All(GeneratedLanguages.Sample, l => Assert.All(l.RoleMarkers.Values.Select(m => m.Adposition).OfType<Adposition>(), a =>
             Assert.Equal(l.WordOrder.AdpositionalPhraseDirectionality == HeadDirectionality.Initial ? AdpositionType.Preposition : AdpositionType.Postposition, a.Type)));
     }
 
@@ -84,12 +84,12 @@ public class ObliqueTests
             {
                 var sentence = Walk(language, Stone(role));
                 var stone = IndexOf(sentence, "stone");
-                switch (language.RoleMarkers[role].Value)
+                switch (language.RoleMarkers[role])
                 {
-                    case Case c:
+                    case { Case: { } c, Adposition: null }:
                         Assert.Contains(sentence.Words, w => w.Gloss.Split('-', '.', '[', ']').Contains(c.Gloss));
                         break;
-                    case Adposition a:
+                    case { Adposition: { } a }:
                         //the adposition is at the phrase's edge, with nothing of the clause's between it and the noun
                         var at = sentence.Words.ToList().FindIndex(w => w.Word.Root == a.Lexeme.Root);
                         Assert.Equal(a.Gloss, sentence.Words[at].Gloss);
@@ -98,7 +98,7 @@ public class ObliqueTests
                         Assert.DoesNotContain(between, w => w.Word.Root is not null);
                         break;
                     //a duration marked like the object, in a language that doesn't mark objects
-                    case Unmarked when role == Role.Duration:
+                    case { Case: null, Adposition: null } when role == Role.Duration:
                         break;
                     default:
                         Assert.Fail($"{role} has no marker.");
@@ -144,7 +144,7 @@ public class ObliqueTests
     {
         Assert.All(GeneratedLanguages.Sample, l =>
         {
-            var sentence = Walk(l, new Oblique(Role.Source, new NounPhrase("tree", Number.Singular)), new Oblique(Role.Goal, new NounPhrase("water", Number.Singular)));
+            var sentence = Walk(l, new Oblique(Role.Source, new NounPhrase("tree", Number.Singular), Configuration.At), new Oblique(Role.Goal, new NounPhrase("water", Number.Singular), Configuration.At));
             var (tree, water) = (IndexOf(sentence, "tree"), IndexOf(sentence, "water"));
 
             Assert.True(tree < water);
@@ -162,7 +162,7 @@ public class ObliqueTests
         Assert.All(dropping, l =>
         {
             var root = l.Pronouns.For(you).Root;
-            Assert.Contains(Walk(l, new Oblique(Role.Companion, you)).Words, w => w.Word.Root == root);
+            Assert.Contains(Walk(l, new Oblique(Role.Companion, you, Configuration.At)).Words, w => w.Word.Root == root);
         });
     }
 

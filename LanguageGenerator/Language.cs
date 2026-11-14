@@ -17,6 +17,8 @@ public class Language
     public required MorphosyntacticAlignment MorphosyntacticAlignment { get; init; }
     public required IReadOnlyList<Case> Cases { get; init; }
     public required IReadOnlyDictionary<Role, RoleMarker> RoleMarkers { get; init; }
+    /// <summary>How the language says in, on, under and the rest, beside the role a place is in.</summary>
+    public required Configurations Configurations { get; init; }
     public required PronounSystem Pronouns { get; init; }
     public required Negation Negation { get; init; }
     public required Predication Predication { get; init; }
@@ -102,7 +104,7 @@ public enum Affixation
 
 /// <summary>Which categories share a single marker.</summary>
 //WALS 21A and 21B. Person and number agreement aren't here because they always do
-public record Exponence(bool CaseWithNumber, bool TamWithAgreement, bool TenseWithAspect);
+public record Exponence(bool CaseWithNumber, bool TamWithAgreement, bool TenseWithAspect, bool CaseWithLocalization);
 
 /// <summary>Whether third person agreement is marked at all.</summary>
 //WALS 103A
@@ -138,6 +140,8 @@ public record ZeroMarking(bool Singular, bool CoreCase, bool Present, ThirdPerso
             //the case for the intransitive subject: nominative, absolutive, or direct
             Case c => CoreCase && (c == Case.Nominative || c == Case.Absolutive || c == Case.Direct),
             Tense t => Present && t == Tense.Present,
+            //a noun that isn't spatial has no localization to mark
+            Localization l => l == Localization.None,
             //no aspect, mood or voice value is reliably the unmarked one
             _ => false,
         });

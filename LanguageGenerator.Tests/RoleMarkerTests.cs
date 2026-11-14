@@ -23,7 +23,7 @@ public class RoleMarkerTests
     //a duration marked like the object, unless a test says otherwise
     private static Dictionary<Role, string> Markers(MorphosyntacticAlignment alignment, List<Case> cases, List<RoleRegion> regions,
         (Role? Like, Lexeme? Word) duration) =>
-        Generator.SelectRoleMarkers(alignment, cases, regions, Postpositional, Adpositions(regions), duration).ToDictionary(kv => kv.Key, kv => kv.Value.ToString());
+        Generator.SelectRoleMarkers(new Random(0), alignment, cases, regions, Postpositional, Adpositions(regions), duration).ToDictionary(kv => kv.Key, kv => kv.Value.ToString());
 
     private static Dictionary<Role, string> Markers(MorphosyntacticAlignment alignment, List<Case> cases, List<RoleRegion> regions) =>
         Markers(alignment, cases, regions, (Role.DirectObject, null));

@@ -19,6 +19,8 @@ public closed record Grammeme(string Name, string Gloss)
     //the gloss of one morpheme expressing all of these, e.g. 3SG.PST
     public static string JoinGlosses(IReadOnlyList<Grammeme> grammemes)
     {
+        //a value with no gloss, like Localization.None, says nothing a reader needs
+        grammemes = [.. grammemes.Where(g => g.Gloss.Length > 0)];
         var gloss = "";
         for (int i = 0; i < grammemes.Count; i++)
         {
@@ -96,6 +98,9 @@ public record Case(string Name, string Gloss) : Grammeme(Name, Gloss)
     public static Case Allative { get; } = new("Allative", "ALL");
     public static Case Ergative { get; } = new("Ergative", "ERG");
     public static Case Absolutive { get; } = new("Absolutive", "ABS");
+    /// <summary>The way something goes, as in 'through the forest' or 'along the river'.</summary>
+    //the Leipzig rules have none; PERL is what grammars of Australian and Uralic languages use
+    public static Case Perlative { get; } = new("Perlative", "PERL");
     /// <summary>
     /// The plain form in a language with only peripheral cases, covering everything they don't.
     /// </summary>
@@ -124,6 +129,8 @@ public enum Role
     Location,
     Goal,
     Source,
+    //the way something goes, as in 'through the forest', 'across the river' or 'past the mill'
+    Route,
     Companion,
     Instrument,
     //who does what a passive verb says is done, as in 'carried by a figure'

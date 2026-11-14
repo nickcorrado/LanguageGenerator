@@ -37,8 +37,9 @@ public static partial class Generator
         var alignment = SelectAlignment(stages.For("alignment"));
         var regions = SelectRegions(stages.For("role regions"));
         var cases = SelectCases(stages.For("cases"), alignment, regions, 0.65);
+        var configurations = GenerateConfigurations(stages.For("configurations"), morphology, wordOrder, alignment, regions, cases, phonology, syllableDropoff);
         var paradigms = new Paradigms(
-            GenerateNounParadigm(stages.For("noun paradigm"), morphology, wordOrder, alignment, cases, phonology, syllableDropoff),
+            GenerateNounParadigm(stages.For("noun paradigm"), morphology, wordOrder, alignment, cases, configurations.Localizations, phonology, syllableDropoff),
             GenerateVerbParadigm(stages.For("verb paradigm"), morphology, wordOrder, phonology, syllableDropoff));
         var pronouns = GeneratePronouns(stages.For("pronouns"), paradigms, morphology, wordOrder, phonology, syllableDropoff);
         var negation = GenerateNegation(stages.For("negation"), morphology, phonology, syllableDropoff);
@@ -48,7 +49,7 @@ public static partial class Generator
         var genders = GenerateGenders(stages.For("genders"), morphology, paradigms, phonology, syllableDropoff);
         var adpositions = GenerateAdpositions(stages.For("adpositions"), regions, cases, phonology, syllableDropoff);
         var duration = GenerateDuration(stages.For("duration"), adpositions, phonology, syllableDropoff);
-        var roleMarkers = SelectRoleMarkers(alignment, cases, regions, wordOrder, adpositions, duration);
+        var roleMarkers = SelectRoleMarkers(stages.For("adposition government"), alignment, cases, regions, wordOrder, adpositions, duration);
         var numerals = GenerateNumerals(stages.For("numerals"), morphology, phonology, syllableDropoff);
         var articles = GenerateArticles(stages.For("articles"), morphology, genders, numerals, phonology, syllableDropoff);
         var possession = GeneratePossession(stages.For("possession"), morphology, wordOrder, phonology, syllableDropoff);
@@ -75,6 +76,12 @@ public static partial class Generator
                 .. modals.Markers.Values.Select(m => m.Value).OfType<ModalVerb>().Select(m => m.Verb),
                 .. comparison.Value is ExceedComparison exceed ? [exceed.Exceed] : Array.Empty<Lexeme>()],
         });
+        //a relational noun is an ordinary noun, so 'the top of the hill' and 'on the hill' can share
+        //a word, but it's needed whether or not a text has that noun
+        foreach (var noun in configurations.Markers.Values.Select(m => m.Value).OfType<RelationalNoun>())
+        {
+            lexicon.Noun(noun.Meaning);
+        }
 
         return new Language
         {
@@ -88,6 +95,7 @@ public static partial class Generator
             MorphosyntacticAlignment = alignment,
             Cases = cases,
             RoleMarkers = roleMarkers,
+            Configurations = configurations,
             Pronouns = pronouns,
             Negation = negation,
             Predication = predication,

@@ -4,22 +4,29 @@
 public static partial class Generator
 {
     //case and number particles on nouns behave like adpositions, so they follow the same directionality
-    public static Paradigm GenerateNounParadigm(Random rand, MorphologicalProfile morphology, WordOrder wordOrder, MorphosyntacticAlignment alignment, IReadOnlyList<Case> cases, Phonology phonology, double dropoff) =>
-        GenerateParadigm(rand, PartOfSpeech.Noun, SelectNounCategories(rand, alignment, cases), morphology, wordOrder.AdpositionalPhraseDirectionality, phonology, dropoff);
+    public static Paradigm GenerateNounParadigm(Random rand, MorphologicalProfile morphology, WordOrder wordOrder, MorphosyntacticAlignment alignment, IReadOnlyList<Case> cases,
+        IReadOnlyList<Localization> localizations, Phonology phonology, double dropoff) =>
+        GenerateParadigm(rand, PartOfSpeech.Noun, SelectNounCategories(rand, alignment, cases, localizations), morphology, wordOrder.AdpositionalPhraseDirectionality, phonology, dropoff);
 
     public static Paradigm GenerateVerbParadigm(Random rand, MorphologicalProfile morphology, WordOrder wordOrder, Phonology phonology, double dropoff) =>
         GenerateParadigm(rand, PartOfSpeech.Verb, SelectVerbCategories(rand), morphology, wordOrder.VerbPhraseDirectionality, phonology, dropoff);
 
     //innermost first: number sits closer to the root than case, as it overwhelmingly does.
     //gender isn't here because a noun doesn't inflect for it; it has one, and adjectives and
-    //verbs agree with it
-    public static List<InflectionalCategory> SelectNounCategories(Random rand, MorphosyntacticAlignment alignment, IReadOnlyList<Case> cases)
+    //verbs agree with it. A localization goes between number and case, as Lezgian puts it just
+    //inside the case that says whether anything moves, in sew-re-l-aj 'bear-OBL-SUPER-ELAT', 'from
+    //on the bear'
+    public static List<InflectionalCategory> SelectNounCategories(Random rand, MorphosyntacticAlignment alignment, IReadOnlyList<Case> cases, IReadOnlyList<Localization> localizations)
     {
         var categories = new List<InflectionalCategory>();
         if (rand.NextDouble() < 0.85)
         {
             List<Grammeme> numbers = rand.NextDouble() < 0.1 ? [Number.Singular, Number.Dual, Number.Plural] : [Number.Singular, Number.Plural];
             categories.Add(new("Number", numbers));
+        }
+        if (localizations.Count > 0)
+        {
+            categories.Add(new("Localization", [Localization.None, .. localizations]));
         }
         //with no core cases, a noun still needs a plain form for everything the peripheral cases don't cover
         if (cases.Count > 0)
@@ -56,6 +63,10 @@ public static partial class Generator
         //person and number agreement is fused in nearly every language that has it (1SG, 3PL)
         (Person, Number) => true,
         (Number, Case) => exponence.CaseWithNumber,
+        //a localization sits between number and case, so where those two are fused, it's fused
+        //with them both
+        (Number, Localization) => exponence.CaseWithNumber,
+        (Localization, Case) => exponence.CaseWithLocalization || exponence.CaseWithNumber,
         (Tense or Aspect, Person) => exponence.TamWithAgreement,
         (Aspect, Tense) => exponence.TenseWithAspect,
         _ => false,
@@ -191,7 +202,10 @@ public static partial class Generator
             //and 24 of the 156 with tense-aspect-mood inflection mark it together with agreement
             TamWithAgreement: rand.NextDouble() < 24 / 156.0,
             //a guess: WALS counts tense and aspect together as TAM, so it has no figure for this
-            TenseWithAspect: rand.NextDouble() < 0.3),
+            TenseWithAspect: rand.NextDouble() < 0.3,
+            //a guess: Finnish and Hungarian fuse configuration and path into one case marker, as
+            //Finnish -ssa is IN.LOC, while Lezgian and Tsez stack them
+            CaseWithLocalization: rand.NextDouble() < 0.5),
         Sampling.Categorical(rand, WordOrder.ObjectPrecedesVerb(order) ? ObjectVerbAffixationCounts : VerbObjectAffixationCounts),
         new ZeroMarking(
             //guesses, but grounded in Greenberg's universals: the singular can be expressed only by
