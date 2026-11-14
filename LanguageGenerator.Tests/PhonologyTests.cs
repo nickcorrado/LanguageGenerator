@@ -179,7 +179,7 @@ public class PhonologyTests
         ];
         var example = ClauseFile.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "scene.txt")));
         var statements = example.Select(e => e.Statement).Concat(commands).ToList();
-        foreach (var language in Enumerable.Range(0, 100).Select(seed => Generator.Generate(seed)))
+        foreach (var language in Enumerable.Range(0, 100).Select(seed => Generator.Generate(seed, LanguageSpec.Free)))
         {
             var said = statements.SelectMany(s => Syntax.Realize(language, s, "").Words.Select(w => w.Word));
             Assert.Empty(GeneratedLanguages.AllWords(language).Concat(said).Where(Repeats).Select(w => w.Gloss));

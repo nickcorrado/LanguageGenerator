@@ -355,7 +355,7 @@ public class ClauseFileTests
         Assert.NotEmpty(entries);
         foreach (var seed in Enumerable.Range(0, 20))
         {
-            var language = Generator.Generate(seed);
+            var language = Generator.Generate(seed, LanguageSpec.Free);
             Assert.All(entries, e => Assert.NotEmpty(Syntax.Realize(language, e.Statement, e.Translation).Text));
         }
     }

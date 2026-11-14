@@ -6,7 +6,7 @@ public class CommandTests
     private static IEnumerable<Language> Sample => GeneratedLanguages.Sample;
 
     //a language's own lexicon, since coining a word into a shared one is off limits
-    private static Sentence Say(int seed, Command command) => Syntax.Realize(Generator.Generate(seed), command, "");
+    private static Sentence Say(int seed, Command command) => Syntax.Realize(Generator.Generate(seed, LanguageSpec.Free), command, "");
 
     private static int SeedWhere(Func<Language, bool> keep) => Enumerable.Range(0, 300).First(seed => keep(GeneratedLanguages.Sample[seed]));
 
@@ -151,7 +151,7 @@ public class CommandTests
     public void Realize_Command_SaysNoSubjectEvenWhereSubjectsAreSaid()
     {
         var seed = SeedWhere(l => !l.Pronouns.DropsSubjects);
-        var language = Generator.Generate(seed);
+        var language = Generator.Generate(seed, LanguageSpec.Free);
 
         var words = Syntax.Realize(language, Eat, "").Words;
 
@@ -161,7 +161,7 @@ public class CommandTests
     [Fact]
     public void Realize_CommandWithAnObjectAndOblique_MarksThemAsUsual()
     {
-        var language = Generator.Generate(3);
+        var language = Generator.Generate(3, LanguageSpec.Free);
         var hunter = new NounPhrase("hunter", Number.Singular);
         var inn = new NounPhrase("inn", Number.Singular);
 

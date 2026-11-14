@@ -301,13 +301,17 @@ public static partial class Generator
         return phonemes[Sampling.TruncatedGeometric(rand, phonemes.Count, dropoff)];
     }
 
-    public static SyllableRule SelectSyllableRule(Random rand, IReadOnlyList<Vowel> vowels, IReadOnlyList<Consonant> consonants)
+    //the inventory isn't drawn here, so that a spec can fix the shape apart from the sounds that fill it
+    public static SyllableShape SelectSyllableShape(Random rand)
     {
         var template = Sampling.Categorical(rand, Sampling.Categorical(rand, SyllableComplexityBands));
         //a restriction only matters for templates with a coda
         var codas = template.Slots.Any(s => s is Slot.Final) ? Sampling.Categorical(rand, CodaRestrictionWeights) : CodaRestriction.Any;
-        return new SyllableRule(template, vowels, consonants, codas);
+        return new SyllableShape(template, codas);
     }
+
+    //a guess, since WALS doesn't count how languages repair clusters
+    public static ClusterRepair SelectClusterRepair(Random rand) => rand.NextDouble() < 0.6 ? ClusterRepair.Epenthesis : ClusterRepair.Deletion;
 
     //WALS 12A sorts 486 languages by their largest syllable: 61 simple, at most CV; 274 moderately
     //complex, with one coda or an onset of a consonant and a liquid or glide, or both; and 151

@@ -47,6 +47,38 @@ public class ProgramTests
         }
     }
 
+    [Fact]
+    public void Main_Spec_FixesWhatItSays()
+    {
+        var folder = Directory.CreateTempSubdirectory().FullName;
+        var spec = Path.Combine(folder, "spec.json");
+        File.WriteAllText(spec, """{ "syllable-template": "CVF", "consonants": ["t", "k", "n", "s", "m", "l", "p"] }""");
+
+        var (exitCode, output) = Run("7", "--spec", spec);
+
+        Assert.Equal(0, exitCode);
+        Assert.Contains("CVF: C[tknsmlp]", output);
+    }
+
+    [Theory]
+    [InlineData("""{ "syllable-template": "CV", "coda-restriction": "Nasals" }""", "can't be met")]
+    [InlineData("""{ "word-order": "SOV" }""", "isn't a setting")]
+    public void Main_BadSpec_SaysWhyAndFails(string json, string message)
+    {
+        var folder = Directory.CreateTempSubdirectory().FullName;
+        var spec = Path.Combine(folder, "spec.json");
+        File.WriteAllText(spec, json);
+
+        var (exitCode, output) = Run("7", "--spec", spec);
+
+        Assert.Equal(1, exitCode);
+        Assert.Contains(message, output);
+    }
+
+    [Fact]
+    public void Main_SpecWithoutAFile_ShowsTheUsage() =>
+        Assert.Contains("Usage:", Run("7", "--spec").Output);
+
     //a clause, and the same language with and without its noun file, whose only difference can be
     //the gender on the adjective and verb
     private static readonly string Clause = "marta slept\n  sleep.PST  subject:(marta big)\n";

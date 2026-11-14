@@ -226,7 +226,7 @@ public class SyllableTests
     public void SelectSyllableRule_ManyDraws_RestrictCodasOnlyWhereTheTemplateHasThem()
     {
         var rand = new Random(1);
-        var rules = Enumerable.Range(0, 40000).Select(_ => Generator.SelectSyllableRule(rand, TestData.Vowels, TestData.Consonants)).ToList();
+        var rules = Enumerable.Range(0, 40000).Select(_ => Generator.SelectSyllableShape(rand)).ToList();
         //only templates with a coda get a restriction, and every template has an onset
         var withCodas = rules.Where(r => r.Template.Slots.Any(s => s is Slot.Final)).ToList();
 
@@ -243,7 +243,7 @@ public class SyllableTests
     public void SelectSyllableRule_ManyDraws_MatchWalsSyllableComplexity()
     {
         var rand = new Random(1);
-        var templates = Enumerable.Range(0, 40000).Select(_ => Generator.SelectSyllableRule(rand, TestData.Vowels, TestData.Consonants).Template).ToList();
+        var templates = Enumerable.Range(0, 40000).Select(_ => Generator.SelectSyllableShape(rand).Template).ToList();
 
         //WALS 12A: 61 simple, 274 moderately complex and 151 complex of 486. A sibilant slot makes a
         //template complex, and anything else beyond CV moderately so
@@ -302,7 +302,7 @@ public class SyllableTests
             return forms.GroupBy(form => form).Sum(same => same.Count() * (same.Count() - 1) / 2);
         }
 
-        var homophones = Enumerable.Range(0, 40).Select(seed => Homophones(Generator.Generate(seed))).ToList();
+        var homophones = Enumerable.Range(0, 40).Select(seed => Homophones(Generator.Generate(seed, LanguageSpec.Free))).ToList();
 
         Assert.InRange(homophones.Average(), 3, 20);
     }
