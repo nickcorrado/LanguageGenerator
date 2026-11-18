@@ -5,10 +5,10 @@ public static partial class Generator
 {
     //case and number particles on nouns behave like adpositions, so they follow the same directionality
     public static Paradigm GenerateNounParadigm(Random rand, MorphologicalProfile morphology, WordOrder wordOrder, MorphosyntacticAlignment alignment, IReadOnlyList<Case> cases,
-        IReadOnlyList<Localization> localizations, Phonology phonology, double dropoff) =>
+        IReadOnlyList<Localization> localizations, Phonology phonology, Dropoff dropoff) =>
         GenerateParadigm(rand, PartOfSpeech.Noun, SelectNounCategories(rand, alignment, cases, localizations), morphology, wordOrder.AdpositionalPhraseDirectionality, phonology, dropoff);
 
-    public static Paradigm GenerateVerbParadigm(Random rand, MorphologicalProfile morphology, WordOrder wordOrder, Phonology phonology, double dropoff) =>
+    public static Paradigm GenerateVerbParadigm(Random rand, MorphologicalProfile morphology, WordOrder wordOrder, Phonology phonology, Dropoff dropoff) =>
         GenerateParadigm(rand, PartOfSpeech.Verb, SelectVerbCategories(rand), morphology, wordOrder.VerbPhraseDirectionality, phonology, dropoff);
 
     //innermost first: number sits closer to the root than case, as it overwhelmingly does.
@@ -92,7 +92,7 @@ public static partial class Generator
         _ => throw new ArgumentOutOfRangeException(nameof(morphology), morphology.Affixation, null),
     };
 
-    public static Paradigm GenerateParadigm(Random rand, PartOfSpeech partOfSpeech, IReadOnlyList<InflectionalCategory> categories, MorphologicalProfile morphology, HeadDirectionality directionality, Phonology phonology, double dropoff)
+    public static Paradigm GenerateParadigm(Random rand, PartOfSpeech partOfSpeech, IReadOnlyList<InflectionalCategory> categories, MorphologicalProfile morphology, HeadDirectionality directionality, Phonology phonology, Dropoff dropoff)
     {
         var particlePosition = directionality == HeadDirectionality.Initial ? ExponentPosition.PrecedingParticle : ExponentPosition.FollowingParticle;
 
@@ -129,7 +129,7 @@ public static partial class Generator
     //one exponent per combination of values, with no form at all for combinations the language
     //leaves unmarked. Other forms are kept distinct within a slot where possible; if the phonology
     //keeps producing repeats, the syncretism is allowed
-    private static List<(IReadOnlyList<Grammeme> Values, Morpheme Exponent)> GenerateExponents(Random rand, IReadOnlyList<InflectionalCategory> categories, ExponentPosition position, ZeroMarking zeroMarking, Phonology phonology, double dropoff)
+    private static List<(IReadOnlyList<Grammeme> Values, Morpheme Exponent)> GenerateExponents(Random rand, IReadOnlyList<InflectionalCategory> categories, ExponentPosition position, ZeroMarking zeroMarking, Phonology phonology, Dropoff dropoff)
     {
         var exponents = new List<(IReadOnlyList<Grammeme>, Morpheme)>();
         var forms = new DistinctForms();
@@ -144,7 +144,7 @@ public static partial class Generator
             //repair work to do; particles are words of their own, so they're always a whole syllable
             var bare = position is ExponentPosition.Prefix or ExponentPosition.Suffix && rand.NextDouble() < 0.3;
             var form = forms.Draw(() => bare
-                ? [phonology.Consonants[Sampling.TruncatedGeometric(rand, phonology.Consonants.Count, dropoff)]]
+                ? [phonology.Consonants[Sampling.TruncatedGeometric(rand, phonology.Consonants.Count, dropoff.Value)]]
                 : [.. GenerateSyllable(rand, phonology.SyllableRule, dropoff, needsOnset: false).Phonemes]);
             Morpheme exponent = position is ExponentPosition.Prefix or ExponentPosition.Suffix ? new Affix(form, values) : new Particle(form, values);
             exponents.Add((values, exponent));

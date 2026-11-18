@@ -22,7 +22,7 @@ public class GenderTests
         var language = GeneratedLanguages.Sample.First(l => l.MorphologicalProfile.Fusion != Fusion.Isolating);
         var rand = new Random(1);
 
-        var systems = Enumerable.Range(0, 5000).Select(_ => Generator.GenerateGenders(rand, language.MorphologicalProfile, language.Paradigms, language.Phonology, 0.15)).ToList();
+        var systems = Enumerable.Range(0, 5000).Select(_ => Generator.GenerateGenders(rand, language.MorphologicalProfile, language.Paradigms, language.Phonology, new Dropoff(0.15))).ToList();
         double Share(NounGenders g) => systems.Count(s => s.Genders == g) / 5000.0;
 
         //WALS 30A: 145 of the 221 languages modeled have none, 50 have two and 26 three

@@ -10,7 +10,7 @@ public class PronounTests
     private static List<PronounSystem> Draw(Language language, int count)
     {
         var rand = new Random(1);
-        return [.. Enumerable.Range(0, count).Select(_ => Generator.GeneratePronouns(rand, language.Paradigms, language.MorphologicalProfile, language.WordOrder, language.Phonology, 0.15))];
+        return [.. Enumerable.Range(0, count).Select(_ => Generator.GeneratePronouns(rand, language.Paradigms, language.MorphologicalProfile, language.WordOrder, language.Phonology, new Dropoff(0.15)))];
     }
 
     private static bool Agrees(Language language) => language.Paradigms.Verbs.Categories.Has<Person>();

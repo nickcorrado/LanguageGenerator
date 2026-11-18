@@ -15,6 +15,7 @@ public class Language
     public required WordOrder WordOrder { get; init; }
     public required Articles Articles { get; init; }
     public required MorphosyntacticAlignment MorphosyntacticAlignment { get; init; }
+    public required RoleRegions RoleRegions { get; init; }
     public required IReadOnlyList<Case> Cases { get; init; }
     public required IReadOnlyDictionary<Role, RoleMarker> RoleMarkers { get; init; }
     /// <summary>How the language says in, on, under and the rest, beside the role a place is in.</summary>
@@ -44,7 +45,7 @@ public class Language
     /// How steeply sounds get rarer down the inventory, which is ordered commonest first: each is
     /// (1 - Dropoff) times as likely as the one before it.
     /// </summary>
-    public required double Dropoff { get; init; }
+    public required Dropoff Dropoff { get; init; }
 
     public Gender? GenderOf(Lexeme noun) => Genders.Of(noun, Lexicon.ClassOf(noun.Root.Meaning));
 

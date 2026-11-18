@@ -18,7 +18,7 @@ public static partial class Generator
         [(PredicativeAdjectives.Verbal, 151), (PredicativeAdjectives.Nonverbal, 132)];
     private static readonly (bool Value, int Languages)[] ZeroCopulaCounts = [(false, 211), (true, 175)];
 
-    public static Predication GeneratePredication(Random rand, Phonology phonology, double dropoff) => new(
+    public static Predication GeneratePredication(Random rand, Phonology phonology, Dropoff dropoff) => new(
         Sampling.Categorical(rand, PredicativeAdjectiveCounts),
         Sampling.Categorical(rand, ZeroCopulaCounts),
         new Lexeme(new Root(GenerateForm(rand, phonology, dropoff, 0, maxSyllables: 1), "COP"), PartOfSpeech.Verb));
@@ -28,7 +28,7 @@ public static partial class Generator
 
     //a one-syllable locational copula of its own, redrawn a few times to keep it from sounding like
     //the copula, in WALS's share of languages
-    public static Predication GenerateLocationalPredication(Random rand, Predication predication, Phonology phonology, double dropoff)
+    public static Predication GenerateLocationalPredication(Random rand, Predication predication, Phonology phonology, Dropoff dropoff)
     {
         if (!Sampling.Categorical(rand, LocationalCopulaCounts))
         {

@@ -37,7 +37,7 @@ public static partial class Generator
     //WALS counts a bare stem as an imperative of its own, and says that many languages use one,
     //especially for the singular, but gives no figure, so the half is a guess. A plural is marked,
     //like the plural everywhere else here
-    public static Commands GenerateCommands(Random rand, MorphologicalProfile morphology, WordOrder wordOrder, Phonology phonology, double dropoff)
+    public static Commands GenerateCommands(Random rand, MorphologicalProfile morphology, WordOrder wordOrder, Phonology phonology, Dropoff dropoff)
     {
         var position = rand.NextDouble() < ParticleChance(morphology)
             ? (wordOrder.VerbPhraseDirectionality == HeadDirectionality.Initial ? ExponentPosition.PrecedingParticle : ExponentPosition.FollowingParticle)

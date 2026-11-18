@@ -21,6 +21,12 @@ public record RoleRegion(IReadOnlyList<Role> Roles)
     public bool Contains(Role role) => Roles.Contains(role);
 }
 
+/// <summary>The edges of the role map a language joins, and the regions that leaves it.</summary>
+public record RoleRegions(IReadOnlyList<(Role First, Role Second)> Joined)
+{
+    public IReadOnlyList<RoleRegion> Regions => RoleMap.Regions(Joined);
+}
+
 /// <summary>
 /// A semantic map of the oblique roles: which can share a marker, and how often. Any one marker covers
 /// a connected region of it, as Haspelmath's connectivity hypothesis has it.

@@ -19,7 +19,7 @@ public class CopulaTests
         var phonology = GeneratedLanguages.Sample[0].Phonology;
         var rand = new Random(1);
 
-        var predications = Enumerable.Range(0, 5000).Select(_ => Generator.GeneratePredication(rand, phonology, 0.15)).ToList();
+        var predications = Enumerable.Range(0, 5000).Select(_ => Generator.GeneratePredication(rand, phonology, new Dropoff(0.15))).ToList();
 
         //WALS 118A: 151 of 283 languages modeled; 120A: 175 of 386
         Assert.InRange(predications.Count(p => p.Adjectives == PredicativeAdjectives.Verbal) / 5000.0, 0.51, 0.56);
@@ -158,9 +158,9 @@ public class CopulaTests
     {
         var phonology = GeneratedLanguages.Sample[0].Phonology;
         var rand = new Random(1);
-        var predication = Generator.GeneratePredication(rand, phonology, 0.15);
+        var predication = Generator.GeneratePredication(rand, phonology, new Dropoff(0.15));
 
-        var drawn = Enumerable.Range(0, 5000).Select(_ => Generator.GenerateLocationalPredication(rand, predication, phonology, 0.15)).ToList();
+        var drawn = Enumerable.Range(0, 5000).Select(_ => Generator.GenerateLocationalPredication(rand, predication, phonology, new Dropoff(0.15))).ToList();
 
         //WALS 119A: 269 of 386 languages say where something is unlike what it is
         Assert.InRange(drawn.Count(p => p.LocationalCopula is not null) / 5000.0, 0.67, 0.72);

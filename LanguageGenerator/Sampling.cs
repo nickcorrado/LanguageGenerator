@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 
 namespace LanguageGenerator;
 
@@ -86,3 +86,9 @@ public static class Sampling
         }
     }
 }
+
+/// <summary>
+/// How steeply sounds get rarer down an inventory, which is ordered commonest first: each is
+/// (1 - Value) times as likely as the one before it.
+/// </summary>
+public record Dropoff(double Value);

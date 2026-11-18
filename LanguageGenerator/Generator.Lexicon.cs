@@ -16,7 +16,7 @@ public static partial class Generator
     //'the person saw' and 'you saw' shouldn't sound alike. Homophones in different slots, like
     //English there and their, are left alone, as languages leave them. The basic meanings are
     //coined up front so that there are words to show
-    public static Lexicon GenerateLexicon(int seed, double extraSyllables, Phonology phonology, double dropoff, IReadOnlyDictionary<PartOfSpeech, IEnumerable<Lexeme>> closedClasses)
+    public static Lexicon GenerateLexicon(int seed, double extraSyllables, Phonology phonology, Dropoff dropoff, IReadOnlyDictionary<PartOfSpeech, IEnumerable<Lexeme>> closedClasses)
     {
         string Surface(Root root) => string.Concat(phonology.Realize(new Word([root])).Phonemes.Select(p => p.IpaSymbol));
         var taken = closedClasses.ToDictionary(c => c.Key, c => c.Value.Select(l => Surface(l.Root)).ToHashSet());
@@ -65,7 +65,7 @@ public static partial class Generator
     //for far fewer likely syllables than possible ones, and sound changes merge some of what's left.
     //The target trades homophones for length, and WALS has nothing on word length to settle it:
     //halving it halves the homophones and makes the average root a quarter of a syllable longer
-    public static double SelectExtraSyllables(double noise, int seed, Phonology phonology, double dropoff)
+    public static double SelectExtraSyllables(double noise, int seed, Phonology phonology, Dropoff dropoff)
     {
         double CollisionRate(double extraSyllables)
         {
@@ -89,7 +89,7 @@ public static partial class Generator
     //stop for its onset always fits, so this only runs out in an inventory with no stops left
     private const int ContactDraws = 20;
 
-    public static List<Phoneme> GenerateForm(Random rand, Phonology phonology, double dropoff, double extraSyllables, int maxSyllables = MaxRootSyllables)
+    public static List<Phoneme> GenerateForm(Random rand, Phonology phonology, Dropoff dropoff, double extraSyllables, int maxSyllables = MaxRootSyllables)
     {
         var form = new List<Phoneme>();
         var numberOfSyllables = Sampling.DisplacedPoisson(rand, extraSyllables, maxSyllables);

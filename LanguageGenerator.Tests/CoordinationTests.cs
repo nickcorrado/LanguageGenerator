@@ -82,7 +82,7 @@ public class CoordinationTests
     {
         var phonology = GeneratedLanguages.Sample[0].Phonology;
         var rand = new Random(1);
-        var drawn = Enumerable.Range(0, 4000).Select(_ => Generator.GenerateConjunctions(rand, phonology, 0.15)).ToList();
+        var drawn = Enumerable.Range(0, 4000).Select(_ => Generator.GenerateConjunctions(rand, phonology, new Dropoff(0.15))).ToList();
 
         //63A: 'and' is 'with' in 103 of 234 languages
         Assert.InRange(drawn.Count(c => c.NounAnd.Value is AndWith) / 4000.0, 0.41, 0.47);

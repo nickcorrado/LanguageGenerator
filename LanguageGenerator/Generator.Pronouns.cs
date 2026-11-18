@@ -24,7 +24,7 @@ public static partial class Generator
     //since a pronoun is never helped by context the way a noun is. Pronouns are among a language's
     //most frequent words, so they're short, by the law of abbreviation: mostly one syllable, never
     //more than two
-    public static PronounSystem GeneratePronouns(Random rand, Paradigms paradigms, MorphologicalProfile morphology, WordOrder wordOrder, Phonology phonology, double dropoff)
+    public static PronounSystem GeneratePronouns(Random rand, Paradigms paradigms, MorphologicalProfile morphology, WordOrder wordOrder, Phonology phonology, Dropoff dropoff)
     {
         var firstPersonPlural = Sampling.Categorical(rand, FirstPersonPluralCounts);
         List<Pronoun> meanings =

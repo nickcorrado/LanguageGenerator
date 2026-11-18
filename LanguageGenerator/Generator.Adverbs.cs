@@ -6,7 +6,7 @@ public static partial class Generator
     //'very' is a word beside the adjective, as nearly every language's is, on the side the language
     //puts degree words, as its comparative's is where that's a word too. Its form is kept apart
     //from the comparative's
-    public static DegreeWord GenerateIntensifier(Random rand, DegreeMarking degree, WordOrder wordOrder, Phonology phonology, double dropoff)
+    public static DegreeWord GenerateIntensifier(Random rand, DegreeMarking degree, WordOrder wordOrder, Phonology phonology, Dropoff dropoff)
     {
         var forms = new DistinctForms();
         if (degree.Marker.Value is DegreeWord comparative)
@@ -25,7 +25,7 @@ public static partial class Generator
     private static readonly (MannerType Value, int Weight)[] MannerCounts = [(MannerType.Bare, 40), (MannerType.Affix, 40), (MannerType.Word, 20)];
     private const double MannerWordBeforeChance = 0.3;
 
-    public static MannerMarking GenerateManner(Random rand, MorphologicalProfile morphology, Phonology phonology, double dropoff)
+    public static MannerMarking GenerateManner(Random rand, MorphologicalProfile morphology, Phonology phonology, Dropoff dropoff)
     {
         var counts = morphology.Fusion == Fusion.Isolating ? MannerCounts.Where(c => c.Value != MannerType.Affix).ToArray() : MannerCounts;
         return Sampling.Categorical(rand, counts) switch
@@ -49,7 +49,7 @@ public static partial class Generator
     /// How a language marks a duration: like another role, or with a word of its own, a one-syllable
     /// adposition kept apart from the others.
     /// </summary>
-    public static (Role? Like, Lexeme? Word) GenerateDuration(Random rand, IReadOnlyDictionary<Role, Lexeme> adpositions, Phonology phonology, double dropoff)
+    public static (Role? Like, Lexeme? Word) GenerateDuration(Random rand, IReadOnlyDictionary<Role, Lexeme> adpositions, Phonology phonology, Dropoff dropoff)
     {
         switch (Sampling.Categorical(rand, DurationCounts))
         {

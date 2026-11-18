@@ -16,7 +16,7 @@ public static partial class Generator
 
     //a particle is a one-syllable word, like the language's adpositions, and goes on their side of
     //the standard, as English than does. The verb 'exceed' is short, as common verbs are
-    public static Comparison GenerateComparison(Random rand, WordOrder wordOrder, Phonology phonology, double dropoff) =>
+    public static Comparison GenerateComparison(Random rand, WordOrder wordOrder, Phonology phonology, Dropoff dropoff) =>
         Sampling.Categorical(rand, ComparisonCounts) switch
         {
             ComparisonType.Locational => new LocationalComparison(Sampling.Categorical(rand, LocationalRoles)),
@@ -49,7 +49,7 @@ public static partial class Generator
         _ => 0.15,
     };
 
-    public static DegreeMarking GenerateDegree(Random rand, Comparison comparison, MorphologicalProfile morphology, WordOrder wordOrder, Phonology phonology, double dropoff)
+    public static DegreeMarking GenerateDegree(Random rand, Comparison comparison, MorphologicalProfile morphology, WordOrder wordOrder, Phonology phonology, Dropoff dropoff)
     {
         var affix = morphology.Fusion != Fusion.Isolating && rand.NextDouble() < DegreeAffixChance;
         DegreeMarker marker = affix
@@ -65,7 +65,7 @@ public static partial class Generator
     //go, and isn't the comparative's than, though some languages do use one word for both
     private const double SimilativeAffixChance = 0.3;
 
-    public static Similative GenerateSimilative(Random rand, Comparison comparison, MorphologicalProfile morphology, WordOrder wordOrder, Phonology phonology, double dropoff)
+    public static Similative GenerateSimilative(Random rand, Comparison comparison, MorphologicalProfile morphology, WordOrder wordOrder, Phonology phonology, Dropoff dropoff)
     {
         if (morphology.Fusion != Fusion.Isolating && rand.NextDouble() < SimilativeAffixChance)
         {

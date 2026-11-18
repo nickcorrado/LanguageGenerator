@@ -15,7 +15,7 @@ public static partial class Generator
             throw new SpecException(string.Join(Environment.NewLine, problems));
         }
         var stages = new Stages(seed);
-        var syllableDropoff = stages.Draw(spec, Settings.DropoffStage, _ => 0.15);
+        var syllableDropoff = stages.Draw(spec, Settings.DropoffStage, _ => new Dropoff(0.15));
 
         var vowels = stages.Draw(spec, Settings.VowelStage, rand => GenerateVowels(rand));
         var consonants = stages.Draw(spec, Settings.ConsonantStage, rand => GenerateConsonants(rand));
@@ -41,7 +41,8 @@ public static partial class Generator
         var morphology = stages.Draw(spec, Settings.MorphologyStage, rand => SelectMorphologicalProfile(rand, wordOrder.ConstituentWordOrder));
 
         var alignment = stages.Draw(spec, Settings.AlignmentStage, SelectAlignment);
-        var regions = SelectRegions(stages.For("role regions"));
+        var roleRegions = SelectRegions(stages.For("role regions"));
+        var regions = roleRegions.Regions;
         var cases = SelectCases(stages.For("cases"), alignment, regions, 0.65);
         var configurationRegions = SelectConfigurationRegions(stages.For("configuration regions"));
         var plan = PlanConfigurations(stages.For("configurations"), configurationRegions, morphology, alignment, regions, cases);
@@ -102,6 +103,7 @@ public static partial class Generator
             WordOrder = wordOrder,
             Articles = articles,
             MorphosyntacticAlignment = alignment,
+            RoleRegions = roleRegions,
             Cases = cases,
             RoleMarkers = roleMarkers,
             Configurations = configurations,
@@ -195,7 +197,7 @@ public static partial class Generator
     }
 
     //a short affix: a lone vowel 30% of the time, and otherwise a syllable
-    private static List<Phoneme> VowelOrSyllable(Random rand, Phonology phonology, double dropoff) => rand.NextDouble() < 0.3
-        ? [phonology.Vowels[Sampling.TruncatedGeometric(rand, phonology.Vowels.Count, dropoff)]]
+    private static List<Phoneme> VowelOrSyllable(Random rand, Phonology phonology, Dropoff dropoff) => rand.NextDouble() < 0.3
+        ? [phonology.Vowels[Sampling.TruncatedGeometric(rand, phonology.Vowels.Count, dropoff.Value)]]
         : [.. GenerateSyllable(rand, phonology.SyllableRule, dropoff, needsOnset: false).Phonemes];
 }

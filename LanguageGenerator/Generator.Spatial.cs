@@ -77,7 +77,7 @@ public static partial class Generator
         morphology.Fusion != Fusion.Isolating && roleRegions.First(r => r.Contains(Role.Location)).Case is { } locative && cases.Contains(locative);
 
     /// <summary>A one-syllable word for each adposition a language's plan for its configurations calls for.</summary>
-    public static Configurations CoinConfigurations(Random rand, ConfigurationPlan plan, WordOrder wordOrder, Phonology phonology, double dropoff)
+    public static Configurations CoinConfigurations(Random rand, ConfigurationPlan plan, WordOrder wordOrder, Phonology phonology, Dropoff dropoff)
     {
         var type = wordOrder.AdpositionalPhraseDirectionality == HeadDirectionality.Initial ? AdpositionType.Preposition : AdpositionType.Postposition;
         var forms = new DistinctForms(draws: 11);

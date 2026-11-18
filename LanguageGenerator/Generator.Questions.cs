@@ -39,7 +39,7 @@ public static partial class Generator
 
     //an isolating language uses a particle where others would use an affix. Question words are
     //short, as frequent words are, and kept from sounding like each other
-    public static Questions GenerateQuestions(Random rand, MorphologicalProfile morphology, WordOrder wordOrder, Phonology phonology, double dropoff)
+    public static Questions GenerateQuestions(Random rand, MorphologicalProfile morphology, WordOrder wordOrder, Phonology phonology, Dropoff dropoff)
     {
         var kind = Sampling.Categorical(rand, PolarCounts);
         if (kind == PolarKind.Affix && morphology.Fusion == Fusion.Isolating)

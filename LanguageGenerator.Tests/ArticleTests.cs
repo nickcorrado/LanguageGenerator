@@ -90,7 +90,7 @@ public class ArticleTests
         var language = WithGender;
         var rand = new Random(1);
 
-        var drawn = Enumerable.Range(0, 4000).Select(_ => Generator.GenerateArticles(rand, language.MorphologicalProfile, language.Genders, language.Numerals, language.Phonology, 0.15)).ToList();
+        var drawn = Enumerable.Range(0, 4000).Select(_ => Generator.GenerateArticles(rand, language.MorphologicalProfile, language.Genders, language.Numerals, language.Phonology, new Dropoff(0.15))).ToList();
 
         //WALS 37A: 285 of 620 with a definite word, 92 with an affix and 243 with neither
         Assert.InRange(drawn.Count(a => a.Definite is { } d && FirstForm(d).Value is Particle) / 4000.0, 0.43, 0.49);
@@ -114,7 +114,7 @@ public class ArticleTests
         var rand = new Random(1);
 
         var definites = Enumerable.Range(0, 4000)
-            .Select(_ => Generator.GenerateArticles(rand, language.MorphologicalProfile, language.Genders, language.Numerals, language.Phonology, 0.15).Definite)
+            .Select(_ => Generator.GenerateArticles(rand, language.MorphologicalProfile, language.Genders, language.Numerals, language.Phonology, new Dropoff(0.15)).Definite)
             .OfType<Article>().ToList();
 
         Assert.InRange(definites.Count(a => a.AgreesInGender) / (double)definites.Count, 0.76, 0.84);

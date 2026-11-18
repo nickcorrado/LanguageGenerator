@@ -25,7 +25,7 @@ public static partial class Generator
     //a short word for each number the base needs, each redrawn to keep it from sounding like the
     //others. A restricted system's limit, and the odds of a singular noun after a numeral and of
     //compound numbers putting units last, are guesses: WALS doesn't count them
-    public static NumeralSystem GenerateNumerals(Random rand, MorphologicalProfile morphology, Phonology phonology, double dropoff)
+    public static NumeralSystem GenerateNumerals(Random rand, MorphologicalProfile morphology, Phonology phonology, Dropoff dropoff)
     {
         var numeralBase = Sampling.Categorical(rand, NumeralBaseCounts);
         var beforeNoun = Sampling.Categorical(rand, NumeralBeforeNounCounts);
@@ -53,7 +53,7 @@ public static partial class Generator
     //cardinals, and a marker that builds the rest. WALS doesn't count how ordinals are marked, so
     //the marker goes on the side the language puts its other affixes, and an isolating language
     //uses a word, as Mandarin puts dì before the numeral in dì sān 'third'
-    private static Ordinals GenerateOrdinals(Random rand, MorphologicalProfile morphology, Phonology phonology, double dropoff, Func<string, Lexeme> word)
+    private static Ordinals GenerateOrdinals(Random rand, MorphologicalProfile morphology, Phonology phonology, Dropoff dropoff, Func<string, Lexeme> word)
     {
         var type = Sampling.Categorical(rand, OrdinalCounts);
         var first = type is OrdinalType.Cardinal or OrdinalType.Derived ? null : word("first");

@@ -26,7 +26,7 @@ public class ModalTests
     private static IReadOnlyList<Modals> Drawn(Language language, int count)
     {
         var rand = new Random(1);
-        return [.. Enumerable.Range(0, count).Select(_ => Generator.GenerateModals(rand, language.MorphologicalProfile, language.WordOrder, language.Predication, language.Phonology, 0.15))];
+        return [.. Enumerable.Range(0, count).Select(_ => Generator.GenerateModals(rand, language.MorphologicalProfile, language.WordOrder, language.Predication, language.Phonology, new Dropoff(0.15)))];
     }
 
     [Fact]

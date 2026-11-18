@@ -235,7 +235,7 @@ public static partial class Generator
 
     //needsOnset fills the C slot if the onset would otherwise be empty, for a syllable that follows
     //another inside a root
-    public static Syllable GenerateSyllable(Random rand, SyllableRule rule, double dropoff, bool needsOnset)
+    public static Syllable GenerateSyllable(Random rand, SyllableRule rule, Dropoff dropoff, bool needsOnset)
     {
         var onset = new List<Consonant>();
         Vowel? nucleus = null;
@@ -291,14 +291,14 @@ public static partial class Generator
         };
     }
 
-    private static T? Pick<T>(Random rand, NaturalClass<T> phonemes, double chance, double dropoff) where T : Phoneme
+    private static T? Pick<T>(Random rand, NaturalClass<T> phonemes, double chance, Dropoff dropoff) where T : Phoneme
     {
         //an inventory can lack a slot's whole class (say, sibilants); then the slot just goes unfilled
         if (!phonemes.Any() || rand.NextDouble() >= chance)
         {
             return null;
         }
-        return phonemes[Sampling.TruncatedGeometric(rand, phonemes.Count, dropoff)];
+        return phonemes[Sampling.TruncatedGeometric(rand, phonemes.Count, dropoff.Value)];
     }
 
     //the inventory isn't drawn here, so that a spec can fix the shape apart from the sounds that fill it

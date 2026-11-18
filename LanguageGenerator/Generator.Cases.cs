@@ -21,8 +21,7 @@ public static partial class Generator
     /// </summary>
     //roles can also end up together through a third, so two roles share a marker a little more
     //often than their edge alone says
-    public static List<RoleRegion> SelectRegions(Random rand) =>
-        RoleMap.Regions(SemanticMap.Joined(rand, RoleMap.Edges));
+    public static RoleRegions SelectRegions(Random rand) => new(SemanticMap.Joined(rand, RoleMap.Edges));
 
     //WALS 49A, by how many cases a language has besides its core ones. A language with core cases is
     //drawn from the 137 with two or more, which are the core two and the rest; one without them from
@@ -77,7 +76,7 @@ public static partial class Generator
     /// </summary>
     //each new word is redrawn a few times to keep it from sounding like one before it; a small
     //inventory may still make homophones, as real languages have
-    public static Dictionary<Role, Lexeme> GenerateAdpositions(Random rand, IReadOnlyList<RoleRegion> regions, IReadOnlyList<Case> cases, Phonology phonology, double dropoff)
+    public static Dictionary<Role, Lexeme> GenerateAdpositions(Random rand, IReadOnlyList<RoleRegion> regions, IReadOnlyList<Case> cases, Phonology phonology, Dropoff dropoff)
     {
         var words = new Dictionary<Role, Lexeme>();
         var forms = new DistinctForms(draws: 11);

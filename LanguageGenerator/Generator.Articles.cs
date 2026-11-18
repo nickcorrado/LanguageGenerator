@@ -33,7 +33,7 @@ public static partial class Generator
     //Greek, though Arabic al- doesn't, and a definite article agrees in number in some, as French le
     //and les do but English the doesn't. WALS doesn't count either, so the odds are guesses. An
     //indefinite article is for one thing only, so it never agrees in number
-    public static Articles GenerateArticles(Random rand, MorphologicalProfile morphology, GenderSystem genders, NumeralSystem numerals, Phonology phonology, double dropoff)
+    public static Articles GenerateArticles(Random rand, MorphologicalProfile morphology, GenderSystem genders, NumeralSystem numerals, Phonology phonology, Dropoff dropoff)
     {
         var definiteType = Sampling.Categorical(rand, DefiniteCounts);
         var hasIndefinite = rand.NextDouble() < (definiteType == DefiniteType.None ? IndefiniteWithoutDefinite : IndefiniteGivenDefinite);

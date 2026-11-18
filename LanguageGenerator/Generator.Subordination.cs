@@ -43,7 +43,7 @@ public static partial class Generator
     //each subordinator in the region uses with its own meaning. A language that mixes its kinds of
     //marker draws one for each region. An isolating language puts a word at the clause's end where
     //another would use a suffix
-    public static Subordination GenerateSubordination(Random rand, MorphologicalProfile morphology, WordOrder wordOrder, Phonology phonology, double dropoff)
+    public static Subordination GenerateSubordination(Random rand, MorphologicalProfile morphology, WordOrder wordOrder, Phonology phonology, Dropoff dropoff)
     {
         var objectFirst = wordOrder.VerbPhraseDirectionality == HeadDirectionality.Final;
         var counts = objectFirst ? OVSubordinatorCounts : VOSubordinatorCounts;

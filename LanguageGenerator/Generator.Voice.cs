@@ -15,7 +15,7 @@ public static partial class Generator
 
     //a passive is marked on the side the language puts its other affixes, and an isolating language,
     //with no affixes, uses a word on that side
-    public static Passive? GeneratePassive(Random rand, MorphosyntacticAlignment alignment, MorphologicalProfile morphology, Phonology phonology, double dropoff)
+    public static Passive? GeneratePassive(Random rand, MorphosyntacticAlignment alignment, MorphologicalProfile morphology, Phonology phonology, Dropoff dropoff)
     {
         if (rand.NextDouble() >= PassiveChance(alignment))
         {

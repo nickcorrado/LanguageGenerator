@@ -56,7 +56,7 @@ public class SubordinationTests
     {
         var language = GeneratedLanguages.Sample.First(keep);
         var rand = new Random(1);
-        return [.. Enumerable.Range(0, 3000).Select(_ => Generator.GenerateSubordination(rand, language.MorphologicalProfile, language.WordOrder, language.Phonology, 0.15))];
+        return [.. Enumerable.Range(0, 3000).Select(_ => Generator.GenerateSubordination(rand, language.MorphologicalProfile, language.WordOrder, language.Phonology, new Dropoff(0.15)))];
     }
 
     private static bool ObjectFirst(Language l) => l.WordOrder.VerbPhraseDirectionality == HeadDirectionality.Final;

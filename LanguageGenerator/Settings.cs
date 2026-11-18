@@ -47,13 +47,13 @@ public static class Settings
     public static Setting<ClusterRepair, ClusterRepair> ClusterRepair { get; } = ClusterRepairStage.Declare("cluster-repair", Sounds,
         r => r, (_, r) => r, Choice<ClusterRepair>.Of(Enum.GetValues<ClusterRepair>()));
 
-    public static Stage<double> DropoffStage { get; } = new("dropoff", l => l.Dropoff);
+    public static Stage<Dropoff> DropoffStage { get; } = new("dropoff", l => l.Dropoff);
     /// <summary>
     /// How steeply sounds get rarer down an inventory: each is (1 - dropoff) times as likely as the
     /// one before it, so a higher dropoff favors the first few more. Nothing draws it; it's 0.15
     /// unless a spec says otherwise.
     /// </summary>
-    public static Setting<double, double> Dropoff { get; } = DropoffStage.Declare("dropoff", Sounds, d => d, (_, d) => d, new Between(0, 1));
+    public static Setting<Dropoff, double> Dropoff { get; } = DropoffStage.Declare("dropoff", Sounds, d => d.Value, (_, d) => new(d), new Between(0, 1));
 
     //word order
 

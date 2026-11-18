@@ -33,7 +33,7 @@ public class PassiveTests
     {
         var language = GeneratedLanguages.Sample.First(l => l.MorphologicalProfile.Fusion != Fusion.Isolating);
         var rand = new Random(1);
-        var drawn = Enumerable.Range(0, 4000).Select(_ => Generator.GeneratePassive(rand, alignment, language.MorphologicalProfile, language.Phonology, 0.15)).ToList();
+        var drawn = Enumerable.Range(0, 4000).Select(_ => Generator.GeneratePassive(rand, alignment, language.MorphologicalProfile, language.Phonology, new Dropoff(0.15))).ToList();
 
         Assert.InRange(drawn.Count(p => p is not null) / 4000.0, least, most);
         Assert.All(drawn.OfType<Passive>(), p => Assert.True(p is { Position: ExponentPosition.Prefix or ExponentPosition.Suffix, Marker.Value: Affix }));

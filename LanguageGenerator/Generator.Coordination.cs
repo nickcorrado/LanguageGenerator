@@ -16,7 +16,7 @@ public static partial class Generator
 
     //short words of their own for 'and', 'or' and 'but', glossed in English and kept from sounding
     //alike. Nearly every language has a word for 'or' and one for 'but', so every language here does
-    public static Conjunctions GenerateConjunctions(Random rand, Phonology phonology, double dropoff)
+    public static Conjunctions GenerateConjunctions(Random rand, Phonology phonology, Dropoff dropoff)
     {
         var andIsWith = Sampling.Categorical(rand, AndIsWithCounts);
         var clauseAndType = Sampling.Categorical(rand, ClauseAndCounts);
