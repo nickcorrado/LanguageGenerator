@@ -171,11 +171,57 @@ public union ConfigurationMarker(SpatialAdposition, RelationalNoun, SpatialCase)
 }
 
 /// <summary>
-/// How a language says where something is relative to a place: which configurations it tells
-/// apart, and how it marks each. A configuration missing from Markers is said like At.
+/// How a language marks a configuration's region: as plainly as At, by an adposition, by a relational
+/// noun or by a localization in the noun.
 /// </summary>
-public record Configurations(IReadOnlyList<ConfigurationRegion> Regions, IReadOnlyDictionary<Configuration, ConfigurationMarker> Markers)
+public enum ConfigurationStrategy
 {
+    At,
+    Adposition,
+    RelationalNoun,
+    Case,
+}
+
+/// <summary>The edges of the configuration map a language joins, and the regions that leaves it.</summary>
+public record ConfigurationRegions(IReadOnlyList<(Configuration First, Configuration Second)> Joined)
+{
+    public IReadOnlyList<ConfigurationRegion> Regions => ConfigurationMap.Regions(Joined);
+}
+
+/// <summary>A spatial adposition before its word is coined: just the case it governs.</summary>
+public record PlannedAdposition(Case? Governs);
+
+/// <summary>How a language will mark a configuration, decided before any word for it is coined.</summary>
+public union PlannedMarker(PlannedAdposition, RelationalNoun, SpatialCase)
+{
+    public ConfigurationStrategy Strategy => this switch
+    {
+        PlannedAdposition => ConfigurationStrategy.Adposition,
+        RelationalNoun => ConfigurationStrategy.RelationalNoun,
+        SpatialCase => ConfigurationStrategy.Case,
+    };
+}
+
+/// <summary>
+/// Everything decided about a language's configurations: which it tells apart, the way of marking
+/// them it prefers, and how it marks each, as a marker for every configuration of a region that
+/// has one. A configuration missing from Markers is said like At.
+/// </summary>
+public record ConfigurationPlan(ConfigurationRegions Map, ConfigurationStrategy Preferred, IReadOnlyDictionary<Configuration, PlannedMarker> Markers)
+{
+    public ConfigurationStrategy StrategyFor(Configuration configuration) =>
+        Markers.TryGetValue(configuration, out var marker) ? marker.Strategy : ConfigurationStrategy.At;
+}
+
+/// <summary>
+/// How a language says where something is relative to a place: which configurations it tells
+/// apart, and how it marks each, with the words its plan called for. A configuration missing from
+/// Markers is said like At.
+/// </summary>
+public record Configurations(ConfigurationPlan Plan, IReadOnlyDictionary<Configuration, ConfigurationMarker> Markers)
+{
+    public IReadOnlyList<ConfigurationRegion> Regions => Plan.Map.Regions;
+
     /// <summary>The localizations the language's nouns inflect for, beside None.</summary>
     public IReadOnlyList<Localization> Localizations =>
         [.. Regions.Where(r => Markers.ContainsKey(r.Head)).Select(r => Markers[r.Head].Value).OfType<SpatialCase>().Select(c => c.Localization)];

@@ -43,7 +43,10 @@ public static partial class Generator
         var alignment = stages.Draw(spec, Settings.AlignmentStage, SelectAlignment);
         var regions = SelectRegions(stages.For("role regions"));
         var cases = SelectCases(stages.For("cases"), alignment, regions, 0.65);
-        var configurations = GenerateConfigurations(stages.For("configurations"), morphology, wordOrder, alignment, regions, cases, phonology, syllableDropoff);
+        var configurationRegions = SelectConfigurationRegions(stages.For("configuration regions"));
+        var plan = PlanConfigurations(stages.For("configurations"), configurationRegions, morphology, alignment, regions, cases);
+        //the words are coined apart from the plan, so they don't change when the plan is drawn again
+        var configurations = CoinConfigurations(stages.For("configuration words"), plan, wordOrder, phonology, syllableDropoff);
         var paradigms = new Paradigms(
             GenerateNounParadigm(stages.For("noun paradigm"), morphology, wordOrder, alignment, cases, configurations.Localizations, phonology, syllableDropoff),
             GenerateVerbParadigm(stages.For("verb paradigm"), morphology, wordOrder, phonology, syllableDropoff));
