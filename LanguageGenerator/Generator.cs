@@ -246,7 +246,7 @@ public static partial class Generator
         //conditional on all of them, so fixing a spatial case makes concatenative morphology likelier;
         //and a stage after the last that might not match can't change whether an attempt does, so
         //rerunning it with its first Random keeps more of what the seed gave. An attempt is abandoned
-        //at the first stage that misses. If no attempt matches within the limit, the stages are drawn
+        //at the first stage that misses, by an exception (see Group.Missed). If no attempt matches within the limit, the stages are drawn
         //one at a time, as stages alone are, each given the ones before it, which the spec's rules
         //have made sure allow it, and each up to the same limit, since drawing them together has
         //already had its chance
@@ -264,6 +264,9 @@ public static partial class Generator
                 {
                     return body(new Group(this, attempt, first.LastThatMightNotMatch, alone: false, claim: false));
                 }
+                //EXCEPTION AS CONTROL FLOW: Group.Draw throws Missed to abandon an attempt at the first
+                //stage that misses, since the body is a lambda that can't be stopped partway any
+                //other way. It's expected, not an error: catching it just moves on to the next attempt
                 catch (Group.Missed)
                 {
                 }
@@ -294,7 +297,10 @@ public static partial class Generator
     {
         private int next;
 
-        //thrown to abandon an attempt after the first, at the first stage that misses
+        //EXCEPTION AS CONTROL FLOW: thrown to abandon an attempt after the first at the first stage
+        //that misses, so the stages after it, which can't make the attempt match, aren't drawn for
+        //nothing. Most attempts at a spec that fixes much miss early, so this makes drawing a group
+        //several times faster. DrawTogether catches it, and nothing else should see it
         public sealed class Missed : Exception;
 
         public bool Met { get; private set; } = true;
@@ -323,6 +329,8 @@ public static partial class Generator
                 Met &= stages.Matches(stage, drawn);
                 if (!Met && attempt > 0)
                 {
+                    //EXCEPTION AS CONTROL FLOW: see Missed. The first attempt draws every stage,
+                    //since it works out which ones later attempts draw again
                     throw new Missed();
                 }
             }
