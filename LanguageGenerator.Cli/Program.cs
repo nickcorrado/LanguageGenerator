@@ -4,22 +4,30 @@ using LanguageGenerator.Cli;
 //pass a seed to regenerate the same language; without one, a fresh seed is picked and printed.
 //"translate <file> [seed]" translates a file of clauses (see ClauseFile) instead of describing
 //the language, with the noun file (see NounFile) that --nouns names or else the one beside it, and
-//"gloss <english.txt>" writes such files from English (see Glosser)
+//"gloss <english.txt>" writes such files from English (see Glosser). Either of the first two takes
+//--spec with a JSON file fixing some of the language's settings (see SpecFile)
 if (args is ["gloss", .. var glossArguments])
 {
     return await GlossCommand.Run(glossArguments);
 }
-const string Usage = "Usage: LanguageGenerator.Cli [seed], or LanguageGenerator.Cli translate <file> [seed] [--nouns file], where the seed is an integer, or LanguageGenerator.Cli gloss <english.txt>.";
-string? nounsArgument = null;
-if (Array.IndexOf(args, "--nouns") is >= 0 and var nounsAt)
+const string Usage = "Usage: LanguageGenerator.Cli [seed] [--spec file], or LanguageGenerator.Cli translate <file> [seed] [--nouns file] [--spec file], where the seed is an integer, or LanguageGenerator.Cli gloss <english.txt>.";
+//an option and the file after it, taken out of the arguments
+string? Option(string name)
 {
-    if (nounsAt + 1 >= args.Length)
+    if (Array.IndexOf(args, name) is not (>= 0 and var at))
     {
-        Console.Error.WriteLine(Usage);
-        return 1;
+        return null;
     }
-    nounsArgument = args[nounsAt + 1];
-    args = [.. args[..nounsAt], .. args[(nounsAt + 2)..]];
+    var value = at + 1 < args.Length ? args[at + 1] : null;
+    args = [.. args[..at], .. args[Math.Min(at + 2, args.Length)..]];
+    return value ?? "";
+}
+var nounsArgument = Option("--nouns");
+var specArgument = Option("--spec");
+if (nounsArgument == "" || specArgument == "")
+{
+    Console.Error.WriteLine(Usage);
+    return 1;
 }
 var translating = args.Length > 0 && args[0] == "translate";
 if (translating && args.Length < 2)
@@ -61,9 +69,36 @@ if (translating)
     }
 }
 
+var spec = LanguageSpec.Free;
+if (specArgument is not null)
+{
+    try
+    {
+        spec = SpecFile.Parse(File.ReadAllText(specArgument));
+    }
+    catch (Exception e) when (e is IOException or UnauthorizedAccessException or SpecException)
+    {
+        Console.Error.WriteLine($"{specArgument}: {e.Message}");
+        return 1;
+    }
+    if (spec.Problems() is [_, ..] problems)
+    {
+        Console.Error.WriteLine($"{specArgument} can't be met:");
+        foreach (var problem in problems)
+        {
+            Console.Error.WriteLine($"  {problem}");
+        }
+        return 1;
+    }
+    foreach (var warning in spec.Warnings())
+    {
+        Console.Error.WriteLine($"{specArgument}: {warning}");
+    }
+}
+
 Console.WriteLine($"Seed: {seed}");
 
-var lang = Generator.Generate(seed);
+var lang = Generator.Generate(seed, spec);
 
 if (translating)
 {

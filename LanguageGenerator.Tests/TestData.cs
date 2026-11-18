@@ -55,7 +55,7 @@ internal static class GeneratedLanguages
 {
     private static readonly Lazy<IReadOnlyList<Language>> sample = new(() => [.. Enumerable.Range(0, 300).Select(seed =>
     {
-        var language = Generator.Generate(seed);
+        var language = Generator.Generate(seed, LanguageSpec.Free);
         language.Lexicon.Classify(TestNouns.All);
         language.Lexicon.Freeze();
         return language;

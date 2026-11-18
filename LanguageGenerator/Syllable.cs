@@ -136,6 +136,9 @@ public enum CodaRestriction
     SingleNasal,
 }
 
+/// <summary>What a syllable can be, before the language's sounds fill it in.</summary>
+public record SyllableShape(SyllableTemplate Template, CodaRestriction Codas);
+
 /// <summary>A syllable template resolved against a language's phoneme inventory.</summary>
 public class SyllableRule
 {

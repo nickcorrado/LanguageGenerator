@@ -19,13 +19,13 @@ public class GeneratorTests
     [Fact]
     public void Generate_SameSeed_GivesTheSameLanguageEvenAfterGeneratingOthers()
     {
-        var first = Fingerprint(Generator.Generate(7));
+        var first = Fingerprint(Generator.Generate(7, LanguageSpec.Free));
         foreach (var seed in Enumerable.Range(100, 20))
         {
-            Generator.Generate(seed);
+            Generator.Generate(seed, LanguageSpec.Free);
         }
 
-        Assert.Equal(first, Fingerprint(Generator.Generate(7)));
+        Assert.Equal(first, Fingerprint(Generator.Generate(7, LanguageSpec.Free)));
     }
 
     [Fact]
