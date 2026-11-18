@@ -6,14 +6,14 @@ public static partial class Generator
     //'very' is a word beside the adjective, as nearly every language's is, on the side the language
     //puts degree words, as its comparative's is where that's a word too. Its form is kept apart
     //from the comparative's
-    public static DegreeWord GenerateIntensifier(Random rand, DegreeMarking degree, WordOrder wordOrder, Phonology phonology, Dropoff dropoff)
+    public static DegreeWord GenerateIntensifier(Random rand, DegreeMarking degree, WordOrder wordOrder, Phonology phonology)
     {
         var forms = new DistinctForms();
         if (degree.Marker.Value is DegreeWord comparative)
         {
             forms.Take(comparative.Marker.Form);
         }
-        return new DegreeWord(new Particle(forms.Draw(() => MarkerForm(rand, false, phonology, dropoff)), [Degree.Intensive]), DegreeWordBefore(wordOrder));
+        return new DegreeWord(new Particle(forms.Draw(() => MarkerForm(rand, false, phonology)), [Degree.Intensive]), DegreeWordBefore(wordOrder));
     }
 
     private enum MannerType { Bare, Affix, Word }
@@ -25,15 +25,15 @@ public static partial class Generator
     private static readonly (MannerType Value, int Weight)[] MannerCounts = [(MannerType.Bare, 40), (MannerType.Affix, 40), (MannerType.Word, 20)];
     private const double MannerWordBeforeChance = 0.3;
 
-    public static MannerMarking GenerateManner(Random rand, MorphologicalProfile morphology, Phonology phonology, Dropoff dropoff)
+    public static MannerMarking GenerateManner(Random rand, MorphologicalProfile morphology, Phonology phonology)
     {
         var counts = morphology.Fusion == Fusion.Isolating ? MannerCounts.Where(c => c.Value != MannerType.Affix).ToArray() : MannerCounts;
         return Sampling.Categorical(rand, counts) switch
         {
             MannerType.Bare => new MannerBare(),
-            MannerType.Affix => new MannerAffix(new Affix(MarkerForm(rand, true, phonology, dropoff), [Derivation.Adverbial]),
+            MannerType.Affix => new MannerAffix(new Affix(MarkerForm(rand, true, phonology), [Derivation.Adverbial]),
                 rand.NextDouble() < PrefixChance(morphology) ? ExponentPosition.Prefix : ExponentPosition.Suffix),
-            _ => new MannerWord(new Particle(MarkerForm(rand, false, phonology, dropoff), [Derivation.Adverbial]), rand.NextDouble() < MannerWordBeforeChance),
+            _ => new MannerWord(new Particle(MarkerForm(rand, false, phonology), [Derivation.Adverbial]), rand.NextDouble() < MannerWordBeforeChance),
         };
     }
 
@@ -49,7 +49,7 @@ public static partial class Generator
     /// How a language marks a duration: like another role, or with a word of its own, a one-syllable
     /// adposition kept apart from the others.
     /// </summary>
-    public static (Role? Like, Lexeme? Word) GenerateDuration(Random rand, IReadOnlyDictionary<Role, Lexeme> adpositions, Phonology phonology, Dropoff dropoff)
+    public static (Role? Like, Lexeme? Word) GenerateDuration(Random rand, IReadOnlyDictionary<Role, Lexeme> adpositions, Phonology phonology)
     {
         switch (Sampling.Categorical(rand, DurationCounts))
         {
@@ -63,7 +63,7 @@ public static partial class Generator
                 {
                     forms.Take(word.Root.Form);
                 }
-                return (null, new Lexeme(new Root(forms.Draw(() => GenerateForm(rand, phonology, dropoff, 0, maxSyllables: 1)), "for"), PartOfSpeech.Adposition));
+                return (null, new Lexeme(new Root(forms.Draw(() => GenerateForm(rand, phonology, 0, maxSyllables: 1)), "for"), PartOfSpeech.Adposition));
         }
     }
 }

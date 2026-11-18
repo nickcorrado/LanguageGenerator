@@ -190,13 +190,13 @@ public class AdverbTests
         var isolating = GeneratedLanguages.Sample.First(l => l.MorphologicalProfile.Fusion == Fusion.Isolating);
         var rand = new Random(1);
 
-        var drawn = Enumerable.Range(0, 4000).Select(_ => Generator.GenerateManner(rand, language.MorphologicalProfile, language.Phonology, new Dropoff(0.15))).ToList();
+        var drawn = Enumerable.Range(0, 4000).Select(_ => Generator.GenerateManner(rand, language.MorphologicalProfile, language.Phonology)).ToList();
         var words = drawn.Select(m => m.Value).OfType<MannerWord>().ToList();
 
         Assert.InRange(drawn.Count(m => m.Value is MannerBare) / 4000.0, 0.37, 0.43);
         Assert.InRange(drawn.Count(m => m.Value is MannerAffix) / 4000.0, 0.37, 0.43);
         Assert.InRange(words.Count(w => w.BeforeAdjective) / (double)words.Count, 0.26, 0.34);
-        Assert.DoesNotContain(Enumerable.Range(0, 500).Select(_ => Generator.GenerateManner(rand, isolating.MorphologicalProfile, isolating.Phonology, new Dropoff(0.15))),
+        Assert.DoesNotContain(Enumerable.Range(0, 500).Select(_ => Generator.GenerateManner(rand, isolating.MorphologicalProfile, isolating.Phonology)),
             m => m.Value is MannerAffix);
     }
 
@@ -206,7 +206,7 @@ public class AdverbTests
         var language = GeneratedLanguages.Sample[0];
         var rand = new Random(1);
 
-        var drawn = Enumerable.Range(0, 4000).Select(_ => Generator.GenerateDuration(rand, new Dictionary<Role, Lexeme>(), language.Phonology, new Dropoff(0.15))).ToList();
+        var drawn = Enumerable.Range(0, 4000).Select(_ => Generator.GenerateDuration(rand, new Dictionary<Role, Lexeme>(), language.Phonology)).ToList();
 
         Assert.InRange(drawn.Count(d => d.Like == Role.DirectObject) / 4000.0, 0.37, 0.43);
         Assert.InRange(drawn.Count(d => d.Like == Role.Time) / 4000.0, 0.22, 0.28);

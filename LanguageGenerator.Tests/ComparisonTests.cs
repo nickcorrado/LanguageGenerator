@@ -19,7 +19,7 @@ public class ComparisonTests
         var language = GeneratedLanguages.Sample[0];
         var rand = new Random(1);
 
-        var drawn = Enumerable.Range(0, 4000).Select(_ => Generator.GenerateComparison(rand, language.WordOrder, language.Phonology, new Dropoff(0.15))).ToList();
+        var drawn = Enumerable.Range(0, 4000).Select(_ => Generator.GenerateComparison(rand, language.WordOrder, language.Phonology)).ToList();
 
         //WALS 121A: 78 locational, 33 exceed, 34 conjoined and 22 with a particle, of 167
         Assert.InRange(drawn.Count(c => c.Value is LocationalComparison) / 4000.0, 0.44, 0.49);
@@ -154,7 +154,7 @@ public class ComparisonTests
     {
         var language = GeneratedLanguages.Sample.First(l => l.MorphologicalProfile.Fusion != Fusion.Isolating);
         var rand = new Random(1);
-        DegreeMarking Draw(Comparison comparison) => Generator.GenerateDegree(rand, comparison, language.MorphologicalProfile, language.WordOrder, language.Phonology, new Dropoff(0.15));
+        DegreeMarking Draw(Comparison comparison) => Generator.GenerateDegree(rand, comparison, language.MorphologicalProfile, language.WordOrder, language.Phonology);
 
         var drawn = Enumerable.Range(0, 4000).Select(_ => Draw(new LocationalComparison(Role.Source))).ToList();
         var words = drawn.Select(d => d.Marker.Value).OfType<DegreeWord>().ToList();

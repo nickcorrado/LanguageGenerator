@@ -18,7 +18,7 @@ public static partial class Generator
     //Double negation is two words, as French ne and pas are written; the first is often a clitic in
     //speech, but that's a distinction the generator doesn't make. A language's prohibitive negator is
     //drawn the same way, with what it means in place of plain negation
-    public static Negation GenerateNegation(Random rand, MorphologicalProfile morphology, Phonology phonology, Dropoff dropoff, Grammeme? meaning = null)
+    public static Negation GenerateNegation(Random rand, MorphologicalProfile morphology, Phonology phonology, Grammeme? meaning = null)
     {
         var grammemes = (IReadOnlyList<Grammeme>)[meaning ?? Polarity.Negative];
         var strategy = Sampling.Categorical(rand, NegationCounts);
@@ -42,14 +42,14 @@ public static partial class Generator
         };
 
         Morpheme Marker(ExponentPosition position) => position is ExponentPosition.Prefix or ExponentPosition.Suffix
-            ? new Affix(MarkerForm(rand, true, phonology, dropoff), grammemes)
-            : new Particle(MarkerForm(rand, false, phonology, dropoff), grammemes);
+            ? new Affix(MarkerForm(rand, true, phonology), grammemes)
+            : new Particle(MarkerForm(rand, false, phonology), grammemes);
         return new Negation(strategy, [.. positions.Select(p => (p, Marker(p)))]);
     }
 
     //a frequent, short morpheme: a syllable, or for an affix sometimes just a consonant, the way the
     //generator makes other affixes
-    private static List<Phoneme> MarkerForm(Random rand, bool affix, Phonology phonology, Dropoff dropoff) => affix && rand.NextDouble() < 0.3
-        ? [phonology.Consonants[Sampling.TruncatedGeometric(rand, phonology.Consonants.Count, dropoff.Value)]]
-        : [.. GenerateSyllable(rand, phonology.SyllableRule, dropoff, needsOnset: false).Phonemes];
+    private static List<Phoneme> MarkerForm(Random rand, bool affix, Phonology phonology) => affix && rand.NextDouble() < 0.3
+        ? [phonology.Consonants[Sampling.TruncatedGeometric(rand, phonology.Consonants.Count, phonology.Dropoff.Value)]]
+        : [.. GenerateSyllable(rand, phonology.SyllableRule, phonology.Dropoff, needsOnset: false).Phonemes];
 }

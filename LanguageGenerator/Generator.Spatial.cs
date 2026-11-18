@@ -78,7 +78,7 @@ public static partial class Generator
         morphology.Fusion != Fusion.Isolating && roleRegions.First(r => r.Contains(Role.Location)).Case is { } locative && cases.Contains(locative);
 
     /// <summary>A one-syllable word for each adposition a language's plan for its configurations calls for.</summary>
-    public static Configurations CoinConfigurations(Random rand, ConfigurationPlan plan, WordOrder wordOrder, Phonology phonology, Dropoff dropoff)
+    public static Configurations CoinConfigurations(Random rand, ConfigurationPlan plan, WordOrder wordOrder, Phonology phonology)
     {
         var type = wordOrder.AdpositionalPhraseDirectionality == HeadDirectionality.Initial ? AdpositionType.Preposition : AdpositionType.Postposition;
         var forms = new DistinctForms(draws: 11);
@@ -88,7 +88,7 @@ public static partial class Generator
             ConfigurationMarker marker = plan.Markers[region.Head].Value switch
             {
                 PlannedAdposition a => new SpatialAdposition(new Adposition(new Lexeme(new Root(
-                    forms.Draw(() => GenerateForm(rand, phonology, dropoff, 0, maxSyllables: 1)), ConfigurationMap.GlossFor(region.Head)), PartOfSpeech.Adposition), type), a.Governs),
+                    forms.Draw(() => GenerateForm(rand, phonology, 0, maxSyllables: 1)), ConfigurationMap.GlossFor(region.Head)), PartOfSpeech.Adposition), type), a.Governs),
                 RelationalNoun n => n,
                 SpatialCase c => c,
             };

@@ -20,7 +20,7 @@ public static partial class Generator
     //a marker per gender for words that agree with a noun, all on one side, with the first gender
     //unmarked, as the masculine or the animate usually is. Whether verbs agree too, where they agree
     //with their subject at all, is a guess at even odds
-    public static GenderSystem GenerateGenders(Random rand, MorphologicalProfile morphology, Paradigms paradigms, Phonology phonology, Dropoff dropoff)
+    public static GenderSystem GenerateGenders(Random rand, MorphologicalProfile morphology, Paradigms paradigms, Phonology phonology)
     {
         var kind = Sampling.Categorical(rand, NounGenderCounts);
         var assignment = Sampling.Categorical(rand, GenderAssignmentCounts);
@@ -36,7 +36,7 @@ public static partial class Generator
         var forms = new DistinctForms();
         foreach (var (gender, i) in system.Values.Select((g, i) => (g, i)))
         {
-            markers[gender] = new Affix(i == 0 ? [] : forms.Draw(() => VowelOrSyllable(rand, phonology, dropoff)), [gender]);
+            markers[gender] = new Affix(i == 0 ? [] : forms.Draw(() => VowelOrSyllable(rand, phonology)), [gender]);
         }
         return new GenderSystem { Genders = kind, Assignment = assignment, Markers = markers, MarkerPosition = position, VerbsAgree = verbsAgree };
     }

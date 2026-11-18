@@ -16,13 +16,13 @@ public static partial class Generator
 
     //short words of their own for 'and', 'or' and 'but', glossed in English and kept from sounding
     //alike. Nearly every language has a word for 'or' and one for 'but', so every language here does
-    public static Conjunctions GenerateConjunctions(Random rand, Phonology phonology, Dropoff dropoff)
+    public static Conjunctions GenerateConjunctions(Random rand, Phonology phonology)
     {
         var andIsWith = Sampling.Categorical(rand, AndIsWithCounts);
         var clauseAndType = Sampling.Categorical(rand, ClauseAndCounts);
         var forms = new DistinctForms();
         Lexeme Word(string meaning) =>
-            new(new Root(forms.Draw(() => GenerateForm(rand, phonology, dropoff, 0, maxSyllables: 1)), meaning), PartOfSpeech.Conjunction);
+            new(new Root(forms.Draw(() => GenerateForm(rand, phonology, 0, maxSyllables: 1)), meaning), PartOfSpeech.Conjunction);
 
         //where clauses are set side by side, nouns are too, unless they're joined with 'with'
         NounAnd nounAnd = andIsWith ? new AndWith()

@@ -256,7 +256,7 @@ public class SyllableTests
     }
 
     private static double ExtraSyllables(Phonology phonology, double noise = 1) =>
-        Enumerable.Range(0, 20).Average(seed => Generator.SelectExtraSyllables(noise, seed, phonology, new Dropoff(0.15)));
+        Enumerable.Range(0, 20).Average(seed => Generator.SelectExtraSyllables(noise, seed, phonology));
 
     [Fact]
     public void SelectExtraSyllables_FewerLikelySyllables_GiveLongerRoots()

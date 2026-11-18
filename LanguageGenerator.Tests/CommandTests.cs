@@ -19,7 +19,7 @@ public class CommandTests
     {
         var language = GeneratedLanguages.Sample[0];
         var rand = new Random(1);
-        return Enumerable.Range(0, 3000).Count(_ => keep(Generator.GenerateCommands(rand, language.MorphologicalProfile, language.WordOrder, language.Phonology, new Dropoff(0.15)))) / 3000.0;
+        return Enumerable.Range(0, 3000).Count(_ => keep(Generator.GenerateCommands(rand, language.MorphologicalProfile, language.WordOrder, language.Phonology))) / 3000.0;
     }
 
     [Fact]

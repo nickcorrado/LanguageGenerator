@@ -21,7 +21,7 @@ public class ObliqueTests
         {
             var regions = Generator.SelectRegions(rand).Regions;
             var cases = Generator.SelectCases(rand, MorphosyntacticAlignment.NominativeAccusative, regions, 0);
-            var words = Generator.GenerateAdpositions(rand, regions, cases, phonology, new Dropoff(0.15));
+            var words = Generator.GenerateAdpositions(rand, regions, cases, phonology);
 
             Assert.All(regions, r =>
             {
@@ -46,7 +46,7 @@ public class ObliqueTests
         var apart = RoleMap.Regions([]);
         var homophonous = GeneratedLanguages.Sample.Count(l =>
         {
-            var words = Generator.GenerateAdpositions(new Random(1), apart, [], l.Phonology, new Dropoff(0.15)).Values.Distinct().ToList();
+            var words = Generator.GenerateAdpositions(new Random(1), apart, [], l.Phonology).Values.Distinct().ToList();
             return words.Select(w => string.Concat(w.Root.Form.Select(p => p.IpaSymbol))).Distinct().Count() < words.Count;
         });
 

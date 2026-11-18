@@ -18,6 +18,7 @@ internal static class TestData
         ClusterRepair = repair,
         EpentheticVowel = Vowel.ə,
         Stress = Stress.Penultimate,
+        Dropoff = new Dropoff(0.15),
         SyllableContact = SyllableContact.Any,
     };
 

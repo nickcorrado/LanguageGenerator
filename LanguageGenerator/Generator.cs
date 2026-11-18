@@ -33,6 +33,7 @@ public static partial class Generator
             EpentheticVowel = SelectEpentheticVowel(vowels),
             Stress = stages.Draw(Settings.StressStage, SelectStress),
             SyllableContact = syllableContact,
+            Dropoff = syllableDropoff,
         };
         var orthography = SelectOrthography(stages.For("orthography"), vowels, consonants);
 
@@ -52,38 +53,38 @@ public static partial class Generator
         });
         var (regions, cases) = (roleRegions.Regions, caseSystem.Cases);
         //the words are coined apart from the plan, so they don't change when the plan is drawn again
-        var configurations = CoinConfigurations(stages.For("configuration words"), plan, wordOrder, phonology, syllableDropoff);
+        var configurations = CoinConfigurations(stages.For("configuration words"), plan, wordOrder, phonology);
         var paradigms = new Paradigms(
-            GenerateNounParadigm(stages.For("noun paradigm"), morphology, wordOrder, alignment, cases, configurations.Localizations, phonology, syllableDropoff),
-            GenerateVerbParadigm(stages.For("verb paradigm"), morphology, wordOrder, phonology, syllableDropoff));
-        var pronouns = GeneratePronouns(stages.For("pronouns"), paradigms, morphology, wordOrder, phonology, syllableDropoff);
-        var negation = GenerateNegation(stages.For("negation"), morphology, phonology, syllableDropoff);
+            GenerateNounParadigm(stages.For("noun paradigm"), morphology, wordOrder, alignment, cases, configurations.Localizations, phonology),
+            GenerateVerbParadigm(stages.For("verb paradigm"), morphology, wordOrder, phonology));
+        var pronouns = GeneratePronouns(stages.For("pronouns"), paradigms, morphology, wordOrder, phonology);
+        var negation = GenerateNegation(stages.For("negation"), morphology, phonology);
         var predication = GenerateLocationalPredication(stages.For("locational copula"),
-            GeneratePredication(stages.For("predication"), phonology, syllableDropoff), phonology, syllableDropoff);
+            GeneratePredication(stages.For("predication"), phonology), phonology);
         var adjectiveAgreement = SelectAdjectiveAgreement(stages.For("adjective agreement"), predication);
-        var genders = GenerateGenders(stages.For("genders"), morphology, paradigms, phonology, syllableDropoff);
-        var adpositions = GenerateAdpositions(stages.For("adpositions"), regions, cases, phonology, syllableDropoff);
-        var duration = GenerateDuration(stages.For("duration"), adpositions, phonology, syllableDropoff);
+        var genders = GenerateGenders(stages.For("genders"), morphology, paradigms, phonology);
+        var adpositions = GenerateAdpositions(stages.For("adpositions"), regions, cases, phonology);
+        var duration = GenerateDuration(stages.For("duration"), adpositions, phonology);
         var roleMarkers = SelectRoleMarkers(stages.For("adposition government"), alignment, cases, regions, wordOrder, adpositions, duration);
-        var numerals = GenerateNumerals(stages.For("numerals"), morphology, phonology, syllableDropoff);
-        var articles = GenerateArticles(stages.For("articles"), morphology, genders, numerals, phonology, syllableDropoff);
-        var possession = GeneratePossession(stages.For("possession"), morphology, wordOrder, phonology, syllableDropoff);
-        var commands = GenerateCommands(stages.For("commands"), morphology, wordOrder, phonology, syllableDropoff);
-        var comparison = GenerateComparison(stages.For("comparison"), wordOrder, phonology, syllableDropoff);
-        var degree = GenerateDegree(stages.For("degree"), comparison, morphology, wordOrder, phonology, syllableDropoff);
-        var intensifier = GenerateIntensifier(stages.For("intensifier"), degree, wordOrder, phonology, syllableDropoff);
-        var manner = GenerateManner(stages.For("manner"), morphology, phonology, syllableDropoff);
-        var similative = GenerateSimilative(stages.For("similative"), comparison, morphology, wordOrder, phonology, syllableDropoff);
-        var passive = GeneratePassive(stages.For("passive"), alignment, morphology, phonology, syllableDropoff);
-        var conjunctions = GenerateConjunctions(stages.For("conjunctions"), phonology, syllableDropoff);
-        var subordination = GenerateSubordination(stages.For("subordination"), morphology, wordOrder, phonology, syllableDropoff);
-        var modals = GenerateModals(stages.For("modals"), morphology, wordOrder, predication, phonology, syllableDropoff);
-        var questions = GenerateQuestions(stages.For("questions"), morphology, wordOrder, phonology, syllableDropoff);
+        var numerals = GenerateNumerals(stages.For("numerals"), morphology, phonology);
+        var articles = GenerateArticles(stages.For("articles"), morphology, genders, numerals, phonology);
+        var possession = GeneratePossession(stages.For("possession"), morphology, wordOrder, phonology);
+        var commands = GenerateCommands(stages.For("commands"), morphology, wordOrder, phonology);
+        var comparison = GenerateComparison(stages.For("comparison"), wordOrder, phonology);
+        var degree = GenerateDegree(stages.For("degree"), comparison, morphology, wordOrder, phonology);
+        var intensifier = GenerateIntensifier(stages.For("intensifier"), degree, wordOrder, phonology);
+        var manner = GenerateManner(stages.For("manner"), morphology, phonology);
+        var similative = GenerateSimilative(stages.For("similative"), comparison, morphology, wordOrder, phonology);
+        var passive = GeneratePassive(stages.For("passive"), alignment, morphology, phonology);
+        var conjunctions = GenerateConjunctions(stages.For("conjunctions"), phonology);
+        var subordination = GenerateSubordination(stages.For("subordination"), morphology, wordOrder, phonology);
+        var modals = GenerateModals(stages.For("modals"), morphology, wordOrder, predication, phonology);
+        var questions = GenerateQuestions(stages.For("questions"), morphology, wordOrder, phonology);
 
         //the lexicon comes last, once there are closed classes for it to avoid
         var lexiconSeed = stages.For("lexicon").Next();
-        var extraSyllables = SelectExtraSyllables(SelectRootLengthNoise(stages.For("root length noise")), lexiconSeed, phonology, syllableDropoff);
-        var lexicon = GenerateLexicon(lexiconSeed, extraSyllables, phonology, syllableDropoff, new Dictionary<PartOfSpeech, IEnumerable<Lexeme>>
+        var extraSyllables = SelectExtraSyllables(SelectRootLengthNoise(stages.For("root length noise")), lexiconSeed, phonology);
+        var lexicon = GenerateLexicon(lexiconSeed, extraSyllables, phonology, new Dictionary<PartOfSpeech, IEnumerable<Lexeme>>
         {
             [PartOfSpeech.Noun] = [.. pronouns.Forms.Values, .. questions.Words.Values, questions.Why],
             [PartOfSpeech.Adjective] = [.. numerals.Words.Values, .. new[] { numerals.Many, numerals.Ordinals.First, numerals.Ordinals.Second }.OfType<Lexeme>()],
@@ -130,7 +131,6 @@ public static partial class Generator
             Subordination = subordination,
             Modals = modals,
             Questions = questions,
-            Dropoff = syllableDropoff,
         };
     }
 
@@ -357,7 +357,7 @@ public static partial class Generator
     }
 
     //a short affix: a lone vowel 30% of the time, and otherwise a syllable
-    private static List<Phoneme> VowelOrSyllable(Random rand, Phonology phonology, Dropoff dropoff) => rand.NextDouble() < 0.3
-        ? [phonology.Vowels[Sampling.TruncatedGeometric(rand, phonology.Vowels.Count, dropoff.Value)]]
-        : [.. GenerateSyllable(rand, phonology.SyllableRule, dropoff, needsOnset: false).Phonemes];
+    private static List<Phoneme> VowelOrSyllable(Random rand, Phonology phonology) => rand.NextDouble() < 0.3
+        ? [phonology.Vowels[Sampling.TruncatedGeometric(rand, phonology.Vowels.Count, phonology.Dropoff.Value)]]
+        : [.. GenerateSyllable(rand, phonology.SyllableRule, phonology.Dropoff, needsOnset: false).Phonemes];
 }

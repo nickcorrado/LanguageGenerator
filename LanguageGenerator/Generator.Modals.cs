@@ -22,7 +22,7 @@ public static partial class Generator
     //like the copulas or the other modals. A modal verb or particle goes before the verb in a VO
     //language and after it in an OV one, as auxiliaries do per Dryer; an affix goes on the side the
     //language puts its affixes, and an isolating language uses a particle in its place
-    public static Modals GenerateModals(Random rand, MorphologicalProfile morphology, WordOrder wordOrder, Predication predication, Phonology phonology, Dropoff dropoff)
+    public static Modals GenerateModals(Random rand, MorphologicalProfile morphology, WordOrder wordOrder, Predication predication, Phonology phonology)
     {
         var before = wordOrder.VerbPhraseDirectionality == HeadDirectionality.Initial;
         var forms = new DistinctForms();
@@ -43,9 +43,9 @@ public static partial class Generator
             var prefix = rand.NextDouble() < PrefixChance(morphology);
             var form = forms.Draw(() => kind switch
             {
-                ModalKind.Affix => MarkerForm(rand, true, phonology, dropoff),
-                ModalKind.Verb => GenerateForm(rand, phonology, dropoff, 0, maxSyllables: 1),
-                _ => MarkerForm(rand, false, phonology, dropoff),
+                ModalKind.Affix => MarkerForm(rand, true, phonology),
+                ModalKind.Verb => GenerateForm(rand, phonology, 0, maxSyllables: 1),
+                _ => MarkerForm(rand, false, phonology),
             });
             foreach (var modality in region)
             {

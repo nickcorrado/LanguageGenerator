@@ -116,8 +116,8 @@ public class SpecTests
     [Fact]
     public void Generate_FixedDropoff_IsTheLanguages()
     {
-        Assert.Equal(0.15, Generator.Generate(1, LanguageSpec.Free).Dropoff.Value);
-        Assert.Equal(0.4, Generator.Generate(1, LanguageSpec.Free.Fix(Settings.Dropoff, 0.4)).Dropoff.Value);
+        Assert.Equal(0.15, Generator.Generate(1, LanguageSpec.Free).Phonology.Dropoff.Value);
+        Assert.Equal(0.4, Generator.Generate(1, LanguageSpec.Free.Fix(Settings.Dropoff, 0.4)).Phonology.Dropoff.Value);
     }
 
     public static TheoryData<string, string> Impossible => new()

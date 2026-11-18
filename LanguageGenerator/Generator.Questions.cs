@@ -39,7 +39,7 @@ public static partial class Generator
 
     //an isolating language uses a particle where others would use an affix. Question words are
     //short, as frequent words are, and kept from sounding like each other
-    public static Questions GenerateQuestions(Random rand, MorphologicalProfile morphology, WordOrder wordOrder, Phonology phonology, Dropoff dropoff)
+    public static Questions GenerateQuestions(Random rand, MorphologicalProfile morphology, WordOrder wordOrder, Phonology phonology)
     {
         var kind = Sampling.Categorical(rand, PolarCounts);
         if (kind == PolarKind.Affix && morphology.Fusion == Fusion.Isolating)
@@ -48,9 +48,9 @@ public static partial class Generator
         }
         PolarQuestionMarking polar = kind switch
         {
-            PolarKind.Particle => new QuestionParticle(new Particle(MarkerForm(rand, false, phonology, dropoff), [Mood.Interrogative]),
+            PolarKind.Particle => new QuestionParticle(new Particle(MarkerForm(rand, false, phonology), [Mood.Interrogative]),
                 Sampling.Categorical(rand, wordOrder.VerbPhraseDirectionality == HeadDirectionality.Initial ? VOParticleCounts : OVParticleCounts)),
-            PolarKind.Affix => new QuestionAffix(new Affix(MarkerForm(rand, true, phonology, dropoff), [Mood.Interrogative]),
+            PolarKind.Affix => new QuestionAffix(new Affix(MarkerForm(rand, true, phonology), [Mood.Interrogative]),
                 rand.NextDouble() < PrefixChance(morphology) ? ExponentPosition.Prefix : ExponentPosition.Suffix),
             PolarKind.Inversion => new QuestionInversion(),
             _ => new QuestionIntonation(),
@@ -60,7 +60,7 @@ public static partial class Generator
         var fronts = rand.Next(initial + inPlace) < initial;
 
         var forms = new DistinctForms();
-        Lexeme Word(string meaning) => new(new Root(forms.Draw(() => GenerateForm(rand, phonology, dropoff, 0.5, maxSyllables: 2)), meaning), PartOfSpeech.Noun);
+        Lexeme Word(string meaning) => new(new Root(forms.Draw(() => GenerateForm(rand, phonology, 0.5, maxSyllables: 2)), meaning), PartOfSpeech.Noun);
         var words = Enum.GetValues<Interrogative>().ToDictionary(w => w, w => Word(w.ToString().ToLowerInvariant()));
         return new Questions(polar, fronts, words, Word("why"));
     }

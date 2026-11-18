@@ -25,7 +25,7 @@ public static partial class Generator
     //a short word for each number the base needs, each redrawn to keep it from sounding like the
     //others. A restricted system's limit, and the odds of a singular noun after a numeral and of
     //compound numbers putting units last, are guesses: WALS doesn't count them
-    public static NumeralSystem GenerateNumerals(Random rand, MorphologicalProfile morphology, Phonology phonology, Dropoff dropoff)
+    public static NumeralSystem GenerateNumerals(Random rand, MorphologicalProfile morphology, Phonology phonology)
     {
         var numeralBase = Sampling.Categorical(rand, NumeralBaseCounts);
         var beforeNoun = Sampling.Categorical(rand, NumeralBeforeNounCounts);
@@ -35,7 +35,7 @@ public static partial class Generator
 
         var forms = new DistinctForms();
         Lexeme Word(string meaning) =>
-            new(new Root(forms.Draw(() => GenerateForm(rand, phonology, dropoff, 0.15, maxSyllables: 2)), meaning), PartOfSpeech.Numeral);
+            new(new Root(forms.Draw(() => GenerateForm(rand, phonology, 0.15, maxSyllables: 2)), meaning), PartOfSpeech.Numeral);
 
         var numbers = numeralBase switch
         {
@@ -45,7 +45,7 @@ public static partial class Generator
         };
         var words = numbers.ToDictionary(n => n, n => Word(NumeralNames[n]));
         var many = numeralBase == NumeralBase.Restricted ? Word("many") : null;
-        var ordinals = GenerateOrdinals(rand, morphology, phonology, dropoff, Word);
+        var ordinals = GenerateOrdinals(rand, morphology, phonology, Word);
         return new NumeralSystem(numeralBase, limit, words, many, beforeNoun, nounStaysSingular, largestFirst, ordinals);
     }
 
@@ -53,7 +53,7 @@ public static partial class Generator
     //cardinals, and a marker that builds the rest. WALS doesn't count how ordinals are marked, so
     //the marker goes on the side the language puts its other affixes, and an isolating language
     //uses a word, as Mandarin puts dì before the numeral in dì sān 'third'
-    private static Ordinals GenerateOrdinals(Random rand, MorphologicalProfile morphology, Phonology phonology, Dropoff dropoff, Func<string, Lexeme> word)
+    private static Ordinals GenerateOrdinals(Random rand, MorphologicalProfile morphology, Phonology phonology, Func<string, Lexeme> word)
     {
         var type = Sampling.Categorical(rand, OrdinalCounts);
         var first = type is OrdinalType.Cardinal or OrdinalType.Derived ? null : word("first");
@@ -68,7 +68,7 @@ public static partial class Generator
             ? (before ? ExponentPosition.PrecedingParticle : ExponentPosition.FollowingParticle)
             : (before ? ExponentPosition.Prefix : ExponentPosition.Suffix);
         var affix = position is ExponentPosition.Prefix or ExponentPosition.Suffix;
-        var form = MarkerForm(rand, affix, phonology, dropoff);
+        var form = MarkerForm(rand, affix, phonology);
         Morpheme marker = affix ? new Affix(form, [Ordinality.Ordinal]) : new Particle(form, [Ordinality.Ordinal]);
         return new Ordinals(type, first, second, (position, marker));
     }

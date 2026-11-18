@@ -25,7 +25,7 @@ public class QuestionTests
     private static IReadOnlyList<Questions> Drawn(Language language, int count)
     {
         var rand = new Random(1);
-        return [.. Enumerable.Range(0, count).Select(_ => Generator.GenerateQuestions(rand, language.MorphologicalProfile, language.WordOrder, language.Phonology, new Dropoff(0.15)))];
+        return [.. Enumerable.Range(0, count).Select(_ => Generator.GenerateQuestions(rand, language.MorphologicalProfile, language.WordOrder, language.Phonology))];
     }
 
     [Fact]

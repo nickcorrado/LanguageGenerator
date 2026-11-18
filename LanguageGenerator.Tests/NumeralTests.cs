@@ -66,7 +66,7 @@ public class NumeralTests
         var phonology = GeneratedLanguages.Sample[0].Phonology;
         var rand = new Random(1);
 
-        var drawn = Enumerable.Range(0, 3000).Select(_ => Generator.GenerateNumerals(rand, GeneratedLanguages.Sample[0].MorphologicalProfile, phonology, new Dropoff(0.15))).ToList();
+        var drawn = Enumerable.Range(0, 3000).Select(_ => Generator.GenerateNumerals(rand, GeneratedLanguages.Sample[0].MorphologicalProfile, phonology)).ToList();
 
         //WALS 131A: 125, 42 and 20 of 187 languages modeled; 89A: 479 of 1,086 put the numeral first
         Assert.InRange(drawn.Count(s => s.Base == NumeralBase.Decimal) / 3000.0, 0.64, 0.70);
@@ -180,7 +180,7 @@ public class NumeralTests
         var morphology = GeneratedLanguages.Sample.First(l => l.MorphologicalProfile.Fusion != Fusion.Isolating).MorphologicalProfile;
         var rand = new Random(1);
 
-        var drawn = Enumerable.Range(0, 3000).Select(_ => Generator.GenerateNumerals(rand, morphology, phonology, new Dropoff(0.15)).Ordinals).ToList();
+        var drawn = Enumerable.Range(0, 3000).Select(_ => Generator.GenerateNumerals(rand, morphology, phonology).Ordinals).ToList();
 
         //WALS 53A: 46, 7, 62, 110 and 61 of the 286 languages modeled
         Assert.InRange(drawn.Count(o => o.Type == OrdinalType.Cardinal) / 3000.0, 0.13, 0.19);

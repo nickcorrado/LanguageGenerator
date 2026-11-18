@@ -24,7 +24,7 @@ public static partial class Generator
     //since a pronoun is never helped by context the way a noun is. Pronouns are among a language's
     //most frequent words, so they're short, by the law of abbreviation: mostly one syllable, never
     //more than two
-    public static PronounSystem GeneratePronouns(Random rand, Paradigms paradigms, MorphologicalProfile morphology, WordOrder wordOrder, Phonology phonology, Dropoff dropoff)
+    public static PronounSystem GeneratePronouns(Random rand, Paradigms paradigms, MorphologicalProfile morphology, WordOrder wordOrder, Phonology phonology)
     {
         var firstPersonPlural = Sampling.Categorical(rand, FirstPersonPluralCounts);
         List<Pronoun> meanings =
@@ -42,7 +42,7 @@ public static partial class Generator
 
         var forms = new Dictionary<Pronoun, Lexeme>();
         var distinct = new DistinctForms();
-        List<Phoneme> NewForm() => distinct.Draw(() => GenerateForm(rand, phonology, dropoff, 0.15, maxSyllables: 2));
+        List<Phoneme> NewForm() => distinct.Draw(() => GenerateForm(rand, phonology, 0.15, maxSyllables: 2));
         foreach (var meaning in meanings)
         {
             var form = NewForm();
@@ -65,7 +65,7 @@ public static partial class Generator
         List<ExponentSlot> slots = [.. nouns.Slots.Where(s => s.Categories.All(Takes))];
         var paradigm = slots.Sum(s => s.Categories.Count) == categories.Count
             ? new Paradigm { PartOfSpeech = PartOfSpeech.Pronoun, Categories = categories, Slots = slots }
-            : GenerateParadigm(rand, PartOfSpeech.Pronoun, categories, morphology, wordOrder.AdpositionalPhraseDirectionality, phonology, dropoff);
+            : GenerateParadigm(rand, PartOfSpeech.Pronoun, categories, morphology, wordOrder.AdpositionalPhraseDirectionality, phonology);
 
         var agrees = paradigms.Verbs.Categories.Has<Person>();
         var dropsSubjects = Sampling.Categorical(rand, agrees ? AgreeingSubjectDropCounts : NonAgreeingSubjectDropCounts);
