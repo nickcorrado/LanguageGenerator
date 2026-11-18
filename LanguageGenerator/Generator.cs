@@ -14,12 +14,12 @@ public static partial class Generator
         {
             throw new SpecException(string.Join(Environment.NewLine, problems));
         }
-        var stages = new Stages(seed);
-        var syllableDropoff = stages.Draw(spec, Settings.DropoffStage, _ => new Dropoff(0.15));
+        var stages = new Stages(seed, SpecRules.Close(spec));
+        var syllableDropoff = stages.Draw(Settings.DropoffStage, _ => new Dropoff(0.15));
 
-        var vowels = stages.Draw(spec, Settings.VowelStage, rand => GenerateVowels(rand));
-        var consonants = stages.Draw(spec, Settings.ConsonantStage, rand => GenerateConsonants(rand));
-        var shape = stages.Draw(spec, Settings.SyllableStage, SelectSyllableShape);
+        var vowels = stages.Draw(Settings.VowelStage, rand => GenerateVowels(rand));
+        var consonants = stages.Draw(Settings.ConsonantStage, rand => GenerateConsonants(rand));
+        var shape = stages.Draw(Settings.SyllableStage, SelectSyllableShape);
         var syllableRule = new SyllableRule(shape.Template, vowels, consonants, shape.Codas);
         var syllableContact = SelectSyllableContact(stages.For("syllable contact"), syllableRule);
         var phonology = new Phonology
@@ -29,23 +29,28 @@ public static partial class Generator
             SyllableRule = syllableRule,
             SoundChanges = SelectSoundChanges(stages.For("sound changes"), syllableRule, vowels),
             SyllableChanges = SelectSyllableChanges(stages.For("syllable changes"), syllableRule, vowels, syllableContact),
-            ClusterRepair = stages.Draw(spec, Settings.ClusterRepairStage, SelectClusterRepair),
+            ClusterRepair = stages.Draw(Settings.ClusterRepairStage, SelectClusterRepair),
             EpentheticVowel = SelectEpentheticVowel(vowels),
-            Stress = stages.Draw(spec, Settings.StressStage, SelectStress),
+            Stress = stages.Draw(Settings.StressStage, SelectStress),
             SyllableContact = syllableContact,
         };
         var orthography = SelectOrthography(stages.For("orthography"), vowels, consonants);
 
-        //word order comes first because how isolating a language is, and how much it prefixes, depend on it
-        var wordOrder = stages.Draw(spec, Settings.WordOrderStage, SelectWordOrder);
-        var morphology = stages.Draw(spec, Settings.MorphologyStage, rand => SelectMorphologicalProfile(rand, wordOrder.ConstituentWordOrder));
-
-        var alignment = stages.Draw(spec, Settings.AlignmentStage, SelectAlignment);
-        var roleRegions = SelectRegions(stages.For("role regions"));
-        var regions = roleRegions.Regions;
-        var cases = SelectCases(stages.For("cases"), alignment, regions, 0.65);
-        var configurationRegions = SelectConfigurationRegions(stages.For("configuration regions"));
-        var plan = PlanConfigurations(stages.For("configurations"), configurationRegions, morphology, alignment, regions, cases);
+        //these stages are drawn together, since what a later one can be depends on the earlier ones:
+        //a spatial case needs morphology that isn't isolating. Word order comes first because how
+        //isolating a language is, and how much it prefixes, depend on it
+        var (wordOrder, morphology, alignment, roleRegions, caseSystem, plan) = stages.DrawTogether(group =>
+        {
+            var wordOrder = group.Draw(Settings.WordOrderStage, SelectWordOrder);
+            var morphology = group.Draw(Settings.MorphologyStage, rand => SelectMorphologicalProfile(rand, wordOrder.ConstituentWordOrder));
+            var alignment = group.Draw(Settings.AlignmentStage, SelectAlignment);
+            var roleRegions = group.Draw(Settings.RoleRegionStage, SelectRegions);
+            var caseSystem = group.Draw(Settings.CaseStage, rand => new CaseSystem(roleRegions.Regions, SelectCases(rand, alignment, roleRegions.Regions, 0.65)));
+            var configurationRegions = group.Draw(Settings.ConfigurationRegionStage, SelectConfigurationRegions);
+            var plan = group.Draw(Settings.ConfigurationPlanStage, rand => PlanConfigurations(rand, configurationRegions, morphology, alignment, roleRegions.Regions, caseSystem.Cases));
+            return (wordOrder, morphology, alignment, roleRegions, caseSystem, plan);
+        });
+        var (regions, cases) = (roleRegions.Regions, caseSystem.Cases);
         //the words are coined apart from the plan, so they don't change when the plan is drawn again
         var configurations = CoinConfigurations(stages.For("configuration words"), plan, wordOrder, phonology, syllableDropoff);
         var paradigms = new Paradigms(
@@ -135,38 +140,193 @@ public static partial class Generator
     //they can't in a fraction of a second
     public const int DrawLimit = 100_000;
 
-    //a Random for each stage of generating a language, from the language's seed and the stage's name.
-    //A name can only be used once, since two stages sharing one would draw the very same numbers
-    private sealed class Stages(int seed)
+    /// <summary>How many times stages drawn together are drawn, at most, to find a draw that matches a spec.</summary>
+    //fewer than for a stage alone, since each attempt draws several stages
+    public const int GroupLimit = 10_000;
+
+    //a Random for each stage of generating a language, from the language's seed and the stage's name,
+    //and the stages with settings drawn to match a spec, as its rules imply it. A name can only be
+    //used once, since two stages sharing one would draw the very same numbers
+    private sealed class Stages(int seed, Implications implied)
     {
         private readonly HashSet<string> used = [];
+        private readonly Earlier earlier = new();
 
-        public Random For(string stage) => used.Add(stage)
-            ? Sampling.For(seed, stage)
-            : throw new ArgumentException($"The stage '{stage}' was named twice.", nameof(stage));
-
-        //a stage drawn to match the spec. The first draw is what the stage would be with no spec,
-        //so a seed whose draw already matches keeps its language. Otherwise the stage is drawn again,
-        //each time from a Random of its own, until a draw matches every fixed setting that a draw
-        //can match, which keeps the odds of the rest conditional on them; and if none does within
-        //the limit, as for a value the odds never give, the closest draw is kept. Any fixed value
-        //the kept draw still lacks, as an inventory or a number always would, is written into it
-        public T Draw<T>(LanguageSpec spec, Stage<T> stage, Func<Random, T> draw)
+        public Random For(string stage)
         {
-            var result = draw(For(stage.Name));
-            var settings = stage.Settings.Where(s => spec.Allowed(s) is not null).ToList();
+            Claim(stage);
+            return Sampling.For(seed, stage);
+        }
+
+        public void Claim(string stage)
+        {
+            if (!used.Add(stage))
+            {
+                throw new ArgumentException($"The stage '{stage}' was named twice.", nameof(stage));
+            }
+        }
+
+        public T Draw<T>(Stage<T> stage, Func<Random, T> draw)
+        {
+            Claim(stage.Name);
+            return DrawAlone(stage, draw, DrawLimit);
+        }
+
+        public T Record<T>(Stage<T> stage, T result)
+        {
+            earlier.Record(stage, result);
+            return result;
+        }
+
+        //a stage drawn to match the spec by itself. The first draw is what the stage would be with no
+        //spec, so a seed whose draw already matches keeps its language. Otherwise the stage is drawn
+        //again, each time from a Random of its own, until a draw matches every fixed setting that a
+        //draw can match and meets every condition, which keeps the odds of the rest conditional on
+        //them; and if none does within the limit, as for a value the odds never give, the closest
+        //draw is kept. Any fixed value the kept draw still lacks, as an inventory or a number always
+        //would, is written into it, and it's mended to meet any condition it still doesn't
+        public T DrawAlone<T>(Stage<T> stage, Func<Random, T> draw, int limit)
+        {
+            return Record(stage, stage.Blank is not null ? DrawIndependent(stage, draw, limit) : DrawRedrawing(stage, draw, limit));
+        }
+
+        private T DrawRedrawing<T>(Stage<T> stage, Func<Random, T> draw, int limit)
+        {
+            var spec = implied.Spec;
+            var conditions = implied.For(stage);
+            var settings = Fixed(stage);
             var redrawable = settings.Where(s => s.Redrawable).ToList();
-            int Matching(T drawn) => redrawable.Count(s => s.Matches(drawn, spec.Allowed(s)!));
-            var best = Matching(result);
-            for (int attempt = 1; best < redrawable.Count && attempt < DrawLimit; attempt++)
+            int Meeting(T drawn) => redrawable.Count(s => s.Matches(drawn, spec.Allowed(s)!)) + conditions.Count(c => c.Holds(drawn, earlier));
+            var goal = redrawable.Count + conditions.Count;
+            var result = draw(Sampling.For(seed, stage.Name));
+            var best = Meeting(result);
+            for (int attempt = 1; best < goal && attempt < limit; attempt++)
             {
                 var drawn = draw(Sampling.For(seed, $"{stage.Name} #{attempt}"));
-                if (Matching(drawn) is var matching && matching > best)
+                if (Meeting(drawn) is var meeting && meeting > best)
                 {
-                    (result, best) = (drawn, matching);
+                    (result, best) = (drawn, meeting);
                 }
             }
-            return settings.Aggregate(result, (drawn, s) => s.Matches(drawn, spec.Allowed(s)!) ? drawn : s.Write(drawn, spec.Allowed(s)!));
+            result = settings.Aggregate(result, (drawn, s) => s.Matches(drawn, spec.Allowed(s)!) ? drawn : s.Write(drawn, spec.Allowed(s)!));
+            return conditions.Aggregate(result, (drawn, c) => c.Holds(drawn, earlier) ? drawn
+                : c.Repair is { } repair ? repair(drawn)
+                : throw new InvalidOperationException($"Nothing mends what {stage.Name} draws to meet a condition: {c.Says}"));
+        }
+
+        //a stage whose settings make up its whole result and are drawn independently of each other,
+        //as a semantic map's edges are. Its fixed settings are written straight in, which leaves the
+        //rest with the odds they'd have anyway and keeps what the seed drew for them. It's drawn
+        //again until it meets its conditions, and if none does within the limit, its settings are
+        //searched for the result nearest the draw that does, which the spec's rules make sure there
+        //is
+        private T DrawIndependent<T>(Stage<T> stage, Func<Random, T> draw, int limit)
+        {
+            var conditions = implied.For(stage);
+            var result = WriteFixed(stage, draw(Sampling.For(seed, stage.Name)));
+            for (int attempt = 1; attempt < limit && !conditions.All(c => c.Holds(result, earlier)); attempt++)
+            {
+                result = WriteFixed(stage, draw(Sampling.For(seed, $"{stage.Name} #{attempt}")));
+            }
+            return conditions.All(c => c.Holds(result, earlier)) ? result
+                : stage.Nearest(result, implied.Spec, conditions, earlier)
+                ?? throw new InvalidOperationException($"No result of {stage.Name} meets its conditions, which the spec's rules should have refused.");
+        }
+
+        //a draw with its fixed values written in
+        public T WriteFixed<T>(Stage<T> stage, T drawn) =>
+            Fixed(stage).Aggregate(drawn, (d, s) => s.Matches(d, implied.Spec.Allowed(s)!) ? d : s.Write(d, implied.Spec.Allowed(s)!));
+
+        //stages drawn together, since what a later one can be depends on the earlier ones, as a
+        //spatial case depends on the morphology. The first attempt draws each as it would be with no
+        //spec, so a seed whose draws already match keeps its language. Otherwise each attempt draws
+        //every stage up to the last one that might not match again, each from a Random of its own,
+        //and reruns the rest on what that gives, until an attempt matches every fixed setting and
+        //meets every condition of every stage in it. That keeps the odds of every free setting
+        //conditional on all of them, so fixing a spatial case makes concatenative morphology likelier;
+        //and a stage after the last that might not match can't change whether an attempt does, so
+        //rerunning it with its first Random keeps more of what the seed gave. An attempt is abandoned
+        //at the first stage that misses. If no attempt matches within the limit, the stages are drawn
+        //one at a time, as stages alone are, each given the ones before it, which the spec's rules
+        //have made sure allow it, and each up to the same limit, since drawing them together has
+        //already had its chance
+        public T DrawTogether<T>(Func<Group, T> body)
+        {
+            var first = new Group(this, attempt: 0, redrawThrough: -1, alone: false, claim: true);
+            var result = body(first);
+            if (first.Met)
+            {
+                return result;
+            }
+            for (int attempt = 1; attempt < GroupLimit; attempt++)
+            {
+                try
+                {
+                    return body(new Group(this, attempt, first.LastThatMightNotMatch, alone: false, claim: false));
+                }
+                catch (Group.Missed)
+                {
+                }
+            }
+            return body(new Group(this, attempt: 0, redrawThrough: -1, alone: true, claim: false));
+        }
+
+        //whether a stage's draw might not match: it has a condition to meet, or a fixed setting a draw
+        //can miss, unless its settings are written straight in
+        public bool MightNotMatch<T>(Stage<T> stage) =>
+            implied.For(stage).Count > 0 || (stage.Blank is null && Fixed(stage).Any(s => s.Redrawable));
+
+        public bool Matches<T>(Stage<T> stage, T drawn) =>
+            Fixed(stage).Where(s => s.Redrawable).All(s => s.Matches(drawn, implied.Spec.Allowed(s)!)) && implied.For(stage).All(c => c.Holds(drawn, earlier));
+
+        //a draw with the fixed values no draw could give, as an inventory, written in
+        public T WriteUnredrawable<T>(Stage<T> stage, T drawn) =>
+            Fixed(stage).Where(s => !s.Redrawable).Aggregate(drawn, (d, s) => s.Write(d, implied.Spec.Allowed(s)!));
+
+        public Random Attempt(string key) => Sampling.For(seed, key);
+
+        private List<ISetting<T>> Fixed<T>(Stage<T> stage) => [.. stage.Settings.Where(s => implied.Spec.Allowed(s) is not null)];
+    }
+
+    //one attempt at drawing stages together: which stages it draws again, under which names, and
+    //whether what it draws matches
+    private sealed class Group(Stages stages, int attempt, int redrawThrough, bool alone, bool claim)
+    {
+        private int next;
+
+        //thrown to abandon an attempt after the first, at the first stage that misses
+        public sealed class Missed : Exception;
+
+        public bool Met { get; private set; } = true;
+        public int LastThatMightNotMatch { get; private set; } = -1;
+
+        public T Draw<T>(Stage<T> stage, Func<Random, T> draw)
+        {
+            var index = next++;
+            if (claim)
+            {
+                stages.Claim(stage.Name);
+            }
+            if (alone)
+            {
+                return stages.DrawAlone(stage, draw, GroupLimit);
+            }
+            //a stage whose settings are written straight in has them all written, and any other just
+            //the ones no draw could give; an attempt whose stage misses a condition is just rejected,
+            //as one whose stage misses a setting is
+            var key = attempt > 0 && index <= redrawThrough ? $"{stage.Name} #{attempt}" : stage.Name;
+            var drawn = draw(stages.Attempt(key));
+            drawn = stages.Record(stage, stage.Blank is not null ? stages.WriteFixed(stage, drawn) : stages.WriteUnredrawable(stage, drawn));
+            if (stages.MightNotMatch(stage))
+            {
+                LastThatMightNotMatch = index;
+                Met &= stages.Matches(stage, drawn);
+                if (!Met && attempt > 0)
+                {
+                    throw new Missed();
+                }
+            }
+            return drawn;
         }
     }
 

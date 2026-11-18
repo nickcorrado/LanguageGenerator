@@ -207,7 +207,9 @@ public class SpecTests
                 refused++;
                 continue;
             }
-            AssertMeets(Generator.Generate(rand.Next(), spec), spec);
+            var language = Generator.Generate(rand.Next(), spec);
+            AssertMeets(language, spec);
+            RelatedStageTests.AssertKeepsTheRules(language);
             met++;
         }
 

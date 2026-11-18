@@ -37,7 +37,11 @@ public interface ISetting<T> : ISetting
     /// </summary>
     bool Redrawable { get; }
     bool Matches(T drawn, IReadOnlyList<object> allowed);
-    /// <summary>The stage's result with the first allowed value in place of what was drawn.</summary>
+    /// <summary>
+    /// The stage's result with the first allowed value that takes in place of what was drawn: a stage
+    /// can refuse a value that would contradict what it was drawn from, as a plan for configurations
+    /// refuses a spatial case in a language that can't have one.
+    /// </summary>
     T Write(T drawn, IReadOnlyList<object> allowed);
 }
 
@@ -64,7 +68,17 @@ public sealed class Setting<TStage, TValue> : ISetting<TStage> where TValue : no
     public object Read(Language language) => Get(From(language));
 
     public bool Matches(TStage drawn, IReadOnlyList<object> allowed) => allowed.Any(a => Values.Same(Get(drawn), (TValue)a));
-    public TStage Write(TStage drawn, IReadOnlyList<object> allowed) => Set(drawn, (TValue)allowed[0]);
+    public TStage Write(TStage drawn, IReadOnlyList<object> allowed)
+    {
+        foreach (var value in allowed)
+        {
+            if (Set(drawn, (TValue)value) is var written && Matches(written, allowed))
+            {
+                return written;
+            }
+        }
+        return Set(drawn, (TValue)allowed[0]);
+    }
 }
 
 /// <summary>What values a setting can take, and how a spec writes them.</summary>
@@ -176,6 +190,60 @@ public sealed class Between(double above, double below) : ISettingValues<double>
     public string? Problem(double value) => value > above && value < below ? null : $"{value} isn't between {above} and {below}.";
 
     public bool Same(double a, double b) => a == b;
+}
+
+/// <summary>
+/// Something a stage's result has to be for a spec to be met, as a rule implies it from the
+/// spec's other settings: a dative case needs the recipient to head its region.
+/// </summary>
+public interface ICondition
+{
+    IStage Stage { get; }
+    /// <summary>What the condition is and why, as a spec that can't meet it is told.</summary>
+    string Says { get; }
+    /// <summary>Whether a finished language meets it.</summary>
+    bool HoldsIn(Language language);
+}
+
+/// <summary>
+/// A condition on what a stage whose result is a T draws, given what the stages before it drew.
+/// Repair makes a result meet it, where that can be done directly; a stage whose settings make up
+/// its whole result needs none, since the values of its settings are searched for a result that
+/// meets it instead.
+/// </summary>
+public sealed record Condition<T>(Stage<T> Stage, string Says, Func<T, Earlier, bool> Holds, Func<T, T>? Repair) : ICondition
+{
+    IStage ICondition.Stage => Stage;
+
+    public bool HoldsIn(Language language) => Holds(Stage.From(language), Earlier.In(language));
+}
+
+/// <summary>
+/// What the stages before one drew, for a condition that depends on them, as how a configuration
+/// can be marked depends on whether the language can have spatial cases. It has nothing when a spec
+/// is checked before anything is drawn, so such a condition then assumes the best.
+/// </summary>
+public sealed class Earlier
+{
+    private readonly Dictionary<IStage, object> drawn = [];
+
+    public static Earlier None => new();
+
+    /// <summary>What every stage with settings drew for a finished language.</summary>
+    public static Earlier In(Language language)
+    {
+        var earlier = new Earlier();
+        foreach (var stage in Settings.Stages)
+        {
+            earlier.drawn[stage] = stage.Read(language);
+        }
+        return earlier;
+    }
+
+    /// <summary>What a stage drew, or null if it hasn't been drawn yet.</summary>
+    public T? Of<T>(Stage<T> stage) where T : class => drawn.TryGetValue(stage, out var result) ? (T)result : null;
+
+    public void Record<T>(Stage<T> stage, T result) => drawn[stage] = result!;
 }
 
 /// <summary>A spec that can't be read or can't be met, with what's wrong.</summary>

@@ -28,7 +28,8 @@ public static partial class Generator
     public static ConfigurationPlan PlanConfigurations(Random rand, ConfigurationRegions map, MorphologicalProfile morphology, MorphosyntacticAlignment alignment,
         IReadOnlyList<RoleRegion> roleRegions, IReadOnlyList<Case> cases)
     {
-        var allowed = ConfigurationStrategyWeights.Where(w => SpatialCasesAllowed(morphology, roleRegions, cases) || w.Value != ConfigurationStrategy.Case).ToArray();
+        var casesAllowed = SpatialCasesAllowed(morphology, roleRegions, cases);
+        var allowed = ConfigurationStrategyWeights.Where(w => casesAllowed || w.Value != ConfigurationStrategy.Case).ToArray();
         var preferred = Sampling.Categorical(rand, allowed);
 
         var nouns = new HashSet<string>();
@@ -66,7 +67,7 @@ public static partial class Generator
                 markers[configuration] = marker;
             }
         }
-        return new ConfigurationPlan(map, preferred, markers);
+        return new ConfigurationPlan(map, preferred, markers, casesAllowed);
     }
 
     /// <summary>

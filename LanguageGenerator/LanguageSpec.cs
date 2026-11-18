@@ -52,11 +52,11 @@ public sealed class LanguageSpec
     /// What makes this spec impossible to meet: a value a setting can't have, or settings that
     /// contradict each other. Empty if it can be met.
     /// </summary>
-    public IReadOnlyList<string> Problems() =>
-    [
-        .. allowed.SelectMany(a => a.Value.Select(a.Key.Problem).OfType<string>().Select(problem => $"{a.Key.Name}: {problem}")),
-        .. SpecRules.All.Select(rule => rule.Check(this)).OfType<string>(),
-    ];
+    public IReadOnlyList<string> Problems()
+    {
+        List<string> values = [.. allowed.SelectMany(a => a.Value.Select(a.Key.Problem).OfType<string>().Select(problem => $"{a.Key.Name}: {problem}"))];
+        return values.Count > 0 ? values : SpecRules.Close(this).Problems;
+    }
 
     /// <summary>What a spec can meet but probably shouldn't, as an inventory too small to keep words apart.</summary>
     public IReadOnlyList<string> Warnings() =>
@@ -68,14 +68,86 @@ public sealed class LanguageSpec
     ];
 }
 
-/// <summary>A stage of Generate that a spec can fix something about, and the settings it has.</summary>
-public sealed class Stage<T>(string name, Func<Language, T> from)
+/// <summary>A stage of Generate, apart from what it draws.</summary>
+public interface IStage
+{
+    string Name { get; }
+    /// <summary>What this stage drew for a finished language.</summary>
+    object Read(Language language);
+
+    /// <summary>
+    /// Why no result of this stage can keep the spec's fixed settings and meet these conditions,
+    /// or null if one can, or if the stage mends its results to meet them instead.
+    /// </summary>
+    string? Unmet(LanguageSpec spec, IReadOnlyList<ICondition> conditions);
+}
+
+/// <summary>
+/// A stage of Generate that a spec can fix something about, and the settings it has. Blank is for a
+/// stage whose settings are yes or no, drawn independently of each other, and make up its whole
+/// result, as the edges a semantic map joins do: a result to write values into. It's null for any
+/// other stage.
+/// </summary>
+public sealed class Stage<T>(string name, Func<Language, T> from, Func<T>? blank) : IStage
 {
     /// <summary>The name Generate draws the stage under.</summary>
     public string Name { get; } = name;
     /// <summary>Where the stage's result is in a finished language.</summary>
     public Func<Language, T> From { get; } = from;
+    public Func<T>? Blank { get; } = blank;
     public List<ISetting<T>> Settings { get; } = [];
+
+    public object Read(Language language) => From(language)!;
+
+    /// <summary>
+    /// For a stage with a Blank: of the results that keep the spec's fixed settings and meet the
+    /// conditions, the one that changes the fewest settings of this one, or null if there's none.
+    /// </summary>
+    //every combination of the values the spec allows is tried, which is quick for the dozen or so
+    //yes-or-no settings a semantic map has
+    public T? Nearest(T drawn, LanguageSpec spec, IReadOnlyList<Condition<T>> conditions, Earlier earlier)
+    {
+        var (best, fewest) = (default(T), int.MaxValue);
+        void Try(int index, T result, int changes)
+        {
+            if (changes >= fewest)
+            {
+                return;
+            }
+            if (index == Settings.Count)
+            {
+                if (conditions.All(c => c.Holds(result, earlier)))
+                {
+                    (best, fewest) = (result, changes);
+                }
+                return;
+            }
+            var setting = Settings[index];
+            foreach (var value in spec.Allowed(setting) ?? setting.AllValues!)
+            {
+                var same = setting.Matches(drawn, [value]);
+                Try(index + 1, same ? result : setting.Write(result, [value]), changes + (same ? 0 : 1));
+            }
+        }
+        Try(0, drawn, 0);
+        return fewest == int.MaxValue ? default : best;
+    }
+
+    public string? Unmet(LanguageSpec spec, IReadOnlyList<ICondition> conditions)
+    {
+        if (Blank is null)
+        {
+            return null;
+        }
+        var typed = conditions.Cast<Condition<T>>().ToList();
+        var blank = Blank();
+        if (Nearest(blank, spec, typed, Earlier.None) is not null)
+        {
+            return null;
+        }
+        List<string> alone = [.. typed.Where(c => Nearest(blank, spec, [c], Earlier.None) is null).Select(c => c.Says)];
+        return alone.Count > 0 ? string.Join(" ", alone) : $"These can't all hold at once: {string.Join(" ", typed.Select(c => c.Says))}";
+    }
 
     internal Setting<T, TValue> Declare<TValue>(string setting, string group, Func<T, TValue> get, Func<T, TValue, T> set, ISettingValues<TValue> values)
         where TValue : notnull

@@ -24,7 +24,35 @@ public record RoleRegion(IReadOnlyList<Role> Roles)
 /// <summary>The edges of the role map a language joins, and the regions that leaves it.</summary>
 public record RoleRegions(IReadOnlyList<(Role First, Role Second)> Joined)
 {
-    public IReadOnlyList<RoleRegion> Regions => RoleMap.Regions(Joined);
+    //worked out once for the edges they're from, which a with expression can replace
+    private (IReadOnlyList<(Role, Role)> From, IReadOnlyList<RoleRegion> Regions)? regions;
+
+    public IReadOnlyList<RoleRegion> Regions => regions is { } r && r.From == Joined ? r.Regions : (regions = (Joined, RoleMap.Regions(Joined))).Value.Regions;
+}
+
+/// <summary>
+/// The cases a language has, with the role regions they were drawn for, since which oblique cases
+/// it can have depends on which roles head a region.
+/// </summary>
+public record CaseSystem(IReadOnlyList<RoleRegion> Regions, IReadOnlyList<Case> Cases)
+{
+    private static readonly IReadOnlyList<Case> Core = [Case.Nominative, Case.Accusative, Case.Ergative, Case.Absolutive];
+
+    /// <summary>
+    /// Cases in the order a language lists them: the core ones first, then the oblique ones by their
+    /// heads' rank, then the vocative.
+    /// </summary>
+    public static IReadOnlyList<Case> Ordered(IEnumerable<Case> cases)
+    {
+        List<Case> distinct = [.. cases.Distinct()];
+        int Rank(Case c) => RoleMap.Roles.ToList().FindIndex(r => RoleMap.CaseFor(r) == c);
+        return
+        [
+            .. distinct.Where(Core.Contains),
+            .. distinct.Where(c => !Core.Contains(c) && c != Case.Vocative).OrderBy(c => Rank(c) is var rank and >= 0 ? rank : int.MaxValue),
+            .. distinct.Where(c => c == Case.Vocative),
+        ];
+    }
 }
 
 /// <summary>

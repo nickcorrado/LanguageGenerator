@@ -28,10 +28,17 @@ A setting left out is free. A value fixes a setting to it, and an array of value
 
 The generator draws each part of a language in stages, and a stage with a fixed setting is drawn again until it matches, so the settings it leaves free are drawn given the fixed ones: fixing SOV makes postpositions likelier, as it does in real languages. A seed whose language already matches a spec is unchanged by it.
 
-Configuration is partly for languages the odds would never give, so a value no draw reaches is set directly instead. Only real contradictions are refused, before anything is generated, with the reason:
+Some stages depend on others, so they're drawn together: word order, morphology, alignment, role regions, cases, and how configurations are marked. They're drawn again together until all of their fixed settings match, so fixing a spatial case makes morphology that inflects likelier, and fixing isolating morphology makes VO likelier. Only the stages up to the last one with a fixed setting are drawn again, so fixing the alignment keeps the seed's role regions. The edges of the role and configuration maps are drawn independently of each other, so a fixed edge is just written in, and the seed keeps the rest.
+
+Configuration is partly for languages the odds would never give, so a value no draw reaches is set directly instead. Where the stages drawn together can't all match, they're drawn one at a time, each given the ones before it, and what still doesn't match is written in.
+
+Rules keep a value written in from contradicting what was drawn before it: a spatial case needs morphology that isn't isolating, so fixing one draws the morphology from the rest. The same rules refuse a spec that contradicts itself, before anything is generated, with the reason:
 
 - A coda restriction needs a syllable template with a coda.
 - Obliques can only go between the object and the verb where the object comes first.
+- An oblique case needs its role to head its region: a dative can't be fixed along with the edge joining recipients to possessors, since the genitive would mark them both.
+- A configuration marked by case needs nouns that inflect, and a case on the location's region.
+- A configuration said like at needs edges joining it to at, one with a marker of its own can't be joined to at, and configurations joined into one region share its marker.
 - An inventory needs at least one sound, and each sound once.
 - The dropoff is between 0 and 1.
 
@@ -72,3 +79,8 @@ The symbols are the generator's 53 phonemes, given exactly, so `ʦ` and not `ts`
 | `zero-singular`, `zero-core-case`, `zero-present` | `true` if the singular, the intransitive subject's case or the present has no marker |
 | `zero-third-person` | `None`, `Singular`, `All` |
 | `alignment` | `NominativeAccusative`, `ErgativeAbsolutive`, `None` |
+| `roles-companion-instrument`, `roles-recipient-goal`, `roles-goal-location`, `roles-source-possessor`, `roles-possessor-recipient`, `roles-instrument-location`, `roles-location-source`, `roles-instrument-source`, `roles-agent-instrument`, `roles-agent-source`, `roles-agent-location`, `roles-time-location`, `roles-route-location`, `roles-route-instrument`, `roles-route-source` | `true` if the edge of the role map joins its two roles, so they share a marker |
+| `genitive-case`, `dative-case`, `locative-case`, `ablative-case`, `instrumental-case`, `comitative-case`, `allative-case`, `perlative-case`, `vocative-case` | `true` if the language has the case. Core cases follow the alignment |
+| `configurations-at-in`, `configurations-at-on`, `configurations-at-beside`, `configurations-in-on`, `configurations-in-between`, `configurations-on-over`, `configurations-on-against` | `true` if the edge of the configuration map joins its two configurations, so they share a marker, or for an edge to at, are said as plainly as 'at' |
+| `in-marker`, `on-marker`, `under-marker`, `over-marker`, `behind-marker`, `in-front-marker`, `beside-marker`, `between-marker`, `around-marker`, `against-marker` | `Adposition`, `RelationalNoun` or `Case`, how the configuration's region is marked, or `At` if it's said like at. Under, behind, in front and around are never said like at |
+| `configuration-marking` | `Adposition`, `RelationalNoun`, `Case`, the way of marking configurations most of the language's regions follow |

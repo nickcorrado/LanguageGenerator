@@ -185,7 +185,10 @@ public enum ConfigurationStrategy
 /// <summary>The edges of the configuration map a language joins, and the regions that leaves it.</summary>
 public record ConfigurationRegions(IReadOnlyList<(Configuration First, Configuration Second)> Joined)
 {
-    public IReadOnlyList<ConfigurationRegion> Regions => ConfigurationMap.Regions(Joined);
+    //worked out once for the edges they're from, which a with expression can replace
+    private (IReadOnlyList<(Configuration, Configuration)> From, IReadOnlyList<ConfigurationRegion> Regions)? regions;
+
+    public IReadOnlyList<ConfigurationRegion> Regions => regions is { } r && r.From == Joined ? r.Regions : (regions = (Joined, ConfigurationMap.Regions(Joined))).Value.Regions;
 }
 
 /// <summary>A spatial adposition before its word is coined: just the case it governs.</summary>
@@ -205,12 +208,45 @@ public union PlannedMarker(PlannedAdposition, RelationalNoun, SpatialCase)
 /// <summary>
 /// Everything decided about a language's configurations: which it tells apart, the way of marking
 /// them it prefers, and how it marks each, as a marker for every configuration of a region that
-/// has one. A configuration missing from Markers is said like At.
+/// has one. A configuration missing from Markers is said like At. CasesAllowed is whether the
+/// language could mark them by case at all.
 /// </summary>
-public record ConfigurationPlan(ConfigurationRegions Map, ConfigurationStrategy Preferred, IReadOnlyDictionary<Configuration, PlannedMarker> Markers)
+public record ConfigurationPlan(ConfigurationRegions Map, ConfigurationStrategy Preferred, IReadOnlyDictionary<Configuration, PlannedMarker> Markers, bool CasesAllowed)
 {
     public ConfigurationStrategy StrategyFor(Configuration configuration) =>
         Markers.TryGetValue(configuration, out var marker) ? marker.Strategy : ConfigurationStrategy.At;
+
+    /// <summary>
+    /// This plan with a configuration's region marked this way, as a spec writes in a strategy no
+    /// draw gave. Whether a region is said like At is up to its edges, so At changes nothing, and
+    /// neither does a marker for a region that has At, nor a case where the language can't have one;
+    /// the spec's rules keep what came before agreeing.
+    /// </summary>
+    //an adposition governs what the language's other spatial adpositions do, or nothing; a relational
+    //noun is the region's commonest one no other region has, or its commonest if they all do, as
+    //'face' says both in front and against in many languages
+    public ConfigurationPlan WithStrategy(Configuration configuration, ConfigurationStrategy strategy)
+    {
+        var region = Map.Regions.First(r => r.Contains(configuration));
+        if (strategy == ConfigurationStrategy.At || region.Contains(Configuration.At) || (strategy == ConfigurationStrategy.Case && !CasesAllowed))
+        {
+            return this;
+        }
+        var others = Markers.Where(m => !region.Contains(m.Key)).Select(m => m.Value).ToList();
+        var nouns = ConfigurationMap.NounsFor(region.Head).Select(n => n.Meaning).ToList();
+        PlannedMarker marker = strategy switch
+        {
+            ConfigurationStrategy.Adposition => new PlannedAdposition(others.Select(m => m.Value).OfType<PlannedAdposition>().FirstOrDefault()?.Governs),
+            ConfigurationStrategy.RelationalNoun => new RelationalNoun(nouns.FirstOrDefault(n => !others.Any(m => m.Value is RelationalNoun r && r.Meaning == n)) ?? nouns[0]),
+            _ => new SpatialCase(Localization.For(region.Head)),
+        };
+        var markers = new Dictionary<Configuration, PlannedMarker>(Markers);
+        foreach (var c in region.Configurations)
+        {
+            markers[c] = marker;
+        }
+        return this with { Markers = markers };
+    }
 }
 
 /// <summary>
