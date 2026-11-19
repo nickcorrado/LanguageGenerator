@@ -9,6 +9,12 @@ namespace LanguageGenerator;
 /// </summary>
 internal static class SettingWrites
 {
+    //an inventory with a sound added where its rank puts it, or taken away
+    public static IReadOnlyList<T> WithSound<T>(IReadOnlyList<T> inventory, T sound, bool on) where T : Phoneme =>
+        !on ? [.. inventory.Where(p => p != sound)]
+        : inventory.Contains(sound) ? inventory
+        : [.. inventory.TakeWhile(p => Generator.Rank(p) <= Generator.Rank(sound)), sound, .. inventory.SkipWhile(p => Generator.Rank(p) <= Generator.Rank(sound))];
+
     //a language's changes with one added or taken away, kept in the order changes apply
     public static IReadOnlyList<SoundChange> WithChange(IReadOnlyList<SoundChange> changes, IReadOnlyList<SoundChange> order, SoundChange change, bool on) =>
         [.. order.Where(c => c == change ? on : changes.Contains(c))];

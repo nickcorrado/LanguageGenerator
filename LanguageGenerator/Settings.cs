@@ -32,6 +32,28 @@ public static class Settings
     public static Setting<IReadOnlyList<Consonant>, IReadOnlyList<Consonant>> Consonants { get; } =
         ConsonantStage.Declare("consonants", Sounds, c => c, (_, c) => c, new PhonemeList<Consonant>(Consonant.All));
 
+    /// <summary>
+    /// Whether the language has each sound: true requires it and false forbids it, leaving the rest
+    /// of the inventory to be drawn. A spec gives them as "vowels": { "require": [...], "forbid": [...] }.
+    /// </summary>
+    public static IReadOnlyList<Setting<IReadOnlyList<Vowel>, bool>> VowelSounds { get; } =
+        [.. Vowel.All.Select(v => VowelStage.Declare($"vowels:{v.IpaSymbol}", Sounds, l => l.Contains(v), (l, on) => SettingWrites.WithSound(l, v, on), YesNo))];
+    public static IReadOnlyList<Setting<IReadOnlyList<Consonant>, bool>> ConsonantSounds { get; } =
+        [.. Consonant.All.Select(c => ConsonantStage.Declare($"consonants:{c.IpaSymbol}", Sounds, l => l.Contains(c), (l, on) => SettingWrites.WithSound(l, c, on), YesNo))];
+
+    public static InventorySettings<Vowel> VowelInventory { get; } = new("vowel", VowelStage, Vowels, [.. Vowel.All.Zip(VowelSounds)]);
+    public static InventorySettings<Consonant> ConsonantInventory { get; } = new("consonant", ConsonantStage, Consonants, [.. Consonant.All.Zip(ConsonantSounds)]);
+
+    /// <summary>The inventory a setting for one sound is part of, or null for any other setting.</summary>
+    public static ISetting? InventoryOf(ISetting setting) =>
+        VowelInventory.Sounds.Any(s => s.Has == setting) ? Vowels : ConsonantInventory.Sounds.Any(s => s.Has == setting) ? Consonants : null;
+
+    /// <summary>For an inventory's setting, its sounds and the setting for each.</summary>
+    public static IReadOnlyList<(Phoneme Sound, ISetting Has)> SoundsOf(ISetting inventory) =>
+        inventory == Vowels ? [.. VowelInventory.Sounds.Select(s => ((Phoneme)s.Sound, (ISetting)s.Has))]
+        : inventory == Consonants ? [.. ConsonantInventory.Sounds.Select(s => ((Phoneme)s.Sound, (ISetting)s.Has))]
+        : [];
+
     public static Stage<SyllableShape> SyllableStage { get; } = new("syllable rule", l => new(l.Phonology.SyllableRule.Template, l.Phonology.SyllableRule.Codas), null);
     public static Setting<SyllableShape, SyllableTemplate> SyllableTemplate { get; } = SyllableStage.Declare("syllable-template", Sounds,
         s => s.Template, (s, t) => s with { Template = t },
@@ -286,8 +308,11 @@ public static class Settings
         .. DegreeStage.Settings, .. SimilativeStage.Settings,
     ];
 
-    /// <summary>The setting a spec names this way, or null if there's none.</summary>
-    public static ISetting? Named(string name) => All.FirstOrDefault(s => s.Name == name);
+    /// <summary>
+    /// The setting a spec names this way, or null if there's none. A sound's setting has no name of
+    /// its own in a spec, which gives it in its inventory's.
+    /// </summary>
+    public static ISetting? Named(string name) => All.FirstOrDefault(s => s.Name == name && InventoryOf(s) is null);
 
     /// <summary>The setting for an edge of the role map.</summary>
     public static Setting<RoleRegions, bool> RoleEdge(Role first, Role second) =>
@@ -320,4 +345,15 @@ public static class Settings
     /// <summary>A name as a spec writes it, as in-front for InFront.</summary>
     public static string Kebab<T>(T value) where T : struct, Enum =>
         string.Concat(value.ToString().Select((c, i) => char.IsUpper(c) && i > 0 ? $"-{char.ToLowerInvariant(c)}" : $"{char.ToLowerInvariant(c)}"));
+}
+
+/// <summary>
+/// The settings of an inventory: the stage that draws it, the setting that fixes it exactly, and one
+/// for each sound it can have, which requires or forbids that sound.
+/// </summary>
+public sealed record InventorySettings<T>(string Noun, Stage<IReadOnlyList<T>> Stage, Setting<IReadOnlyList<T>, IReadOnlyList<T>> Exact,
+    IReadOnlyList<(T Sound, Setting<IReadOnlyList<T>, bool> Has)> Sounds) where T : Phoneme
+{
+    /// <summary>The sounds a spec doesn't forbid, commonest first, as they'd be written in.</summary>
+    public IReadOnlyList<T> Allowed(LanguageSpec spec) => [.. Sounds.Where(s => spec.Allowed(s.Has) is not [false]).Select(s => s.Sound).OrderBy(Generator.Rank)];
 }

@@ -153,7 +153,7 @@ public sealed class PhonemeList<T>(IReadOnlyList<T> all) : ISettingValues<IReadO
     {
         if (json.ValueKind != JsonValueKind.Array)
         {
-            throw new SpecException($"{setting} is an array of IPA symbols, commonest first, as in [\"{all[0].IpaSymbol}\", \"{all[1].IpaSymbol}\"].");
+            throw new SpecException($"{setting} is an array of IPA symbols, commonest first, as in [\"{all[0].IpaSymbol}\", \"{all[1].IpaSymbol}\"], or the sounds it requires and forbids, as in {{ \"require\": [\"{all[0].IpaSymbol}\"], \"forbid\": [\"{all[1].IpaSymbol}\"] }}.");
         }
         List<T> phonemes = [];
         foreach (var element in json.EnumerateArray())

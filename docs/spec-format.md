@@ -44,7 +44,7 @@ Rules keep a value written in from contradicting what was drawn before it: a spa
 - An isolating language has no affixes, so negation and polar questions can't be a prefix or suffix, possession can't be marked on the possessed noun, and a comparative, similative or modal can't be an affix.
 - Modalities joined by an edge share a marker, so two marked differently can't be joined.
 - Possessive affixes can only be prefixes where possession is marked on the possessed noun.
-- An inventory needs at least one sound, and each sound once.
+- An inventory needs at least one sound, and each sound once, so not every vowel or every consonant can be forbidden.
 - The dropoff is between 0 and 1.
 
 A setting that does nothing in the language is accepted, like affixation in an isolating language, whose markers are all words of their own.
@@ -57,6 +57,14 @@ A spec and a seed give the same language only on the same version of the generat
 
 A fixed inventory needn't look like a real one: z without s, which a drawn inventory never has, is fine. With six consonants or fewer, or two vowels or fewer, the command line warns that many more words will sound alike than usual.
 
+An inventory can instead give just the sounds it requires and forbids, and the rest are drawn as usual:
+
+```json
+"consonants": { "require": ["θ", "q"], "forbid": ["h"] }
+```
+
+The inventory is drawn again until it has every required sound and none forbidden, so the sounds left free are drawn given them: requiring z makes s all but certain, since z comes with s. Where no draw has them all, as for forbidding a, which every drawn vowel system has, the closest draw has the rest written in: a required sound goes where it would usually rank, and a forbidden one is taken out. That takes the generator's whole limit of draws, about half a second for each inventory.
+
 The symbols are the generator's 53 phonemes, given exactly, so `ʦ` and not `ts`, and `aː` with the length mark and not a colon. Long vowels are sounds of their own:
 
 - Vowels: a e i æ ɛ ə ɨ ɔ o u iː eː aː oː uː
@@ -66,7 +74,7 @@ The symbols are the generator's 53 phonemes, given exactly, so `ʦ` and not `ts`
 
 | Setting | Values |
 | --- | --- |
-| `vowels`, `consonants` | An array of IPA symbols, commonest first |
+| `vowels`, `consonants` | An array of IPA symbols, commonest first, or `{ "require": [...], "forbid": [...] }` |
 | `dropoff` | A number between 0 and 1; 0.15 if free |
 | `syllable-template` | `CV`, `CVF`, `CLV`, `CLVF`, `SCV`, `SCVF`, `SCLVF`, where C is a consonant, V a vowel, F a final consonant, L a liquid or glide after the first consonant and S a sibilant before it |
 | `coda-restriction` | `Any`, `Sonorants`, `Nasals`, `SingleNasal` |

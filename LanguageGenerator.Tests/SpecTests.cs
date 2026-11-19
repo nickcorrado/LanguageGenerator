@@ -34,7 +34,8 @@ public class SpecTests
             foreach (var value in setting.AllValues!)
             {
                 var spec = LanguageSpec.Free.With(setting, [value]);
-                foreach (var seed in new[] { 1, 2 })
+                //there are so many sounds that one seed each is enough
+                foreach (var seed in Settings.InventoryOf(setting) is null ? new[] { 1, 2 } : [1])
                 {
                     Assert.Equal(value, setting.Read(Generator.Generate(seed, spec)));
                 }
@@ -223,8 +224,15 @@ public class SpecTests
     private static LanguageSpec RandomSpec(Random rand)
     {
         var spec = LanguageSpec.Free;
-        foreach (var setting in Settings.All.Where(_ => rand.NextDouble() < 0.25))
+        //an inventory is one setting here, given half the time exactly and half the time as a few
+        //sounds it requires or forbids, so its sounds don't swamp the rest
+        foreach (var setting in Settings.All.Where(s => Settings.InventoryOf(s) is null && rand.NextDouble() < 0.25))
         {
+            if (Settings.SoundsOf(setting) is [_, ..] sounds && rand.NextDouble() < 0.5)
+            {
+                spec = sounds.OrderBy(_ => rand.Next()).Take(rand.Next(1, 5)).Aggregate(spec, (s, sound) => s.With(sound.Has, [rand.NextDouble() < 0.5]));
+                continue;
+            }
             IReadOnlyList<object> values = setting switch
             {
                 { AllValues: { } all } => [.. all.OrderBy(_ => rand.Next()).Take(rand.NextDouble() < 0.7 ? 1 : 2)],
