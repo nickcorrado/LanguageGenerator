@@ -34,8 +34,8 @@ public class SpecTests
             foreach (var value in setting.AllValues!)
             {
                 var spec = LanguageSpec.Free.With(setting, [value]);
-                //there are so many sounds that one seed each is enough
-                foreach (var seed in Settings.InventoryOf(setting) is null ? new[] { 1, 2 } : [1])
+                //an inventory's sounds and counts are so many that one seed each is enough
+                foreach (var seed in setting is ISetting<IReadOnlyList<Vowel>> or ISetting<IReadOnlyList<Consonant>> ? [1] : new[] { 1, 2 })
                 {
                     Assert.Equal(value, setting.Read(Generator.Generate(seed, spec)));
                 }

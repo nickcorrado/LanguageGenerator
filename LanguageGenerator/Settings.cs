@@ -41,8 +41,14 @@ public static class Settings
     public static IReadOnlyList<Setting<IReadOnlyList<Consonant>, bool>> ConsonantSounds { get; } =
         [.. Consonant.All.Select(c => ConsonantStage.Declare($"consonants:{c.IpaSymbol}", Sounds, l => l.Contains(c), (l, on) => SettingWrites.WithSound(l, c, on), YesNo))];
 
-    public static InventorySettings<Vowel> VowelInventory { get; } = new("vowel", VowelStage, Vowels, [.. Vowel.All.Zip(VowelSounds)]);
-    public static InventorySettings<Consonant> ConsonantInventory { get; } = new("consonant", ConsonantStage, Consonants, [.. Consonant.All.Zip(ConsonantSounds)]);
+    /// <summary>How many vowels and consonants the language has.</summary>
+    public static Setting<IReadOnlyList<Vowel>, int> VowelCount { get; } =
+        VowelStage.Declare("vowel-count", Sounds, l => l.Count, (l, n) => SettingWrites.WithCount(l, Vowel.All, n), new Count(Vowel.All.Count));
+    public static Setting<IReadOnlyList<Consonant>, int> ConsonantCount { get; } =
+        ConsonantStage.Declare("consonant-count", Sounds, l => l.Count, (l, n) => SettingWrites.WithCount(l, Consonant.All, n), new Count(Consonant.All.Count));
+
+    public static InventorySettings<Vowel> VowelInventory { get; } = new("vowel", VowelStage, Vowels, [.. Vowel.All.Zip(VowelSounds)], VowelCount);
+    public static InventorySettings<Consonant> ConsonantInventory { get; } = new("consonant", ConsonantStage, Consonants, [.. Consonant.All.Zip(ConsonantSounds)], ConsonantCount);
 
     /// <summary>The inventory a setting for one sound is part of, or null for any other setting.</summary>
     public static ISetting? InventoryOf(ISetting setting) =>
@@ -348,12 +354,15 @@ public static class Settings
 }
 
 /// <summary>
-/// The settings of an inventory: the stage that draws it, the setting that fixes it exactly, and one
-/// for each sound it can have, which requires or forbids that sound.
+/// The settings of an inventory: the stage that draws it, the setting that fixes it exactly, one for
+/// each sound it can have, which requires or forbids that sound, and how many sounds it has.
 /// </summary>
 public sealed record InventorySettings<T>(string Noun, Stage<IReadOnlyList<T>> Stage, Setting<IReadOnlyList<T>, IReadOnlyList<T>> Exact,
-    IReadOnlyList<(T Sound, Setting<IReadOnlyList<T>, bool> Has)> Sounds) where T : Phoneme
+    IReadOnlyList<(T Sound, Setting<IReadOnlyList<T>, bool> Has)> Sounds, Setting<IReadOnlyList<T>, int> Count) where T : Phoneme
 {
+    /// <summary>The sounds a spec requires.</summary>
+    public IReadOnlyList<T> Required(LanguageSpec spec) => [.. Sounds.Where(s => spec.Allowed(s.Has) is [true]).Select(s => s.Sound)];
+
     /// <summary>The sounds a spec doesn't forbid, commonest first, as they'd be written in.</summary>
     public IReadOnlyList<T> Allowed(LanguageSpec spec) => [.. Sounds.Where(s => spec.Allowed(s.Has) is not [false]).Select(s => s.Sound).OrderBy(Generator.Rank)];
 }

@@ -15,6 +15,11 @@ internal static class SettingWrites
         : inventory.Contains(sound) ? inventory
         : [.. inventory.TakeWhile(p => Generator.Rank(p) <= Generator.Rank(sound)), sound, .. inventory.SkipWhile(p => Generator.Rank(p) <= Generator.Rank(sound))];
 
+    //an inventory cut to its commonest sounds, or with the commonest of the rest added, as they rank
+    public static IReadOnlyList<T> WithCount<T>(IReadOnlyList<T> inventory, IReadOnlyList<T> all, int count) where T : Phoneme =>
+        inventory.Count >= count ? [.. inventory.Take(count)]
+        : all.Except(inventory).OrderBy(Generator.Rank).Take(count - inventory.Count).Aggregate(inventory, (added, sound) => WithSound(added, sound, true));
+
     //a language's changes with one added or taken away, kept in the order changes apply
     public static IReadOnlyList<SoundChange> WithChange(IReadOnlyList<SoundChange> changes, IReadOnlyList<SoundChange> order, SoundChange change, bool on) =>
         [.. order.Where(c => c == change ? on : changes.Contains(c))];

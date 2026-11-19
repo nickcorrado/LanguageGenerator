@@ -45,6 +45,7 @@ Rules keep a value written in from contradicting what was drawn before it: a spa
 - Modalities joined by an edge share a marker, so two marked differently can't be joined.
 - Possessive affixes can only be prefixes where possession is marked on the possessed noun.
 - An inventory needs at least one sound, and each sound once, so not every vowel or every consonant can be forbidden.
+- A count has to leave room for the sounds the spec requires and its sound changes need, can't be more than the sounds it doesn't forbid, and has to match an exact inventory.
 - The dropoff is between 0 and 1.
 
 A setting that does nothing in the language is accepted, like affixation in an isolating language, whose markers are all words of their own.
@@ -65,6 +66,8 @@ An inventory can instead give just the sounds it requires and forbids, and the r
 
 The inventory is drawn again until it has every required sound and none forbidden, so the sounds left free are drawn given them: requiring z makes s all but certain, since z comes with s. Where no draw has them all, as for forbidding a, which every drawn vowel system has, the closest draw has the rest written in: a required sound goes where it would usually rank, and a forbidden one is taken out. That takes the generator's whole limit of draws, about half a second for each inventory.
 
+`vowel-count` and `consonant-count` say how many sounds an inventory has: a number, an array of the numbers allowed, or a range, as `{ "min": 18, "max": 24 }`, either end of which can be left out. A count no draw gives is written in by cutting the rarest sounds or adding the commonest, keeping every sound the spec requires and every sound its sound changes need.
+
 The symbols are the generator's 53 phonemes, given exactly, so `ʦ` and not `ts`, and `aː` with the length mark and not a colon. Long vowels are sounds of their own:
 
 - Vowels: a e i æ ɛ ə ɨ ɔ o u iː eː aː oː uː
@@ -75,6 +78,7 @@ The symbols are the generator's 53 phonemes, given exactly, so `ʦ` and not `ts`
 | Setting | Values |
 | --- | --- |
 | `vowels`, `consonants` | An array of IPA symbols, commonest first, or `{ "require": [...], "forbid": [...] }` |
+| `vowel-count`, `consonant-count` | A number of sounds from 1 to 15 vowels or 38 consonants, an array of them, or `{ "min": ..., "max": ... }` |
 | `dropoff` | A number between 0 and 1; 0.15 if free |
 | `syllable-template` | `CV`, `CVF`, `CLV`, `CLVF`, `SCV`, `SCVF`, `SCLVF`, where C is a consonant, V a vowel, F a final consonant, L a liquid or glide after the first consonant and S a sibilant before it |
 | `coda-restriction` | `Any`, `Sonorants`, `Nasals`, `SingleNasal` |
