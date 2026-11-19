@@ -10,11 +10,13 @@ public static partial class Generator
     //settings is drawn to match the spec, which fixes nothing for LanguageSpec.Free
     public static Language Generate(int seed, LanguageSpec spec)
     {
-        if (spec.Problems() is [_, ..] problems)
+        //the rules are applied once, for checking the spec and drawing to meet it alike
+        var implied = spec.ValueProblems() is [_, ..] values ? throw new SpecException(string.Join(Environment.NewLine, values)) : SpecRules.Close(spec);
+        if (implied.Problems is [_, ..] problems)
         {
             throw new SpecException(string.Join(Environment.NewLine, problems));
         }
-        var stages = new Stages(seed, SpecRules.Close(spec));
+        var stages = new Stages(seed, implied);
         var syllableDropoff = stages.Draw(Settings.DropoffStage, _ => new Dropoff(0.15));
 
         var vowels = stages.Draw(Settings.VowelStage, rand => GenerateVowels(rand));
