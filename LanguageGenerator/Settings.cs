@@ -16,6 +16,7 @@ public static class Settings
     private const string Clauses = "Clauses";
     private const string Nouns = "Noun phrases";
     private const string Comparing = "Comparison";
+    private const string Changes = "Sound changes";
 
     private static Choice<bool> YesNo { get; } = Choice<bool>.Of(true, false);
 
@@ -52,6 +53,11 @@ public static class Settings
     public static Setting<ClusterRepair, ClusterRepair> ClusterRepair { get; } = ClusterRepairStage.Declare("cluster-repair", Sounds,
         r => r, (_, r) => r, Choice<ClusterRepair>.Of(Enum.GetValues<ClusterRepair>()));
 
+    public static Stage<SyllableContact> SyllableContactStage { get; } = new("syllable contact", l => l.Phonology.SyllableContact, null);
+    /// <summary>What may meet across a syllable boundary, which only matters where syllables have codas.</summary>
+    public static Setting<SyllableContact, SyllableContact> SyllableContact { get; } = SyllableContactStage.Declare("syllable-contact", Sounds,
+        c => c, (_, c) => c, Choice<SyllableContact>.Of(Enum.GetValues<SyllableContact>()));
+
     public static Stage<Dropoff> DropoffStage { get; } = new("dropoff", l => l.Phonology.Dropoff, null);
     /// <summary>
     /// How steeply sounds get rarer down an inventory: each is (1 - dropoff) times as likely as the
@@ -59,6 +65,37 @@ public static class Settings
     /// unless a spec says otherwise.
     /// </summary>
     public static Setting<Dropoff, double> Dropoff { get; } = DropoffStage.Declare("dropoff", Sounds, d => d.Value, (_, d) => new(d), new Between(0, 1));
+
+    //sound changes, which apply in a fixed order, so a spec says only which a language has
+
+    public static Stage<IReadOnlyList<SoundChange>> SoundChangeStage { get; } = new("sound changes", l => l.Phonology.SoundChanges, null);
+    public static Setting<IReadOnlyList<SoundChange>, bool> NasalAssimilation { get; } = Change(SoundChangeStage, SoundChange.SoundChangeOrder, "nasal-assimilation", SoundChange.NasalAssimilation);
+    public static Setting<IReadOnlyList<SoundChange>, bool> Degemination { get; } = Change(SoundChangeStage, SoundChange.SoundChangeOrder, "degemination", SoundChange.Degemination);
+    public static Setting<IReadOnlyList<SoundChange>, bool> IntervocalicVoicing { get; } = Change(SoundChangeStage, SoundChange.SoundChangeOrder, "intervocalic-voicing", SoundChange.IntervocalicVoicing);
+    public static Setting<IReadOnlyList<SoundChange>, bool> Lenition { get; } = Change(SoundChangeStage, SoundChange.SoundChangeOrder, "lenition", SoundChange.Lenition);
+    public static Setting<IReadOnlyList<SoundChange>, bool> VoicingAssimilation { get; } = Change(SoundChangeStage, SoundChange.SoundChangeOrder, "voicing-assimilation", SoundChange.VoicingAssimilation);
+    public static Setting<IReadOnlyList<SoundChange>, bool> FinalDevoicing { get; } = Change(SoundChangeStage, SoundChange.SoundChangeOrder, "final-devoicing", SoundChange.FinalDevoicing);
+    public static Setting<IReadOnlyList<SoundChange>, VowelHarmony> VowelHarmony { get; } = ChangeKind(SoundChangeStage, SoundChange.SoundChangeOrder, "vowel-harmony", SoundChange.Harmonies);
+    public static Setting<IReadOnlyList<SoundChange>, bool> GlideFormation { get; } = Change(SoundChangeStage, SoundChange.SoundChangeOrder, "glide-formation", SoundChange.GlideFormation);
+    public static Setting<IReadOnlyList<SoundChange>, HiatusResolution> HiatusResolution { get; } = ChangeKind(SoundChangeStage, SoundChange.SoundChangeOrder, "hiatus-resolution", SoundChange.HiatusResolutions);
+
+    public static Stage<IReadOnlyList<SoundChange>> SyllableChangeStage { get; } = new("syllable changes", l => l.Phonology.SyllableChanges, null);
+    public static Setting<IReadOnlyList<SoundChange>, bool> CodaDevoicing { get; } = Change(SyllableChangeStage, SoundChange.SyllableChangeOrder, "coda-devoicing", SoundChange.CodaDevoicing);
+    public static Setting<IReadOnlyList<SoundChange>, bool> CodaWeakening { get; } = Change(SyllableChangeStage, SoundChange.SyllableChangeOrder, "coda-weakening", SoundChange.CodaWeakening);
+    public static Setting<IReadOnlyList<SoundChange>, bool> CompensatoryLengthening { get; } = Change(SyllableChangeStage, SoundChange.SyllableChangeOrder, "compensatory-lengthening", SoundChange.CompensatoryLengthening);
+    public static Setting<IReadOnlyList<SoundChange>, bool> ClosedSyllableLaxing { get; } = Change(SyllableChangeStage, SoundChange.SyllableChangeOrder, "closed-syllable-laxing", SoundChange.ClosedSyllableLaxing);
+    public static Setting<IReadOnlyList<SoundChange>, bool> OpenSyllableLengthening { get; } = Change(SyllableChangeStage, SoundChange.SyllableChangeOrder, "open-syllable-lengthening", SoundChange.OpenSyllableLengthening);
+    public static Setting<IReadOnlyList<SoundChange>, bool> UnstressedShortening { get; } = Change(SyllableChangeStage, SoundChange.SyllableChangeOrder, "unstressed-shortening", SoundChange.UnstressedShortening);
+    public static Setting<IReadOnlyList<SoundChange>, bool> Syncope { get; } = Change(SyllableChangeStage, SoundChange.SyllableChangeOrder, "syncope", SoundChange.Syncope);
+    public static Setting<IReadOnlyList<SoundChange>, UnstressedVowels> UnstressedVowels { get; } = ChangeKind(SyllableChangeStage, SoundChange.SyllableChangeOrder, "unstressed-vowels", SoundChange.UnstressedChanges);
+    public static Setting<IReadOnlyList<SoundChange>, ContactRepair> ContactRepair { get; } = ChangeKind(SyllableChangeStage, SoundChange.SyllableChangeOrder, "contact-repair", SoundChange.ContactRepairs);
+
+    private static Setting<IReadOnlyList<SoundChange>, bool> Change(Stage<IReadOnlyList<SoundChange>> stage, IReadOnlyList<SoundChange> order, string name, SoundChange change) =>
+        stage.Declare(name, Changes, c => c.Contains(change), (c, on) => SettingWrites.WithChange(c, order, change, on), YesNo);
+
+    private static Setting<IReadOnlyList<SoundChange>, TKind> ChangeKind<TKind>(Stage<IReadOnlyList<SoundChange>> stage, IReadOnlyList<SoundChange> order, string name,
+        IReadOnlyList<(TKind Kind, SoundChange? Change)> kinds) where TKind : struct, Enum =>
+        stage.Declare(name, Changes, c => SettingWrites.ChangeKindOf(c, kinds), (c, kind) => SettingWrites.WithChangeKind(c, order, kinds, kind), Choice<TKind>.Of(Enum.GetValues<TKind>()));
 
     //word order
 
@@ -234,7 +271,7 @@ public static class Settings
     /// <summary>Every stage with settings, in the order they're declared.</summary>
     public static IReadOnlyList<IStage> Stages { get; } =
     [
-        VowelStage, ConsonantStage, SyllableStage, StressStage, ClusterRepairStage, DropoffStage, WordOrderStage, MorphologyStage, AlignmentStage,
+        VowelStage, ConsonantStage, SyllableStage, StressStage, ClusterRepairStage, SyllableContactStage, DropoffStage, SoundChangeStage, SyllableChangeStage, WordOrderStage, MorphologyStage, AlignmentStage,
         RoleRegionStage, CaseStage, ConfigurationRegionStage, ConfigurationPlanStage, NegationStage, QuestionStage, PassiveStage, ModalStage,
         PossessionStage, GenderStage, ComparisonStage, DegreeStage, SimilativeStage,
     ];
@@ -243,7 +280,7 @@ public static class Settings
     public static IReadOnlyList<ISetting> All { get; } =
     [
         .. VowelStage.Settings, .. ConsonantStage.Settings, .. SyllableStage.Settings, .. StressStage.Settings, .. ClusterRepairStage.Settings,
-        .. DropoffStage.Settings, .. WordOrderStage.Settings, .. MorphologyStage.Settings, .. AlignmentStage.Settings, .. RoleRegionStage.Settings,
+        .. SyllableContactStage.Settings, .. DropoffStage.Settings, .. SoundChangeStage.Settings, .. SyllableChangeStage.Settings, .. WordOrderStage.Settings, .. MorphologyStage.Settings, .. AlignmentStage.Settings, .. RoleRegionStage.Settings,
         .. CaseStage.Settings, .. ConfigurationRegionStage.Settings, .. ConfigurationPlanStage.Settings, .. NegationStage.Settings,
         .. QuestionStage.Settings, .. PassiveStage.Settings, .. ModalStage.Settings, .. PossessionStage.Settings, .. GenderStage.Settings, .. ComparisonStage.Settings,
         .. DegreeStage.Settings, .. SimilativeStage.Settings,

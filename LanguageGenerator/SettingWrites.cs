@@ -9,6 +9,18 @@ namespace LanguageGenerator;
 /// </summary>
 internal static class SettingWrites
 {
+    //a language's changes with one added or taken away, kept in the order changes apply
+    public static IReadOnlyList<SoundChange> WithChange(IReadOnlyList<SoundChange> changes, IReadOnlyList<SoundChange> order, SoundChange change, bool on) =>
+        [.. order.Where(c => c == change ? on : changes.Contains(c))];
+
+    //which of a set of changes, at most one of which a language has, it has
+    public static TKind ChangeKindOf<TKind>(IReadOnlyList<SoundChange> changes, IReadOnlyList<(TKind Kind, SoundChange? Change)> kinds) =>
+        kinds.FirstOrDefault(k => k.Change is { } change && changes.Contains(change)) is { Change: not null } found ? found.Kind : kinds.Single(k => k.Change is null).Kind;
+
+    public static IReadOnlyList<SoundChange> WithChangeKind<TKind>(IReadOnlyList<SoundChange> changes, IReadOnlyList<SoundChange> order,
+        IReadOnlyList<(TKind Kind, SoundChange? Change)> kinds, TKind kind) where TKind : notnull =>
+        [.. order.Where(c => kinds.FirstOrDefault(k => k.Change == c) is { Change: not null } k ? k.Kind.Equals(kind) : changes.Contains(c))];
+
     private static InvalidOperationException NoForm(string value) =>
         new($"{value} can't be written in, since what was drawn has no form to reuse, and no draw gave it. A draw gives it at least 4% of the time, so this shouldn't happen.");
 

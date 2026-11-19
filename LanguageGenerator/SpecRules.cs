@@ -146,6 +146,40 @@ public static class SpecRules
 
         //a configuration's marker belongs to its region, and a region with At in it has none
         SpecRule.On(Settings.ConfigurationRegionStage, ConfigurationConditions),
+
+        //a change that works on codas needs syllables that have them, and devoicing or weakening a
+        //coda needs one that can be an obstruent
+        .. new[] { Settings.FinalDevoicing, Settings.CodaDevoicing, Settings.CodaWeakening, Settings.CompensatoryLengthening, Settings.ClosedSyllableLaxing, Settings.Syncope }
+            .Select(change => SpecRule.Together(Settings.SyllableTemplate, change, (template, on) => !on || HasCodas(template),
+                $"{change.Name} needs a syllable template with a coda: CVF, CLVF, SCVF or SCLVF.")),
+        .. new[] { Settings.CodaDevoicing, Settings.CodaWeakening }.Select(change => SpecRule.Together(Settings.CodaRestriction, change,
+            (codas, on) => !on || codas == CodaRestriction.Any, $"{change.Name} needs codas that can be any consonant, so coda-restriction must be Any.")),
+        //syllable contact only matters across a coda, and a language repairs only the contacts it restricts
+        SpecRule.Together(Settings.SyllableTemplate, Settings.SyllableContact, (template, contact) => contact == SyllableContact.Any || HasCodas(template),
+            "A syllable contact restriction needs a syllable template with a coda: CVF, CLVF, SCVF or SCLVF."),
+        SpecRule.Together(Settings.SyllableContact, Settings.ContactRepair, (contact, repair) => repair == ContactRepair.None || contact != SyllableContact.Any,
+            "A contact repair needs a syllable contact restriction, so syllable-contact can't be Any."),
+        //and a change needs the sounds it works with
+        .. Needs(Settings.CompensatoryLengthening, on => on ? HasLong : null, Settings.VowelStage, Settings.Vowels, "compensatory-lengthening needs long vowels."),
+        .. Needs(Settings.OpenSyllableLengthening, on => on ? HasLong : null, Settings.VowelStage, Settings.Vowels, "open-syllable-lengthening needs long vowels."),
+        .. Needs(Settings.UnstressedShortening, on => on ? HasLong : null, Settings.VowelStage, Settings.Vowels, "unstressed-shortening needs long vowels."),
+        .. Needs(Settings.UnstressedVowels, kind => kind switch
+            {
+                UnstressedVowels.Reduction => vowels => vowels.Contains(Vowel.ə),
+                UnstressedVowels.Raising => vowels => vowels.Any(v => v.Height is VowelHeight.CloseMid or VowelHeight.OpenMid) && vowels.Contains(Vowel.i) && vowels.Contains(Vowel.u),
+                _ => null,
+            },
+            Settings.VowelStage, Settings.Vowels, "Unstressed reduction needs ə, and unstressed raising a mid vowel besides i and u."),
+        .. Needs(Settings.VowelHarmony, kind => SoundChange.Harmonies.Single(h => h.Kind == kind).Change is { } harmony ? harmony.CanApplyTo : null,
+            Settings.VowelStage, Settings.Vowels, "Vowel harmony needs a pair of vowels it can match: front-back harmony a front vowel and its back partner, like i and u, and tongue-root harmony e and ɛ or o and ɔ."),
+        .. Needs(Settings.GlideFormation, on => on ? HasGlide : null, Settings.ConsonantStage, Settings.Consonants, "glide-formation needs j or w."),
+        .. Needs(Settings.HiatusResolution, kind => kind switch
+            {
+                HiatusResolution.GlideInsertion => HasGlide,
+                HiatusResolution.GlottalInsertion => consonants => consonants.Contains(Consonant.ʔ) || consonants.Contains(Consonant.h),
+                _ => null,
+            },
+            Settings.ConsonantStage, Settings.Consonants, "Glide insertion needs j or w, and glottal insertion ʔ or h."),
     ];
 
     /// <summary>
@@ -187,7 +221,15 @@ public static class SpecRules
 
     //each value a marker allows is tried with every arrangement of the map's edges, assuming the
     //best of the stages before them, as a spec is checked. A spec fixing nothing about the map has
-    //nothing to narrow, which keeps checking it quick. It never refuses a spec itself
+    //nothing to narrow, which keeps checking it quick. It never refuses a spec itself.
+    //
+    //Trying markers one at a time finds every case the map forces, not just those it forces on one
+    //marker: configurations joined by edges the spec fixes share a marker, so a value that fits one
+    //of them fits them all, and an edge left free can always be left unjoined, keeping a group in a
+    //region of its own. A group said like at reaches it only through groups that are said like at
+    //too, which any value that fits has to allow already. So where every marker that allows a case
+    //has some other value that fits, those values all fit together, and no case is needed. Random
+    //specs bear this out. A map with edges that join groups some other way would need checking anew
     private static LanguageSpec? NarrowMarkersToTheMap(LanguageSpec spec)
     {
         if (!Settings.ConfigurationMarkers.Concat<ISetting>(Settings.ConfigurationEdges).Any(s => spec.Allowed(s) is not null))
@@ -207,6 +249,47 @@ public static class SpecRules
             }
         }
         return narrowed;
+    }
+
+    private static bool HasCodas(SyllableTemplate template) => template.Slots.Contains(Slot.Final);
+
+    private static bool HasLong(IReadOnlyCollection<Vowel> vowels) => vowels.Any(v => v.Long);
+
+    private static bool HasGlide(IReadOnlyCollection<Consonant> consonants) => consonants.Contains(Consonant.j) || consonants.Contains(Consonant.w);
+
+    //values of a setting that need certain sounds, given as what each needs, or null for one that
+    //needs none. Where the inventory is fixed, a value none of its allowed inventories can have is
+    //narrowed away, and if every value left needs sounds, the inventories are narrowed to those
+    //that have them. Where the setting allows only values that need sounds, the inventory is drawn
+    //again until it has the sounds of one of them, which free draws always come to
+    private static IEnumerable<SpecRule> Needs<T, TValue, TPhoneme>(Setting<T, TValue> setting, Func<TValue, Func<IReadOnlyCollection<TPhoneme>, bool>?> needs,
+        Stage<IReadOnlyList<TPhoneme>> stage, Setting<IReadOnlyList<TPhoneme>, IReadOnlyList<TPhoneme>> inventory, string says)
+        where TValue : notnull where TPhoneme : Phoneme
+    {
+        bool Allows(object value, IReadOnlyList<TPhoneme> phonemes) => needs((TValue)value) is not { } has || has(phonemes);
+        yield return new SpecRule.Narrowing(says, spec =>
+        {
+            if (spec.Allowed(inventory) is not { } inventories)
+            {
+                return spec;
+            }
+            var values = spec.Allowed(setting) ?? setting.AllValues!;
+            List<object> kept = [.. values.Where(v => inventories.Any(i => Allows(v, (IReadOnlyList<TPhoneme>)i)))];
+            if (kept.Count == 0)
+            {
+                return null;
+            }
+            var narrowed = kept.Count < values.Count ? spec.With(setting, kept) : spec;
+            if (kept.All(v => needs((TValue)v) is not null))
+            {
+                List<object> having = [.. inventories.Where(i => kept.Any(v => Allows(v, (IReadOnlyList<TPhoneme>)i)))];
+                narrowed = having.Count < inventories.Count ? narrowed.With(inventory, having) : narrowed;
+            }
+            return narrowed;
+        });
+        yield return SpecRule.On(stage, spec => spec.Allowed(setting) is { } values && values.All(v => needs((TValue)v) is not null)
+            ? [new Condition<IReadOnlyList<TPhoneme>>(stage, says, (phonemes, _) => values.Any(v => Allows(v, phonemes)), null)]
+            : []);
     }
 
     private static Case LocationCase(IReadOnlyList<RoleRegion> regions) => regions.First(r => r.Contains(Role.Location)).Case!;

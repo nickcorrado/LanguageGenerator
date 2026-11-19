@@ -213,8 +213,9 @@ public class SpecTests
             met++;
         }
 
-        Assert.InRange(refused, 1, 100);
-        Assert.InRange(met, 200, 299);
+        //sound changes fixed beside a random inventory too small for them are refused often
+        Assert.InRange(refused, 1, 130);
+        Assert.InRange(met, 170, 299);
     }
 
     //a few settings, each fixed to one value or two, an inventory to a random handful of its sounds in
