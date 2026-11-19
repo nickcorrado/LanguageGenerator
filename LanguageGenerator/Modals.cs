@@ -21,8 +21,24 @@ public record ModalVerb(Lexeme Verb, bool BeforeVerb);
 /// <summary>How a language marks one modality.</summary>
 public union ModalMarking(ModalAffix, ModalParticle, ModalVerb);
 
-/// <summary>How a language marks each modality.</summary>
-public record Modals(IReadOnlyDictionary<Modality, ModalMarking> Markers);
+/// <summary>How a modality is marked, as a spec names it.</summary>
+public enum ModalKind
+{
+    Affix,
+    Verb,
+    Particle,
+}
+
+/// <summary>
+/// How a language marks each modality, and the edges of the modality map it joins, whose
+/// modalities share a marker's form.
+/// </summary>
+public record Modals(IReadOnlyList<(Modality First, Modality Second)> Joined, IReadOnlyDictionary<Modality, ModalMarking> Markers)
+{
+    /// <summary>The modalities that share a marker with this one, itself among them.</summary>
+    public IReadOnlyList<Modality> RegionOf(Modality modality) =>
+        SemanticMap.Regions(ModalityMap.Modalities, Joined).First(r => r.Contains(modality));
+}
 
 /// <summary>
 /// A semantic map of the modalities, after van der Auwera and Plungian's: which share a marker in

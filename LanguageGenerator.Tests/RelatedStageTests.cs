@@ -129,6 +129,21 @@ public class RelatedStageTests
         });
     }
 
+    [Fact]
+    public void Generate_CaseImpliedByTheMap_DrawsWhatACaseNeeds()
+    {
+        //against reaches at only through on, which has a marker of its own, so of a case or at it can
+        //only be a case, though the spec never says so; the rules work that out, so the morphology
+        //and cases are drawn to allow it, even where the stages fall back to being drawn one by one
+        var spec = SpecFile.Parse("""{ "on-marker": "RelationalNoun", "against-marker": ["Case", "At"], "ablative-case": false, "genitive-case": [false, true] }""");
+
+        Assert.All(new[] { 1, 2, 258130253 }.Select(seed => Generator.Generate(seed, spec)), l =>
+        {
+            Assert.Equal(ConfigurationStrategy.Case, l.Configurations.Plan.StrategyFor(Configuration.Against));
+            AssertKeepsTheRules(l);
+        });
+    }
+
     public static TheoryData<string, string> Impossible => new()
     {
         { """{ "dative-case": true, "roles-possessor-recipient": true }""", "dative case needs the recipient to head its region" },

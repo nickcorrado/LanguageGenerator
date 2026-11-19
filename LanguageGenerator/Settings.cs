@@ -185,6 +185,22 @@ public static class Settings
     public static Setting<Passive?, bool> HasPassive { get; } = PassiveStage.Declare("passive", Clauses,
         p => p is not null, SettingWrites.WithPassive, YesNo);
 
+    public static Stage<Modals> ModalStage { get; } = new("modals", l => l.Modals, null);
+    /// <summary>Whether each edge of the modality map joins its two modalities, so they share a marker.</summary>
+    public static IReadOnlyList<Setting<Modals, bool>> ModalityEdges { get; } =
+    [
+        .. ModalityMap.Edges.Select(e => (e.First, e.Second)).Select(edge => ModalStage.Declare(
+            $"modalities-{edge.First.Name.ToLowerInvariant()}-{edge.Second.Name.ToLowerInvariant()}", Clauses,
+            m => m.Joined.Contains(edge), (m, joined) => SettingWrites.WithModalEdge(m, edge, joined), YesNo)),
+    ];
+    /// <summary>How each modality is marked: by an affix on the verb, a modal verb or a particle.</summary>
+    public static IReadOnlyList<Setting<Modals, ModalKind>> ModalMarkers { get; } =
+    [
+        .. ModalityMap.Modalities.Select(modality => ModalStage.Declare($"{modality.Name.ToLowerInvariant()}-modal", Clauses,
+            m => SettingWrites.KindOf(m.Markers[modality]), (m, kind) => SettingWrites.WithModalKind(m, modality, kind),
+            Choice<ModalKind>.Of(Enum.GetValues<ModalKind>()))),
+    ];
+
     //noun phrases
 
     public static Stage<Possession> PossessionStage { get; } = new("possession", l => l.Possession, null);
@@ -219,8 +235,8 @@ public static class Settings
     public static IReadOnlyList<IStage> Stages { get; } =
     [
         VowelStage, ConsonantStage, SyllableStage, StressStage, ClusterRepairStage, DropoffStage, WordOrderStage, MorphologyStage, AlignmentStage,
-        RoleRegionStage, CaseStage, ConfigurationRegionStage, ConfigurationPlanStage, NegationStage, QuestionStage, PassiveStage, PossessionStage,
-        GenderStage, ComparisonStage, DegreeStage, SimilativeStage,
+        RoleRegionStage, CaseStage, ConfigurationRegionStage, ConfigurationPlanStage, NegationStage, QuestionStage, PassiveStage, ModalStage,
+        PossessionStage, GenderStage, ComparisonStage, DegreeStage, SimilativeStage,
     ];
 
     /// <summary>Every setting, in the order they're declared.</summary>
@@ -229,7 +245,7 @@ public static class Settings
         .. VowelStage.Settings, .. ConsonantStage.Settings, .. SyllableStage.Settings, .. StressStage.Settings, .. ClusterRepairStage.Settings,
         .. DropoffStage.Settings, .. WordOrderStage.Settings, .. MorphologyStage.Settings, .. AlignmentStage.Settings, .. RoleRegionStage.Settings,
         .. CaseStage.Settings, .. ConfigurationRegionStage.Settings, .. ConfigurationPlanStage.Settings, .. NegationStage.Settings,
-        .. QuestionStage.Settings, .. PassiveStage.Settings, .. PossessionStage.Settings, .. GenderStage.Settings, .. ComparisonStage.Settings,
+        .. QuestionStage.Settings, .. PassiveStage.Settings, .. ModalStage.Settings, .. PossessionStage.Settings, .. GenderStage.Settings, .. ComparisonStage.Settings,
         .. DegreeStage.Settings, .. SimilativeStage.Settings,
     ];
 
@@ -249,6 +265,15 @@ public static class Settings
     /// <summary>The setting for whether a language has a case, oblique or vocative.</summary>
     public static Setting<CaseSystem, bool> HasCase(Case @case) => CaseSettings.FirstOrDefault(s => s.Name == $"{@case.Name.ToLowerInvariant()}-case")
         ?? throw new ArgumentException($"{@case.Name} has no setting: core cases follow the alignment.");
+
+    /// <summary>The setting for how a modality is marked.</summary>
+    public static Setting<Modals, ModalKind> ModalOf(Modality modality) => ModalMarkers[ModalityMap.Modalities.ToList().IndexOf(modality) is var i and >= 0
+        ? i : throw new ArgumentException($"{modality.Name} isn't a modality on the map.")];
+
+    /// <summary>The setting for an edge of the modality map.</summary>
+    public static Setting<Modals, bool> ModalityEdge(Modality first, Modality second) =>
+        ModalityEdges[ModalityMap.Edges.Select(e => (e.First, e.Second)).ToList().IndexOf((first, second)) is var i and >= 0
+            ? i : throw new ArgumentException($"The modality map has no edge from {first.Name} to {second.Name}.")];
 
     /// <summary>The setting for how a configuration is marked.</summary>
     public static Setting<ConfigurationPlan, ConfigurationStrategy> MarkerOf(Configuration configuration) => configuration == Configuration.At

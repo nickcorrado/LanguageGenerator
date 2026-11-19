@@ -78,7 +78,7 @@ public static partial class Generator
         var passive = stages.Draw(Settings.PassiveStage, rand => GeneratePassive(rand, alignment, morphology, phonology));
         var conjunctions = GenerateConjunctions(stages.For("conjunctions"), phonology);
         var subordination = GenerateSubordination(stages.For("subordination"), morphology, wordOrder, phonology);
-        var modals = GenerateModals(stages.For("modals"), morphology, wordOrder, predication, phonology);
+        var modals = stages.Draw(Settings.ModalStage, rand => GenerateModals(rand, morphology, wordOrder, predication, phonology));
         var questions = stages.Draw(Settings.QuestionStage, rand => GenerateQuestions(rand, morphology, wordOrder, phonology));
 
         //the lexicon comes last, once there are closed classes for it to avoid

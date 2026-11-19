@@ -39,7 +39,8 @@ Rules keep a value written in from contradicting what was drawn before it: a spa
 - An oblique case needs its role to head its region: a dative can't be fixed along with the edge joining recipients to possessors, since the genitive would mark them both.
 - A configuration marked by case needs nouns that inflect, and a case on the location's region.
 - A configuration said like at needs edges joining it to at, one with a marker of its own can't be joined to at, and configurations joined into one region share its marker.
-- An isolating language has no affixes, so negation and polar questions can't be a prefix or suffix, possession can't be marked on the possessed noun, and a comparative or similative can't be an affix.
+- An isolating language has no affixes, so negation and polar questions can't be a prefix or suffix, possession can't be marked on the possessed noun, and a comparative, similative or modal can't be an affix.
+- Modalities joined by an edge share a marker, so two marked differently can't be joined.
 - Possessive affixes can only be prefixes where possession is marked on the possessed noun.
 - An inventory needs at least one sound, and each sound once.
 - The dropoff is between 0 and 1.
@@ -90,6 +91,8 @@ The symbols are the generator's 53 phonemes, given exactly, so `ʦ` and not `ts`
 | `polar-questions` | `InitialParticle`, `FinalParticle`, `SecondParticle`, `Prefix`, `Suffix`, `Inversion`, `Intonation` |
 | `fronts-question-words` | `true` if a question word goes first in its clause, as English who does |
 | `passive` | `true` if the language has a passive |
+| `modalities-ability-permission`, `modalities-permission-obligation`, `modalities-obligation-advisability` | `true` if the edge of the modality map joins its two modalities, so they share a marker, as English can is both 'able to' and 'allowed to' |
+| `ability-modal`, `permission-modal`, `obligation-modal`, `advisability-modal` | `Affix`, `Verb` or `Particle`, how 'can', 'may', 'must' and 'should' are marked |
 | `possession` | `Dependent`, marking the possessor, `Head`, marking the possessed noun, `Double`, marking both, or `None` |
 | `possessive-affixes` | `Prefix` or `Suffix`, the side of the possessed noun its affix goes on, where possession is marked there |
 | `genders` | `None`, `MasculineFeminine`, `MasculineFeminineNeuter`, `AnimateInanimate` |

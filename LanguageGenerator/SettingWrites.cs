@@ -156,4 +156,76 @@ internal static class SettingWrites
     };
 
     public static Passive? WithPassive(Passive? drawn, bool has) => has ? drawn ?? throw NoForm("A passive") : null;
+
+    public static ModalKind KindOf(ModalMarking marking) => marking.Value switch
+    {
+        ModalAffix => ModalKind.Affix,
+        ModalVerb => ModalKind.Verb,
+        _ => ModalKind.Particle,
+    };
+
+    private static IReadOnlyList<Phoneme> FormOf(ModalMarking marking) => marking.Value switch
+    {
+        ModalAffix a => a.Marker.Form,
+        ModalVerb v => v.Verb.Root.Form,
+        ModalParticle p => p.Marker.Form,
+    };
+
+    private static bool? BeforeVerbOf(ModalMarking marking) => marking.Value switch
+    {
+        ModalVerb v => v.BeforeVerb,
+        ModalParticle p => p.BeforeVerb,
+        _ => null,
+    };
+
+    //each modality of a region has a marker of the region's kind and form, glossed for itself, as
+    //the generator gives them
+    private static Modals WithRegion(Modals modals, Modality modality, ModalKind kind, IReadOnlyList<Phoneme> form, ExponentPosition affixPosition, bool beforeVerb)
+    {
+        var markers = new Dictionary<Modality, ModalMarking>(modals.Markers);
+        foreach (var m in modals.RegionOf(modality))
+        {
+            markers[m] = kind switch
+            {
+                ModalKind.Affix => new ModalAffix(new Affix(form, [m]), affixPosition),
+                ModalKind.Verb => new ModalVerb(new Lexeme(new Root(form, ModalityMap.VerbGloss(m)), PartOfSpeech.Verb), beforeVerb),
+                _ => new ModalParticle(new Particle(form, [m]), beforeVerb),
+            };
+        }
+        return modals with { Markers = markers };
+    }
+
+    //a modality's region keeps its form in its new kind. An affix goes where the language's other
+    //modal affixes go, or last; a verb or particle on the side the language's other modal words
+    //go, which only the word order says when it has none
+    public static Modals WithModalKind(Modals drawn, Modality modality, ModalKind kind)
+    {
+        var marker = drawn.Markers[modality];
+        if (KindOf(marker) == kind)
+        {
+            return drawn;
+        }
+        var affixPosition = drawn.Markers.Values.Select(m => m.Value).OfType<ModalAffix>().Select(a => (ExponentPosition?)a.Position).FirstOrDefault() ?? ExponentPosition.Suffix;
+        var beforeVerb = drawn.Markers.Values.Select(BeforeVerbOf).FirstOrDefault(b => b is not null)
+            ?? (kind == ModalKind.Affix ? false : throw NoForm($"A modal {kind.ToString().ToLowerInvariant()} where every modal is an affix"));
+        return WithRegion(drawn, modality, kind, FormOf(marker), affixPosition, beforeVerb);
+    }
+
+    //joining two regions gives them the first one's marker; parting them would need a form for
+    //the second
+    public static Modals WithModalEdge(Modals drawn, (Modality First, Modality Second) edge, bool joined)
+    {
+        if (drawn.Joined.Contains(edge) == joined)
+        {
+            return drawn;
+        }
+        if (!joined)
+        {
+            throw NoForm($"{edge.First.Name} apart from {edge.Second.Name}");
+        }
+        var kept = drawn.Markers[edge.First];
+        var result = drawn with { Joined = [.. ModalityMap.Edges.Select(e => (e.First, e.Second)).Where(e => e == edge || drawn.Joined.Contains(e))] };
+        return WithRegion(result, edge.First, KindOf(kept), FormOf(kept),
+            kept.Value is ModalAffix affix ? affix.Position : ExponentPosition.Suffix, BeforeVerbOf(kept) ?? false);
+    }
 }
