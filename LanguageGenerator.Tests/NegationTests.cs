@@ -14,7 +14,7 @@ public class NegationTests
         var language = GeneratedLanguages.Sample.First(l => l.MorphologicalProfile.Fusion != Fusion.Isolating);
         var rand = new Random(1);
 
-        var strategies = Enumerable.Range(0, 5000).Select(_ => Generator.GenerateNegation(rand, language.MorphologicalProfile, language.Phonology, 0.15).Strategy).ToList();
+        var strategies = Enumerable.Range(0, 5000).Select(_ => Generator.GenerateNegation(rand, language.MorphologicalProfile, language.Phonology).Strategy).ToList();
         double Share(NegationStrategy s) => strategies.Count(x => x == s) / 5000.0;
 
         //WALS 143A: 525, 171, 162, 202 and 114 of the 1174 languages modeled

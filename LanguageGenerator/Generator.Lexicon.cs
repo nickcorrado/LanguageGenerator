@@ -16,17 +16,17 @@ public static partial class Generator
     //'the person saw' and 'you saw' shouldn't sound alike. Homophones in different slots, like
     //English there and their, are left alone, as languages leave them. The basic meanings are
     //coined up front so that there are words to show
-    public static Lexicon GenerateLexicon(int seed, double extraSyllables, Phonology phonology, double dropoff, IReadOnlyDictionary<PartOfSpeech, IEnumerable<Lexeme>> closedClasses)
+    public static Lexicon GenerateLexicon(int seed, double extraSyllables, Phonology phonology, IReadOnlyDictionary<PartOfSpeech, IEnumerable<Lexeme>> closedClasses)
     {
         string Surface(Root root) => string.Concat(phonology.Realize(new Word([root])).Phonemes.Select(p => p.IpaSymbol));
         var taken = closedClasses.ToDictionary(c => c.Key, c => c.Value.Select(l => Surface(l.Root)).ToHashSet());
         var lexicon = new Lexicon((meaning, partOfSpeech) =>
         {
             var rand = Sampling.For(seed, $"{partOfSpeech}:{meaning}");
-            var root = new Root(GenerateForm(rand, phonology, dropoff, extraSyllables), meaning);
+            var root = new Root(GenerateForm(rand, phonology, extraSyllables), meaning);
             for (int attempt = 0; attempt < 10 && taken.TryGetValue(partOfSpeech, out var forms) && forms.Contains(Surface(root)); attempt++)
             {
-                root = new Root(GenerateForm(rand, phonology, dropoff, extraSyllables), meaning);
+                root = new Root(GenerateForm(rand, phonology, extraSyllables), meaning);
             }
             return root;
         });
@@ -65,13 +65,13 @@ public static partial class Generator
     //for far fewer likely syllables than possible ones, and sound changes merge some of what's left.
     //The target trades homophones for length, and WALS has nothing on word length to settle it:
     //halving it halves the homophones and makes the average root a quarter of a syllable longer
-    public static double SelectExtraSyllables(double noise, int seed, Phonology phonology, double dropoff)
+    public static double SelectExtraSyllables(double noise, int seed, Phonology phonology)
     {
         double CollisionRate(double extraSyllables)
         {
             var rand = Sampling.For(seed, "root length");
             var forms = Enumerable.Range(0, RootsToSample)
-                .Select(_ => string.Concat(phonology.Realize(new Word([new Root(GenerateForm(rand, phonology, dropoff, extraSyllables), "")])).Phonemes.Select(p => p.IpaSymbol)));
+                .Select(_ => string.Concat(phonology.Realize(new Word([new Root(GenerateForm(rand, phonology, extraSyllables), "")])).Phonemes.Select(p => p.IpaSymbol)));
             var pairs = forms.GroupBy(form => form).Sum(same => same.Count() * (same.Count() - 1L) / 2);
             return pairs / (RootsToSample * (RootsToSample - 1) / 2.0);
         }
@@ -89,7 +89,7 @@ public static partial class Generator
     //stop for its onset always fits, so this only runs out in an inventory with no stops left
     private const int ContactDraws = 20;
 
-    public static List<Phoneme> GenerateForm(Random rand, Phonology phonology, double dropoff, double extraSyllables, int maxSyllables = MaxRootSyllables)
+    public static List<Phoneme> GenerateForm(Random rand, Phonology phonology, double extraSyllables, int maxSyllables = MaxRootSyllables)
     {
         var form = new List<Phoneme>();
         var numberOfSyllables = Sampling.DisplacedPoisson(rand, extraSyllables, maxSyllables);
@@ -101,11 +101,11 @@ public static partial class Generator
         Consonant? coda = null;
         for (int i = 0; i < numberOfSyllables; i++)
         {
-            var syllable = GenerateSyllable(rand, phonology.SyllableRule, dropoff, needsOnset: i > 0);
+            var syllable = GenerateSyllable(rand, phonology.SyllableRule, phonology.Dropoff, needsOnset: i > 0);
             for (int draw = 1; draw < ContactDraws && coda is not null && syllable.Onset.Count > 0
                 && !phonology.SyllableContact.Allows(coda, syllable.Onset[0]); draw++)
             {
-                syllable = GenerateSyllable(rand, phonology.SyllableRule, dropoff, needsOnset: true);
+                syllable = GenerateSyllable(rand, phonology.SyllableRule, phonology.Dropoff, needsOnset: true);
             }
             form.AddRange(syllable.Phonemes);
             coda = syllable.Coda;

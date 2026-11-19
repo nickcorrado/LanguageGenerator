@@ -16,7 +16,7 @@ public static partial class Generator
     //with prepositions: Greenberg's Universal 2, which has few exceptions. An isolating language
     //can't mark the possessed noun with an affix, so it marks the possessor, as Mandarin does with
     //de. The affixes agreeing with a possessor are each a short vowel or a syllable, all on one side
-    public static Possession GeneratePossession(Random rand, MorphologicalProfile morphology, WordOrder wordOrder, Phonology phonology, double dropoff)
+    public static Possession GeneratePossession(Random rand, MorphologicalProfile morphology, WordOrder wordOrder, Phonology phonology)
     {
         var marking = Sampling.Categorical(rand, PossessiveMarkingCounts);
         if (morphology.Fusion == Fusion.Isolating && marking is PossessiveMarking.Head or PossessiveMarking.Double)
@@ -36,7 +36,7 @@ public static partial class Generator
         {
             foreach (var number in new[] { Number.Singular, Number.Plural })
             {
-                var form = forms.Draw(() => VowelOrSyllable(rand, phonology, dropoff));
+                var form = forms.Draw(() => VowelOrSyllable(rand, phonology));
                 affixes[(person, number)] = new Affix(form, [person, number, Possessive.Possessed]);
             }
         }

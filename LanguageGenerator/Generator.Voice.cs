@@ -15,7 +15,7 @@ public static partial class Generator
 
     //a passive is marked on the side the language puts its other affixes, and an isolating language,
     //with no affixes, uses a word on that side
-    public static Passive? GeneratePassive(Random rand, MorphosyntacticAlignment alignment, MorphologicalProfile morphology, Phonology phonology, double dropoff)
+    public static Passive? GeneratePassive(Random rand, MorphosyntacticAlignment alignment, MorphologicalProfile morphology, Phonology phonology)
     {
         if (rand.NextDouble() >= PassiveChance(alignment))
         {
@@ -26,7 +26,7 @@ public static partial class Generator
             ? (before ? ExponentPosition.PrecedingParticle : ExponentPosition.FollowingParticle)
             : (before ? ExponentPosition.Prefix : ExponentPosition.Suffix);
         var affix = position is ExponentPosition.Prefix or ExponentPosition.Suffix;
-        var form = MarkerForm(rand, affix, phonology, dropoff);
+        var form = MarkerForm(rand, affix, phonology);
         return new Passive(affix ? new Affix(form, [Voice.Passive]) : new Particle(form, [Voice.Passive]), position);
     }
 }

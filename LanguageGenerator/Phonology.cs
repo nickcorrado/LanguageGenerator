@@ -40,6 +40,11 @@ public record Phonology
     public required Vowel EpentheticVowel { get; init; }
     /// <summary>Which syllable of a word is stressed.</summary>
     public required Stress Stress { get; init; }
+    /// <summary>
+    /// How steeply sounds get rarer down the inventory, which is ordered commonest first, as every
+    /// word and affix is coined.
+    /// </summary>
+    public required Dropoff Dropoff { get; init; }
 
     /// <summary>
     /// The consonant in this inventory with these features, and the given one's for any not given.

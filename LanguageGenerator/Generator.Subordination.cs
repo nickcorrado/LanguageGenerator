@@ -43,7 +43,7 @@ public static partial class Generator
     //each subordinator in the region uses with its own meaning. A language that mixes its kinds of
     //marker draws one for each region. An isolating language puts a word at the clause's end where
     //another would use a suffix
-    public static Subordination GenerateSubordination(Random rand, MorphologicalProfile morphology, WordOrder wordOrder, Phonology phonology, double dropoff)
+    public static Subordination GenerateSubordination(Random rand, MorphologicalProfile morphology, WordOrder wordOrder, Phonology phonology)
     {
         var objectFirst = wordOrder.VerbPhraseDirectionality == HeadDirectionality.Final;
         var counts = objectFirst ? OVSubordinatorCounts : VOSubordinatorCounts;
@@ -66,7 +66,7 @@ public static partial class Generator
                 position = ExponentPosition.FollowingParticle;
             }
             var affix = position == ExponentPosition.Suffix;
-            var form = forms.Draw(() => affix ? MarkerForm(rand, true, phonology, dropoff) : [.. GenerateSyllable(rand, phonology.SyllableRule, dropoff, needsOnset: false).Phonemes]);
+            var form = forms.Draw(() => affix ? MarkerForm(rand, true, phonology) : [.. GenerateSyllable(rand, phonology.SyllableRule, phonology.Dropoff, needsOnset: false).Phonemes]);
             foreach (var subordinator in region)
             {
                 List<Grammeme> meaning = [Linkage.For(subordinator)];

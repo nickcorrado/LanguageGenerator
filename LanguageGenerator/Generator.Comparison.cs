@@ -16,15 +16,15 @@ public static partial class Generator
 
     //a particle is a one-syllable word, like the language's adpositions, and goes on their side of
     //the standard, as English than does. The verb 'exceed' is short, as common verbs are
-    public static Comparison GenerateComparison(Random rand, WordOrder wordOrder, Phonology phonology, double dropoff) =>
+    public static Comparison GenerateComparison(Random rand, WordOrder wordOrder, Phonology phonology) =>
         Sampling.Categorical(rand, ComparisonCounts) switch
         {
             ComparisonType.Locational => new LocationalComparison(Sampling.Categorical(rand, LocationalRoles)),
             ComparisonType.Particle => new ParticleComparison(
-                new Lexeme(new Root(GenerateForm(rand, phonology, dropoff, 0, maxSyllables: 1), "than"), PartOfSpeech.Adposition),
+                new Lexeme(new Root(GenerateForm(rand, phonology, 0, maxSyllables: 1), "than"), PartOfSpeech.Adposition),
                 wordOrder.AdpositionalPhraseDirectionality == HeadDirectionality.Initial),
             ComparisonType.Exceed => new ExceedComparison(
-                new Lexeme(new Root(GenerateForm(rand, phonology, dropoff, 0.5, maxSyllables: 2), "exceed"), PartOfSpeech.Verb)),
+                new Lexeme(new Root(GenerateForm(rand, phonology, 0.5, maxSyllables: 2), "exceed"), PartOfSpeech.Verb)),
             _ => new ConjoinedComparison(),
         };
 
@@ -49,13 +49,13 @@ public static partial class Generator
         _ => 0.15,
     };
 
-    public static DegreeMarking GenerateDegree(Random rand, Comparison comparison, MorphologicalProfile morphology, WordOrder wordOrder, Phonology phonology, double dropoff)
+    public static DegreeMarking GenerateDegree(Random rand, Comparison comparison, MorphologicalProfile morphology, WordOrder wordOrder, Phonology phonology)
     {
         var affix = morphology.Fusion != Fusion.Isolating && rand.NextDouble() < DegreeAffixChance;
         DegreeMarker marker = affix
-            ? new DegreeAffix(new Affix(MarkerForm(rand, true, phonology, dropoff), [Degree.Comparative]),
+            ? new DegreeAffix(new Affix(MarkerForm(rand, true, phonology), [Degree.Comparative]),
                 rand.NextDouble() < PrefixChance(morphology) ? ExponentPosition.Prefix : ExponentPosition.Suffix)
-            : new DegreeWord(new Particle(MarkerForm(rand, false, phonology, dropoff), [Degree.Comparative]), DegreeWordBefore(wordOrder));
+            : new DegreeWord(new Particle(MarkerForm(rand, false, phonology), [Degree.Comparative]), DegreeWordBefore(wordOrder));
         return new DegreeMarking(marker, rand.NextDouble() < DegreeWithStandardChance(comparison));
     }
 
@@ -65,11 +65,11 @@ public static partial class Generator
     //go, and isn't the comparative's than, though some languages do use one word for both
     private const double SimilativeAffixChance = 0.3;
 
-    public static Similative GenerateSimilative(Random rand, Comparison comparison, MorphologicalProfile morphology, WordOrder wordOrder, Phonology phonology, double dropoff)
+    public static Similative GenerateSimilative(Random rand, Comparison comparison, MorphologicalProfile morphology, WordOrder wordOrder, Phonology phonology)
     {
         if (morphology.Fusion != Fusion.Isolating && rand.NextDouble() < SimilativeAffixChance)
         {
-            return new SimilativeAffix(new Affix(MarkerForm(rand, true, phonology, dropoff), [Case.Similative]),
+            return new SimilativeAffix(new Affix(MarkerForm(rand, true, phonology), [Case.Similative]),
                 rand.NextDouble() < PrefixChance(morphology) ? ExponentPosition.Prefix : ExponentPosition.Suffix);
         }
         var forms = new DistinctForms();
@@ -77,7 +77,7 @@ public static partial class Generator
         {
             forms.Take(particle.Than.Root.Form);
         }
-        return new SimilativeWord(new Lexeme(new Root(forms.Draw(() => GenerateForm(rand, phonology, dropoff, 0, maxSyllables: 1)), "like"), PartOfSpeech.Adposition),
+        return new SimilativeWord(new Lexeme(new Root(forms.Draw(() => GenerateForm(rand, phonology, 0, maxSyllables: 1)), "like"), PartOfSpeech.Adposition),
             wordOrder.AdpositionalPhraseDirectionality == HeadDirectionality.Initial);
     }
 }

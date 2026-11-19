@@ -18,17 +18,17 @@ public static partial class Generator
         [(PredicativeAdjectives.Verbal, 151), (PredicativeAdjectives.Nonverbal, 132)];
     private static readonly (bool Value, int Languages)[] ZeroCopulaCounts = [(false, 211), (true, 175)];
 
-    public static Predication GeneratePredication(Random rand, Phonology phonology, double dropoff) => new(
+    public static Predication GeneratePredication(Random rand, Phonology phonology) => new(
         Sampling.Categorical(rand, PredicativeAdjectiveCounts),
         Sampling.Categorical(rand, ZeroCopulaCounts),
-        new Lexeme(new Root(GenerateForm(rand, phonology, dropoff, 0, maxSyllables: 1), "COP"), PartOfSpeech.Verb));
+        new Lexeme(new Root(GenerateForm(rand, phonology, 0, maxSyllables: 1), "COP"), PartOfSpeech.Verb));
 
     //WALS 119A
     private static readonly (bool Value, int Languages)[] LocationalCopulaCounts = [(true, 269), (false, 117)];
 
     //a one-syllable locational copula of its own, redrawn a few times to keep it from sounding like
     //the copula, in WALS's share of languages
-    public static Predication GenerateLocationalPredication(Random rand, Predication predication, Phonology phonology, double dropoff)
+    public static Predication GenerateLocationalPredication(Random rand, Predication predication, Phonology phonology)
     {
         if (!Sampling.Categorical(rand, LocationalCopulaCounts))
         {
@@ -36,7 +36,7 @@ public static partial class Generator
         }
         var forms = new DistinctForms(draws: 11);
         forms.Take(predication.Copula.Root.Form);
-        var form = forms.Draw(() => GenerateForm(rand, phonology, dropoff, 0, maxSyllables: 1));
+        var form = forms.Draw(() => GenerateForm(rand, phonology, 0, maxSyllables: 1));
         return predication with { LocationalCopula = new Lexeme(new Root(form, "be.at"), PartOfSpeech.Verb) };
     }
 }

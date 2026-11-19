@@ -32,13 +32,13 @@ public class RoleMapTests
             Assert.InRange(e.Weight, 0, 1);
         });
 
-    private static List<List<RoleRegion>> Draws(int count)
+    private static List<IReadOnlyList<RoleRegion>> Draws(int count)
     {
         var rand = new Random(1);
-        return [.. Enumerable.Range(0, count).Select(_ => Generator.SelectRegions(rand))];
+        return [.. Enumerable.Range(0, count).Select(_ => Generator.SelectRegions(rand).Regions)];
     }
 
-    private static bool Together(List<RoleRegion> regions, Role first, Role second) => regions.Any(r => r.Contains(first) && r.Contains(second));
+    private static bool Together(IReadOnlyList<RoleRegion> regions, Role first, Role second) => regions.Any(r => r.Contains(first) && r.Contains(second));
 
     [Fact]
     public void SelectRegions_ManyDraws_AreConnectedAndShareMarkersAboutAsOftenAsTheirEdgesSay()

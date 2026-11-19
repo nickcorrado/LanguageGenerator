@@ -67,7 +67,7 @@ public class SyllableContactTests
         var rand = new Random(1);
         for (int i = 0; i < 500; i++)
         {
-            var syllables = phonology.Realize(new Word([new Root(Generator.GenerateForm(rand, phonology, 0.15, 2), "dog")])).Syllables;
+            var syllables = phonology.Realize(new Word([new Root(Generator.GenerateForm(rand, phonology, 2), "dog")])).Syllables;
             foreach (var (first, second) in syllables.Zip(syllables.Skip(1)))
             {
                 if (first.Coda is { } coda && second.Onset.Count > 0)

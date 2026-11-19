@@ -19,7 +19,7 @@ public class PossessionTests
         var language = GeneratedLanguages.Sample.First(l => l.MorphologicalProfile.Fusion == Fusion.Concatenative);
         var rand = new Random(1);
 
-        var drawn = Enumerable.Range(0, 5000).Select(_ => Generator.GeneratePossession(rand, language.MorphologicalProfile, language.WordOrder, language.Phonology, 0.15)).ToList();
+        var drawn = Enumerable.Range(0, 5000).Select(_ => Generator.GeneratePossession(rand, language.MorphologicalProfile, language.WordOrder, language.Phonology)).ToList();
 
         //WALS 24A: 98, 78, 22 and 32 of 230 languages modeled
         Assert.InRange(drawn.Count(p => p.Marking == PossessiveMarking.Dependent) / 5000.0, 0.40, 0.45);

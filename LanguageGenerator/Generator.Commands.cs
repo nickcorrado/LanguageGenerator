@@ -37,7 +37,7 @@ public static partial class Generator
     //WALS counts a bare stem as an imperative of its own, and says that many languages use one,
     //especially for the singular, but gives no figure, so the half is a guess. A plural is marked,
     //like the plural everywhere else here
-    public static Commands GenerateCommands(Random rand, MorphologicalProfile morphology, WordOrder wordOrder, Phonology phonology, double dropoff)
+    public static Commands GenerateCommands(Random rand, MorphologicalProfile morphology, WordOrder wordOrder, Phonology phonology)
     {
         var position = rand.NextDouble() < ParticleChance(morphology)
             ? (wordOrder.VerbPhraseDirectionality == HeadDirectionality.Initial ? ExponentPosition.PrecedingParticle : ExponentPosition.FollowingParticle)
@@ -46,7 +46,7 @@ public static partial class Generator
         var forms = new DistinctForms();
 
         Morpheme Marker(List<Phoneme> form, params Grammeme[] values) => affix ? new Affix(form, values) : new Particle(form, values);
-        Morpheme Marked(params Grammeme[] values) => Marker(forms.Draw(() => MarkerForm(rand, affix, phonology, dropoff)), values);
+        Morpheme Marked(params Grammeme[] values) => Marker(forms.Draw(() => MarkerForm(rand, affix, phonology)), values);
         Morpheme Unmarkable(params Grammeme[] values) => rand.NextDouble() < 0.5 ? Marker([], values) : Marked(values);
 
         var (singular, plural) = Sampling.Categorical(rand, ImperativeCounts) switch
@@ -59,7 +59,7 @@ public static partial class Generator
         };
 
         var (usesImperative, ownNegator) = Sampling.Categorical(rand, ProhibitiveCounts);
-        var prohibitive = ownNegator ? GenerateNegation(rand, morphology, phonology, dropoff, Mood.Prohibitive) : null;
+        var prohibitive = ownNegator ? GenerateNegation(rand, morphology, phonology, Mood.Prohibitive) : null;
         return new Commands(singular, plural, position, usesImperative, prohibitive);
 
         static (Morpheme?, Morpheme?) Both(Morpheme marker) => (marker, marker);
