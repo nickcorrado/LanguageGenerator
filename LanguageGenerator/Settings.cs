@@ -13,6 +13,9 @@ public static class Settings
     private const string Roles = "Roles";
     private const string Cases = "Cases";
     private const string Places = "Places";
+    private const string Clauses = "Clauses";
+    private const string Nouns = "Noun phrases";
+    private const string Comparing = "Comparison";
 
     private static Choice<bool> YesNo { get; } = Choice<bool>.Of(true, false);
 
@@ -165,11 +168,59 @@ public static class Settings
         p => p.Preferred, (p, s) => s == ConfigurationStrategy.Case && !p.CasesAllowed ? p : p with { Preferred = s },
         Choice<ConfigurationStrategy>.Of(ConfigurationStrategy.Adposition, ConfigurationStrategy.RelationalNoun, ConfigurationStrategy.Case));
 
+    //clauses
+
+    public static Stage<Negation> NegationStage { get; } = new("negation", l => l.Negation, null);
+    public static Setting<Negation, NegationStrategy> Negation { get; } = NegationStage.Declare("negation", Clauses,
+        n => n.Strategy, SettingWrites.WithNegation, Choice<NegationStrategy>.Of(Enum.GetValues<NegationStrategy>()));
+
+    public static Stage<Questions> QuestionStage { get; } = new("questions", l => l.Questions, null);
+    public static Setting<Questions, PolarQuestion> PolarQuestions { get; } = QuestionStage.Declare("polar-questions", Clauses,
+        SettingWrites.PolarQuestionOf, SettingWrites.WithPolarQuestion, Choice<PolarQuestion>.Of(Enum.GetValues<PolarQuestion>()));
+    /// <summary>Whether a question word goes first in its clause, as English who does, or stays where what it asks for would be.</summary>
+    public static Setting<Questions, bool> FrontsQuestionWords { get; } = QuestionStage.Declare("fronts-question-words", Clauses,
+        q => q.FrontsQuestionWords, (q, f) => q with { FrontsQuestionWords = f }, YesNo);
+
+    public static Stage<Passive?> PassiveStage { get; } = new("passive", l => l.Passive, null);
+    public static Setting<Passive?, bool> HasPassive { get; } = PassiveStage.Declare("passive", Clauses,
+        p => p is not null, SettingWrites.WithPassive, YesNo);
+
+    //noun phrases
+
+    public static Stage<Possession> PossessionStage { get; } = new("possession", l => l.Possession, null);
+    public static Setting<Possession, PossessiveMarking> PossessiveMarking { get; } = PossessionStage.Declare("possession", Nouns,
+        p => p.Marking, SettingWrites.WithPossession, Choice<PossessiveMarking>.Of(Enum.GetValues<PossessiveMarking>()));
+    /// <summary>Which side of the possessed noun its affix agreeing with the possessor goes on, where there's one.</summary>
+    public static Setting<Possession, ExponentPosition> PossessiveAffixes { get; } = PossessionStage.Declare("possessive-affixes", Nouns,
+        p => p.AffixPosition, (p, position) => p with { AffixPosition = position },
+        new Choice<ExponentPosition>([("Prefix", ExponentPosition.Prefix), ("Suffix", ExponentPosition.Suffix)]));
+
+    public static Stage<GenderSystem> GenderStage { get; } = new("genders", l => l.Genders, null);
+    public static Setting<GenderSystem, NounGenders> Genders { get; } = GenderStage.Declare("genders", Nouns,
+        g => g.Genders, SettingWrites.WithGenders, Choice<NounGenders>.Of(Enum.GetValues<NounGenders>()));
+    public static Setting<GenderSystem, GenderAssignment> GenderAssignment { get; } = GenderStage.Declare("gender-assignment", Nouns,
+        g => g.Assignment, SettingWrites.WithAssignment, Choice<GenderAssignment>.Of(Enum.GetValues<GenderAssignment>()));
+
+    //comparison
+
+    public static Stage<Comparison> ComparisonStage { get; } = new("comparison", l => l.Comparison, null);
+    public static Setting<Comparison, ComparisonKind> Comparison { get; } = ComparisonStage.Declare("comparison", Comparing,
+        SettingWrites.ComparisonKindOf, SettingWrites.WithComparison, Choice<ComparisonKind>.Of(Enum.GetValues<ComparisonKind>()));
+
+    public static Stage<DegreeMarking> DegreeStage { get; } = new("degree", l => l.Degree, null);
+    public static Setting<DegreeMarking, MarkerKind> Comparative { get; } = DegreeStage.Declare("comparative", Comparing,
+        d => d.Marker.Value is DegreeAffix ? MarkerKind.Affix : MarkerKind.Word, SettingWrites.WithComparative, Choice<MarkerKind>.Of(Enum.GetValues<MarkerKind>()));
+
+    public static Stage<Similative> SimilativeStage { get; } = new("similative", l => l.Similative, null);
+    public static Setting<Similative, MarkerKind> Similative { get; } = SimilativeStage.Declare("similative", Comparing,
+        s => s.Value is SimilativeAffix ? MarkerKind.Affix : MarkerKind.Word, SettingWrites.WithSimilative, Choice<MarkerKind>.Of(Enum.GetValues<MarkerKind>()));
+
     /// <summary>Every stage with settings, in the order they're declared.</summary>
     public static IReadOnlyList<IStage> Stages { get; } =
     [
         VowelStage, ConsonantStage, SyllableStage, StressStage, ClusterRepairStage, DropoffStage, WordOrderStage, MorphologyStage, AlignmentStage,
-        RoleRegionStage, CaseStage, ConfigurationRegionStage, ConfigurationPlanStage,
+        RoleRegionStage, CaseStage, ConfigurationRegionStage, ConfigurationPlanStage, NegationStage, QuestionStage, PassiveStage, PossessionStage,
+        GenderStage, ComparisonStage, DegreeStage, SimilativeStage,
     ];
 
     /// <summary>Every setting, in the order they're declared.</summary>
@@ -177,7 +228,9 @@ public static class Settings
     [
         .. VowelStage.Settings, .. ConsonantStage.Settings, .. SyllableStage.Settings, .. StressStage.Settings, .. ClusterRepairStage.Settings,
         .. DropoffStage.Settings, .. WordOrderStage.Settings, .. MorphologyStage.Settings, .. AlignmentStage.Settings, .. RoleRegionStage.Settings,
-        .. CaseStage.Settings, .. ConfigurationRegionStage.Settings, .. ConfigurationPlanStage.Settings,
+        .. CaseStage.Settings, .. ConfigurationRegionStage.Settings, .. ConfigurationPlanStage.Settings, .. NegationStage.Settings,
+        .. QuestionStage.Settings, .. PassiveStage.Settings, .. PossessionStage.Settings, .. GenderStage.Settings, .. ComparisonStage.Settings,
+        .. DegreeStage.Settings, .. SimilativeStage.Settings,
     ];
 
     /// <summary>The setting a spec names this way, or null if there's none.</summary>

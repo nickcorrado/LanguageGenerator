@@ -30,6 +30,22 @@ public record ExceedComparison(Lexeme Exceed);
 /// <summary>How a language says one thing has more of a property than another, as WALS 121A types it.</summary>
 public union Comparison(LocationalComparison, ParticleComparison, ConjoinedComparison, ExceedComparison);
 
+/// <summary>Which kind of comparison a language has, as a spec names it.</summary>
+public enum ComparisonKind
+{
+    Locational,
+    Exceed,
+    Conjoined,
+    Particle,
+}
+
+/// <summary>Whether a comparative or a similative is an affix or a word of its own, as a spec names it.</summary>
+public enum MarkerKind
+{
+    Affix,
+    Word,
+}
+
 /// <summary>A comparative marked by an affix on the adjective, as English -er or Hungarian -bb.</summary>
 //Position is Prefix or Suffix; it goes next to the root, inside any agreement or tense
 public record DegreeAffix(Affix Marker, ExponentPosition Position);

@@ -30,6 +30,21 @@ public record QuestionIntonation;
 /// <summary>How a language marks a yes-no question.</summary>
 public union PolarQuestionMarking(QuestionParticle, QuestionAffix, QuestionInversion, QuestionIntonation);
 
+/// <summary>
+/// How a language marks polar questions, as a spec names it: a particle and where it goes, an
+/// affix and which side, inversion or intonation.
+/// </summary>
+public enum PolarQuestion
+{
+    InitialParticle,
+    FinalParticle,
+    SecondParticle,
+    Prefix,
+    Suffix,
+    Inversion,
+    Intonation,
+}
+
 /// <summary>A question word that fills a role, as 'who' does in 'who saw you?'.</summary>
 public enum Interrogative
 {

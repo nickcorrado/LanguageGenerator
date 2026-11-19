@@ -94,6 +94,27 @@ public static class SpecRules
                 system => system with { Cases = CaseSystem.Ordered([.. system.Cases, LocationCase(system.Regions)]) })]
             : []),
 
+        //an isolating language has no affixes, so it marks with words what another might with affixes
+        SpecRule.Together(Settings.Fusion, Settings.Negation,
+            (fusion, negation) => fusion != Fusion.Isolating || negation is not (NegationStrategy.Prefix or NegationStrategy.Suffix),
+            "Negation can only be a prefix or suffix where words take affixes, so fusion can't be Isolating."),
+        SpecRule.Together(Settings.Fusion, Settings.PolarQuestions,
+            (fusion, polar) => fusion != Fusion.Isolating || polar is not (PolarQuestion.Prefix or PolarQuestion.Suffix),
+            "Polar questions can only be marked by a prefix or suffix where words take affixes, so fusion can't be Isolating."),
+        SpecRule.Together(Settings.Fusion, Settings.PossessiveMarking,
+            (fusion, marking) => fusion != Fusion.Isolating || marking is not (PossessiveMarking.Head or PossessiveMarking.Double),
+            "Possession can only be marked on the possessed noun where words take affixes, so fusion can't be Isolating."),
+        SpecRule.Together(Settings.Fusion, Settings.Comparative,
+            (fusion, kind) => fusion != Fusion.Isolating || kind != MarkerKind.Affix,
+            "A comparative can only be an affix where words take affixes, so fusion can't be Isolating."),
+        SpecRule.Together(Settings.Fusion, Settings.Similative,
+            (fusion, kind) => fusion != Fusion.Isolating || kind != MarkerKind.Affix,
+            "A similative can only be an affix where words take affixes, so fusion can't be Isolating."),
+        //only an affix on the possessed noun has a side
+        SpecRule.Together(Settings.PossessiveMarking, Settings.PossessiveAffixes,
+            (marking, position) => position == ExponentPosition.Suffix || marking is PossessiveMarking.Head or PossessiveMarking.Double,
+            "Possessive affixes can only be prefixes where possession is marked on the possessed noun: Head or Double."),
+
         //a configuration's marker belongs to its region, and a region with At in it has none
         SpecRule.On(Settings.ConfigurationRegionStage, ConfigurationConditions),
     ];
