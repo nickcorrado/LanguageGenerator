@@ -12,6 +12,33 @@ public static class SemanticMap
         [.. edges.Where(e => rand.NextDouble() < e.Weight).Select(e => (e.First, e.Second))];
 
     /// <summary>
+    /// The regions a map falls into for each set of its edges joined, worked out the first time
+    /// they're asked for and kept, by which edges are joined. A map has a few dozen edges at most,
+    /// so a set of them fits in the bits of a long.
+    /// </summary>
+    public sealed class RegionCache<T, TRegion>(IReadOnlyList<(T First, T Second, double Weight)> edges, Func<IEnumerable<(T First, T Second)>, List<TRegion>> regions)
+        where T : notnull
+    {
+        private readonly List<(T, T)> order = [.. edges.Select(e => (e.First, e.Second))];
+        private readonly System.Collections.Concurrent.ConcurrentDictionary<long, IReadOnlyList<TRegion>> cached = new();
+
+        public IReadOnlyList<TRegion> Regions(IReadOnlyList<(T First, T Second)> joined)
+        {
+            var key = 0L;
+            foreach (var edge in joined)
+            {
+                var index = order.IndexOf(edge);
+                if (index < 0)
+                {
+                    return regions(joined);
+                }
+                key |= 1L << index;
+            }
+            return cached.GetOrAdd(key, _ => regions(joined));
+        }
+    }
+
+    /// <summary>
     /// The connected parts a map falls into when these edges join its nodes, given in rank order:
     /// each part in rank order, and the parts in the order of their first.
     /// </summary>

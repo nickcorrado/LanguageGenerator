@@ -13,6 +13,9 @@ public static class Settings
     private const string Roles = "Roles";
     private const string Cases = "Cases";
     private const string Places = "Places";
+    private const string Clauses = "Clauses";
+    private const string Nouns = "Noun phrases";
+    private const string Comparing = "Comparison";
 
     private static Choice<bool> YesNo { get; } = Choice<bool>.Of(true, false);
 
@@ -165,11 +168,75 @@ public static class Settings
         p => p.Preferred, (p, s) => s == ConfigurationStrategy.Case && !p.CasesAllowed ? p : p with { Preferred = s },
         Choice<ConfigurationStrategy>.Of(ConfigurationStrategy.Adposition, ConfigurationStrategy.RelationalNoun, ConfigurationStrategy.Case));
 
+    //clauses
+
+    public static Stage<Negation> NegationStage { get; } = new("negation", l => l.Negation, null);
+    public static Setting<Negation, NegationStrategy> Negation { get; } = NegationStage.Declare("negation", Clauses,
+        n => n.Strategy, SettingWrites.WithNegation, Choice<NegationStrategy>.Of(Enum.GetValues<NegationStrategy>()));
+
+    public static Stage<Questions> QuestionStage { get; } = new("questions", l => l.Questions, null);
+    public static Setting<Questions, PolarQuestion> PolarQuestions { get; } = QuestionStage.Declare("polar-questions", Clauses,
+        SettingWrites.PolarQuestionOf, SettingWrites.WithPolarQuestion, Choice<PolarQuestion>.Of(Enum.GetValues<PolarQuestion>()));
+    /// <summary>Whether a question word goes first in its clause, as English who does, or stays where what it asks for would be.</summary>
+    public static Setting<Questions, bool> FrontsQuestionWords { get; } = QuestionStage.Declare("fronts-question-words", Clauses,
+        q => q.FrontsQuestionWords, (q, f) => q with { FrontsQuestionWords = f }, YesNo);
+
+    public static Stage<Passive?> PassiveStage { get; } = new("passive", l => l.Passive, null);
+    public static Setting<Passive?, bool> HasPassive { get; } = PassiveStage.Declare("passive", Clauses,
+        p => p is not null, SettingWrites.WithPassive, YesNo);
+
+    public static Stage<Modals> ModalStage { get; } = new("modals", l => l.Modals, null);
+    /// <summary>Whether each edge of the modality map joins its two modalities, so they share a marker.</summary>
+    public static IReadOnlyList<Setting<Modals, bool>> ModalityEdges { get; } =
+    [
+        .. ModalityMap.Edges.Select(e => (e.First, e.Second)).Select(edge => ModalStage.Declare(
+            $"modalities-{edge.First.Name.ToLowerInvariant()}-{edge.Second.Name.ToLowerInvariant()}", Clauses,
+            m => m.Joined.Contains(edge), (m, joined) => SettingWrites.WithModalEdge(m, edge, joined), YesNo)),
+    ];
+    /// <summary>How each modality is marked: by an affix on the verb, a modal verb or a particle.</summary>
+    public static IReadOnlyList<Setting<Modals, ModalKind>> ModalMarkers { get; } =
+    [
+        .. ModalityMap.Modalities.Select(modality => ModalStage.Declare($"{modality.Name.ToLowerInvariant()}-modal", Clauses,
+            m => SettingWrites.KindOf(m.Markers[modality]), (m, kind) => SettingWrites.WithModalKind(m, modality, kind),
+            Choice<ModalKind>.Of(Enum.GetValues<ModalKind>()))),
+    ];
+
+    //noun phrases
+
+    public static Stage<Possession> PossessionStage { get; } = new("possession", l => l.Possession, null);
+    public static Setting<Possession, PossessiveMarking> PossessiveMarking { get; } = PossessionStage.Declare("possession", Nouns,
+        p => p.Marking, SettingWrites.WithPossession, Choice<PossessiveMarking>.Of(Enum.GetValues<PossessiveMarking>()));
+    /// <summary>Which side of the possessed noun its affix agreeing with the possessor goes on, where there's one.</summary>
+    public static Setting<Possession, ExponentPosition> PossessiveAffixes { get; } = PossessionStage.Declare("possessive-affixes", Nouns,
+        p => p.AffixPosition, (p, position) => p with { AffixPosition = position },
+        new Choice<ExponentPosition>([("Prefix", ExponentPosition.Prefix), ("Suffix", ExponentPosition.Suffix)]));
+
+    public static Stage<GenderSystem> GenderStage { get; } = new("genders", l => l.Genders, null);
+    public static Setting<GenderSystem, NounGenders> Genders { get; } = GenderStage.Declare("genders", Nouns,
+        g => g.Genders, SettingWrites.WithGenders, Choice<NounGenders>.Of(Enum.GetValues<NounGenders>()));
+    public static Setting<GenderSystem, GenderAssignment> GenderAssignment { get; } = GenderStage.Declare("gender-assignment", Nouns,
+        g => g.Assignment, SettingWrites.WithAssignment, Choice<GenderAssignment>.Of(Enum.GetValues<GenderAssignment>()));
+
+    //comparison
+
+    public static Stage<Comparison> ComparisonStage { get; } = new("comparison", l => l.Comparison, null);
+    public static Setting<Comparison, ComparisonKind> Comparison { get; } = ComparisonStage.Declare("comparison", Comparing,
+        SettingWrites.ComparisonKindOf, SettingWrites.WithComparison, Choice<ComparisonKind>.Of(Enum.GetValues<ComparisonKind>()));
+
+    public static Stage<DegreeMarking> DegreeStage { get; } = new("degree", l => l.Degree, null);
+    public static Setting<DegreeMarking, MarkerKind> Comparative { get; } = DegreeStage.Declare("comparative", Comparing,
+        d => d.Marker.Value is DegreeAffix ? MarkerKind.Affix : MarkerKind.Word, SettingWrites.WithComparative, Choice<MarkerKind>.Of(Enum.GetValues<MarkerKind>()));
+
+    public static Stage<Similative> SimilativeStage { get; } = new("similative", l => l.Similative, null);
+    public static Setting<Similative, MarkerKind> Similative { get; } = SimilativeStage.Declare("similative", Comparing,
+        s => s.Value is SimilativeAffix ? MarkerKind.Affix : MarkerKind.Word, SettingWrites.WithSimilative, Choice<MarkerKind>.Of(Enum.GetValues<MarkerKind>()));
+
     /// <summary>Every stage with settings, in the order they're declared.</summary>
     public static IReadOnlyList<IStage> Stages { get; } =
     [
         VowelStage, ConsonantStage, SyllableStage, StressStage, ClusterRepairStage, DropoffStage, WordOrderStage, MorphologyStage, AlignmentStage,
-        RoleRegionStage, CaseStage, ConfigurationRegionStage, ConfigurationPlanStage,
+        RoleRegionStage, CaseStage, ConfigurationRegionStage, ConfigurationPlanStage, NegationStage, QuestionStage, PassiveStage, ModalStage,
+        PossessionStage, GenderStage, ComparisonStage, DegreeStage, SimilativeStage,
     ];
 
     /// <summary>Every setting, in the order they're declared.</summary>
@@ -177,7 +244,9 @@ public static class Settings
     [
         .. VowelStage.Settings, .. ConsonantStage.Settings, .. SyllableStage.Settings, .. StressStage.Settings, .. ClusterRepairStage.Settings,
         .. DropoffStage.Settings, .. WordOrderStage.Settings, .. MorphologyStage.Settings, .. AlignmentStage.Settings, .. RoleRegionStage.Settings,
-        .. CaseStage.Settings, .. ConfigurationRegionStage.Settings, .. ConfigurationPlanStage.Settings,
+        .. CaseStage.Settings, .. ConfigurationRegionStage.Settings, .. ConfigurationPlanStage.Settings, .. NegationStage.Settings,
+        .. QuestionStage.Settings, .. PassiveStage.Settings, .. ModalStage.Settings, .. PossessionStage.Settings, .. GenderStage.Settings, .. ComparisonStage.Settings,
+        .. DegreeStage.Settings, .. SimilativeStage.Settings,
     ];
 
     /// <summary>The setting a spec names this way, or null if there's none.</summary>
@@ -196,6 +265,15 @@ public static class Settings
     /// <summary>The setting for whether a language has a case, oblique or vocative.</summary>
     public static Setting<CaseSystem, bool> HasCase(Case @case) => CaseSettings.FirstOrDefault(s => s.Name == $"{@case.Name.ToLowerInvariant()}-case")
         ?? throw new ArgumentException($"{@case.Name} has no setting: core cases follow the alignment.");
+
+    /// <summary>The setting for how a modality is marked.</summary>
+    public static Setting<Modals, ModalKind> ModalOf(Modality modality) => ModalMarkers[ModalityMap.Modalities.ToList().IndexOf(modality) is var i and >= 0
+        ? i : throw new ArgumentException($"{modality.Name} isn't a modality on the map.")];
+
+    /// <summary>The setting for an edge of the modality map.</summary>
+    public static Setting<Modals, bool> ModalityEdge(Modality first, Modality second) =>
+        ModalityEdges[ModalityMap.Edges.Select(e => (e.First, e.Second)).ToList().IndexOf((first, second)) is var i and >= 0
+            ? i : throw new ArgumentException($"The modality map has no edge from {first.Name} to {second.Name}.")];
 
     /// <summary>The setting for how a configuration is marked.</summary>
     public static Setting<ConfigurationPlan, ConfigurationStrategy> MarkerOf(Configuration configuration) => configuration == Configuration.At

@@ -185,10 +185,11 @@ public enum ConfigurationStrategy
 /// <summary>The edges of the configuration map a language joins, and the regions that leaves it.</summary>
 public record ConfigurationRegions(IReadOnlyList<(Configuration First, Configuration Second)> Joined)
 {
-    //worked out once for the edges they're from, which a with expression can replace
-    private (IReadOnlyList<(Configuration, Configuration)> From, IReadOnlyList<ConfigurationRegion> Regions)? regions;
+    //worked out once for each set of joined edges there is, since searching for regions that meet
+    //a spec's conditions asks for the same ones many times over
+    private static readonly SemanticMap.RegionCache<Configuration, ConfigurationRegion> Cache = new(ConfigurationMap.Edges, ConfigurationMap.Regions);
 
-    public IReadOnlyList<ConfigurationRegion> Regions => regions is { } r && r.From == Joined ? r.Regions : (regions = (Joined, ConfigurationMap.Regions(Joined))).Value.Regions;
+    public IReadOnlyList<ConfigurationRegion> Regions => Cache.Regions(Joined);
 }
 
 /// <summary>A spatial adposition before its word is coined: just the case it governs.</summary>

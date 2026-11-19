@@ -31,21 +31,24 @@ public static partial class Generator
                 _ => strategy,
             };
         }
-        ExponentPosition[] positions = strategy switch
-        {
-            NegationStrategy.ParticleBefore => [ExponentPosition.PrecedingParticle],
-            NegationStrategy.ParticleAfter => [ExponentPosition.FollowingParticle],
-            NegationStrategy.Prefix => [ExponentPosition.Prefix],
-            NegationStrategy.Suffix => [ExponentPosition.Suffix],
-            NegationStrategy.Double => [ExponentPosition.PrecedingParticle, ExponentPosition.FollowingParticle],
-            _ => throw new ArgumentOutOfRangeException(nameof(strategy), strategy, null),
-        };
+        var positions = NegationPositions(strategy);
 
         Morpheme Marker(ExponentPosition position) => position is ExponentPosition.Prefix or ExponentPosition.Suffix
             ? new Affix(MarkerForm(rand, true, phonology), grammemes)
             : new Particle(MarkerForm(rand, false, phonology), grammemes);
         return new Negation(strategy, [.. positions.Select(p => (p, Marker(p)))]);
     }
+
+    /// <summary>Where each of a negation strategy's markers goes.</summary>
+    public static IReadOnlyList<ExponentPosition> NegationPositions(NegationStrategy strategy) => strategy switch
+    {
+        NegationStrategy.ParticleBefore => [ExponentPosition.PrecedingParticle],
+        NegationStrategy.ParticleAfter => [ExponentPosition.FollowingParticle],
+        NegationStrategy.Prefix => [ExponentPosition.Prefix],
+        NegationStrategy.Suffix => [ExponentPosition.Suffix],
+        NegationStrategy.Double => [ExponentPosition.PrecedingParticle, ExponentPosition.FollowingParticle],
+        _ => throw new ArgumentOutOfRangeException(nameof(strategy), strategy, null),
+    };
 
     //a frequent, short morpheme: a syllable, or for an affix sometimes just a consonant, the way the
     //generator makes other affixes

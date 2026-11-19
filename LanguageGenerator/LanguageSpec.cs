@@ -52,11 +52,11 @@ public sealed class LanguageSpec
     /// What makes this spec impossible to meet: a value a setting can't have, or settings that
     /// contradict each other. Empty if it can be met.
     /// </summary>
-    public IReadOnlyList<string> Problems()
-    {
-        List<string> values = [.. allowed.SelectMany(a => a.Value.Select(a.Key.Problem).OfType<string>().Select(problem => $"{a.Key.Name}: {problem}"))];
-        return values.Count > 0 ? values : SpecRules.Close(this).Problems;
-    }
+    public IReadOnlyList<string> Problems() => ValueProblems() is [_, ..] values ? values : SpecRules.Close(this).Problems;
+
+    /// <summary>The values this spec gives that their settings can't have, before any rule is applied.</summary>
+    public IReadOnlyList<string> ValueProblems() =>
+        [.. allowed.SelectMany(a => a.Value.Select(a.Key.Problem).OfType<string>().Select(problem => $"{a.Key.Name}: {problem}"))];
 
     /// <summary>What a spec can meet but probably shouldn't, as an inventory too small to keep words apart.</summary>
     public IReadOnlyList<string> Warnings() =>

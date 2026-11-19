@@ -6,13 +6,6 @@ public static partial class Generator
     //WALS 74A: situational possibility by an affix on the verb in 63 languages, a verb in 158, and
     //something else in 13, mostly particles but also adverbs, adjectives and nouns, all of which are
     //made a particle here. WALS doesn't count necessity, so it's drawn the same way
-    private enum ModalKind
-    {
-        Affix,
-        Verb,
-        Particle,
-    }
-
     private static readonly (ModalKind Value, int Languages)[] ModalCounts =
         [(ModalKind.Affix, 63), (ModalKind.Verb, 158), (ModalKind.Particle, 13)];
 
@@ -33,7 +26,8 @@ public static partial class Generator
         }
 
         var markers = new Dictionary<Modality, ModalMarking>();
-        foreach (var region in SemanticMap.Regions(ModalityMap.Modalities, SemanticMap.Joined(rand, ModalityMap.Edges)))
+        var joined = SemanticMap.Joined(rand, ModalityMap.Edges);
+        foreach (var region in SemanticMap.Regions(ModalityMap.Modalities, joined))
         {
             var kind = Sampling.Categorical(rand, ModalCounts);
             if (kind == ModalKind.Affix && morphology.Fusion == Fusion.Isolating)
@@ -57,6 +51,6 @@ public static partial class Generator
                 };
             }
         }
-        return new Modals(markers);
+        return new Modals(joined, markers);
     }
 }

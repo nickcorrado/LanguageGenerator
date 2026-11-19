@@ -10,11 +10,13 @@ public static partial class Generator
     //settings is drawn to match the spec, which fixes nothing for LanguageSpec.Free
     public static Language Generate(int seed, LanguageSpec spec)
     {
-        if (spec.Problems() is [_, ..] problems)
+        //the rules are applied once, for checking the spec and drawing to meet it alike
+        var implied = spec.ValueProblems() is [_, ..] values ? throw new SpecException(string.Join(Environment.NewLine, values)) : SpecRules.Close(spec);
+        if (implied.Problems is [_, ..] problems)
         {
             throw new SpecException(string.Join(Environment.NewLine, problems));
         }
-        var stages = new Stages(seed, SpecRules.Close(spec));
+        var stages = new Stages(seed, implied);
         var syllableDropoff = stages.Draw(Settings.DropoffStage, _ => new Dropoff(0.15));
 
         var vowels = stages.Draw(Settings.VowelStage, rand => GenerateVowels(rand));
@@ -58,28 +60,28 @@ public static partial class Generator
             GenerateNounParadigm(stages.For("noun paradigm"), morphology, wordOrder, alignment, cases, configurations.Localizations, phonology),
             GenerateVerbParadigm(stages.For("verb paradigm"), morphology, wordOrder, phonology));
         var pronouns = GeneratePronouns(stages.For("pronouns"), paradigms, morphology, wordOrder, phonology);
-        var negation = GenerateNegation(stages.For("negation"), morphology, phonology);
+        var negation = stages.Draw(Settings.NegationStage, rand => GenerateNegation(rand, morphology, phonology));
         var predication = GenerateLocationalPredication(stages.For("locational copula"),
             GeneratePredication(stages.For("predication"), phonology), phonology);
         var adjectiveAgreement = SelectAdjectiveAgreement(stages.For("adjective agreement"), predication);
-        var genders = GenerateGenders(stages.For("genders"), morphology, paradigms, phonology);
+        var genders = stages.Draw(Settings.GenderStage, rand => GenerateGenders(rand, morphology, paradigms, phonology));
         var adpositions = GenerateAdpositions(stages.For("adpositions"), regions, cases, phonology);
         var duration = GenerateDuration(stages.For("duration"), adpositions, phonology);
         var roleMarkers = SelectRoleMarkers(stages.For("adposition government"), alignment, cases, regions, wordOrder, adpositions, duration);
         var numerals = GenerateNumerals(stages.For("numerals"), morphology, phonology);
         var articles = GenerateArticles(stages.For("articles"), morphology, genders, numerals, phonology);
-        var possession = GeneratePossession(stages.For("possession"), morphology, wordOrder, phonology);
+        var possession = stages.Draw(Settings.PossessionStage, rand => GeneratePossession(rand, morphology, wordOrder, phonology));
         var commands = GenerateCommands(stages.For("commands"), morphology, wordOrder, phonology);
-        var comparison = GenerateComparison(stages.For("comparison"), wordOrder, phonology);
-        var degree = GenerateDegree(stages.For("degree"), comparison, morphology, wordOrder, phonology);
+        var comparison = stages.Draw(Settings.ComparisonStage, rand => GenerateComparison(rand, wordOrder, phonology));
+        var degree = stages.Draw(Settings.DegreeStage, rand => GenerateDegree(rand, comparison, morphology, wordOrder, phonology));
         var intensifier = GenerateIntensifier(stages.For("intensifier"), degree, wordOrder, phonology);
         var manner = GenerateManner(stages.For("manner"), morphology, phonology);
-        var similative = GenerateSimilative(stages.For("similative"), comparison, morphology, wordOrder, phonology);
-        var passive = GeneratePassive(stages.For("passive"), alignment, morphology, phonology);
+        var similative = stages.Draw(Settings.SimilativeStage, rand => GenerateSimilative(rand, comparison, morphology, wordOrder, phonology));
+        var passive = stages.Draw(Settings.PassiveStage, rand => GeneratePassive(rand, alignment, morphology, phonology));
         var conjunctions = GenerateConjunctions(stages.For("conjunctions"), phonology);
         var subordination = GenerateSubordination(stages.For("subordination"), morphology, wordOrder, phonology);
-        var modals = GenerateModals(stages.For("modals"), morphology, wordOrder, predication, phonology);
-        var questions = GenerateQuestions(stages.For("questions"), morphology, wordOrder, phonology);
+        var modals = stages.Draw(Settings.ModalStage, rand => GenerateModals(rand, morphology, wordOrder, predication, phonology));
+        var questions = stages.Draw(Settings.QuestionStage, rand => GenerateQuestions(rand, morphology, wordOrder, phonology));
 
         //the lexicon comes last, once there are closed classes for it to avoid
         var lexiconSeed = stages.For("lexicon").Next();

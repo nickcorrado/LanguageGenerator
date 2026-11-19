@@ -84,6 +84,11 @@ public static class SpecRules
         .. Settings.ConfigurationMarkers.Append(Settings.ConfigurationMarking).Select(marker => SpecRule.Together(Settings.Fusion, marker,
             (fusion, strategy) => strategy != ConfigurationStrategy.Case || fusion != Fusion.Isolating,
             $"{marker.Name} can only be Case where nouns inflect, so fusion can't be Isolating.")),
+        //a configuration can only be marked in a way some arrangement of the map's edges allows,
+        //given the spec's other markers and edges: against, which reaches at only through on, can't
+        //be said like at where on has a marker of its own. Narrowing it to what's left lets the rules
+        //for spatial cases see a case the spec only implies
+        new SpecRule.Narrowing("No arrangement of the configuration map's edges fits the markers the spec fixes.", NarrowMarkersToTheMap),
         SpecRule.On(Settings.RoleRegionStage, spec => NeedsSpatialCase(spec)
             ? [new Condition<RoleRegions>(Settings.RoleRegionStage, "A spatial case needs a case on the location's region, and the spec rules out the case it would have.",
                 (regions, _) => spec.Allowed(Settings.HasCase(LocationCase(regions.Regions))) is not [false], null)]
@@ -93,6 +98,51 @@ public static class SpecRules
                 (system, _) => system.Cases.Contains(LocationCase(system.Regions)),
                 system => system with { Cases = CaseSystem.Ordered([.. system.Cases, LocationCase(system.Regions)]) })]
             : []),
+
+        //an isolating language has no affixes, so it marks with words what another might with affixes
+        SpecRule.Together(Settings.Fusion, Settings.Negation,
+            (fusion, negation) => fusion != Fusion.Isolating || negation is not (NegationStrategy.Prefix or NegationStrategy.Suffix),
+            "Negation can only be a prefix or suffix where words take affixes, so fusion can't be Isolating."),
+        SpecRule.Together(Settings.Fusion, Settings.PolarQuestions,
+            (fusion, polar) => fusion != Fusion.Isolating || polar is not (PolarQuestion.Prefix or PolarQuestion.Suffix),
+            "Polar questions can only be marked by a prefix or suffix where words take affixes, so fusion can't be Isolating."),
+        SpecRule.Together(Settings.Fusion, Settings.PossessiveMarking,
+            (fusion, marking) => fusion != Fusion.Isolating || marking is not (PossessiveMarking.Head or PossessiveMarking.Double),
+            "Possession can only be marked on the possessed noun where words take affixes, so fusion can't be Isolating."),
+        SpecRule.Together(Settings.Fusion, Settings.Comparative,
+            (fusion, kind) => fusion != Fusion.Isolating || kind != MarkerKind.Affix,
+            "A comparative can only be an affix where words take affixes, so fusion can't be Isolating."),
+        SpecRule.Together(Settings.Fusion, Settings.Similative,
+            (fusion, kind) => fusion != Fusion.Isolating || kind != MarkerKind.Affix,
+            "A similative can only be an affix where words take affixes, so fusion can't be Isolating."),
+        .. Settings.ModalMarkers.Select(marker => SpecRule.Together(Settings.Fusion, marker,
+            (fusion, kind) => fusion != Fusion.Isolating || kind != ModalKind.Affix,
+            $"{marker.Name} can only be an affix where words take affixes, so fusion can't be Isolating.")),
+        //modalities joined by an edge share a marker, so an edge fixed joined narrows them to the
+        //kinds they can share, and two that can't share one can't be joined
+        .. ModalityMap.Edges.Select(e => (e.First, e.Second)).Select(edge => new SpecRule.Narrowing(
+            $"Modalities joined by an edge share a marker, so {edge.First.Name.ToLowerInvariant()} and {edge.Second.Name.ToLowerInvariant()} can't be joined when they're marked differently.",
+            spec =>
+            {
+                var (first, second, joined) = (Settings.ModalOf(edge.First), Settings.ModalOf(edge.Second), Settings.ModalityEdge(edge.First, edge.Second));
+                var firsts = spec.Allowed(first) ?? first.AllValues!;
+                var seconds = spec.Allowed(second) ?? second.AllValues!;
+                List<object> shared = [.. firsts.Intersect(seconds)];
+                if (spec.Allowed(joined) is [true])
+                {
+                    if (shared.Count == 0)
+                    {
+                        return null;
+                    }
+                    var narrowed = shared.Count < firsts.Count ? spec.With(first, shared) : spec;
+                    return shared.Count < seconds.Count ? narrowed.With(second, shared) : narrowed;
+                }
+                return shared.Count == 0 && spec.Allowed(joined) is null or [_, _] ? spec.With(joined, [false]) : spec;
+            })),
+        //only an affix on the possessed noun has a side
+        SpecRule.Together(Settings.PossessiveMarking, Settings.PossessiveAffixes,
+            (marking, position) => position == ExponentPosition.Suffix || marking is PossessiveMarking.Head or PossessiveMarking.Double,
+            "Possessive affixes can only be prefixes where possession is marked on the possessed noun: Head or Double."),
 
         //a configuration's marker belongs to its region, and a region with At in it has none
         SpecRule.On(Settings.ConfigurationRegionStage, ConfigurationConditions),
@@ -134,6 +184,30 @@ public static class SpecRules
     //whether the spec has some configuration marked by a localization, or prefers them
     private static bool NeedsSpatialCase(LanguageSpec spec) =>
         Settings.ConfigurationMarkers.Append(Settings.ConfigurationMarking).Any(s => spec.Allowed(s) is [ConfigurationStrategy.Case]);
+
+    //each value a marker allows is tried with every arrangement of the map's edges, assuming the
+    //best of the stages before them, as a spec is checked. A spec fixing nothing about the map has
+    //nothing to narrow, which keeps checking it quick. It never refuses a spec itself
+    private static LanguageSpec? NarrowMarkersToTheMap(LanguageSpec spec)
+    {
+        if (!Settings.ConfigurationMarkers.Concat<ISetting>(Settings.ConfigurationEdges).Any(s => spec.Allowed(s) is not null))
+        {
+            return spec;
+        }
+        static bool Fits(LanguageSpec spec) => Settings.ConfigurationRegionStage.Unmet(spec, [.. ConfigurationConditions(spec)]) is null;
+        var narrowed = spec;
+        foreach (var marker in Settings.ConfigurationMarkers)
+        {
+            var allowed = narrowed.Allowed(marker) ?? marker.AllValues!;
+            List<object> possible = [.. allowed.Where(value => Fits(narrowed.With(marker, [value])))];
+            //where no value fits, the conditions on the map refuse the spec, saying why
+            if (possible.Count > 0 && possible.Count < allowed.Count)
+            {
+                narrowed = narrowed.With(marker, possible);
+            }
+        }
+        return narrowed;
+    }
 
     private static Case LocationCase(IReadOnlyList<RoleRegion> regions) => regions.First(r => r.Contains(Role.Location)).Case!;
 

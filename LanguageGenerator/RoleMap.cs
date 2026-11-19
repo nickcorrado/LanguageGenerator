@@ -24,10 +24,11 @@ public record RoleRegion(IReadOnlyList<Role> Roles)
 /// <summary>The edges of the role map a language joins, and the regions that leaves it.</summary>
 public record RoleRegions(IReadOnlyList<(Role First, Role Second)> Joined)
 {
-    //worked out once for the edges they're from, which a with expression can replace
-    private (IReadOnlyList<(Role, Role)> From, IReadOnlyList<RoleRegion> Regions)? regions;
+    //worked out once for each set of joined edges there is, since searching for regions that meet
+    //a spec's conditions asks for the same ones many times over
+    private static readonly SemanticMap.RegionCache<Role, RoleRegion> Cache = new(RoleMap.Edges, RoleMap.Regions);
 
-    public IReadOnlyList<RoleRegion> Regions => regions is { } r && r.From == Joined ? r.Regions : (regions = (Joined, RoleMap.Regions(Joined))).Value.Regions;
+    public IReadOnlyList<RoleRegion> Regions => Cache.Regions(Joined);
 }
 
 /// <summary>
