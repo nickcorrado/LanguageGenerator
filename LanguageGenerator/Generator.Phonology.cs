@@ -378,6 +378,15 @@ public static partial class Generator
             .Select(x => x.Vowel)];
     }
 
+    //where a sound comes in the ranking an inventory is ordered by, before the jitter: where a sound
+    //written into an inventory goes. Long vowels come after every short one, as they're drawn
+    internal static int Rank(Phoneme phoneme) => phoneme switch
+    {
+        Vowel { Long: true } vowel => VowelMarkedness.Length + Array.FindIndex(VowelMarkedness, v => v.Lengthened == vowel),
+        Vowel vowel => Array.IndexOf(VowelMarkedness, vowel),
+        Consonant consonant => Array.IndexOf(ConsonantMarkedness, consonant),
+    };
+
     //short vowels from commonest to rarest across languages, roughly as PHOIBLE counts them
     private static readonly Vowel[] VowelMarkedness = [Vowel.a, Vowel.i, Vowel.u, Vowel.e, Vowel.o, Vowel.ə, Vowel.ɛ, Vowel.ɔ, Vowel.ɨ, Vowel.æ];
 

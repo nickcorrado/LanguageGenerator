@@ -153,7 +153,7 @@ public sealed class PhonemeList<T>(IReadOnlyList<T> all) : ISettingValues<IReadO
     {
         if (json.ValueKind != JsonValueKind.Array)
         {
-            throw new SpecException($"{setting} is an array of IPA symbols, commonest first, as in [\"{all[0].IpaSymbol}\", \"{all[1].IpaSymbol}\"].");
+            throw new SpecException($"{setting} is an array of IPA symbols, commonest first, as in [\"{all[0].IpaSymbol}\", \"{all[1].IpaSymbol}\"], or the sounds it requires and forbids, as in {{ \"require\": [\"{all[0].IpaSymbol}\"], \"forbid\": [\"{all[1].IpaSymbol}\"] }}.");
         }
         List<T> phonemes = [];
         foreach (var element in json.EnumerateArray())
@@ -173,6 +173,55 @@ public sealed class PhonemeList<T>(IReadOnlyList<T> all) : ISettingValues<IReadO
         : null;
 
     public bool Same(IReadOnlyList<T> a, IReadOnlyList<T> b) => a.SequenceEqual(b);
+}
+
+/// <summary>
+/// A whole number from one up to a most, as how many sounds an inventory has. A spec gives one, an
+/// array of those it allows, or a range, as { "min": 5, "max": 7 }.
+/// </summary>
+public sealed class Count(int most) : ISettingValues<int>
+{
+    public IReadOnlyList<string> Names { get; } = [.. Enumerable.Range(1, most).Select(n => n.ToString())];
+    public IReadOnlyList<int> All { get; } = [.. Enumerable.Range(1, most)];
+
+    public IReadOnlyList<int> Parse(JsonElement json, string setting)
+    {
+        int One(JsonElement element) => element.ValueKind == JsonValueKind.Number && element.TryGetInt32(out var n) ? n
+            : throw new SpecException($"{setting} is a whole number, an array of them, or {{ \"min\": ..., \"max\": ... }}, not {element}.");
+        List<int> allowed = json.ValueKind switch
+        {
+            JsonValueKind.Array => [.. json.EnumerateArray().Select(One).Distinct()],
+            JsonValueKind.Object => Range(json, setting, One),
+            _ => [One(json)],
+        };
+        return allowed.Count > 0 ? allowed : throw new SpecException($"{setting} allows nothing: leave it out to leave it free.");
+    }
+
+    //a range keeps to the numbers there are, so a max past the most just means any number from the min
+    private List<int> Range(JsonElement json, string setting, Func<JsonElement, int> one)
+    {
+        var (min, max) = (1, most);
+        foreach (var bound in json.EnumerateObject())
+        {
+            _ = bound.Name switch
+            {
+                "min" => min = Math.Max(1, one(bound.Value)),
+                "max" => max = Math.Min(most, one(bound.Value)),
+                _ => throw new SpecException($"{setting} takes \"min\" and \"max\", not \"{bound.Name}\"."),
+            };
+        }
+        return [.. Enumerable.Range(min, Math.Max(0, max - min + 1))];
+    }
+
+    //written as a range where the numbers run on without a gap
+    public object? Format(IReadOnlyList<int> allowed) =>
+        allowed.Count == 1 ? allowed[0]
+        : allowed.Count > 2 && allowed.Order().SequenceEqual(Enumerable.Range(allowed.Min(), allowed.Count)) ? new Dictionary<string, int> { ["min"] = allowed.Min(), ["max"] = allowed.Max() }
+        : allowed.ToList();
+
+    public string? Problem(int value) => value >= 1 && value <= most ? null : $"{value} isn't from 1 to {most}.";
+
+    public bool Same(int a, int b) => a == b;
 }
 
 /// <summary>A number between two bounds, which it can't be.</summary>

@@ -9,6 +9,29 @@ namespace LanguageGenerator;
 /// </summary>
 internal static class SettingWrites
 {
+    //an inventory with a sound added where its rank puts it, or taken away
+    public static IReadOnlyList<T> WithSound<T>(IReadOnlyList<T> inventory, T sound, bool on) where T : Phoneme =>
+        !on ? [.. inventory.Where(p => p != sound)]
+        : inventory.Contains(sound) ? inventory
+        : [.. inventory.TakeWhile(p => Generator.Rank(p) <= Generator.Rank(sound)), sound, .. inventory.SkipWhile(p => Generator.Rank(p) <= Generator.Rank(sound))];
+
+    //an inventory cut to its commonest sounds, or with the commonest of the rest added, as they rank
+    public static IReadOnlyList<T> WithCount<T>(IReadOnlyList<T> inventory, IReadOnlyList<T> all, int count) where T : Phoneme =>
+        inventory.Count >= count ? [.. inventory.Take(count)]
+        : all.Except(inventory).OrderBy(Generator.Rank).Take(count - inventory.Count).Aggregate(inventory, (added, sound) => WithSound(added, sound, true));
+
+    //a language's changes with one added or taken away, kept in the order changes apply
+    public static IReadOnlyList<SoundChange> WithChange(IReadOnlyList<SoundChange> changes, IReadOnlyList<SoundChange> order, SoundChange change, bool on) =>
+        [.. order.Where(c => c == change ? on : changes.Contains(c))];
+
+    //which of a set of changes, at most one of which a language has, it has
+    public static TKind ChangeKindOf<TKind>(IReadOnlyList<SoundChange> changes, IReadOnlyList<(TKind Kind, SoundChange? Change)> kinds) =>
+        kinds.FirstOrDefault(k => k.Change is { } change && changes.Contains(change)) is { Change: not null } found ? found.Kind : kinds.Single(k => k.Change is null).Kind;
+
+    public static IReadOnlyList<SoundChange> WithChangeKind<TKind>(IReadOnlyList<SoundChange> changes, IReadOnlyList<SoundChange> order,
+        IReadOnlyList<(TKind Kind, SoundChange? Change)> kinds, TKind kind) where TKind : notnull =>
+        [.. order.Where(c => kinds.FirstOrDefault(k => k.Change == c) is { Change: not null } k ? k.Kind.Equals(kind) : changes.Contains(c))];
+
     private static InvalidOperationException NoForm(string value) =>
         new($"{value} can't be written in, since what was drawn has no form to reuse, and no draw gave it. A draw gives it at least 4% of the time, so this shouldn't happen.");
 

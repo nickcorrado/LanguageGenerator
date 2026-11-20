@@ -58,8 +58,39 @@ public sealed class Implications(LanguageSpec spec, IReadOnlyList<ICondition> co
 /// <summary>The rules a spec has to keep to, besides each setting's own values.</summary>
 public static class SpecRules
 {
+    //what sound changes need of the inventories, which come before the rules, since they use them
+    private static readonly IReadOnlyList<SoundNeed<Vowel>> VowelNeeds =
+    [
+        SoundNeed<Vowel>.Of(Settings.CompensatoryLengthening, on => on ? HasLong : null, "compensatory-lengthening needs long vowels."),
+        SoundNeed<Vowel>.Of(Settings.OpenSyllableLengthening, on => on ? HasLong : null, "open-syllable-lengthening needs long vowels."),
+        SoundNeed<Vowel>.Of(Settings.UnstressedShortening, on => on ? HasLong : null, "unstressed-shortening needs long vowels."),
+        SoundNeed<Vowel>.Of(Settings.UnstressedVowels, kind => kind switch
+            {
+                UnstressedVowels.Reduction => vowels => vowels.Contains(Vowel.ə),
+                UnstressedVowels.Raising => vowels => vowels.Any(v => v.Height is VowelHeight.CloseMid or VowelHeight.OpenMid) && vowels.Contains(Vowel.i) && vowels.Contains(Vowel.u),
+                _ => null,
+            },
+            "Unstressed reduction needs ə, and unstressed raising a mid vowel besides i and u."),
+        SoundNeed<Vowel>.Of(Settings.VowelHarmony, kind => SoundChange.Harmonies.Single(h => h.Kind == kind).Change is { } harmony ? harmony.CanApplyTo : null,
+            "Vowel harmony needs a pair of vowels it can match: front-back harmony a front vowel and its back partner, like i and u, and tongue-root harmony e and ɛ or o and ɔ."),
+    ];
+
+    private static readonly IReadOnlyList<SoundNeed<Consonant>> ConsonantNeeds =
+    [
+        SoundNeed<Consonant>.Of(Settings.GlideFormation, on => on ? HasGlide : null, "glide-formation needs j or w."),
+        SoundNeed<Consonant>.Of(Settings.HiatusResolution, kind => kind switch
+            {
+                HiatusResolution.GlideInsertion => HasGlide,
+                HiatusResolution.GlottalInsertion => consonants => consonants.Contains(Consonant.ʔ) || consonants.Contains(Consonant.h),
+                _ => null,
+            },
+            "Glide insertion needs j or w, and glottal insertion ʔ or h."),
+    ];
+
     public static IReadOnlyList<SpecRule> All { get; } =
     [
+        .. InventoryRules(Settings.VowelInventory),
+        .. InventoryRules(Settings.ConsonantInventory),
         //a restriction is only ever drawn for a template with a coda, and means nothing without one
         SpecRule.Together(Settings.SyllableTemplate, Settings.CodaRestriction,
             (template, codas) => codas == CodaRestriction.Any || template.Slots.Contains(Slot.Final),
@@ -146,6 +177,27 @@ public static class SpecRules
 
         //a configuration's marker belongs to its region, and a region with At in it has none
         SpecRule.On(Settings.ConfigurationRegionStage, ConfigurationConditions),
+
+        //a change that works on codas needs syllables that have them, and devoicing or weakening a
+        //coda needs one that can be an obstruent
+        .. new[] { Settings.FinalDevoicing, Settings.CodaDevoicing, Settings.CodaWeakening, Settings.CompensatoryLengthening, Settings.ClosedSyllableLaxing, Settings.Syncope }
+            .Select(change => SpecRule.Together(Settings.SyllableTemplate, change, (template, on) => !on || HasCodas(template),
+                $"{change.Name} needs a syllable template with a coda: CVF, CLVF, SCVF or SCLVF.")),
+        .. new[] { Settings.CodaDevoicing, Settings.CodaWeakening }.Select(change => SpecRule.Together(Settings.CodaRestriction, change,
+            (codas, on) => !on || codas == CodaRestriction.Any, $"{change.Name} needs codas that can be any consonant, so coda-restriction must be Any.")),
+        //syllable contact only matters across a coda, and a language repairs only the contacts it restricts
+        SpecRule.Together(Settings.SyllableTemplate, Settings.SyllableContact, (template, contact) => contact == SyllableContact.Any || HasCodas(template),
+            "A syllable contact restriction needs a syllable template with a coda: CVF, CLVF, SCVF or SCLVF."),
+        SpecRule.Together(Settings.SyllableContact, Settings.ContactRepair, (contact, repair) => repair == ContactRepair.None || contact != SyllableContact.Any,
+            "A contact repair needs a syllable contact restriction, so syllable-contact can't be Any."),
+        //and a change needs the sounds it works with
+        .. VowelNeeds.SelectMany(need => NeedRules(need, Settings.VowelInventory)),
+        .. ConsonantNeeds.SelectMany(need => NeedRules(need, Settings.ConsonantInventory)),
+
+        //how many sounds an inventory has, last, so that a count written in keeps every sound the
+        //spec requires and needs
+        .. CountRules(Settings.VowelInventory, VowelNeeds),
+        .. CountRules(Settings.ConsonantInventory, ConsonantNeeds),
     ];
 
     /// <summary>
@@ -187,7 +239,15 @@ public static class SpecRules
 
     //each value a marker allows is tried with every arrangement of the map's edges, assuming the
     //best of the stages before them, as a spec is checked. A spec fixing nothing about the map has
-    //nothing to narrow, which keeps checking it quick. It never refuses a spec itself
+    //nothing to narrow, which keeps checking it quick. It never refuses a spec itself.
+    //
+    //Trying markers one at a time finds every case the map forces, not just those it forces on one
+    //marker: configurations joined by edges the spec fixes share a marker, so a value that fits one
+    //of them fits them all, and an edge left free can always be left unjoined, keeping a group in a
+    //region of its own. A group said like at reaches it only through groups that are said like at
+    //too, which any value that fits has to allow already. So where every marker that allows a case
+    //has some other value that fits, those values all fit together, and no case is needed. Random
+    //specs bear this out. A map with edges that join groups some other way would need checking anew
     private static LanguageSpec? NarrowMarkersToTheMap(LanguageSpec spec)
     {
         if (!Settings.ConfigurationMarkers.Concat<ISetting>(Settings.ConfigurationEdges).Any(s => spec.Allowed(s) is not null))
@@ -207,6 +267,206 @@ public static class SpecRules
             }
         }
         return narrowed;
+    }
+
+    private static bool HasCodas(SyllableTemplate template) => template.Slots.Contains(Slot.Final);
+
+    private static bool HasLong(IReadOnlyCollection<Vowel> vowels) => vowels.Any(v => v.Long);
+
+    private static bool HasGlide(IReadOnlyCollection<Consonant> consonants) => consonants.Contains(Consonant.j) || consonants.Contains(Consonant.w);
+
+    //a setting whose values need certain sounds, given as what each needs, or null for one that needs
+    //none. What a value needs only gets likelier to hold as sounds are added
+    private sealed record SoundNeed<TPhoneme>(ISetting Setting, Func<object, Func<IReadOnlyCollection<TPhoneme>, bool>?> Needs, string Says) where TPhoneme : Phoneme
+    {
+        public static SoundNeed<TPhoneme> Of<T, TValue>(Setting<T, TValue> setting, Func<TValue, Func<IReadOnlyCollection<TPhoneme>, bool>?> needs, string says)
+            where TValue : notnull => new(setting, value => needs((TValue)value), says);
+
+        public bool Allows(object value, IReadOnlyCollection<TPhoneme> phonemes) => Needs(value) is not { } has || has(phonemes);
+
+        /// <summary>What a spec makes an inventory have, where the setting allows only values that need sounds.</summary>
+        public Func<IReadOnlyCollection<TPhoneme>, bool>? In(LanguageSpec spec) =>
+            spec.Allowed(Setting) is { } values && values.All(v => Needs(v) is not null) ? phonemes => values.Any(v => Allows(v, phonemes)) : null;
+    }
+
+    //an inventory can meet a need exactly when every sound the spec doesn't forbid, all together,
+    //does. Where the inventory is fixed exactly, or sounds forbidden, a value no inventory the spec
+    //allows can have is narrowed away, and if every value left needs sounds, exact inventories are
+    //narrowed to those that have them. Where the setting allows only values that need sounds, the
+    //inventory is drawn again until it has the sounds of one of them, and failing that, has the
+    //commonest sounds the spec allows added until it does
+    private static IEnumerable<SpecRule> NeedRules<TPhoneme>(SoundNeed<TPhoneme> need, InventorySettings<TPhoneme> inventory) where TPhoneme : Phoneme
+    {
+        var (setting, says) = (need.Setting, need.Says);
+        bool Allows(object value, IReadOnlyList<TPhoneme> phonemes) => need.Allows(value, phonemes);
+        Func<IReadOnlyCollection<TPhoneme>, bool>? needs(object value) => need.Needs(value);
+        yield return new SpecRule.Narrowing(says, spec =>
+        {
+            var exact = spec.Allowed(inventory.Exact);
+            if (exact is null && inventory.Sounds.All(s => spec.Allowed(s.Has) is not [false]))
+            {
+                return spec;
+            }
+            IReadOnlyList<object> inventories = exact ?? [inventory.Allowed(spec)];
+            var values = spec.Allowed(setting) ?? setting.AllValues!;
+            List<object> kept = [.. values.Where(v => inventories.Any(i => Allows(v, (IReadOnlyList<TPhoneme>)i)))];
+            if (kept.Count == 0)
+            {
+                return null;
+            }
+            var narrowed = kept.Count < values.Count ? spec.With(setting, kept) : spec;
+            if (exact is not null && kept.All(v => needs(v) is not null))
+            {
+                List<object> having = [.. exact.Where(i => kept.Any(v => Allows(v, (IReadOnlyList<TPhoneme>)i)))];
+                narrowed = having.Count < exact.Count ? narrowed.With(inventory.Exact, having) : narrowed;
+            }
+            return narrowed;
+        });
+        yield return SpecRule.On(inventory.Stage, spec => spec.Allowed(setting) is { } values && values.All(v => needs(v) is not null)
+            ? [new Condition<IReadOnlyList<TPhoneme>>(inventory.Stage, says, (phonemes, _) => values.Any(v => Allows(v, phonemes)),
+                phonemes => inventory.Allowed(spec).Aggregate(phonemes, (added, sound) => values.Any(v => Allows(v, added)) ? added : SettingWrites.WithSound(added, sound, true)))]
+            : []);
+    }
+
+    //an inventory needs a sound, and an exact one has to keep to the sounds the spec requires and
+    //forbids, which it then says all there is to say about. Where some sounds are forbidden and none
+    //required, a draw with the forbidden ones taken out could be left with none, so the commonest
+    //sound allowed is put back
+    private static IEnumerable<SpecRule> InventoryRules<T>(InventorySettings<T> inventory) where T : Phoneme
+    {
+        yield return new SpecRule.Narrowing($"An inventory needs at least one sound, so not every {inventory.Noun} can be forbidden.",
+            spec => inventory.Sounds.All(s => spec.Allowed(s.Has) is [false]) ? null : spec);
+        yield return new SpecRule.Narrowing($"An exact list of {inventory.Noun}s can't lack a sound the spec requires or have one it forbids.", spec =>
+        {
+            var fixedSounds = inventory.Sounds.Where(s => spec.Allowed(s.Has) is [bool]).ToList();
+            if (spec.Allowed(inventory.Exact) is not { } exact || fixedSounds.Count == 0)
+            {
+                return spec;
+            }
+            List<object> fitting = [.. exact.Where(i => fixedSounds.All(s => ((IReadOnlyList<T>)i).Contains(s.Sound) == (bool)spec.Allowed(s.Has)![0]))];
+            if (fitting.Count == 0)
+            {
+                return null;
+            }
+            return fixedSounds.Aggregate(fitting.Count < exact.Count ? spec.With(inventory.Exact, fitting) : spec, (narrowed, s) => narrowed.Unfix(s.Has));
+        });
+        yield return SpecRule.On(inventory.Stage, spec => spec.Allowed(inventory.Exact) is null && inventory.Sounds.Any(s => spec.Allowed(s.Has) is [false])
+            && !inventory.Sounds.Any(s => spec.Allowed(s.Has) is [true])
+            ? [new Condition<IReadOnlyList<T>>(inventory.Stage, $"An inventory needs at least one sound.", (sounds, _) => sounds.Count > 0,
+                sounds => [inventory.Allowed(spec)[0]])]
+            : []);
+    }
+
+    //a count has to leave room for the sounds the spec requires and its sound changes need, and can't
+    //be more than the sounds it allows; an exact inventory says what its count is. A count no draw
+    //gives is written in by cutting the rarest sounds the spec and its needs can spare, or adding the
+    //commonest it allows
+    private static IEnumerable<SpecRule> CountRules<T>(InventorySettings<T> inventory, IReadOnlyList<SoundNeed<T>> needs) where T : Phoneme
+    {
+        var name = inventory.Count.Name;
+        yield return new SpecRule.Narrowing($"An exact list of {inventory.Noun}s has to have as many as {name} allows.", spec =>
+        {
+            if (spec.Allowed(inventory.Count) is not { } counts || spec.Allowed(inventory.Exact) is not { } exact)
+            {
+                return spec;
+            }
+            List<object> fitting = [.. exact.Where(i => counts.Contains(((IReadOnlyList<T>)i).Count))];
+            return fitting.Count == 0 ? null : (fitting.Count < exact.Count ? spec.With(inventory.Exact, fitting) : spec).Unfix(inventory.Count);
+        });
+        yield return new SpecRule.Narrowing($"{name} has to leave room for the {inventory.Noun}s the spec requires and its sound changes need, and can't be more than it allows.", spec =>
+        {
+            if (spec.Allowed(inventory.Count) is not { } counts || spec.Allowed(inventory.Exact) is not null
+                || Smallest(inventory, spec, AllNeeds(needs, spec)) is not { } smallest)
+            {
+                return spec;
+            }
+            var most = inventory.Allowed(spec).Count;
+            List<object> kept = [.. counts.Where(c => (int)c >= smallest.Count && (int)c <= most)];
+            return kept.Count == 0 ? null : kept.Count < counts.Count ? spec.With(inventory.Count, kept) : spec;
+        });
+        yield return SpecRule.On(inventory.Stage, spec =>
+        {
+            if (spec.Allowed(inventory.Count) is not { } allowed || spec.Allowed(inventory.Exact) is not null)
+            {
+                return [];
+            }
+            List<int> counts = [.. allowed.Cast<int>()];
+            var (required, sounds, need) = (inventory.Required(spec), inventory.Allowed(spec), AllNeeds(needs, spec));
+            bool Fits(IReadOnlyList<T> drawn) => counts.Contains(drawn.Count) && need(drawn) && required.All(drawn.Contains) && drawn.All(sounds.Contains);
+            return [new Condition<IReadOnlyList<T>>(inventory.Stage, $"{name} is one the spec allows.", (drawn, _) => Fits(drawn),
+                drawn => Fit(drawn, inventory, spec, counts, need))];
+        });
+    }
+
+    //what every need the spec makes of an inventory asks of it
+    private static Func<IReadOnlyCollection<T>, bool> AllNeeds<T>(IReadOnlyList<SoundNeed<T>> needs, LanguageSpec spec) where T : Phoneme
+    {
+        List<Func<IReadOnlyCollection<T>, bool>> active = [.. needs.Select(n => n.In(spec)).OfType<Func<IReadOnlyCollection<T>, bool>>()];
+        return phonemes => active.All(a => a(phonemes));
+    }
+
+    //the fewest sounds the spec allows that keep the ones it requires and meet its needs, commonest
+    //first, or null if even every sound it allows doesn't. The needs ask for a few sounds at most, so
+    //trying the smaller sets first ends quickly
+    private static IReadOnlyList<T>? Smallest<T>(InventorySettings<T> inventory, LanguageSpec spec, Func<IReadOnlyCollection<T>, bool> needs) where T : Phoneme
+    {
+        var required = inventory.Required(spec);
+        List<T> others = [.. inventory.Allowed(spec).Except(required)];
+        if (!needs([.. required, .. others]))
+        {
+            return null;
+        }
+        for (int size = 0; size <= others.Count; size++)
+        {
+            foreach (var chosen in Combinations(others, size))
+            {
+                List<T> candidate = [.. required, .. chosen];
+                if (candidate.Count > 0 && needs(candidate))
+                {
+                    return [.. candidate.OrderBy(Generator.Rank)];
+                }
+            }
+        }
+        return null;
+    }
+
+    private static IEnumerable<IReadOnlyList<T>> Combinations<T>(IReadOnlyList<T> items, int size, int from = 0)
+    {
+        if (size == 0)
+        {
+            yield return [];
+            yield break;
+        }
+        for (int i = from; i <= items.Count - size; i++)
+        {
+            foreach (var rest in Combinations(items, size - 1, i + 1))
+            {
+                yield return [items[i], .. rest];
+            }
+        }
+    }
+
+    //an inventory brought to a count the spec allows, the nearest to what it has, keeping the sounds
+    //the spec requires and meeting its needs: the rarest sounds it can spare are cut, and the
+    //commonest it allows added. Cutting one at a time can leave more than the count where a need
+    //has two ways to be met, as ə or else a mid vowel with i and u, so then it starts over from the
+    //fewest sounds that meet it
+    private static IReadOnlyList<T> Fit<T>(IReadOnlyList<T> drawn, InventorySettings<T> inventory, LanguageSpec spec, IReadOnlyList<int> counts, Func<IReadOnlyCollection<T>, bool> needs)
+        where T : Phoneme
+    {
+        var (required, sounds) = (inventory.Required(spec), inventory.Allowed(spec));
+        IReadOnlyList<T> result = required.Aggregate((IReadOnlyList<T>)[.. drawn.Where(sounds.Contains)], (added, sound) => SettingWrites.WithSound(added, sound, true));
+        result = sounds.Aggregate(result, (added, sound) => needs(added) ? added : SettingWrites.WithSound(added, sound, true));
+        var target = counts.MinBy(c => Math.Abs(c - result.Count));
+        while (result.Count > target && result.LastOrDefault(s => !required.Contains(s) && needs([.. result.Where(r => r != s)])) is { } spare)
+        {
+            result = [.. result.Where(r => r != spare)];
+        }
+        if (result.Count > target)
+        {
+            result = Smallest(inventory, spec, needs)!;
+        }
+        return sounds.Aggregate(result, (added, sound) => added.Count >= target ? added : SettingWrites.WithSound(added, sound, true));
     }
 
     private static Case LocationCase(IReadOnlyList<RoleRegion> regions) => regions.First(r => r.Contains(Role.Location)).Case!;

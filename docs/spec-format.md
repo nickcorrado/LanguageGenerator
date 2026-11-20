@@ -35,6 +35,8 @@ Configuration is partly for languages the odds would never give, so a value no d
 Rules keep a value written in from contradicting what was drawn before it: a spatial case needs morphology that isn't isolating, so fixing one draws the morphology from the rest. The same rules refuse a spec that contradicts itself, before anything is generated, with the reason:
 
 - A coda restriction needs a syllable template with a coda.
+- A sound change that works on codas, like final devoicing or syncope, needs a template with a coda, and devoicing or weakening a coda needs a coda that can be any consonant. A syllable contact restriction needs a template with a coda, and a contact repair needs a restriction.
+- A sound change needs the sounds it works with: unstressed reduction needs ə, unstressed raising a mid vowel besides i and u, harmony a pair of vowels it can match, the changes of length long vowels, glide formation and glide insertion j or w, and glottal insertion ʔ or h. Where the inventory is free, it's drawn with them.
 - Obliques can only go between the object and the verb where the object comes first.
 - An oblique case needs its role to head its region: a dative can't be fixed along with the edge joining recipients to possessors, since the genitive would mark them both.
 - A configuration marked by case needs nouns that inflect, and a case on the location's region.
@@ -42,7 +44,8 @@ Rules keep a value written in from contradicting what was drawn before it: a spa
 - An isolating language has no affixes, so negation and polar questions can't be a prefix or suffix, possession can't be marked on the possessed noun, and a comparative, similative or modal can't be an affix.
 - Modalities joined by an edge share a marker, so two marked differently can't be joined.
 - Possessive affixes can only be prefixes where possession is marked on the possessed noun.
-- An inventory needs at least one sound, and each sound once.
+- An inventory needs at least one sound, and each sound once, so not every vowel or every consonant can be forbidden.
+- A count has to leave room for the sounds the spec requires and its sound changes need, can't be more than the sounds it doesn't forbid, and has to match an exact inventory.
 - The dropoff is between 0 and 1.
 
 A setting that does nothing in the language is accepted, like affixation in an isolating language, whose markers are all words of their own.
@@ -55,6 +58,16 @@ A spec and a seed give the same language only on the same version of the generat
 
 A fixed inventory needn't look like a real one: z without s, which a drawn inventory never has, is fine. With six consonants or fewer, or two vowels or fewer, the command line warns that many more words will sound alike than usual.
 
+An inventory can instead give just the sounds it requires and forbids, and the rest are drawn as usual:
+
+```json
+"consonants": { "require": ["θ", "q"], "forbid": ["h"] }
+```
+
+The inventory is drawn again until it has every required sound and none forbidden, so the sounds left free are drawn given them: requiring z makes s all but certain, since z comes with s. Where no draw has them all, as for forbidding a, which every drawn vowel system has, the closest draw has the rest written in: a required sound goes where it would usually rank, and a forbidden one is taken out. That takes the generator's whole limit of draws, about half a second for each inventory.
+
+`vowel-count` and `consonant-count` say how many sounds an inventory has: a number, an array of the numbers allowed, or a range, as `{ "min": 18, "max": 24 }`, either end of which can be left out. A count no draw gives is written in by cutting the rarest sounds or adding the commonest, keeping every sound the spec requires and every sound its sound changes need.
+
 The symbols are the generator's 53 phonemes, given exactly, so `ʦ` and not `ts`, and `aː` with the length mark and not a colon. Long vowels are sounds of their own:
 
 - Vowels: a e i æ ɛ ə ɨ ɔ o u iː eː aː oː uː
@@ -64,12 +77,20 @@ The symbols are the generator's 53 phonemes, given exactly, so `ʦ` and not `ts`
 
 | Setting | Values |
 | --- | --- |
-| `vowels`, `consonants` | An array of IPA symbols, commonest first |
+| `vowels`, `consonants` | An array of IPA symbols, commonest first, or `{ "require": [...], "forbid": [...] }` |
+| `vowel-count`, `consonant-count` | A number of sounds from 1 to 15 vowels or 38 consonants, an array of them, or `{ "min": ..., "max": ... }` |
 | `dropoff` | A number between 0 and 1; 0.15 if free |
 | `syllable-template` | `CV`, `CVF`, `CLV`, `CLVF`, `SCV`, `SCVF`, `SCLVF`, where C is a consonant, V a vowel, F a final consonant, L a liquid or glide after the first consonant and S a sibilant before it |
 | `coda-restriction` | `Any`, `Sonorants`, `Nasals`, `SingleNasal` |
 | `stress` | `Initial`, `Second`, `Third`, `Antepenultimate`, `Penultimate`, `Ultimate`, `UltimateIfHeavy`, `PenultimateIfHeavy`, `InitialIfHeavy`, `LastHeavy` |
 | `cluster-repair` | `Epenthesis`, `Deletion` |
+| `syllable-contact` | `Any`, `NoSteepRise`, `NoRise`, what may meet across a syllable boundary |
+| `nasal-assimilation`, `degemination`, `intervocalic-voicing`, `lenition`, `voicing-assimilation`, `final-devoicing`, `glide-formation` | `true` if the language has the sound change |
+| `vowel-harmony` | `None`, `FrontBack`, `TongueRoot` |
+| `hiatus-resolution` | `None`, `VowelElision`, `VowelCoalescence`, `GreekContraction`, `GlideInsertion`, `GlottalInsertion`, for vowels that meet where morphemes do |
+| `coda-devoicing`, `coda-weakening`, `compensatory-lengthening`, `closed-syllable-laxing`, `open-syllable-lengthening`, `unstressed-shortening`, `syncope` | `true` if the language has the change, which applies once words have syllables |
+| `unstressed-vowels` | `None`, `Reduction`, `Raising`, what happens to vowels without the stress |
+| `contact-repair` | `None`, `CodaAssimilation`, `OnsetHardening`, `CodaNasalization` |
 | `constituent-order` | `SOV`, `SVO`, `VSO`, `VOS`, `OVS`, `OSV` |
 | `adpositions` | `Prepositions`, `Postpositions` |
 | `adjective-order` | `NounAdjective`, `AdjectiveNoun` |

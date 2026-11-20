@@ -1,5 +1,41 @@
 namespace LanguageGenerator;
 
+/// <summary>Which harmony, if any, a language's vowels follow.</summary>
+public enum VowelHarmony
+{
+    None,
+    FrontBack,
+    TongueRoot,
+}
+
+/// <summary>What a language mostly does where two vowels meet at a morpheme boundary.</summary>
+public enum HiatusResolution
+{
+    None,
+    VowelElision,
+    VowelCoalescence,
+    GreekContraction,
+    GlideInsertion,
+    GlottalInsertion,
+}
+
+/// <summary>What happens to vowels without the stress.</summary>
+public enum UnstressedVowels
+{
+    None,
+    Reduction,
+    Raising,
+}
+
+/// <summary>How a language repairs the syllable contacts its affixes and sound changes make.</summary>
+public enum ContactRepair
+{
+    None,
+    CodaAssimilation,
+    OnsetHardening,
+    CodaNasalization,
+}
+
 /// <summary>Which part of a syllable a sound is.</summary>
 public enum SyllablePosition
 {
@@ -453,4 +489,39 @@ public sealed class SoundChange(string name, Func<Site, bool> when, Func<Site, P
         return phonology.Vowels.Where(v => v != Vowel.ə)
             .MinBy(v => (v.Rounded != rounded, Math.Abs((int)v.Height - height), !v.Long, v == Vowel.ɨ))!;
     }
+
+    //these come after the changes they list, since static properties are set in the order they're written
+
+    /// <summary>Every change a language's sound changes can have, in the order they apply.</summary>
+    public static IReadOnlyList<SoundChange> SoundChangeOrder { get; } =
+    [
+        NasalAssimilation, Degemination, IntervocalicVoicing, Lenition, VoicingAssimilation, FinalDevoicing, FrontBackHarmony, TongueRootHarmony,
+        IdenticalVowelFusion, GlideFormation, VowelElision, VowelCoalescence, GreekContraction, GlideInsertion, GlottalInsertion,
+    ];
+
+    /// <summary>Every change a language's syllable changes can have, in the order they apply.</summary>
+    public static IReadOnlyList<SoundChange> SyllableChangeOrder { get; } =
+    [
+        CodaDevoicing, CodaWeakening, CompensatoryLengthening, ClosedSyllableLaxing, OpenSyllableLengthening, UnstressedShortening, Syncope,
+        UnstressedReduction, UnstressedRaising, CodaAssimilation, OnsetHardening, CodaNasalization,
+    ];
+
+    /// <summary>The change for each kind of harmony, of which a language has one at most.</summary>
+    public static IReadOnlyList<(VowelHarmony Kind, SoundChange? Change)> Harmonies { get; } =
+        [(VowelHarmony.None, null), (VowelHarmony.FrontBack, FrontBackHarmony), (VowelHarmony.TongueRoot, TongueRootHarmony)];
+
+    public static IReadOnlyList<(HiatusResolution Kind, SoundChange? Change)> HiatusResolutions { get; } =
+    [
+        (HiatusResolution.None, null), (HiatusResolution.VowelElision, VowelElision), (HiatusResolution.VowelCoalescence, VowelCoalescence),
+        (HiatusResolution.GreekContraction, GreekContraction), (HiatusResolution.GlideInsertion, GlideInsertion), (HiatusResolution.GlottalInsertion, GlottalInsertion),
+    ];
+
+    public static IReadOnlyList<(UnstressedVowels Kind, SoundChange? Change)> UnstressedChanges { get; } =
+        [(UnstressedVowels.None, null), (UnstressedVowels.Reduction, UnstressedReduction), (UnstressedVowels.Raising, UnstressedRaising)];
+
+    public static IReadOnlyList<(ContactRepair Kind, SoundChange? Change)> ContactRepairs { get; } =
+    [
+        (ContactRepair.None, null), (ContactRepair.CodaAssimilation, CodaAssimilation), (ContactRepair.OnsetHardening, OnsetHardening),
+        (ContactRepair.CodaNasalization, CodaNasalization),
+    ];
 }

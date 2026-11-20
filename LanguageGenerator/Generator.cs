@@ -23,14 +23,14 @@ public static partial class Generator
         var consonants = stages.Draw(Settings.ConsonantStage, rand => GenerateConsonants(rand));
         var shape = stages.Draw(Settings.SyllableStage, SelectSyllableShape);
         var syllableRule = new SyllableRule(shape.Template, vowels, consonants, shape.Codas);
-        var syllableContact = SelectSyllableContact(stages.For("syllable contact"), syllableRule);
+        var syllableContact = stages.Draw(Settings.SyllableContactStage, rand => SelectSyllableContact(rand, syllableRule));
         var phonology = new Phonology
         {
             Vowels = vowels,
             Consonants = consonants,
             SyllableRule = syllableRule,
-            SoundChanges = SelectSoundChanges(stages.For("sound changes"), syllableRule, vowels),
-            SyllableChanges = SelectSyllableChanges(stages.For("syllable changes"), syllableRule, vowels, syllableContact),
+            SoundChanges = stages.Draw(Settings.SoundChangeStage, rand => SelectSoundChanges(rand, syllableRule, vowels)),
+            SyllableChanges = stages.Draw(Settings.SyllableChangeStage, rand => SelectSyllableChanges(rand, syllableRule, vowels, syllableContact)),
             ClusterRepair = stages.Draw(Settings.ClusterRepairStage, SelectClusterRepair),
             EpentheticVowel = SelectEpentheticVowel(vowels),
             Stress = stages.Draw(Settings.StressStage, SelectStress),
