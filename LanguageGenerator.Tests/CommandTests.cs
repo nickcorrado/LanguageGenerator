@@ -6,9 +6,15 @@ public class CommandTests
     private static IEnumerable<Language> Sample => GeneratedLanguages.Sample;
 
     //a language's own lexicon, since coining a word into a shared one is off limits
-    private static Sentence Say(int seed, Command command) => Syntax.Realize(Generator.Generate(seed, LanguageSpec.Free), command, "");
+    private static Sentence Say(Language language, Command command) => Syntax.Realize(language, command, "");
 
-    private static int SeedWhere(Func<Language, bool> keep) => Enumerable.Range(0, 300).First(seed => keep(GeneratedLanguages.Sample[seed]));
+    //the first of a few languages with these settings fixed that also has what no setting says, as a
+    //bare stem for an imperative
+    private static Language FirstWith(Func<LanguageSpec, LanguageSpec> fix, Func<Language, bool> keep) =>
+        Enumerable.Range(0, 30).Select(seed => Generator.Generate(seed, fix(LanguageSpec.Free))).First(keep);
+
+    private static LanguageSpec WithSingular(LanguageSpec spec) =>
+        spec.Fix(Settings.Imperatives, ImperativeForms.SingularAndPlural, ImperativeForms.SingularOnly, ImperativeForms.OneForBoth);
 
     private static bool Bare(Morpheme? marker) => marker.HasValue && marker.GetValueOrDefault().Form.Count == 0;
     private static bool Sounded(Morpheme? marker) => marker.HasValue && marker.GetValueOrDefault().Form.Count > 0;
@@ -60,9 +66,9 @@ public class CommandTests
     [Fact]
     public void Realize_Imperative_HasNoTenseOrAgreement()
     {
-        var seed = SeedWhere(l => Sounded(l.Commands.Singular) && l.Paradigms.Verbs.Categories.Has<Person>());
+        var language = FirstWith(s => WithSingular(s).Fix(Settings.VerbAgreement, true), l => Sounded(l.Commands.Singular));
 
-        var gloss = Glosses(Say(seed, Eat));
+        var gloss = Glosses(Say(language, Eat));
 
         Assert.Contains("IMP", gloss);
         Assert.DoesNotContain("PRS", gloss);
@@ -72,9 +78,9 @@ public class CommandTests
     [Fact]
     public void Realize_BareStemImperative_GlossesWithNoFormOfItsOwn()
     {
-        var seed = SeedWhere(l => Bare(l.Commands.Singular));
+        var language = FirstWith(WithSingular, l => Bare(l.Commands.Singular));
 
-        var words = Say(seed, Eat).Words;
+        var words = Say(language, Eat).Words;
 
         Assert.Equal("eat", Assert.Single(words).Word.Morphemes.Single().Gloss);
         Assert.Contains("[IMP", words[0].Gloss);
@@ -83,9 +89,9 @@ public class CommandTests
     [Fact]
     public void Realize_NoImperativeOfItsOwn_UsesTheSecondPerson()
     {
-        var seed = SeedWhere(l => !l.Commands.Singular.HasValue && l.Paradigms.Verbs.Categories.Has<Person>());
+        var language = GeneratedLanguages.With(s => s.Fix(Settings.Imperatives, ImperativeForms.PluralOnly, ImperativeForms.None).Fix(Settings.VerbAgreement, true));
 
-        var gloss = Glosses(Say(seed, Eat));
+        var gloss = Glosses(Say(language, Eat));
 
         Assert.DoesNotContain("IMP", gloss);
         Assert.Contains("2SG", gloss);
@@ -94,26 +100,26 @@ public class CommandTests
     [Fact]
     public void Realize_SingularAndPlural_SpeakToDifferentNumbers()
     {
-        var seed = SeedWhere(l => l.Commands is { Singular: not null, Plural: not null } && !l.Commands.Singular.Equals(l.Commands.Plural));
+        var language = GeneratedLanguages.With(s => s.Fix(Settings.Imperatives, ImperativeForms.SingularAndPlural));
 
-        Assert.Contains("IMP.SG", Glosses(Say(seed, Eat)));
-        Assert.Contains("IMP.PL", Glosses(Say(seed, Eat with { Number = Number.Plural })));
+        Assert.Contains("IMP.SG", Glosses(Say(language, Eat)));
+        Assert.Contains("IMP.PL", Glosses(Say(language, Eat with { Number = Number.Plural })));
     }
 
     [Fact]
     public void Realize_DualCommand_TakesThePlural()
     {
-        var seed = SeedWhere(l => l.Commands is { Singular: not null, Plural: not null } && !l.Commands.Singular.Equals(l.Commands.Plural));
+        var language = GeneratedLanguages.With(s => s.Fix(Settings.Imperatives, ImperativeForms.SingularAndPlural));
 
-        Assert.Contains("IMP.PL", Glosses(Say(seed, Eat with { Number = Number.Dual })));
+        Assert.Contains("IMP.PL", Glosses(Say(language, Eat with { Number = Number.Dual })));
     }
 
     [Fact]
     public void Realize_ProhibitiveWithItsOwnNegator_SaysThatInsteadOfNegation()
     {
-        var seed = SeedWhere(l => l.Commands.Prohibitive is not null);
+        var language = GeneratedLanguages.With(s => s.Fix(Settings.ProhibitiveNegator, true));
 
-        var gloss = Glosses(Say(seed, Eat with { Negative = true }));
+        var gloss = Glosses(Say(language, Eat with { Negative = true }));
 
         Assert.Contains("PROH", gloss);
         Assert.DoesNotContain("NEG", gloss);
@@ -122,17 +128,17 @@ public class CommandTests
     [Fact]
     public void Realize_ProhibitiveWithOrdinaryNegation_SaysNegation()
     {
-        var seed = SeedWhere(l => l.Commands.Prohibitive is null);
+        var language = GeneratedLanguages.With(s => s.Fix(Settings.ProhibitiveNegator, false));
 
-        Assert.Contains("NEG", Glosses(Say(seed, Eat with { Negative = true })));
+        Assert.Contains("NEG", Glosses(Say(language, Eat with { Negative = true })));
     }
 
     [Fact]
     public void Realize_ProhibitiveNotUsingTheImperative_UsesTheSecondPerson()
     {
-        var seed = SeedWhere(l => !l.Commands.ProhibitiveUsesImperative && l.Commands.Singular.HasValue && l.Paradigms.Verbs.Categories.Has<Person>());
+        var language = GeneratedLanguages.With(s => WithSingular(s).Fix(Settings.ProhibitiveUsesImperative, false).Fix(Settings.VerbAgreement, true));
 
-        var (command, prohibitive) = (Glosses(Say(seed, Eat)), Glosses(Say(seed, Eat with { Negative = true })));
+        var (command, prohibitive) = (Glosses(Say(language, Eat)), Glosses(Say(language, Eat with { Negative = true })));
 
         Assert.Contains("IMP", command);
         Assert.DoesNotContain("IMP", prohibitive);
@@ -142,16 +148,15 @@ public class CommandTests
     [Fact]
     public void Realize_ProhibitiveUsingTheImperative_KeepsIt()
     {
-        var seed = SeedWhere(l => l.Commands.ProhibitiveUsesImperative && l.Commands.Singular.HasValue);
+        var language = GeneratedLanguages.With(s => WithSingular(s).Fix(Settings.ProhibitiveUsesImperative, true));
 
-        Assert.Contains("IMP", Glosses(Say(seed, Eat with { Negative = true })));
+        Assert.Contains("IMP", Glosses(Say(language, Eat with { Negative = true })));
     }
 
     [Fact]
     public void Realize_Command_SaysNoSubjectEvenWhereSubjectsAreSaid()
     {
-        var seed = SeedWhere(l => !l.Pronouns.DropsSubjects);
-        var language = Generator.Generate(seed, LanguageSpec.Free);
+        var language = GeneratedLanguages.With(s => s.Fix(Settings.DropsSubjects, false));
 
         var words = Syntax.Realize(language, Eat, "").Words;
 

@@ -71,7 +71,7 @@ public static partial class Generator
         var numerals = stages.Draw(Settings.NumeralStage, rand => GenerateNumerals(rand, morphology, phonology));
         var articles = stages.Draw(Settings.ArticleStage, rand => GenerateArticles(rand, morphology, genders, numerals, phonology));
         var possession = stages.Draw(Settings.PossessionStage, rand => GeneratePossession(rand, morphology, wordOrder, phonology));
-        var commands = GenerateCommands(stages.For("commands"), morphology, wordOrder, phonology);
+        var commands = stages.Draw(Settings.CommandStage, rand => GenerateCommands(rand, morphology, wordOrder, phonology));
         var comparison = stages.Draw(Settings.ComparisonStage, rand => GenerateComparison(rand, wordOrder, phonology));
         var degree = stages.Draw(Settings.DegreeStage, rand => GenerateDegree(rand, comparison, morphology, wordOrder, phonology));
         var intensifier = GenerateIntensifier(stages.For("intensifier"), degree, wordOrder, phonology);

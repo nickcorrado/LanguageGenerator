@@ -112,6 +112,50 @@ internal static class SettingWrites
             : new Articles(Ungendered(drawn.Definite), Ungendered(drawn.Indefinite));
     }
 
+    public static ImperativeForms ImperativesOf(Commands commands) => (commands.Singular, commands.Plural) switch
+    {
+        (null, null) => ImperativeForms.None,
+        (not null, null) => ImperativeForms.SingularOnly,
+        (null, not null) => ImperativeForms.PluralOnly,
+        var (singular, plural) when singular.Equals(plural) => ImperativeForms.OneForBoth,
+        _ => ImperativeForms.SingularAndPlural,
+    };
+
+    //an imperative written in reuses the form of one the draw has, glossed for its new numbers, though
+    //a plural of its own always has a form, and two imperatives need two
+    public static Commands WithImperatives(Commands drawn, ImperativeForms forms)
+    {
+        if (ImperativesOf(drawn) == forms)
+        {
+            return drawn;
+        }
+        static Morpheme Glossed(Morpheme marker, params Grammeme[] values) => marker switch
+        {
+            Affix a => new Affix(a.Form, values),
+            Particle p => new Particle(p.Form, values),
+            _ => marker,
+        };
+        var any = drawn.Singular ?? drawn.Plural;
+        var sounded = drawn.Plural is { Form.Count: > 0 } ? drawn.Plural : drawn.Singular is { Form.Count: > 0 } ? drawn.Singular : null;
+        switch (forms)
+        {
+            case ImperativeForms.None:
+                return drawn with { Singular = null, Plural = null };
+            case ImperativeForms.SingularOnly when any is { } marker:
+                return drawn with { Singular = Glossed(marker, Mood.Imperative, Number.Singular), Plural = null };
+            case ImperativeForms.PluralOnly when sounded is { } marker:
+                return drawn with { Singular = null, Plural = Glossed(marker, Mood.Imperative, Number.Plural) };
+            case ImperativeForms.OneForBoth when any is { } marker:
+                var both = Glossed(marker, Mood.Imperative);
+                return drawn with { Singular = both, Plural = both };
+            default:
+                throw NoForm($"An imperative for {forms}");
+        }
+    }
+
+    public static Commands WithProhibitiveNegator(Commands drawn, bool has) =>
+        has ? (drawn.Prohibitive is not null ? drawn : throw NoForm("A prohibitive negator")) : drawn with { Prohibitive = null };
+
     private static InvalidOperationException NoForm(string value) =>
         new($"{value} can't be written in, since what was drawn has no form to reuse, and no draw gave it. A draw gives it at least 2% of the time, so this shouldn't happen.");
 

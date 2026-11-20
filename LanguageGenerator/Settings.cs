@@ -290,6 +290,17 @@ public static class Settings
 
     //clauses
 
+    public static Stage<Commands> CommandStage { get; } = new("commands", l => l.Commands, null);
+    /// <summary>Which numbers have an imperative of their own: both, one, the same one for both, or neither.</summary>
+    public static Setting<Commands, ImperativeForms> Imperatives { get; } = CommandStage.Declare("imperatives", Clauses,
+        SettingWrites.ImperativesOf, SettingWrites.WithImperatives, Choice<ImperativeForms>.Of(Enum.GetValues<ImperativeForms>()));
+    /// <summary>Whether a prohibitive, 'don't eat', uses the imperative's form of the verb.</summary>
+    public static Setting<Commands, bool> ProhibitiveUsesImperative { get; } = CommandStage.Declare("prohibitive-uses-imperative", Clauses,
+        c => c.ProhibitiveUsesImperative, (c, uses) => c with { ProhibitiveUsesImperative = uses }, YesNo);
+    /// <summary>Whether a prohibitive has a negator of its own, as Latin has nē beside nōn.</summary>
+    public static Setting<Commands, bool> ProhibitiveNegator { get; } = CommandStage.Declare("prohibitive-negator", Clauses,
+        c => c.Prohibitive is not null, SettingWrites.WithProhibitiveNegator, YesNo);
+
     public static Stage<Negation> NegationStage { get; } = new("negation", l => l.Negation, null);
     public static Setting<Negation, NegationStrategy> Negation { get; } = NegationStage.Declare("negation", Clauses,
         n => n.Strategy, SettingWrites.WithNegation, Choice<NegationStrategy>.Of(Enum.GetValues<NegationStrategy>()));
@@ -376,7 +387,7 @@ public static class Settings
     [
         VowelStage, ConsonantStage, SyllableStage, StressStage, ClusterRepairStage, SyllableContactStage, DropoffStage, SoundChangeStage, SyllableChangeStage, WordOrderStage, MorphologyStage, AlignmentStage,
         RoleRegionStage, CaseStage, ConfigurationRegionStage, ConfigurationPlanStage, NounParadigmStage, VerbParadigmStage, PronounStage, PredicationStage, LocationalCopulaStage, AdjectiveAgreementStage,
-        NegationStage, QuestionStage, PassiveStage, ModalStage, PossessionStage, GenderStage, NumeralStage, ArticleStage, ComparisonStage, DegreeStage, SimilativeStage,
+        CommandStage, NegationStage, QuestionStage, PassiveStage, ModalStage, PossessionStage, GenderStage, NumeralStage, ArticleStage, ComparisonStage, DegreeStage, SimilativeStage,
     ];
 
     /// <summary>Every setting, in the order they're declared.</summary>
@@ -386,7 +397,7 @@ public static class Settings
         .. SyllableContactStage.Settings, .. DropoffStage.Settings, .. SoundChangeStage.Settings, .. SyllableChangeStage.Settings, .. WordOrderStage.Settings, .. MorphologyStage.Settings, .. AlignmentStage.Settings, .. RoleRegionStage.Settings,
         .. CaseStage.Settings, .. ConfigurationRegionStage.Settings, .. ConfigurationPlanStage.Settings, .. NounParadigmStage.Settings,
         .. VerbParadigmStage.Settings, .. PronounStage.Settings, .. PredicationStage.Settings, .. LocationalCopulaStage.Settings, .. AdjectiveAgreementStage.Settings,
-        .. NegationStage.Settings, .. QuestionStage.Settings, .. PassiveStage.Settings, .. ModalStage.Settings, .. PossessionStage.Settings, .. GenderStage.Settings,
+        .. CommandStage.Settings, .. NegationStage.Settings, .. QuestionStage.Settings, .. PassiveStage.Settings, .. ModalStage.Settings, .. PossessionStage.Settings, .. GenderStage.Settings,
         .. NumeralStage.Settings, .. ArticleStage.Settings, .. ComparisonStage.Settings,
         .. DegreeStage.Settings, .. SimilativeStage.Settings,
     ];

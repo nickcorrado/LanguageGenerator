@@ -113,6 +113,9 @@ The symbols are the generator's 53 phonemes, given exactly, so `ʦ` and not `ts`
 | `configurations-at-in`, `configurations-at-on`, `configurations-at-beside`, `configurations-in-on`, `configurations-in-between`, `configurations-on-over`, `configurations-on-against` | `true` if the edge of the configuration map joins its two configurations, so they share a marker, or for an edge to at, are said as plainly as 'at' |
 | `in-marker`, `on-marker`, `under-marker`, `over-marker`, `behind-marker`, `in-front-marker`, `beside-marker`, `between-marker`, `around-marker`, `against-marker` | `Adposition`, `RelationalNoun` or `Case`, how the configuration's region is marked, or `At` if it's said like at. Under, behind, in front and around are never said like at |
 | `configuration-marking` | `Adposition`, `RelationalNoun`, `Case`, the way of marking configurations most of the language's regions follow |
+| `imperatives` | `SingularAndPlural`, `SingularOnly`, `PluralOnly`, `OneForBoth` or `None`, which numbers have an imperative of their own |
+| `prohibitive-uses-imperative` | `true` if 'don't eat' uses the imperative's form of the verb |
+| `prohibitive-negator` | `true` if a prohibitive has a negator of its own, as Latin has nē beside nōn |
 | `negation` | `ParticleBefore`, `ParticleAfter`, `Prefix`, `Suffix`, `Double`, for a word on each side of the verb |
 | `polar-questions` | `InitialParticle`, `FinalParticle`, `SecondParticle`, `Prefix`, `Suffix`, `Inversion`, `Intonation` |
 | `fronts-question-words` | `true` if a question word goes first in its clause, as English who does |
