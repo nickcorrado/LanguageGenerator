@@ -31,7 +31,7 @@ public class PassiveTests
     [InlineData(MorphosyntacticAlignment.None, 0.40, 0.47)]
     public void GeneratePassive_ManyDraws_FollowWals107AForTheAlignment(MorphosyntacticAlignment alignment, double least, double most)
     {
-        var language = GeneratedLanguages.Sample.First(l => l.MorphologicalProfile.Fusion != Fusion.Isolating);
+        var language = GeneratedLanguages.With(s => s.Inflecting());
         var rand = new Random(1);
         var drawn = Enumerable.Range(0, 4000).Select(_ => Generator.GeneratePassive(rand, alignment, language.MorphologicalProfile, language.Phonology)).ToList();
 

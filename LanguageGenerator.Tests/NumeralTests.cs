@@ -177,7 +177,7 @@ public class NumeralTests
     public void GenerateNumerals_ManyDraws_MatchTheWalsOrdinalCounts()
     {
         var phonology = GeneratedLanguages.Sample[0].Phonology;
-        var morphology = GeneratedLanguages.Sample.First(l => l.MorphologicalProfile.Fusion != Fusion.Isolating).MorphologicalProfile;
+        var morphology = GeneratedLanguages.With(s => s.Inflecting()).MorphologicalProfile;
         var rand = new Random(1);
 
         var drawn = Enumerable.Range(0, 3000).Select(_ => Generator.GenerateNumerals(rand, morphology, phonology).Ordinals).ToList();

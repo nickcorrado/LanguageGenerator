@@ -152,7 +152,7 @@ public class ComparisonTests
     [Fact]
     public void GenerateDegree_ManyDraws_MatchTheWalsCountsAndGuesses()
     {
-        var language = GeneratedLanguages.Sample.First(l => l.MorphologicalProfile.Fusion != Fusion.Isolating);
+        var language = GeneratedLanguages.With(s => s.Inflecting());
         var rand = new Random(1);
         DegreeMarking Draw(Comparison comparison) => Generator.GenerateDegree(rand, comparison, language.MorphologicalProfile, language.WordOrder, language.Phonology);
 

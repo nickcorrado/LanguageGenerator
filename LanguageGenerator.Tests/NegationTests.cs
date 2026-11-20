@@ -11,7 +11,7 @@ public class NegationTests
     [Fact]
     public void GenerateNegation_ManyDraws_MatchTheWalsCounts()
     {
-        var language = GeneratedLanguages.Sample.First(l => l.MorphologicalProfile.Fusion != Fusion.Isolating);
+        var language = GeneratedLanguages.With(s => s.Inflecting());
         var rand = new Random(1);
 
         var strategies = Enumerable.Range(0, 5000).Select(_ => Generator.GenerateNegation(rand, language.MorphologicalProfile, language.Phonology).Strategy).ToList();

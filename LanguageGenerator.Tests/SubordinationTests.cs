@@ -52,20 +52,18 @@ public class SubordinationTests
     public void Nouns_IncludeTheSubordinateClauses() =>
         Assert.Equal(["dog", "cat"], ClauseFile.Nouns(ClauseFile.Parse("x\n  sleep  subject:dog\n  because  eat  subject:cat")).Select(n => n.Noun));
 
-    private static List<Subordination> Draws(Func<Language, bool> keep)
+    private static List<Subordination> Draws(Func<LanguageSpec, LanguageSpec> fix)
     {
-        var language = GeneratedLanguages.Sample.First(keep);
+        var language = GeneratedLanguages.With(fix);
         var rand = new Random(1);
         return [.. Enumerable.Range(0, 3000).Select(_ => Generator.GenerateSubordination(rand, language.MorphologicalProfile, language.WordOrder, language.Phonology))];
     }
 
-    private static bool ObjectFirst(Language l) => l.WordOrder.VerbPhraseDirectionality == HeadDirectionality.Final;
-
     [Fact]
     public void GenerateSubordination_ManyDraws_MarkClausesAsWals94ASaysForTheWordOrder()
     {
-        var vo = Draws(l => !ObjectFirst(l)).SelectMany(s => s.Markers.Values).ToList();
-        var ov = Draws(l => ObjectFirst(l) && l.MorphologicalProfile.Fusion != Fusion.Isolating).SelectMany(s => s.Markers.Values).ToList();
+        var vo = Draws(s => s.ObjectFirst(false)).SelectMany(s => s.Markers.Values).ToList();
+        var ov = Draws(s => s.ObjectFirst(true).Inflecting()).SelectMany(s => s.Markers.Values).ToList();
 
         //of 307 VO languages that don't mix them, 304 start the clause with a word; of 208 OV ones, 61
         //start it with a word, 91 end it with one and 56 mark its verb
@@ -79,7 +77,7 @@ public class SubordinationTests
     [Fact]
     public void GenerateSubordination_ManyDraws_DerankAsCristofaroCounts()
     {
-        var drawn = Draws(_ => true);
+        var drawn = Draws(s => s);
         double Share(Subordinator s, Balance b) => drawn.Count(d => d.Markers[s].Balance == b) / 3000.0;
 
         //WALS 125A to 127A: 102 of 170 deranking purpose clauses, 84 of 174 balancing 'when' clauses, 90 of
@@ -98,7 +96,7 @@ public class SubordinationTests
     [InlineData(false, Subordinator.Purpose, 0.12, 0.18)]
     public void GenerateSubordination_ManyDraws_OrderClausesAsDiesselFinds(bool objectFirst, Subordinator subordinator, double least, double most)
     {
-        var drawn = Draws(l => ObjectFirst(l) == objectFirst);
+        var drawn = Draws(s => s.ObjectFirst(objectFirst));
 
         Assert.InRange(drawn.Count(d => d.Markers[subordinator].BeforeMain) / 3000.0, least, most);
     }
@@ -106,7 +104,7 @@ public class SubordinationTests
     [Fact]
     public void GenerateSubordination_ManyDraws_ShareMarkersAcrossTheMapsEdges()
     {
-        var drawn = Draws(_ => true);
+        var drawn = Draws(s => s);
         bool Share(Subordination s, Subordinator a, Subordinator b) =>
             s.Markers[a].Marker.Form.SequenceEqual(s.Markers[b].Marker.Form) && s.Markers[a].Position == s.Markers[b].Position;
 
@@ -128,7 +126,7 @@ public class SubordinationTests
     [Fact]
     public void GenerateSubordination_ManyDraws_MarkReducedClausesLikeRolesAsGuessed()
     {
-        var drawn = Draws(_ => true);
+        var drawn = Draws(s => s);
         double Share(Subordinator s, Role? role) => drawn.Count(d => d.Markers[s].MarkedAs == role) / 3000.0;
 
         Assert.InRange(Share(Subordinator.Purpose, Role.Goal), 0.22, 0.28);

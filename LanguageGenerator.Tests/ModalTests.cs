@@ -32,7 +32,7 @@ public class ModalTests
     [Fact]
     public void GenerateModals_ManyDraws_FollowWals74A()
     {
-        var language = GeneratedLanguages.Sample.First(l => l.MorphologicalProfile.Fusion != Fusion.Isolating);
+        var language = GeneratedLanguages.With(s => s.Inflecting());
         var drawn = Drawn(language, 4000).Select(m => m.Markers[Modality.Ability].Value).ToList();
 
         //63 by an affix, 158 by a verb and 13 otherwise, of 234
@@ -48,7 +48,7 @@ public class ModalTests
     [InlineData("Obligation", "Advisability", 0.47, 0.55)]
     public void GenerateModals_ManyDraws_ShareMarkersAsTheMapSays(string first, string second, double least, double most)
     {
-        var language = GeneratedLanguages.Sample.First(l => l.MorphologicalProfile.Fusion != Fusion.Isolating);
+        var language = GeneratedLanguages.With(s => s.Inflecting());
         var (a, b) = (ModalityMap.Modalities.Single(m => m.Name == first), ModalityMap.Modalities.Single(m => m.Name == second));
         static IReadOnlyList<Phoneme> Form(ModalMarking marking) => marking.Value switch
         {

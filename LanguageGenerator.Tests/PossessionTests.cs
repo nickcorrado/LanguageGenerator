@@ -16,7 +16,7 @@ public class PossessionTests
     [Fact]
     public void GeneratePossession_ManyDraws_MatchTheWalsCounts()
     {
-        var language = GeneratedLanguages.Sample.First(l => l.MorphologicalProfile.Fusion == Fusion.Concatenative);
+        var language = GeneratedLanguages.With(s => s.Fix(Settings.Fusion, Fusion.Concatenative));
         var rand = new Random(1);
 
         var drawn = Enumerable.Range(0, 5000).Select(_ => Generator.GeneratePossession(rand, language.MorphologicalProfile, language.WordOrder, language.Phonology)).ToList();
