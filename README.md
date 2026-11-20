@@ -123,4 +123,4 @@ Some of what real languages do is out of scope, by design:
 
 ## What's next
 
-The [roadmap](docs/roadmap.md) lists what real text still needs, from questions and relative clauses to language families, and the plan for configuring generation.
+The [roadmap](docs/roadmap.md) lists what real text still needs, from questions and relative clauses to language families, and what's left for configuring generation, whose [spec format](docs/spec-format.md) and [design](docs/configuration.md) have documents of their own.
