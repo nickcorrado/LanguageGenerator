@@ -186,8 +186,8 @@ public class AdverbTests
     [Fact]
     public void GenerateManner_ManyDraws_MatchTheGuesses()
     {
-        var language = GeneratedLanguages.Sample.First(l => l.MorphologicalProfile.Fusion != Fusion.Isolating);
-        var isolating = GeneratedLanguages.Sample.First(l => l.MorphologicalProfile.Fusion == Fusion.Isolating);
+        var language = GeneratedLanguages.With(s => s.Inflecting());
+        var isolating = GeneratedLanguages.With(s => s.Fix(Settings.Fusion, Fusion.Isolating));
         var rand = new Random(1);
 
         var drawn = Enumerable.Range(0, 4000).Select(_ => Generator.GenerateManner(rand, language.MorphologicalProfile, language.Phonology)).ToList();

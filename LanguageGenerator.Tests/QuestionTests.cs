@@ -31,7 +31,7 @@ public class QuestionTests
     [Fact]
     public void GenerateQuestions_ManyDraws_FollowWals116A()
     {
-        var language = GeneratedLanguages.Sample.First(l => l.MorphologicalProfile.Fusion != Fusion.Isolating);
+        var language = GeneratedLanguages.With(s => s.Inflecting());
         var drawn = Drawn(language, 4000).Select(q => q.Polar.Value).ToList();
 
         //600 by a particle, 164 by the verb's morphology, 13 by word order and 178 by intonation, of 955
@@ -48,7 +48,7 @@ public class QuestionTests
     [InlineData(ConstituentWordOrder.VSO, 0.67, 0.75)]
     public void GenerateQuestions_ManyDraws_FrontQuestionWordsAsWals93ASaysForTheOrder(ConstituentWordOrder order, double least, double most)
     {
-        var language = GeneratedLanguages.Sample.First(l => l.WordOrder.ConstituentWordOrder == order);
+        var language = GeneratedLanguages.With(s => s.Fix(Settings.ConstituentOrder, order));
 
         Assert.InRange(Drawn(language, 4000).Count(q => q.FrontsQuestionWords) / 4000.0, least, most);
     }
@@ -59,7 +59,7 @@ public class QuestionTests
     [InlineData(HeadDirectionality.Initial, QuestionParticlePosition.Initial, 0.28, 0.36)]
     public void GenerateQuestions_ManyDraws_PlaceParticlesAsWals92ASaysForTheOrder(HeadDirectionality verbPhrase, QuestionParticlePosition position, double least, double most)
     {
-        var language = GeneratedLanguages.Sample.First(l => l.WordOrder.VerbPhraseDirectionality == verbPhrase);
+        var language = GeneratedLanguages.With(s => s.ObjectFirst(verbPhrase == HeadDirectionality.Final));
         var particles = Drawn(language, 6000).Select(q => q.Polar.Value).OfType<QuestionParticle>().ToList();
 
         Assert.InRange(particles.Count(p => p.Position == position) / (double)particles.Count, least, most);

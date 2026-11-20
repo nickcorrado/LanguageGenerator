@@ -82,7 +82,7 @@ public class ArticleTests
     public void For_ArticleAgreeingInNothing_IgnoresGenderAndNumber() =>
         Assert.Equal(DefiniteWord, Plain(DefiniteWord, ExponentPosition.PrecedingParticle).For(Gender.Feminine, Number.Plural).Value);
 
-    private static Language WithGender => GeneratedLanguages.Sample.First(l => l.Genders.Values.Count > 0 && l.MorphologicalProfile.Fusion != Fusion.Isolating);
+    private static Language WithGender => GeneratedLanguages.With(s => s.Inflecting().Fix(Settings.Genders, [.. Enum.GetValues<NounGenders>().Where(g => g != NounGenders.None)]));
 
     [Fact]
     public void GenerateArticles_ManyDraws_MatchTheWalsCounts()

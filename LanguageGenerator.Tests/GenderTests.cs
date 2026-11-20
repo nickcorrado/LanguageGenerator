@@ -7,11 +7,6 @@ public class GenderTests
     private static GenderSystem System(NounGenders genders, GenderAssignment assignment) =>
         new() { Genders = genders, Assignment = assignment, Markers = null, MarkerPosition = ExponentPosition.Suffix, VerbsAgree = false };
 
-    private static Language WithGenders(NounGenders genders, AdjectiveAgreement? agreement = null, bool verbsAgree = false) =>
-        GeneratedLanguages.Sample.First(l => l.Genders.Genders == genders && l.Genders.Markers is not null
-            && (agreement is null || l.AdjectiveAgreement == agreement)
-            && (!verbsAgree || l.Genders.VerbsAgree));
-
     //which gender markers a word has, by gloss
     private static List<string> GenderGlosses(Word word) =>
         [.. word.Morphemes.Where(m => m.Value is Affix { Grammemes: [Gender] }).Select(m => m.Gloss)];
@@ -19,7 +14,7 @@ public class GenderTests
     [Fact]
     public void GenerateGenders_ManyDraws_MatchTheWalsCounts()
     {
-        var language = GeneratedLanguages.Sample.First(l => l.MorphologicalProfile.Fusion != Fusion.Isolating);
+        var language = GeneratedLanguages.With(s => s.Inflecting());
         var rand = new Random(1);
 
         var systems = Enumerable.Range(0, 5000).Select(_ => Generator.GenerateGenders(rand, language.MorphologicalProfile, language.Paradigms, language.Phonology)).ToList();

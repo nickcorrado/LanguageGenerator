@@ -64,6 +64,18 @@ internal static class GeneratedLanguages
 
     public static IReadOnlyList<Language> Sample => sample.Value;
 
+    //a language with some settings fixed, for a test that needs one with some feature, so it doesn't
+    //depend on which of the sample happen to have it. It's the test's own, so it's neither classified
+    //nor frozen
+    public static Language With(Func<LanguageSpec, LanguageSpec> fix) => Generator.Generate(1, fix(LanguageSpec.Free));
+
+    //a spec that inflects, by any fusion but isolating
+    public static LanguageSpec Inflecting(this LanguageSpec spec) => spec.Fix(Settings.Fusion, Fusion.Concatenative, Fusion.Mixed);
+
+    //a spec whose object goes before the verb, or after it, by any constituent order that does
+    public static LanguageSpec ObjectFirst(this LanguageSpec spec, bool objectFirst) =>
+        spec.Fix(Settings.ConstituentOrder, [.. Enum.GetValues<ConstituentWordOrder>().Where(o => WordOrder.ObjectPrecedesVerb(o) == objectFirst)]);
+
     //every lexeme's and pronoun's citation form, and every cell of every paradigm for every lexeme or
     //pronoun it applies to
     public static IEnumerable<Word> AllWords(Language language)
