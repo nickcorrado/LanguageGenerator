@@ -41,7 +41,8 @@ Rules keep a value written in from contradicting what was drawn before it: a spa
 - An oblique case needs its role to head its region: a dative can't be fixed along with the edge joining recipients to possessors, since the genitive would mark them both.
 - A configuration marked by case needs nouns that inflect, and a case on the location's region.
 - A configuration said like at needs edges joining it to at, one with a marker of its own can't be joined to at, and configurations joined into one region share its marker.
-- An isolating language has no affixes, so negation and polar questions can't be a prefix or suffix, possession can't be marked on the possessed noun, and a comparative, similative or modal can't be an affix.
+- An isolating language has no affixes, so negation and polar questions can't be a prefix or suffix, possession can't be marked on the possessed noun, and a comparative, similative, modal or article can't be an affix.
+- An article agreeing in gender needs genders, and an article that can agree: a definite article, or an indefinite one that isn't the word for 'one'.
 - Modalities joined by an edge share a marker, so two marked differently can't be joined.
 - Possessive affixes can only be prefixes where possession is marked on the possessed noun.
 - An inventory needs at least one sound, and each sound once, so not every vowel or every consonant can be forbidden.
@@ -125,5 +126,15 @@ The symbols are the generator's 53 phonemes, given exactly, so `ʦ` and not `ts`
 | `first-person-plural` | `Plain`, one 'we', `SameAsSingular`, with the word for 'I', or `InclusiveExclusive`, one 'we' with the hearer and one without |
 | `gendered-pronouns` | `None`, `ThirdSingular`, for he and she, `Third`, for the plural too, or `ThirdAndSecond`, for 'you' too |
 | `drops-subjects` | `true` if a subject pronoun is usually left out |
+| `predicative-adjectives` | `Verbal`, if an adjective said of something acts like a verb, or `Nonverbal`, if it needs a copula |
+| `zero-copula` | `true` if the copula is left out in the present, as in Russian |
+| `locational-copula` | `true` if the language has a verb of its own for where something is, like Spanish estar |
+| `adjective-agreement` | `None`, `Agreement`, if adjectives take their noun's markers, or `Phrasal`, if the phrase is marked once at its edge |
+| `numeral-base` | `Decimal`, `Vigesimal`, or `Restricted`, with words for only the first few numbers |
+| `numerals-before-noun` | `true` if a numeral goes before its noun |
+| `ordinals` | `Cardinal`, `FirstThenCardinal`, `Derived`, `FirstThenDerived`, `FirstSecondThenDerived`, how 'first', 'second' and the rest are said |
+| `definite-article` | `None`, `Word` or `Affix` |
+| `indefinite-article` | `None`, `Word`, `One`, the word for 'one', or `Affix` |
+| `article-gender-agreement` | `true` if an article agrees with its noun's gender |
 | `comparison` | `Locational`, marking the standard as a place, `Exceed`, with a verb meaning 'exceed', `Conjoined`, with two clauses side by side, or `Particle`, with a word like than |
 | `comparative`, `similative` | `Affix` or `Word`, how 'more' and 'like' are marked |

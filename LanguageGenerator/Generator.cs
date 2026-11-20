@@ -61,15 +61,15 @@ public static partial class Generator
             stages.Draw(Settings.VerbParadigmStage, rand => GenerateVerbParadigm(rand, morphology, wordOrder, phonology)));
         var pronouns = stages.Draw(Settings.PronounStage, rand => GeneratePronouns(rand, paradigms, morphology, wordOrder, phonology));
         var negation = stages.Draw(Settings.NegationStage, rand => GenerateNegation(rand, morphology, phonology));
-        var predication = GenerateLocationalPredication(stages.For("locational copula"),
-            GeneratePredication(stages.For("predication"), phonology), phonology);
-        var adjectiveAgreement = SelectAdjectiveAgreement(stages.For("adjective agreement"), predication);
+        var copula = stages.Draw(Settings.PredicationStage, rand => GeneratePredication(rand, phonology));
+        var predication = stages.Draw(Settings.LocationalCopulaStage, rand => GenerateLocationalPredication(rand, copula, phonology));
+        var adjectiveAgreement = stages.Draw(Settings.AdjectiveAgreementStage, rand => SelectAdjectiveAgreement(rand, predication));
         var genders = stages.Draw(Settings.GenderStage, rand => GenerateGenders(rand, morphology, paradigms, phonology));
         var adpositions = GenerateAdpositions(stages.For("adpositions"), regions, cases, phonology);
         var duration = GenerateDuration(stages.For("duration"), adpositions, phonology);
         var roleMarkers = SelectRoleMarkers(stages.For("adposition government"), alignment, cases, regions, wordOrder, adpositions, duration);
-        var numerals = GenerateNumerals(stages.For("numerals"), morphology, phonology);
-        var articles = GenerateArticles(stages.For("articles"), morphology, genders, numerals, phonology);
+        var numerals = stages.Draw(Settings.NumeralStage, rand => GenerateNumerals(rand, morphology, phonology));
+        var articles = stages.Draw(Settings.ArticleStage, rand => GenerateArticles(rand, morphology, genders, numerals, phonology));
         var possession = stages.Draw(Settings.PossessionStage, rand => GeneratePossession(rand, morphology, wordOrder, phonology));
         var commands = GenerateCommands(stages.For("commands"), morphology, wordOrder, phonology);
         var comparison = stages.Draw(Settings.ComparisonStage, rand => GenerateComparison(rand, wordOrder, phonology));

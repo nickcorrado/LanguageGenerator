@@ -23,8 +23,8 @@ public class AdjectiveTests
     public void SelectAdjectiveAgreement_VerbalAdjectives_NeverAgree()
     {
         var rand = new Random(1);
-        var verbal = GeneratedLanguages.Sample.First(l => l.Predication.Adjectives == PredicativeAdjectives.Verbal).Predication;
-        var nonverbal = GeneratedLanguages.Sample.First(l => l.Predication.Adjectives == PredicativeAdjectives.Nonverbal).Predication;
+        var verbal = GeneratedLanguages.With(s => s.Fix(Settings.PredicativeAdjectives, PredicativeAdjectives.Verbal)).Predication;
+        var nonverbal = GeneratedLanguages.With(s => s.Fix(Settings.PredicativeAdjectives, PredicativeAdjectives.Nonverbal)).Predication;
 
         var verbalDraws = Enumerable.Range(0, 2000).Select(_ => Generator.SelectAdjectiveAgreement(rand, verbal)).ToList();
         var nonverbalDraws = Enumerable.Range(0, 2000).Select(_ => Generator.SelectAdjectiveAgreement(rand, nonverbal)).ToList();

@@ -149,6 +149,35 @@ public static class SpecRules
         .. Settings.ModalMarkers.Select(marker => SpecRule.Together(Settings.Fusion, marker,
             (fusion, kind) => fusion != Fusion.Isolating || kind != ModalKind.Affix,
             $"{marker.Name} can only be an affix where words take affixes, so fusion can't be Isolating.")),
+        SpecRule.Together(Settings.Fusion, Settings.DefiniteArticle,
+            (fusion, kind) => fusion != Fusion.Isolating || kind != DefiniteArticle.Affix,
+            "A definite article can only be an affix where words take affixes, so fusion can't be Isolating."),
+        SpecRule.Together(Settings.Fusion, Settings.IndefiniteArticle,
+            (fusion, kind) => fusion != Fusion.Isolating || kind != IndefiniteArticle.Affix,
+            "An indefinite article can only be an affix where words take affixes, so fusion can't be Isolating."),
+        //an article agreeing in gender needs genders to agree in, and an article of its own: 'one'
+        //agrees in nothing
+        SpecRule.Together(Settings.Genders, Settings.ArticleGenderAgreement, (genders, agrees) => !agrees || genders != NounGenders.None,
+            "An article can only agree in gender where nouns have genders, so genders can't be None."),
+        new SpecRule.Narrowing("An article can only agree in gender where there's one that can: a definite article, or an indefinite one that isn't the word for 'one'.", spec =>
+        {
+            var definites = (spec.Allowed(Settings.DefiniteArticle) ?? Settings.DefiniteArticle.AllValues!).Cast<DefiniteArticle>().ToList();
+            var indefinites = (spec.Allowed(Settings.IndefiniteArticle) ?? Settings.IndefiniteArticle.AllValues!).Cast<IndefiniteArticle>().ToList();
+            var agreeing = (spec.Allowed(Settings.ArticleGenderAgreement) ?? Settings.ArticleGenderAgreement.AllValues!).Cast<bool>().ToList();
+            var noDefinite = definites is [DefiniteArticle.None];
+            var noIndefinite = indefinites.All(i => i is IndefiniteArticle.None or IndefiniteArticle.One);
+            //each narrowing returns the same spec once there's nothing left to narrow, so closing reaches a fixpoint
+            List<object> agreeingIndefinites = [.. indefinites.Where(i => i is IndefiniteArticle.Word or IndefiniteArticle.Affix).Cast<object>()];
+            List<object> someDefinite = [.. definites.Where(d => d != DefiniteArticle.None).Cast<object>()];
+            if (!agreeing.Contains(false))
+            {
+                return noDefinite && noIndefinite ? null
+                    : noDefinite && agreeingIndefinites.Count < indefinites.Count ? spec.With(Settings.IndefiniteArticle, agreeingIndefinites)
+                    : noIndefinite && someDefinite.Count < definites.Count ? spec.With(Settings.DefiniteArticle, someDefinite)
+                    : spec;
+            }
+            return noDefinite && noIndefinite && agreeing.Count > 1 ? spec.With(Settings.ArticleGenderAgreement, [false]) : spec;
+        }),
         //modalities joined by an edge share a marker, so an edge fixed joined narrows them to the
         //kinds they can share, and two that can't share one can't be joined
         .. ModalityMap.Edges.Select(e => (e.First, e.Second)).Select(edge => new SpecRule.Narrowing(
@@ -208,8 +237,16 @@ public static class SpecRules
     {
         var narrowed = spec;
         List<string> problems = [];
-        for (var changed = true; changed && problems.Count == 0;)
+        //a rule returns the spec it was given when it has nothing to narrow. One that returns a new
+        //spec every time would keep this going forever, so a few hundred passes, far more than any
+        //spec needs, means a rule is at fault
+        SpecRule.Narrowing? lastChanged = null;
+        for (var (changed, pass) = (true, 0); changed && problems.Count == 0; pass++)
         {
+            if (pass == 500)
+            {
+                throw new InvalidOperationException($"The spec's rules never settled: this one kept changing it. {lastChanged?.Says}");
+            }
             changed = false;
             foreach (var rule in All.OfType<SpecRule.Narrowing>())
             {
@@ -219,7 +256,7 @@ public static class SpecRules
                         problems.Add(rule.Says);
                         break;
                     case var next when next != narrowed:
-                        (narrowed, changed) = (next, true);
+                        (narrowed, changed, lastChanged) = (next, true, rule);
                         break;
                 }
             }

@@ -5,7 +5,7 @@ namespace LanguageGenerator;
 /// These stages coin their markers along with what they decide, so a write reuses the forms the
 /// draw already has, as a negative particle's form becomes a prefix's. A value that needs a form
 /// where the draw has none, as a passive where it drew none, can't be written; but every such value
-/// is drawn at least 4% of the time, so redrawing always gives it long before the limit.
+/// is drawn at least 2% of the time, so redrawing always gives it long before the limit.
 /// </summary>
 internal static class SettingWrites
 {
@@ -59,8 +59,61 @@ internal static class SettingWrites
         DropsSubjects = drops,
     };
 
+    public static Predication WithLocationalCopula(Predication drawn, bool has) =>
+        has ? (drawn.LocationalCopula is not null ? drawn : throw NoForm("A locational copula")) : drawn with { LocationalCopula = null };
+
+    private static bool IsAffix(Article article) => article.Position is ExponentPosition.Prefix or ExponentPosition.Suffix;
+
+    public static DefiniteArticle DefiniteOf(Articles articles) => articles.Definite switch
+    {
+        null => DefiniteArticle.None,
+        var article when IsAffix(article) => DefiniteArticle.Affix,
+        _ => DefiniteArticle.Word,
+    };
+
+    public static IndefiniteArticle IndefiniteOf(Articles articles) => articles.Indefinite switch
+    {
+        null => IndefiniteArticle.None,
+        var article when IsAffix(article) => IndefiniteArticle.Affix,
+        var article when article.Forms.Values.Any(m => m.Value is Root) => IndefiniteArticle.One,
+        _ => IndefiniteArticle.Word,
+    };
+
+    //an article can be taken away, but one of another kind needs forms where it goes
+    public static Articles WithDefinite(Articles drawn, DefiniteArticle kind) =>
+        kind == DefiniteOf(drawn) ? drawn : kind == DefiniteArticle.None ? drawn with { Definite = null } : throw NoForm($"A definite article that's a {kind}");
+
+    public static Articles WithIndefinite(Articles drawn, IndefiniteArticle kind) =>
+        kind == IndefiniteOf(drawn) ? drawn : kind == IndefiniteArticle.None ? drawn with { Indefinite = null } : throw NoForm($"An indefinite article that's {kind}");
+
+    //an article stops agreeing in gender by keeping its first gender's forms for every noun
+    public static Articles WithArticleGenderAgreement(Articles drawn, bool agrees)
+    {
+        static Article? Ungendered(Article? article)
+        {
+            if (article is not { AgreesInGender: true })
+            {
+                return article;
+            }
+            var first = article.Forms.Keys.First().Gender;
+            return article with
+            {
+                Forms = article.Forms.Where(f => f.Key.Gender == first).ToDictionary(f => ((Gender?)null, f.Key.Number), f => f.Value.Value switch
+                {
+                    Affix a => (Morpheme)new Affix(a.Form, [.. a.Grammemes.Where(g => g is not Gender)]),
+                    Particle p => new Particle(p.Form, [.. p.Grammemes.Where(g => g is not Gender)]),
+                    _ => f.Value,
+                }),
+            };
+        }
+        var agreesNow = drawn.Definite?.AgreesInGender == true || drawn.Indefinite?.AgreesInGender == true;
+        return agrees == agreesNow ? drawn
+            : agrees ? throw NoForm("An article agreeing in gender")
+            : new Articles(Ungendered(drawn.Definite), Ungendered(drawn.Indefinite));
+    }
+
     private static InvalidOperationException NoForm(string value) =>
-        new($"{value} can't be written in, since what was drawn has no form to reuse, and no draw gave it. A draw gives it at least 4% of the time, so this shouldn't happen.");
+        new($"{value} can't be written in, since what was drawn has no form to reuse, and no draw gave it. A draw gives it at least 2% of the time, so this shouldn't happen.");
 
     private static IReadOnlyList<Grammeme> GrammemesOf(Morpheme morpheme) => morpheme.Value switch
     {

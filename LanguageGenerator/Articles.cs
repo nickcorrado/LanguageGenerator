@@ -1,5 +1,29 @@
 namespace LanguageGenerator;
 
+/// <summary>What a language's definite article is, if it has one.</summary>
+//WALS 37A
+public enum DefiniteArticle
+{
+    None,
+    //a word of its own, like English the
+    Word,
+    //an affix on the noun, like Swedish hus-et 'the house'
+    Affix,
+}
+
+/// <summary>What a language's indefinite article is, if it has one.</summary>
+//WALS 38A
+public enum IndefiniteArticle
+{
+    None,
+    //a word of its own, apart from 'one'
+    Word,
+    //the word for 'one', as German ein is
+    One,
+    //an affix on the noun
+    Affix,
+}
+
 /// <summary>
 /// One article: an affix on the noun, as in Swedish hus-et 'the house', or a word at the edge of the
 /// noun phrase, as English the is, with a form for each gender and number it agrees in, as Spanish

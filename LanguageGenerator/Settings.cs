@@ -268,6 +268,26 @@ public static class Settings
     public static Setting<PronounSystem, bool> DropsSubjects { get; } = PronounStage.Declare("drops-subjects", Nouns,
         p => p.DropsSubjects, SettingWrites.WithDropsSubjects, YesNo);
 
+    //predication
+
+    public static Stage<Predication> PredicationStage { get; } = new("predication", l => l.Predication, null);
+    /// <summary>Whether an adjective said of something acts like a verb, or needs a copula.</summary>
+    public static Setting<Predication, PredicativeAdjectives> PredicativeAdjectives { get; } = PredicationStage.Declare("predicative-adjectives", Clauses,
+        p => p.Adjectives, (p, adjectives) => p with { Adjectives = adjectives }, Choice<PredicativeAdjectives>.Of(Enum.GetValues<PredicativeAdjectives>()));
+    /// <summary>Whether the copula is left out in the present, as in Russian ty durak 'you (are a) fool'.</summary>
+    public static Setting<Predication, bool> ZeroCopula { get; } = PredicationStage.Declare("zero-copula", Clauses,
+        p => p.ZeroCopula, (p, zero) => p with { ZeroCopula = zero }, YesNo);
+
+    public static Stage<Predication> LocationalCopulaStage { get; } = new("locational copula", l => l.Predication, null);
+    /// <summary>Whether the language has a verb of its own for where something is, like Spanish estar.</summary>
+    public static Setting<Predication, bool> LocationalCopula { get; } = LocationalCopulaStage.Declare("locational-copula", Clauses,
+        p => p.LocationalCopula is not null, SettingWrites.WithLocationalCopula, YesNo);
+
+    public static Stage<AdjectiveAgreement> AdjectiveAgreementStage { get; } = new("adjective agreement", l => l.AdjectiveAgreement, null);
+    /// <summary>Whether an adjective agrees with its noun, or the phrase is marked once at its edge.</summary>
+    public static Setting<AdjectiveAgreement, AdjectiveAgreement> AdjectiveAgreement { get; } = AdjectiveAgreementStage.Declare("adjective-agreement", Nouns,
+        a => a, (_, agreement) => agreement, Choice<AdjectiveAgreement>.Of(Enum.GetValues<AdjectiveAgreement>()));
+
     //clauses
 
     public static Stage<Negation> NegationStage { get; } = new("negation", l => l.Negation, null);
@@ -317,6 +337,26 @@ public static class Settings
     public static Setting<GenderSystem, GenderAssignment> GenderAssignment { get; } = GenderStage.Declare("gender-assignment", Nouns,
         g => g.Assignment, SettingWrites.WithAssignment, Choice<GenderAssignment>.Of(Enum.GetValues<GenderAssignment>()));
 
+    public static Stage<NumeralSystem> NumeralStage { get; } = new("numerals", l => l.Numerals, null);
+    /// <summary>How numbers are built past the first few words: on tens, on twenties, or not at all.</summary>
+    public static Setting<NumeralSystem, NumeralBase> NumeralBase { get; } = NumeralStage.Declare("numeral-base", Nouns,
+        n => n.Base, SettingWrites.Unwritable<NumeralSystem, NumeralBase>("Numerals on another base"), Choice<NumeralBase>.Of(Enum.GetValues<NumeralBase>()));
+    /// <summary>Whether a numeral goes before its noun.</summary>
+    public static Setting<NumeralSystem, bool> NumeralsBeforeNoun { get; } = NumeralStage.Declare("numerals-before-noun", Nouns,
+        n => n.BeforeNoun, (n, before) => n with { BeforeNoun = before }, YesNo);
+    /// <summary>How 'first', 'second' and the rest are said.</summary>
+    public static Setting<NumeralSystem, OrdinalType> Ordinals { get; } = NumeralStage.Declare("ordinals", Nouns,
+        n => n.Ordinals.Type, SettingWrites.Unwritable<NumeralSystem, OrdinalType>("Ordinals of another type"), Choice<OrdinalType>.Of(Enum.GetValues<OrdinalType>()));
+
+    public static Stage<Articles> ArticleStage { get; } = new("articles", l => l.Articles, null);
+    public static Setting<Articles, DefiniteArticle> DefiniteArticle { get; } = ArticleStage.Declare("definite-article", Nouns,
+        SettingWrites.DefiniteOf, SettingWrites.WithDefinite, Choice<DefiniteArticle>.Of(Enum.GetValues<DefiniteArticle>()));
+    public static Setting<Articles, IndefiniteArticle> IndefiniteArticle { get; } = ArticleStage.Declare("indefinite-article", Nouns,
+        SettingWrites.IndefiniteOf, SettingWrites.WithIndefinite, Choice<IndefiniteArticle>.Of(Enum.GetValues<IndefiniteArticle>()));
+    /// <summary>Whether an article agrees with its noun's gender, as Spanish el and la do.</summary>
+    public static Setting<Articles, bool> ArticleGenderAgreement { get; } = ArticleStage.Declare("article-gender-agreement", Nouns,
+        a => a.Definite?.AgreesInGender == true || a.Indefinite?.AgreesInGender == true, SettingWrites.WithArticleGenderAgreement, YesNo);
+
     //comparison
 
     public static Stage<Comparison> ComparisonStage { get; } = new("comparison", l => l.Comparison, null);
@@ -335,8 +375,8 @@ public static class Settings
     public static IReadOnlyList<IStage> Stages { get; } =
     [
         VowelStage, ConsonantStage, SyllableStage, StressStage, ClusterRepairStage, SyllableContactStage, DropoffStage, SoundChangeStage, SyllableChangeStage, WordOrderStage, MorphologyStage, AlignmentStage,
-        RoleRegionStage, CaseStage, ConfigurationRegionStage, ConfigurationPlanStage, NounParadigmStage, VerbParadigmStage, PronounStage, NegationStage, QuestionStage, PassiveStage, ModalStage,
-        PossessionStage, GenderStage, ComparisonStage, DegreeStage, SimilativeStage,
+        RoleRegionStage, CaseStage, ConfigurationRegionStage, ConfigurationPlanStage, NounParadigmStage, VerbParadigmStage, PronounStage, PredicationStage, LocationalCopulaStage, AdjectiveAgreementStage,
+        NegationStage, QuestionStage, PassiveStage, ModalStage, PossessionStage, GenderStage, NumeralStage, ArticleStage, ComparisonStage, DegreeStage, SimilativeStage,
     ];
 
     /// <summary>Every setting, in the order they're declared.</summary>
@@ -345,8 +385,9 @@ public static class Settings
         .. VowelStage.Settings, .. ConsonantStage.Settings, .. SyllableStage.Settings, .. StressStage.Settings, .. ClusterRepairStage.Settings,
         .. SyllableContactStage.Settings, .. DropoffStage.Settings, .. SoundChangeStage.Settings, .. SyllableChangeStage.Settings, .. WordOrderStage.Settings, .. MorphologyStage.Settings, .. AlignmentStage.Settings, .. RoleRegionStage.Settings,
         .. CaseStage.Settings, .. ConfigurationRegionStage.Settings, .. ConfigurationPlanStage.Settings, .. NounParadigmStage.Settings,
-        .. VerbParadigmStage.Settings, .. PronounStage.Settings, .. NegationStage.Settings,
-        .. QuestionStage.Settings, .. PassiveStage.Settings, .. ModalStage.Settings, .. PossessionStage.Settings, .. GenderStage.Settings, .. ComparisonStage.Settings,
+        .. VerbParadigmStage.Settings, .. PronounStage.Settings, .. PredicationStage.Settings, .. LocationalCopulaStage.Settings, .. AdjectiveAgreementStage.Settings,
+        .. NegationStage.Settings, .. QuestionStage.Settings, .. PassiveStage.Settings, .. ModalStage.Settings, .. PossessionStage.Settings, .. GenderStage.Settings,
+        .. NumeralStage.Settings, .. ArticleStage.Settings, .. ComparisonStage.Settings,
         .. DegreeStage.Settings, .. SimilativeStage.Settings,
     ];
 
