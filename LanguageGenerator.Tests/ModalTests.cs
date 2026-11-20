@@ -187,10 +187,10 @@ public class ModalTests
     [Fact]
     public void Realize_ModalClauseUnderASuffix_PutsTheSuffixOnTheModalVerb()
     {
-        var languages = GeneratedLanguages.Sample.Where(l => l.Modals.Markers[Modality.Ability].Value is ModalVerb
-            && l.Subordination.Markers[Subordinator.If] is { Position: ExponentPosition.Suffix, Balance: Balance.Balanced }).ToList();
-        Assert.NotEmpty(languages);
-        Assert.All(languages, l =>
+        var spec = LanguageSpec.Free.Fix(Settings.ModalOf(Modality.Ability), ModalKind.Verb)
+            .Fix(Settings.SubordinatorOf(Subordinator.If), ExponentPosition.Suffix).Fix(Settings.TemporalBalance, Balance.Balanced);
+
+        Assert.All(Enumerable.Range(0, 5).Select(seed => Generator.Generate(seed, spec)), l =>
         {
             var main = new Clause("sleep", Tense.Present, Aspect.Imperfective, new NounPhrase("cat", Number.Singular)) { Adverbs = [] };
             var sentence = Realized(l, new Subordinated(main, Subordinator.If, new Modalized(DogEatsFish(false), Modality.Ability, false), false));

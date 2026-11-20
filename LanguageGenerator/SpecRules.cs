@@ -178,27 +178,21 @@ public static class SpecRules
             }
             return noDefinite && noIndefinite && agreeing.Count > 1 ? spec.With(Settings.ArticleGenderAgreement, [false]) : spec;
         }),
+        //and with 'with' joins only nouns, never clauses
+        SpecRule.Together(Settings.AndIsWith, Settings.ClauseAnd, (with, clauses) => !with || clauses != ClauseAnd.SameAsNouns,
+            "Clauses can only be joined like nouns where 'and' between nouns isn't 'with', which doesn't join clauses."),
+        .. Settings.SubordinatorPositions.Select(position => SpecRule.Together(Settings.Fusion, position,
+            (fusion, at) => fusion != Fusion.Isolating || at != ExponentPosition.Suffix,
+            $"{position.Name} can only be a suffix where words take affixes, so fusion can't be Isolating.")),
+        //subordinators joined by an edge share a marker, and so its position
+        .. SubordinatorMap.Edges.Select(e => (e.First, e.Second)).Select(edge => new SpecRule.Narrowing(
+            $"Subordinators joined by an edge share a marker, so {edge.First.ToString().ToLowerInvariant()} and {edge.Second.ToString().ToLowerInvariant()} can't be joined when they're marked in different places.",
+            spec => SharedMarker(spec, Settings.SubordinatorOf(edge.First), Settings.SubordinatorOf(edge.Second), Settings.SubordinatorEdge(edge.First, edge.Second)))),
         //modalities joined by an edge share a marker, so an edge fixed joined narrows them to the
         //kinds they can share, and two that can't share one can't be joined
         .. ModalityMap.Edges.Select(e => (e.First, e.Second)).Select(edge => new SpecRule.Narrowing(
             $"Modalities joined by an edge share a marker, so {edge.First.Name.ToLowerInvariant()} and {edge.Second.Name.ToLowerInvariant()} can't be joined when they're marked differently.",
-            spec =>
-            {
-                var (first, second, joined) = (Settings.ModalOf(edge.First), Settings.ModalOf(edge.Second), Settings.ModalityEdge(edge.First, edge.Second));
-                var firsts = spec.Allowed(first) ?? first.AllValues!;
-                var seconds = spec.Allowed(second) ?? second.AllValues!;
-                List<object> shared = [.. firsts.Intersect(seconds)];
-                if (spec.Allowed(joined) is [true])
-                {
-                    if (shared.Count == 0)
-                    {
-                        return null;
-                    }
-                    var narrowed = shared.Count < firsts.Count ? spec.With(first, shared) : spec;
-                    return shared.Count < seconds.Count ? narrowed.With(second, shared) : narrowed;
-                }
-                return shared.Count == 0 && spec.Allowed(joined) is null or [_, _] ? spec.With(joined, [false]) : spec;
-            })),
+            spec => SharedMarker(spec, Settings.ModalOf(edge.First), Settings.ModalOf(edge.Second), Settings.ModalityEdge(edge.First, edge.Second)))),
         //only an affix on the possessed noun has a side
         SpecRule.Together(Settings.PossessiveMarking, Settings.PossessiveAffixes,
             (marking, position) => position == ExponentPosition.Suffix || marking is PossessiveMarking.Head or PossessiveMarking.Double,
@@ -268,6 +262,25 @@ public static class SpecRules
         List<ICondition> conditions = [.. All.OfType<SpecRule.Conditions>().SelectMany(r => r.Implied(narrowed))];
         problems.AddRange(conditions.GroupBy(c => c.Stage).Select(g => g.Key.Unmet(narrowed, [.. g])).OfType<string>());
         return new Implications(narrowed, conditions, problems);
+    }
+
+    //two nodes of a semantic map joined by an edge share a marker, so an edge fixed joined narrows
+    //them to the values they can share, and two that can't share one can't be joined
+    private static LanguageSpec? SharedMarker(LanguageSpec spec, ISetting first, ISetting second, ISetting joined)
+    {
+        var firsts = spec.Allowed(first) ?? first.AllValues!;
+        var seconds = spec.Allowed(second) ?? second.AllValues!;
+        List<object> shared = [.. firsts.Intersect(seconds)];
+        if (spec.Allowed(joined) is [true])
+        {
+            if (shared.Count == 0)
+            {
+                return null;
+            }
+            var narrowed = shared.Count < firsts.Count ? spec.With(first, shared) : spec;
+            return shared.Count < seconds.Count ? narrowed.With(second, shared) : narrowed;
+        }
+        return shared.Count == 0 && spec.Allowed(joined) is null or [_, _] ? spec.With(joined, [false]) : spec;
     }
 
     //whether the spec has some configuration marked by a localization, or prefers them

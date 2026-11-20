@@ -368,6 +368,58 @@ public static class Settings
     public static Setting<Articles, bool> ArticleGenderAgreement { get; } = ArticleStage.Declare("article-gender-agreement", Nouns,
         a => a.Definite?.AgreesInGender == true || a.Indefinite?.AgreesInGender == true, SettingWrites.WithArticleGenderAgreement, YesNo);
 
+    //joining clauses and nouns
+
+    public static Stage<Conjunctions> ConjunctionStage { get; } = new("conjunctions", l => l.Conjunctions, null);
+    /// <summary>Whether 'and' between nouns is the word for 'with', as in 'the dog with the cat slept'.</summary>
+    public static Setting<Conjunctions, bool> AndIsWith { get; } = ConjunctionStage.Declare("and-is-with", Clauses,
+        c => c.NounAnd.Value is AndWith, SettingWrites.WithAndIsWith, YesNo);
+    /// <summary>How clauses are joined with 'and'.</summary>
+    public static Setting<Conjunctions, ClauseAnd> ClauseAnd { get; } = ConjunctionStage.Declare("clause-and", Clauses,
+        SettingWrites.ClauseAndOf, SettingWrites.WithClauseAnd, Choice<ClauseAnd>.Of(Enum.GetValues<ClauseAnd>()));
+
+    public static Stage<Subordination> SubordinationStage { get; } = new("subordination", l => l.Subordination, null);
+    //the edges come before the markers, since joining two regions gives them one marker, which a
+    //marker's fixed position then goes on
+    /// <summary>Whether each edge of the subordinator map joins its two subordinators, so they share a marker.</summary>
+    public static IReadOnlyList<Setting<Subordination, bool>> SubordinatorEdges { get; } =
+    [
+        .. SubordinatorMap.Edges.Select(e => (e.First, e.Second)).Select(edge => SubordinationStage.Declare(
+            $"subordinators-{Lower(edge.First)}-{Lower(edge.Second)}", Clauses,
+            s => s.Joined.Contains(edge), (s, joined) => SettingWrites.WithSubordinatorEdge(s, edge, joined), YesNo)),
+    ];
+    /// <summary>Where each kind of subordinate clause is marked: by a word at its start or its end, or a suffix on its verb.</summary>
+    public static IReadOnlyList<Setting<Subordination, ExponentPosition>> SubordinatorPositions { get; } =
+    [
+        .. SubordinatorMap.Subordinators.Select(subordinator => SubordinationStage.Declare($"{Lower(subordinator)}-subordinator", Clauses,
+            s => s.Markers[subordinator].Position, (s, position) => SettingWrites.WithSubordinatorPosition(s, subordinator, position),
+            new Choice<ExponentPosition>([("Initial", ExponentPosition.PrecedingParticle), ("Final", ExponentPosition.FollowingParticle), ("Suffix", ExponentPosition.Suffix)]))),
+    ];
+    /// <summary>Whether each kind of subordinate clause comes before the main clause.</summary>
+    public static IReadOnlyList<Setting<Subordination, bool>> SubordinateClauseFirst { get; } =
+    [
+        .. SubordinatorMap.Subordinators.Select(subordinator => SubordinationStage.Declare($"{Lower(subordinator)}-clause-first", Clauses,
+            s => s.Markers[subordinator].BeforeMain,
+            (s, first) => s with { Markers = new Dictionary<Subordinator, SubordinatorMarking>(s.Markers) { [subordinator] = s.Markers[subordinator] with { BeforeMain = first } } },
+            YesNo)),
+    ];
+    /// <summary>Whether a purpose clause's verb keeps its ordinary form, as WALS 125A asks.</summary>
+    public static Setting<Subordination, Balance> PurposeBalance { get; } = SubordinationStage.Declare("purpose-balance", Clauses,
+        s => s.Markers[Subordinator.Purpose].Balance, (s, balance) => SettingWrites.WithBalance(s, [Subordinator.Purpose], balance), Choice<Balance>.Of(Enum.GetValues<Balance>()));
+    /// <summary>Whether a reason clause's verb keeps its ordinary form, as WALS 127A asks.</summary>
+    public static Setting<Subordination, Balance> ReasonBalance { get; } = SubordinationStage.Declare("reason-balance", Clauses,
+        s => s.Markers[Subordinator.Because].Balance, (s, balance) => SettingWrites.WithBalance(s, [Subordinator.Because], balance), Choice<Balance>.Of(Enum.GetValues<Balance>()));
+    /// <summary>
+    /// Whether the verb of a 'when' clause keeps its ordinary form, as WALS 126A asks, and so the
+    /// other temporal and conditional clauses' verbs, which follow it.
+    /// </summary>
+    public static Setting<Subordination, Balance> TemporalBalance { get; } = SubordinationStage.Declare("temporal-balance", Clauses,
+        s => s.Markers[Subordinator.When].Balance,
+        (s, balance) => SettingWrites.WithBalance(s, [Subordinator.If, Subordinator.When, Subordinator.Before, Subordinator.After, Subordinator.Until], balance),
+        Choice<Balance>.Of(Enum.GetValues<Balance>()));
+
+    private static string Lower(Subordinator subordinator) => subordinator.ToString().ToLowerInvariant();
+
     //comparison
 
     public static Stage<Comparison> ComparisonStage { get; } = new("comparison", l => l.Comparison, null);
@@ -387,7 +439,7 @@ public static class Settings
     [
         VowelStage, ConsonantStage, SyllableStage, StressStage, ClusterRepairStage, SyllableContactStage, DropoffStage, SoundChangeStage, SyllableChangeStage, WordOrderStage, MorphologyStage, AlignmentStage,
         RoleRegionStage, CaseStage, ConfigurationRegionStage, ConfigurationPlanStage, NounParadigmStage, VerbParadigmStage, PronounStage, PredicationStage, LocationalCopulaStage, AdjectiveAgreementStage,
-        CommandStage, NegationStage, QuestionStage, PassiveStage, ModalStage, PossessionStage, GenderStage, NumeralStage, ArticleStage, ComparisonStage, DegreeStage, SimilativeStage,
+        CommandStage, NegationStage, QuestionStage, PassiveStage, ModalStage, PossessionStage, GenderStage, NumeralStage, ArticleStage, ConjunctionStage, SubordinationStage, ComparisonStage, DegreeStage, SimilativeStage,
     ];
 
     /// <summary>Every setting, in the order they're declared.</summary>
@@ -398,7 +450,7 @@ public static class Settings
         .. CaseStage.Settings, .. ConfigurationRegionStage.Settings, .. ConfigurationPlanStage.Settings, .. NounParadigmStage.Settings,
         .. VerbParadigmStage.Settings, .. PronounStage.Settings, .. PredicationStage.Settings, .. LocationalCopulaStage.Settings, .. AdjectiveAgreementStage.Settings,
         .. CommandStage.Settings, .. NegationStage.Settings, .. QuestionStage.Settings, .. PassiveStage.Settings, .. ModalStage.Settings, .. PossessionStage.Settings, .. GenderStage.Settings,
-        .. NumeralStage.Settings, .. ArticleStage.Settings, .. ComparisonStage.Settings,
+        .. NumeralStage.Settings, .. ArticleStage.Settings, .. ConjunctionStage.Settings, .. SubordinationStage.Settings, .. ComparisonStage.Settings,
         .. DegreeStage.Settings, .. SimilativeStage.Settings,
     ];
 
@@ -425,6 +477,17 @@ public static class Settings
     /// <summary>The setting for how a modality is marked.</summary>
     public static Setting<Modals, ModalKind> ModalOf(Modality modality) => ModalMarkers[ModalityMap.Modalities.ToList().IndexOf(modality) is var i and >= 0
         ? i : throw new ArgumentException($"{modality.Name} isn't a modality on the map.")];
+
+    /// <summary>The setting for an edge of the subordinator map.</summary>
+    public static Setting<Subordination, bool> SubordinatorEdge(Subordinator first, Subordinator second) =>
+        SubordinatorEdges[SubordinatorMap.Edges.Select(e => (e.First, e.Second)).ToList().IndexOf((first, second)) is var i and >= 0
+            ? i : throw new ArgumentException($"The subordinator map has no edge from {first} to {second}.")];
+
+    /// <summary>The setting for where a kind of subordinate clause is marked.</summary>
+    public static Setting<Subordination, ExponentPosition> SubordinatorOf(Subordinator subordinator) => SubordinatorPositions[(int)subordinator];
+
+    /// <summary>The setting for whether a kind of subordinate clause comes first.</summary>
+    public static Setting<Subordination, bool> ClauseFirst(Subordinator subordinator) => SubordinateClauseFirst[(int)subordinator];
 
     /// <summary>The setting for an edge of the modality map.</summary>
     public static Setting<Modals, bool> ModalityEdge(Modality first, Modality second) =>

@@ -78,8 +78,8 @@ public static partial class Generator
         var manner = GenerateManner(stages.For("manner"), morphology, phonology);
         var similative = stages.Draw(Settings.SimilativeStage, rand => GenerateSimilative(rand, comparison, morphology, wordOrder, phonology));
         var passive = stages.Draw(Settings.PassiveStage, rand => GeneratePassive(rand, alignment, morphology, phonology));
-        var conjunctions = GenerateConjunctions(stages.For("conjunctions"), phonology);
-        var subordination = GenerateSubordination(stages.For("subordination"), morphology, wordOrder, phonology);
+        var conjunctions = stages.Draw(Settings.ConjunctionStage, rand => GenerateConjunctions(rand, phonology));
+        var subordination = stages.Draw(Settings.SubordinationStage, rand => GenerateSubordination(rand, morphology, wordOrder, phonology));
         var modals = stages.Draw(Settings.ModalStage, rand => GenerateModals(rand, morphology, wordOrder, predication, phonology));
         var questions = stages.Draw(Settings.QuestionStage, rand => GenerateQuestions(rand, morphology, wordOrder, phonology));
 

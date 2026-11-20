@@ -156,6 +156,69 @@ internal static class SettingWrites
     public static Commands WithProhibitiveNegator(Commands drawn, bool has) =>
         has ? (drawn.Prohibitive is not null ? drawn : throw NoForm("A prohibitive negator")) : drawn with { Prohibitive = null };
 
+    public static ClauseAnd ClauseAndOf(Conjunctions conjunctions) => conjunctions switch
+    {
+        { ClauseAnd: null } => ClauseAnd.Juxtaposition,
+        { NounAnd.Value: AndWord word } when word.Word == conjunctions.ClauseAnd => ClauseAnd.SameAsNouns,
+        _ => ClauseAnd.OwnWord,
+    };
+
+    //nouns joined by 'with' need no word; nouns joined otherwise take the clauses' word, or none
+    //where clauses have none
+    public static Conjunctions WithAndIsWith(Conjunctions drawn, bool with) =>
+        (drawn.NounAnd.Value is AndWith) == with ? drawn
+        : with ? drawn with { NounAnd = new AndWith() }
+        : drawn with { NounAnd = drawn.ClauseAnd is { } word ? new AndWord(word) : new AndJuxtaposed() };
+
+    //clauses set side by side take nouns along, unless they're joined by 'with'; clauses joined like
+    //nouns take the nouns' word; and a word of their own needs one apart from the nouns'
+    public static Conjunctions WithClauseAnd(Conjunctions drawn, ClauseAnd kind) => (kind, drawn.NounAnd.Value) switch
+    {
+        _ when ClauseAndOf(drawn) == kind => drawn,
+        (ClauseAnd.Juxtaposition, AndWith) => drawn with { ClauseAnd = null },
+        (ClauseAnd.Juxtaposition, _) => drawn with { NounAnd = new AndJuxtaposed(), ClauseAnd = null },
+        (ClauseAnd.SameAsNouns, AndWord word) => drawn with { ClauseAnd = word.Word },
+        _ => throw NoForm($"Clauses joined {kind}"),
+    };
+
+    //a subordinator's region keeps its form in its new position, each subordinator with its own meaning
+    private static Subordination WithRegion(Subordination subordination, Subordinator subordinator, IReadOnlyList<Phoneme> form, ExponentPosition position)
+    {
+        var markers = new Dictionary<Subordinator, SubordinatorMarking>(subordination.Markers);
+        foreach (var s in subordination.RegionOf(subordinator))
+        {
+            List<Grammeme> meaning = [Linkage.For(s)];
+            markers[s] = markers[s] with
+            {
+                Marker = position == ExponentPosition.Suffix ? new Affix(form, meaning) : new Particle(form, meaning),
+                Position = position,
+            };
+        }
+        return subordination with { Markers = markers };
+    }
+
+    public static Subordination WithSubordinatorPosition(Subordination drawn, Subordinator subordinator, ExponentPosition position) =>
+        drawn.Markers[subordinator].Position == position ? drawn : WithRegion(drawn, subordinator, drawn.Markers[subordinator].Marker.Form, position);
+
+    //joining two regions gives them the first one's marker; parting them would need a form for the second
+    public static Subordination WithSubordinatorEdge(Subordination drawn, (Subordinator First, Subordinator Second) edge, bool joined)
+    {
+        if (drawn.Joined.Contains(edge) == joined)
+        {
+            return drawn;
+        }
+        if (!joined)
+        {
+            throw NoForm($"{edge.First} apart from {edge.Second}");
+        }
+        var kept = drawn.Markers[edge.First];
+        var result = drawn with { Joined = [.. SubordinatorMap.Edges.Select(e => (e.First, e.Second)).Where(e => e == edge || drawn.Joined.Contains(e))] };
+        return WithRegion(result, edge.First, kept.Marker.Form, kept.Position);
+    }
+
+    public static Subordination WithBalance(Subordination drawn, IReadOnlyList<Subordinator> subordinators, Balance balance) =>
+        drawn with { Markers = drawn.Markers.ToDictionary(m => m.Key, m => subordinators.Contains(m.Key) ? m.Value with { Balance = balance } : m.Value) };
+
     private static InvalidOperationException NoForm(string value) =>
         new($"{value} can't be written in, since what was drawn has no form to reuse, and no draw gave it. A draw gives it at least 2% of the time, so this shouldn't happen.");
 

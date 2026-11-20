@@ -43,7 +43,9 @@ Rules keep a value written in from contradicting what was drawn before it: a spa
 - A configuration said like at needs edges joining it to at, one with a marker of its own can't be joined to at, and configurations joined into one region share its marker.
 - An isolating language has no affixes, so negation and polar questions can't be a prefix or suffix, possession can't be marked on the possessed noun, and a comparative, similative, modal or article can't be an affix.
 - An article agreeing in gender needs genders, and an article that can agree: a definite article, or an indefinite one that isn't the word for 'one'.
-- Modalities joined by an edge share a marker, so two marked differently can't be joined.
+- Modalities joined by an edge share a marker, so two marked differently can't be joined, and the same goes for subordinators marked in different places.
+- An isolating language can't mark a subordinate clause with a suffix.
+- 'And' between nouns that's the word for 'with' doesn't join clauses, so clauses can't be joined like nouns then.
 - Possessive affixes can only be prefixes where possession is marked on the possessed noun.
 - An inventory needs at least one sound, and each sound once, so not every vowel or every consonant can be forbidden.
 - A count has to leave room for the sounds the spec requires and its sound changes need, can't be more than the sounds it doesn't forbid, and has to match an exact inventory.
@@ -139,5 +141,11 @@ The symbols are the generator's 53 phonemes, given exactly, so `ʦ` and not `ts`
 | `definite-article` | `None`, `Word` or `Affix` |
 | `indefinite-article` | `None`, `Word`, `One`, the word for 'one', or `Affix` |
 | `article-gender-agreement` | `true` if an article agrees with its noun's gender |
+| `and-is-with` | `true` if 'and' between nouns is the word for 'with', as in 'the dog with the cat slept' |
+| `clause-and` | `SameAsNouns`, `OwnWord`, or `Juxtaposition`, setting clauses side by side, as nouns are then too unless 'and' is 'with' |
+| `subordinators-when-if`, `subordinators-when-after`, `subordinators-after-because`, `subordinators-purpose-because`, `subordinators-before-until`, `subordinators-when-because` | `true` if the edge of the subordinator map joins its two subordinators, so they share a marker, as German wenn is both 'if' and 'when' |
+| `if-subordinator`, `when-subordinator`, `before-subordinator`, `after-subordinator`, `until-subordinator`, `because-subordinator`, `purpose-subordinator` | `Initial` or `Final`, a word at the start or end of the clause, or `Suffix`, on its verb |
+| `if-clause-first`, `when-clause-first`, `before-clause-first`, `after-clause-first`, `until-clause-first`, `because-clause-first`, `purpose-clause-first` | `true` if the clause comes before the main one |
+| `purpose-balance`, `reason-balance`, `temporal-balance` | `Balanced`, if the verb keeps its ordinary form, `Deranked`, if it loses its tense and agreement, or `Either`, deranked where the clauses share a subject. `temporal-balance` is for 'when' clauses, and the other temporal and conditional ones follow it |
 | `comparison` | `Locational`, marking the standard as a place, `Exceed`, with a verb meaning 'exceed', `Conjoined`, with two clauses side by side, or `Particle`, with a word like than |
 | `comparative`, `similative` | `Affix` or `Word`, how 'more' and 'like' are marked |
