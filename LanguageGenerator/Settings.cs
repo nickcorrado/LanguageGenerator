@@ -233,6 +233,41 @@ public static class Settings
         p => p.Preferred, (p, s) => s == ConfigurationStrategy.Case && !p.CasesAllowed ? p : p with { Preferred = s },
         Choice<ConfigurationStrategy>.Of(ConfigurationStrategy.Adposition, ConfigurationStrategy.RelationalNoun, ConfigurationStrategy.Case));
 
+    //inflection
+
+    public static Stage<Paradigm> NounParadigmStage { get; } = new("noun paradigm", l => l.Paradigms.Nouns, null);
+    /// <summary>Which numbers nouns inflect for: none, singular and plural, or a dual besides.</summary>
+    public static Setting<Paradigm, NounNumber> NounNumber { get; } = NounParadigmStage.Declare("noun-number", Morphology,
+        SettingWrites.NounNumberOf, SettingWrites.Unwritable<Paradigm, NounNumber>("A noun paradigm with other numbers"),
+        Choice<NounNumber>.Of(Enum.GetValues<NounNumber>()));
+
+    public static Stage<Paradigm> VerbParadigmStage { get; } = new("verb paradigm", l => l.Paradigms.Verbs, null);
+    /// <summary>Which tenses verbs inflect for.</summary>
+    public static Setting<Paradigm, Tenses> Tenses { get; } = VerbParadigmStage.Declare("tense", Morphology,
+        SettingWrites.TensesOf, SettingWrites.Unwritable<Paradigm, Tenses>("A verb paradigm with other tenses"),
+        Choice<Tenses>.Of(Enum.GetValues<Tenses>()));
+    /// <summary>Whether verbs inflect for perfective and imperfective aspect.</summary>
+    public static Setting<Paradigm, bool> Aspect { get; } = VerbParadigmStage.Declare("aspect", Morphology,
+        p => p.Categories.Has<Aspect>(), SettingWrites.Unwritable<Paradigm, bool>("A verb paradigm with or without aspect"), YesNo);
+    /// <summary>Whether verbs agree with their subject in person and number.</summary>
+    public static Setting<Paradigm, bool> VerbAgreement { get; } = VerbParadigmStage.Declare("verb-agreement", Morphology,
+        p => p.Categories.Has<Person>(), SettingWrites.Unwritable<Paradigm, bool>("A verb paradigm with or without agreement"), YesNo);
+
+    //pronouns
+
+    public static Stage<PronounSystem> PronounStage { get; } = new("pronouns", l => l.Pronouns, null);
+    /// <summary>How the pronouns say 'we': with one word, with the word for 'I', or apart for including the hearer.</summary>
+    public static Setting<PronounSystem, FirstPersonPlural> FirstPersonPlural { get; } = PronounStage.Declare("first-person-plural", Nouns,
+        p => p.FirstPersonPlural, SettingWrites.Unwritable<PronounSystem, FirstPersonPlural>("Pronouns saying 'we' another way"),
+        Choice<FirstPersonPlural>.Of(Enum.GetValues<FirstPersonPlural>()));
+    /// <summary>Which pronouns distinguish gender.</summary>
+    public static Setting<PronounSystem, PronounGender> GenderedPronouns { get; } = PronounStage.Declare("gendered-pronouns", Nouns,
+        p => p.GenderedPronouns, SettingWrites.Unwritable<PronounSystem, PronounGender>("Pronouns with gender in other persons"),
+        Choice<PronounGender>.Of(Enum.GetValues<PronounGender>()));
+    /// <summary>Whether a subject pronoun is usually left out.</summary>
+    public static Setting<PronounSystem, bool> DropsSubjects { get; } = PronounStage.Declare("drops-subjects", Nouns,
+        p => p.DropsSubjects, SettingWrites.WithDropsSubjects, YesNo);
+
     //clauses
 
     public static Stage<Negation> NegationStage { get; } = new("negation", l => l.Negation, null);
@@ -300,7 +335,7 @@ public static class Settings
     public static IReadOnlyList<IStage> Stages { get; } =
     [
         VowelStage, ConsonantStage, SyllableStage, StressStage, ClusterRepairStage, SyllableContactStage, DropoffStage, SoundChangeStage, SyllableChangeStage, WordOrderStage, MorphologyStage, AlignmentStage,
-        RoleRegionStage, CaseStage, ConfigurationRegionStage, ConfigurationPlanStage, NegationStage, QuestionStage, PassiveStage, ModalStage,
+        RoleRegionStage, CaseStage, ConfigurationRegionStage, ConfigurationPlanStage, NounParadigmStage, VerbParadigmStage, PronounStage, NegationStage, QuestionStage, PassiveStage, ModalStage,
         PossessionStage, GenderStage, ComparisonStage, DegreeStage, SimilativeStage,
     ];
 
@@ -309,7 +344,8 @@ public static class Settings
     [
         .. VowelStage.Settings, .. ConsonantStage.Settings, .. SyllableStage.Settings, .. StressStage.Settings, .. ClusterRepairStage.Settings,
         .. SyllableContactStage.Settings, .. DropoffStage.Settings, .. SoundChangeStage.Settings, .. SyllableChangeStage.Settings, .. WordOrderStage.Settings, .. MorphologyStage.Settings, .. AlignmentStage.Settings, .. RoleRegionStage.Settings,
-        .. CaseStage.Settings, .. ConfigurationRegionStage.Settings, .. ConfigurationPlanStage.Settings, .. NegationStage.Settings,
+        .. CaseStage.Settings, .. ConfigurationRegionStage.Settings, .. ConfigurationPlanStage.Settings, .. NounParadigmStage.Settings,
+        .. VerbParadigmStage.Settings, .. PronounStage.Settings, .. NegationStage.Settings,
         .. QuestionStage.Settings, .. PassiveStage.Settings, .. ModalStage.Settings, .. PossessionStage.Settings, .. GenderStage.Settings, .. ComparisonStage.Settings,
         .. DegreeStage.Settings, .. SimilativeStage.Settings,
     ];

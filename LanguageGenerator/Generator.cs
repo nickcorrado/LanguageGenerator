@@ -57,9 +57,9 @@ public static partial class Generator
         //the words are coined apart from the plan, so they don't change when the plan is drawn again
         var configurations = CoinConfigurations(stages.For("configuration words"), plan, wordOrder, phonology);
         var paradigms = new Paradigms(
-            GenerateNounParadigm(stages.For("noun paradigm"), morphology, wordOrder, alignment, cases, configurations.Localizations, phonology),
-            GenerateVerbParadigm(stages.For("verb paradigm"), morphology, wordOrder, phonology));
-        var pronouns = GeneratePronouns(stages.For("pronouns"), paradigms, morphology, wordOrder, phonology);
+            stages.Draw(Settings.NounParadigmStage, rand => GenerateNounParadigm(rand, morphology, wordOrder, alignment, cases, configurations.Localizations, phonology)),
+            stages.Draw(Settings.VerbParadigmStage, rand => GenerateVerbParadigm(rand, morphology, wordOrder, phonology)));
+        var pronouns = stages.Draw(Settings.PronounStage, rand => GeneratePronouns(rand, paradigms, morphology, wordOrder, phonology));
         var negation = stages.Draw(Settings.NegationStage, rand => GenerateNegation(rand, morphology, phonology));
         var predication = GenerateLocationalPredication(stages.For("locational copula"),
             GeneratePredication(stages.For("predication"), phonology), phonology);

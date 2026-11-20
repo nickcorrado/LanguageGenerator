@@ -102,6 +102,10 @@ The symbols are the generator's 53 phonemes, given exactly, so `ʦ` and not `ts`
 | `case-with-number`, `tam-with-agreement`, `tense-with-aspect`, `case-with-localization` | `true` if the two share one marker |
 | `zero-singular`, `zero-core-case`, `zero-present` | `true` if the singular, the intransitive subject's case or the present has no marker |
 | `zero-third-person` | `None`, `Singular`, `All` |
+| `noun-number` | `None`, `SingularPlural`, `SingularDualPlural`, the numbers nouns inflect for |
+| `tense` | `None`, `PresentPast`, `PresentPastFuture`, the tenses verbs inflect for |
+| `aspect` | `true` if verbs inflect for perfective and imperfective |
+| `verb-agreement` | `true` if verbs agree with their subject in person and number |
 | `alignment` | `NominativeAccusative`, `ErgativeAbsolutive`, `None` |
 | `roles-companion-instrument`, `roles-recipient-goal`, `roles-goal-location`, `roles-source-possessor`, `roles-possessor-recipient`, `roles-instrument-location`, `roles-location-source`, `roles-instrument-source`, `roles-agent-instrument`, `roles-agent-source`, `roles-agent-location`, `roles-time-location`, `roles-route-location`, `roles-route-instrument`, `roles-route-source` | `true` if the edge of the role map joins its two roles, so they share a marker |
 | `genitive-case`, `dative-case`, `locative-case`, `ablative-case`, `instrumental-case`, `comitative-case`, `allative-case`, `perlative-case`, `vocative-case` | `true` if the language has the case. Core cases follow the alignment |
@@ -118,5 +122,8 @@ The symbols are the generator's 53 phonemes, given exactly, so `ʦ` and not `ts`
 | `possessive-affixes` | `Prefix` or `Suffix`, the side of the possessed noun its affix goes on, where possession is marked there |
 | `genders` | `None`, `MasculineFeminine`, `MasculineFeminineNeuter`, `AnimateInanimate` |
 | `gender-assignment` | `Semantic`, by what a noun means, or `SemanticAndFormal`, by how it ends too |
+| `first-person-plural` | `Plain`, one 'we', `SameAsSingular`, with the word for 'I', or `InclusiveExclusive`, one 'we' with the hearer and one without |
+| `gendered-pronouns` | `None`, `ThirdSingular`, for he and she, `Third`, for the plural too, or `ThirdAndSecond`, for 'you' too |
+| `drops-subjects` | `true` if a subject pronoun is usually left out |
 | `comparison` | `Locational`, marking the standard as a place, `Exceed`, with a verb meaning 'exceed', `Conjoined`, with two clauses side by side, or `Particle`, with a word like than |
 | `comparative`, `similative` | `Affix` or `Word`, how 'more' and 'like' are marked |

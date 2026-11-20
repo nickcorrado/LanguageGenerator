@@ -32,6 +32,33 @@ internal static class SettingWrites
         IReadOnlyList<(TKind Kind, SoundChange? Change)> kinds, TKind kind) where TKind : notnull =>
         [.. order.Where(c => kinds.FirstOrDefault(k => k.Change == c) is { Change: not null } k ? k.Kind.Equals(kind) : changes.Contains(c))];
 
+    //a setting whose values each need forms a draw may not have, so it's only ever drawn
+    public static Func<T, TValue, T> Unwritable<T, TValue>(string value) => (_, _) => throw NoForm(value);
+
+    public static NounNumber NounNumberOf(Paradigm nouns) => nouns.Categories.FirstOrDefault(c => c.Is<Number>())?.Values.Count switch
+    {
+        null => NounNumber.None,
+        2 => NounNumber.SingularPlural,
+        _ => NounNumber.SingularDualPlural,
+    };
+
+    public static Tenses TensesOf(Paradigm verbs) => verbs.Categories.FirstOrDefault(c => c.Is<Tense>())?.Values.Count switch
+    {
+        null => Tenses.None,
+        2 => Tenses.PresentPast,
+        _ => Tenses.PresentPastFuture,
+    };
+
+    public static PronounSystem WithDropsSubjects(PronounSystem drawn, bool drops) => new()
+    {
+        FirstPersonPlural = drawn.FirstPersonPlural,
+        GenderedPronouns = drawn.GenderedPronouns,
+        Genders = drawn.Genders,
+        Forms = drawn.Forms,
+        Paradigm = drawn.Paradigm,
+        DropsSubjects = drops,
+    };
+
     private static InvalidOperationException NoForm(string value) =>
         new($"{value} can't be written in, since what was drawn has no form to reuse, and no draw gave it. A draw gives it at least 4% of the time, so this shouldn't happen.");
 
