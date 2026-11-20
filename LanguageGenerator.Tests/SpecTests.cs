@@ -8,7 +8,7 @@ public class SpecTests
         + $"; dog={string.Concat(language.Lexicon.Noun("dog").Root.Form.Select(p => p.IpaSymbol))}"
         + $"; see={string.Concat(language.Lexicon.Verb("see").Root.Form.Select(p => p.IpaSymbol))}";
 
-    private static void AssertMeets(Language language, LanguageSpec spec) =>
+    internal static void AssertMeets(Language language, LanguageSpec spec) =>
         Assert.All(spec.Fixed, kv => Assert.Contains(kv.Value, allowed => Same(kv.Key, allowed, kv.Key.Read(language))));
 
     private static bool Same(ISetting setting, object a, object b) => a is System.Collections.IEnumerable first && b is System.Collections.IEnumerable second
@@ -24,23 +24,6 @@ public class SpecTests
         var language = Generator.Generate(seed, LanguageSpec.Free);
 
         Assert.Equal(Fingerprint(language), Fingerprint(Generator.Generate(seed, LanguageSpec.Lock(language, Settings.All))));
-    }
-
-    [Fact]
-    public void Generate_AnyChoiceSettingFixed_HasThatValue()
-    {
-        foreach (var setting in Settings.All.Where(s => s.AllValues is not null))
-        {
-            foreach (var value in setting.AllValues!)
-            {
-                var spec = LanguageSpec.Free.With(setting, [value]);
-                //an inventory's sounds and counts are so many that one seed each is enough
-                foreach (var seed in setting is ISetting<IReadOnlyList<Vowel>> or ISetting<IReadOnlyList<Consonant>> ? [1] : new[] { 1, 2 })
-                {
-                    Assert.Equal(value, setting.Read(Generator.Generate(seed, spec)));
-                }
-            }
-        }
     }
 
     [Fact]
@@ -192,56 +175,5 @@ public class SpecTests
         var json = SpecFile.Format(LanguageSpec.Lock(language, Settings.All));
 
         Assert.Equal(Fingerprint(language), Fingerprint(Generator.Generate(seed, SpecFile.Parse(json))));
-    }
-
-    //any spec is either refused, or met: a spec that's neither is missing a rule
-    [Fact]
-    public void Generate_RandomSpecs_AreEachRefusedOrMet()
-    {
-        var rand = new Random(2026);
-        var (refused, met) = (0, 0);
-        for (int i = 0; i < 300; i++)
-        {
-            var spec = RandomSpec(rand);
-            if (spec.Problems().Count > 0)
-            {
-                refused++;
-                continue;
-            }
-            var language = Generator.Generate(rand.Next(), spec);
-            AssertMeets(language, spec);
-            RelatedStageTests.AssertKeepsTheRules(language);
-            met++;
-        }
-
-        //sound changes fixed beside a random inventory too small for them are refused often
-        Assert.InRange(refused, 1, 130);
-        Assert.InRange(met, 170, 299);
-    }
-
-    //a few settings, each fixed to one value or two, an inventory to a random handful of its sounds in
-    //random order, and the dropoff to a random number
-    private static LanguageSpec RandomSpec(Random rand)
-    {
-        var spec = LanguageSpec.Free;
-        //an inventory is one setting here, given half the time exactly and half the time as a few
-        //sounds it requires or forbids, so its sounds don't swamp the rest
-        foreach (var setting in Settings.All.Where(s => Settings.InventoryOf(s) is null && rand.NextDouble() < 0.25))
-        {
-            if (Settings.SoundsOf(setting) is [_, ..] sounds && rand.NextDouble() < 0.5)
-            {
-                spec = sounds.OrderBy(_ => rand.Next()).Take(rand.Next(1, 5)).Aggregate(spec, (s, sound) => s.With(sound.Has, [rand.NextDouble() < 0.5]));
-                continue;
-            }
-            IReadOnlyList<object> values = setting switch
-            {
-                { AllValues: { } all } => [.. all.OrderBy(_ => rand.Next()).Take(rand.NextDouble() < 0.7 ? 1 : 2)],
-                _ when setting == Settings.Consonants => [(IReadOnlyList<Consonant>)[.. Consonant.All.OrderBy(_ => rand.Next()).Take(rand.Next(1, 15))]],
-                _ when setting == Settings.Vowels => [(IReadOnlyList<Vowel>)[.. Vowel.All.OrderBy(_ => rand.Next()).Take(rand.Next(1, 8))]],
-                _ => [0.05 + rand.NextDouble() * 0.6],
-            };
-            spec = spec.With(setting, values);
-        }
-        return spec;
     }
 }

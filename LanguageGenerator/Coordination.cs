@@ -37,6 +37,18 @@ public record AndJuxtaposed;
 /// <summary>How a language joins nouns with 'and'.</summary>
 public union NounAnd(AndWord, AndWith, AndJuxtaposed);
 
+/// <summary>How a language joins clauses with 'and'.</summary>
+//WALS 64A
+public enum ClauseAnd
+{
+    //with the word that joins nouns
+    SameAsNouns,
+    //with a word of its own
+    OwnWord,
+    //by setting them side by side, as nouns are then too, unless 'and' between them is 'with'
+    Juxtaposition,
+}
+
 /// <summary>A language's ways of saying 'and', 'or' and 'but'.</summary>
 //ClauseAnd is null where clauses are just set side by side. Each word goes between the two things
 //it joins, the commonest place for one, though some languages put it after the second, as Latin

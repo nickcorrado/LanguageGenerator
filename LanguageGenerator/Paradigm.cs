@@ -16,6 +16,22 @@ public static class InflectionalCategories
     public static bool Has<T>(this IEnumerable<InflectionalCategory> categories) where T : Grammeme => categories.Any(c => c.Is<T>());
 }
 
+/// <summary>Which numbers a language's nouns inflect for.</summary>
+public enum NounNumber
+{
+    None,
+    SingularPlural,
+    SingularDualPlural,
+}
+
+/// <summary>Which tenses a language's verbs inflect for.</summary>
+public enum Tenses
+{
+    None,
+    PresentPast,
+    PresentPastFuture,
+}
+
 /// <summary>
 /// Where a marker of grammatical features, its exponent, goes relative to the word it marks.
 /// </summary>

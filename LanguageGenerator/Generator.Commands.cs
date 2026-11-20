@@ -3,16 +3,6 @@ namespace LanguageGenerator;
 //commands
 public static partial class Generator
 {
-    //which numbers have an imperative of their own
-    private enum ImperativeForms
-    {
-        SingularAndPlural,
-        SingularOnly,
-        PluralOnly,
-        OneForBoth,
-        None,
-    }
-
     // https://wals.info/feature/70A
     private static readonly (ImperativeForms Value, int Languages)[] ImperativeCounts =
     [

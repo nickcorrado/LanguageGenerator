@@ -3,21 +3,18 @@
 //articles
 public static partial class Generator
 {
-    private enum DefiniteType { Word, Affix, None }
-    private enum IndefiniteType { Word, One, Affix }
-
     //WALS 37A, of 620 languages: 216 with a definite word distinct from the demonstrative and 69 that
     //use a demonstrative, which are both a word here, since there are no demonstratives yet; 92 with
     //an affix; and 45 with only an indefinite article and 198 with neither, which are both None
-    private static readonly (DefiniteType Value, int Languages)[] DefiniteCounts =
-        [(DefiniteType.Word, 285), (DefiniteType.Affix, 92), (DefiniteType.None, 243)];
+    private static readonly (DefiniteArticle Value, int Languages)[] DefiniteCounts =
+        [(DefiniteArticle.Word, 285), (DefiniteArticle.Affix, 92), (DefiniteArticle.None, 243)];
 
     //WALS 38A, of 534 languages: 102 with an indefinite word distinct from 'one', 112 that use 'one'
     //and 24 with an affix, 98 with only a definite article and 198 with neither. Given a definite
     //article, 193 of the 291 with one have an indefinite article too, and without, 45 of 243, the
     //latter from 37A since 38A doesn't split them
-    private static readonly (IndefiniteType Value, int Languages)[] IndefiniteCounts =
-        [(IndefiniteType.Word, 102), (IndefiniteType.One, 112), (IndefiniteType.Affix, 24)];
+    private static readonly (IndefiniteArticle Value, int Languages)[] IndefiniteCounts =
+        [(IndefiniteArticle.Word, 102), (IndefiniteArticle.One, 112), (IndefiniteArticle.Affix, 24)];
     private const double IndefiniteGivenDefinite = 193.0 / 291;
     private const double IndefiniteWithoutDefinite = 45.0 / 243;
 
@@ -36,8 +33,8 @@ public static partial class Generator
     public static Articles GenerateArticles(Random rand, MorphologicalProfile morphology, GenderSystem genders, NumeralSystem numerals, Phonology phonology)
     {
         var definiteType = Sampling.Categorical(rand, DefiniteCounts);
-        var hasIndefinite = rand.NextDouble() < (definiteType == DefiniteType.None ? IndefiniteWithoutDefinite : IndefiniteGivenDefinite);
-        IndefiniteType? indefiniteType = hasIndefinite ? Sampling.Categorical(rand, IndefiniteCounts) : null;
+        var hasIndefinite = rand.NextDouble() < (definiteType == DefiniteArticle.None ? IndefiniteWithoutDefinite : IndefiniteGivenDefinite);
+        var indefiniteType = hasIndefinite ? Sampling.Categorical(rand, IndefiniteCounts) : IndefiniteArticle.None;
         var wordFirst = Sampling.Categorical(rand, ArticleBeforeNounCounts);
         var isolating = morphology.Fusion == Fusion.Isolating;
         var agreesInGender = genders.Values.Count > 0 && rand.NextDouble() < 0.8;
@@ -71,15 +68,15 @@ public static partial class Generator
 
         var definite = definiteType switch
         {
-            DefiniteType.Word => Marker(false, Definiteness.Definite),
-            DefiniteType.Affix => Marker(true, Definiteness.Definite),
+            DefiniteArticle.Word => Marker(false, Definiteness.Definite),
+            DefiniteArticle.Affix => Marker(true, Definiteness.Definite),
             _ => null,
         };
         var indefinite = indefiniteType switch
         {
-            IndefiniteType.Word => Marker(false, Definiteness.Indefinite),
-            IndefiniteType.Affix => Marker(true, Definiteness.Indefinite),
-            IndefiniteType.One => new Article(numerals.BeforeNoun ? ExponentPosition.PrecedingParticle : ExponentPosition.FollowingParticle,
+            IndefiniteArticle.Word => Marker(false, Definiteness.Indefinite),
+            IndefiniteArticle.Affix => Marker(true, Definiteness.Indefinite),
+            IndefiniteArticle.One => new Article(numerals.BeforeNoun ? ExponentPosition.PrecedingParticle : ExponentPosition.FollowingParticle,
                 new Dictionary<(Gender?, Number?), Morpheme> { [(null, null)] = numerals.Words[1].Root }),
             _ => null,
         };

@@ -13,8 +13,6 @@ public class PronounTests
         return [.. Enumerable.Range(0, count).Select(_ => Generator.GeneratePronouns(rand, language.Paradigms, language.MorphologicalProfile, language.WordOrder, language.Phonology))];
     }
 
-    private static bool Agrees(Language language) => language.Paradigms.Verbs.Categories.Has<Person>();
-
     [Fact]
     public void GeneratePronouns_ManyDraws_MatchTheWalsCountsForWe()
     {
@@ -30,8 +28,8 @@ public class PronounTests
     [Fact]
     public void GeneratePronouns_ManyDraws_DropSubjectsMoreWhereVerbsAgree()
     {
-        var agreeing = Draw(GeneratedLanguages.Sample.First(Agrees), 4000);
-        var nonAgreeing = Draw(GeneratedLanguages.Sample.First(l => !Agrees(l)), 4000);
+        var agreeing = Draw(GeneratedLanguages.With(s => s.Fix(Settings.VerbAgreement, true)), 4000);
+        var nonAgreeing = Draw(GeneratedLanguages.With(s => s.Fix(Settings.VerbAgreement, false)), 4000);
 
         //WALS 101A: 498 of 580 languages drop them, and 61 of 143 where only optional pronouns allow it
         Assert.InRange(agreeing.Count(s => s.DropsSubjects) / 4000.0, 0.84, 0.88);
@@ -74,7 +72,7 @@ public class PronounTests
     [Fact]
     public void For_We_IsExclusiveUnlessSaidOtherwise()
     {
-        var pronouns = GeneratedLanguages.Sample.First(l => l.Pronouns.FirstPersonPlural == FirstPersonPlural.InclusiveExclusive).Pronouns;
+        var pronouns = GeneratedLanguages.With(s => s.Fix(Settings.FirstPersonPlural, FirstPersonPlural.InclusiveExclusive)).Pronouns;
 
         Assert.Equal("1PL.EXCL", pronouns.For(We).Root.Meaning);
         Assert.Equal("1PL.INCL", pronouns.For(We with { Clusivity = Clusivity.Inclusive }).Root.Meaning);
@@ -84,7 +82,7 @@ public class PronounTests
     [Fact]
     public void For_InclusiveInALanguageWithOneWe_IsThatWe()
     {
-        var pronouns = GeneratedLanguages.Sample.First(l => l.Pronouns.FirstPersonPlural == FirstPersonPlural.Plain).Pronouns;
+        var pronouns = GeneratedLanguages.With(s => s.Fix(Settings.FirstPersonPlural, FirstPersonPlural.Plain)).Pronouns;
 
         Assert.Same(pronouns.For(We), pronouns.For(We with { Clusivity = Clusivity.Inclusive }));
         Assert.Equal("1PL", pronouns.For(We).Root.Meaning);
@@ -93,7 +91,7 @@ public class PronounTests
     [Fact]
     public void For_WeInALanguageWithoutOne_IsI()
     {
-        var pronouns = GeneratedLanguages.Sample.First(l => l.Pronouns.FirstPersonPlural == FirstPersonPlural.SameAsSingular).Pronouns;
+        var pronouns = GeneratedLanguages.With(s => s.Fix(Settings.FirstPersonPlural, FirstPersonPlural.SameAsSingular)).Pronouns;
 
         Assert.Same(pronouns.For(I), pronouns.For(We));
         Assert.Equal("1", pronouns.For(We).Root.Meaning);
@@ -119,7 +117,7 @@ public class PronounTests
     [InlineData(PronounGender.ThirdAndSecond, "2SG")]
     public void For_GenderedPronouns_HaveADistinctFormForEachGender(PronounGender gendered, string gloss)
     {
-        var language = GeneratedLanguages.Sample.First(l => l.Pronouns.GenderedPronouns == gendered);
+        var language = GeneratedLanguages.With(s => s.Fix(Settings.GenderedPronouns, gendered));
         var pronoun = new Pronoun(gloss[0] == '2' ? Person.Second : Person.Third, gloss.EndsWith("PL") ? Number.Plural : Number.Singular);
 
         //only the third person has a neuter
@@ -133,7 +131,7 @@ public class PronounTests
     [Fact]
     public void For_GenderedPronoun_IsMasculineUnlessSaidOtherwise()
     {
-        var pronouns = GeneratedLanguages.Sample.First(l => l.Pronouns.GenderedPronouns != PronounGender.None).Pronouns;
+        var pronouns = GeneratedLanguages.With(s => s.Fix(Settings.GenderedPronouns, PronounGender.ThirdSingular, PronounGender.Third, PronounGender.ThirdAndSecond)).Pronouns;
         var he = new Pronoun(Person.Third, Number.Singular, Gender: Gender.Masculine);
 
         Assert.Same(pronouns.For(he), pronouns.For(he with { Gender = null }));
@@ -151,10 +149,9 @@ public class PronounTests
     [Fact]
     public void Generate_SecondPerson_NeverHasANeuter()
     {
-        //about one language in fifty, so the sample can miss it; more are generated past the sample if so
-        var you = GeneratedLanguages.Sample.Concat(Enumerable.Range(GeneratedLanguages.Sample.Count, 5000).Select(seed => Generator.Generate(seed, LanguageSpec.Free)))
-            .Where(l => l.Pronouns.GenderedPronouns == PronounGender.ThirdAndSecond && l.Pronouns.Genders.Contains(Gender.Neuter))
-            .Take(3).ToList();
+        //gendered pronouns have a neuter 40% of the time, which has no setting of its own
+        var spec = LanguageSpec.Free.Fix(Settings.GenderedPronouns, PronounGender.ThirdAndSecond);
+        var you = Enumerable.Range(0, 30).Select(seed => Generator.Generate(seed, spec)).Where(l => l.Pronouns.Genders.Contains(Gender.Neuter)).Take(3).ToList();
 
         Assert.NotEmpty(you);
         Assert.All(you, l =>
@@ -167,8 +164,8 @@ public class PronounTests
     [Fact]
     public void For_GenderWhereTheLanguageHasNone_IsIgnored()
     {
-        var english = GeneratedLanguages.Sample.First(l => l.Pronouns.GenderedPronouns == PronounGender.ThirdSingular).Pronouns;
-        var none = GeneratedLanguages.Sample.First(l => l.Pronouns.GenderedPronouns == PronounGender.None).Pronouns;
+        var english = GeneratedLanguages.With(s => s.Fix(Settings.GenderedPronouns, PronounGender.ThirdSingular)).Pronouns;
+        var none = GeneratedLanguages.With(s => s.Fix(Settings.GenderedPronouns, PronounGender.None)).Pronouns;
 
         //English-like languages have one 'they', whatever its gender, and some have no gender at all
         Assert.Same(english.For(new(Person.Third, Number.Plural)), english.For(new(Person.Third, Number.Plural, Gender: Gender.Feminine)));
@@ -200,7 +197,7 @@ public class PronounTests
             Assert.Contains(language.Pronouns.For(You).Root, roots);
             Assert.Equal(!language.Pronouns.DropsSubjects, roots.Contains(language.Pronouns.For(I).Root));
             //agreement may be on the verb or a particle of its own, but never on the pronoun's word
-            if (Agrees(language))
+            if (language.Paradigms.Verbs.Categories.Has<Person>())
             {
                 var pronoun = language.Pronouns.For(I).Root;
                 Assert.Contains(sentence.Words, w => w.Word.Root != pronoun && w.Gloss.Contains("1SG"));

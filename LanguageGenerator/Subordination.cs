@@ -82,8 +82,16 @@ public static class SubordinatorMap
     };
 }
 
-/// <summary>How a language marks each kind of subordinate clause.</summary>
-public record Subordination(IReadOnlyDictionary<Subordinator, SubordinatorMarking> Markers);
+/// <summary>
+/// How a language marks each kind of subordinate clause, and which edges of the subordinator map it
+/// joins, so that the subordinators in each region share a marker.
+/// </summary>
+public record Subordination(IReadOnlyDictionary<Subordinator, SubordinatorMarking> Markers, IReadOnlyList<(Subordinator First, Subordinator Second)> Joined)
+{
+    /// <summary>The subordinators that share this one's marker, itself among them.</summary>
+    public IReadOnlyList<Subordinator> RegionOf(Subordinator subordinator) =>
+        SemanticMap.Regions(SubordinatorMap.Subordinators, Joined).First(r => r.Contains(subordinator));
+}
 
 /// <summary>
 /// A statement with a clause subordinate to it, as in 'if you hear the song, cover your ears'.
