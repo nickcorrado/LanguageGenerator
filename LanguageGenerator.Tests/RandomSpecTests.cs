@@ -36,7 +36,7 @@ public class RandomSpecTests
         var spec = LanguageSpec.Free;
         //an inventory is one setting here, given half the time exactly and half the time as a few
         //sounds it requires or forbids, so its sounds don't swamp the rest
-        foreach (var setting in Settings.All.Where(s => Settings.InventoryOf(s) is null && rand.NextDouble() < 0.25))
+        foreach (var setting in Settings.All.Where(s => Settings.InventoryOf(s) is null && rand.NextDouble() < 0.2))
         {
             if (Settings.SoundsOf(setting) is [_, ..] sounds && rand.NextDouble() < 0.5)
             {
