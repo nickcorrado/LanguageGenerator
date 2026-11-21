@@ -1,6 +1,6 @@
 # Roadmap
 
-[examples/hollow.txt](../examples/hollow.txt), a short text adventure, is the test of what real text needs. The front end refuses 23 of its 190 sentences. Refusals are the easy part, though: a refusal names what's missing, while a sentence that glosses can still lose half of what it said. *They pass so close that you could touch them* comes out as just 'they pass very close', and *at dusk* doesn't come out at all. So this list counts both.
+[examples/hollow.txt](../examples/hollow.txt), a short text adventure, is the test of what real text needs. The front end refuses 18 of its 190 sentences. Refusals are the easy part, though: a refusal names what's missing, while a sentence that glosses can still lose half of what it said. *They pass so close that you could touch them* comes out as just 'they pass very close', and *at dusk* doesn't come out at all. So this list counts both.
 
 ## Clauses
 
