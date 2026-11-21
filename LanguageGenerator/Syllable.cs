@@ -162,11 +162,13 @@ public class SyllableRule
         //L is any liquid or glide, as in pl, pr, kw or by
         sibilants = new(consonants.Where(c => c.Manner == ConsonantManner.Sibilant && !c.Voiced));
         liquids = new(consonants.Where(c => c.Manner is ConsonantManner.Approximant or ConsonantManner.LateralApproximant or ConsonantManner.Trill or ConsonantManner.Flap));
-        //generation, legality and cluster repair all read this one class, so restricting it
-        //restricts codas everywhere. A restriction can leave nothing (a nasals-only language that
-        //lost both nasals to pruning), and then syllables simply have no codas. Aspiration and
-        //labialization are lost at the end of a syllable, as in Thai or Korean, where a final
-        //stop is never aspirated, so neither ever closes one
+        /*
+          generation, legality and cluster repair all read this one class, so restricting it
+          restricts codas everywhere. A restriction can leave nothing (a nasals-only language that
+          lost both nasals to pruning), and then syllables simply have no codas. Aspiration and
+          labialization are lost at the end of a syllable, as in Thai or Korean, where a final
+          stop is never aspirated, so neither ever closes one
+         */
         var unreleased = consonants.Where(c => !c.Aspirated && !c.Labialized);
         finals = new(codas switch
         {
@@ -184,14 +186,16 @@ public class SyllableRule
         && consonants.Zip(consonants.Skip(1)).All(pair => CanPrecede(pair.First, pair.Second));
 
     /// <summary>Whether one consonant can come right before another in an onset.</summary>
-    //sonority sequencing: sounds grow more vowel-like toward the vowel, stops, then fricatives,
-    //nasals, liquids and glides, and before a liquid, by at least two steps, the commonest minimum
-    //distance, or before a glide by one. So pl, fr, mj, lj and kw, but not nr or nl. On top of that,
-    //the commonest gaps:
-    //labials before w and coronal stops before l, which English, Spanish and Greek all lack, and
-    //no glottal stop or labialized consonant leading a cluster. Before anything else, only a
-    //sibilant can stand, as in st, sk or sn, and only before a plain voiceless stop or m or n:
-    //English has no sth or sŋ, and its sp, st and sk are never aspirated
+    /*
+      sonority sequencing: sounds grow more vowel-like toward the vowel, stops, then fricatives,
+      nasals, liquids and glides, and before a liquid, by at least two steps, the commonest minimum
+      distance, or before a glide by one. So pl, fr, mj, lj and kw, but not nr or nl. On top of that,
+      the commonest gaps:
+      labials before w and coronal stops before l, which English, Spanish and Greek all lack, and
+      no glottal stop or labialized consonant leading a cluster. Before anything else, only a
+      sibilant can stand, as in st, sk or sn, and only before a plain voiceless stop or m or n:
+      English has no sth or sŋ, and its sp, st and sk are never aspirated
+     */
     public static bool CanPrecede(Consonant first, Consonant second)
     {
         if (first == Consonant.ʔ || first.Labialized)

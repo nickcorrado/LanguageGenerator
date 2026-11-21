@@ -92,9 +92,11 @@ public class RelatedStageTests
     [Fact]
     public void Generate_ManyRelatedSettingsFixed_MeetsThemAllAndKeepsTheRules()
     {
-        //every case, every role apart, and spatial cases for in, on and under in a language without
-        //core cases: too rare together for any attempt to draw, so it falls back to drawing the
-        //stages one at a time, and writes in what none of those draws gives either
+        /*
+          every case, every role apart, and spatial cases for in, on and under in a language without
+          core cases: too rare together for any attempt to draw, so it falls back to drawing the
+          stages one at a time, and writes in what none of those draws gives either
+         */
         var spec = Settings.CaseSettings.Aggregate(LanguageSpec.Free, (s, setting) => s.Fix(setting, true));
         spec = Settings.RoleEdges.Aggregate(spec, (s, setting) => s.Fix(setting, false))
             .Fix(Settings.Alignment, MorphosyntacticAlignment.None)
@@ -132,9 +134,11 @@ public class RelatedStageTests
     [Fact]
     public void Generate_CaseImpliedByTheMap_DrawsWhatACaseNeeds()
     {
-        //against reaches at only through on, which has a marker of its own, so of a case or at it can
-        //only be a case, though the spec never says so; the rules work that out, so the morphology
-        //and cases are drawn to allow it, even where the stages fall back to being drawn one by one
+        /*
+          against reaches at only through on, which has a marker of its own, so of a case or at it can
+          only be a case, though the spec never says so; the rules work that out, so the morphology
+          and cases are drawn to allow it, even where the stages fall back to being drawn one by one
+         */
         var spec = SpecFile.Parse("""{ "on-marker": "RelationalNoun", "against-marker": ["Case", "At"], "ablative-case": false, "genitive-case": [false, true] }""");
 
         Assert.All(new[] { 1, 2, 258130253 }.Select(seed => Generator.Generate(seed, spec)), l =>

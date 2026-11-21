@@ -6,15 +6,17 @@ namespace LanguageGenerator.Glossing;
 /// Turns English text into a clause file, with a language model doing the glossing and ClauseFile
 /// checking it.
 /// </summary>
-//tokens go only where they're needed:
-//- sentences go in batches, so the instructions are paid for once per batch, not per sentence
-//- a sentence already glossed in an earlier output file is kept, so editing a text and glossing it
-//  again sends only what changed
-//- a gloss that doesn't parse is sent back alone with the parser's error, not the whole batch
-//
-//Each sentence's clauses follow a "# > " comment quoting it, which is how a later run finds them.
-//If a request fails partway, what was glossed before it is still returned, and the rest is left
-//out, so the next run picks up where this one stopped
+/*
+  tokens go only where they're needed:
+  - sentences go in batches, so the instructions are paid for once per batch, not per sentence
+  - a sentence already glossed in an earlier output file is kept, so editing a text and glossing it
+    again sends only what changed
+  - a gloss that doesn't parse is sent back alone with the parser's error, not the whole batch
+
+  Each sentence's clauses follow a "# > " comment quoting it, which is how a later run finds them.
+  If a request fails partway, what was glossed before it is still returned, and the rest is left
+  out, so the next run picks up where this one stopped
+ */
 public sealed partial class Glosser(IChatModel model, int batchSize = 20, int retries = 2, int contextSentences = 3)
 {
     public const string SentenceMarker = "# > ";
@@ -65,9 +67,11 @@ public sealed partial class Glosser(IChatModel model, int batchSize = 20, int re
     //Error is what stopped it, and then Nouns is only what was already known
     public record NounResult(IReadOnlyDictionary<string, SemanticClass> Nouns, TokenUsage Usage, int Asked, Exception? Error);
 
-    //a noun file for these clauses: everything in known, which is kept so that a word's class can't
-    //change from one run to the next, and the nouns it doesn't have yet. A noun the model leaves out
-    //is a thing
+    /*
+      a noun file for these clauses: everything in known, which is kept so that a word's class can't
+      change from one run to the next, and the nouns it doesn't have yet. A noun the model leaves out
+      is a thing
+     */
     public async Task<NounResult> ClassifyNouns(IEnumerable<ClauseFile.Entry> clauses, IReadOnlyDictionary<string, SemanticClass> known,
         Action<string>? progress = null, CancellationToken cancellationToken = default)
     {
@@ -155,9 +159,11 @@ public sealed partial class Glosser(IChatModel model, int batchSize = 20, int re
         return usage;
     }
 
-    //the numbered answers that parse go into glossed, and the rest come back with what's wrong. An
-    //answer has to repeat its sentence, since a model that splits one sentence in two or skips one
-    //shifts every answer after it, and the shifted glosses all still parse
+    /*
+      the numbered answers that parse go into glossed, and the rest come back with what's wrong. An
+      answer has to repeat its sentence, since a model that splits one sentence in two or skips one
+      shifts every answer after it, and the shifted glosses all still parse
+     */
     private static List<(string Sentence, string Attempt, string Error)> Keep(IReadOnlyList<string> asked,
         Dictionary<int, Answer> answers, Dictionary<string, string> glossed)
     {
@@ -279,9 +285,11 @@ public sealed partial class Glosser(IChatModel model, int batchSize = 20, int re
         return blocks;
     }
 
-    //a text's sentences, split after ., ! or ? (and any closing quote or bracket) where the next
-    //starts with a capital, a digit or an opening quote. Paragraph breaks always end one, and other
-    //line breaks are spaces. Abbreviations like 'Mr.' will split wrongly; models cope with that
+    /*
+      a text's sentences, split after ., ! or ? (and any closing quote or bracket) where the next
+      starts with a capital, a digit or an opening quote. Paragraph breaks always end one, and other
+      line breaks are spaces. Abbreviations like 'Mr.' will split wrongly; models cope with that
+     */
     public static List<string> Sentences(string text) =>
         [.. ParagraphBreak().Split(text.ReplaceLineEndings("\n"))
             .Select(p => Whitespace().Replace(p, " ").Trim())

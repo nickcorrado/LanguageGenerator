@@ -1,9 +1,11 @@
 ﻿namespace LanguageGenerator;
 
 /// <summary>A language's constituent order and the head direction of each phrase.</summary>
-//with head-initial, verb would come before objects. with head-final, verb comes after. so the verb
-//phrase follows from constituent order, and the other phrases are drawn depending on it, since each
-//tends to share the verb phrase's direction to some degree
+/*
+  with head-initial, verb would come before objects. with head-final, verb comes after. so the verb
+  phrase follows from constituent order, and the other phrases are drawn depending on it, since each
+  tends to share the verb phrase's direction to some degree
+ */
 public record WordOrder
 {
     public required ConstituentWordOrder ConstituentWordOrder { get; init; }
@@ -22,9 +24,11 @@ public record WordOrder
     public HeadDirectionality VerbPhraseDirectionality =>
         ObjectPrecedesVerb(ConstituentWordOrder) ? HeadDirectionality.Final : HeadDirectionality.Initial;
 
-    //some languages are consistently head-initial, while others are consistently head-final;
-    //many are somewhere in the middle. This is whichever way most phrases go, and the verb
-    //phrase's way in a tie
+    /*
+      some languages are consistently head-initial, while others are consistently head-final;
+      many are somewhere in the middle. This is whichever way most phrases go, and the verb
+      phrase's way in a tie
+     */
     public HeadDirectionality HeadDirectionality
     {
         get

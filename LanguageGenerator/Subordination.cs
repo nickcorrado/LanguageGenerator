@@ -38,11 +38,13 @@ public record SubordinatorMarking(Morpheme Marker, ExponentPosition Position, Ba
 /// 'if' and 'when' and English since both 'after' and 'because', and which roles' markers a reduced
 /// clause of each kind takes, as the ways languages grammaticalize them go.
 /// </summary>
-//a subordinator sharing a marker keeps its own meaning in the gloss, so wenn is COND in one use and
-//TEMP in the other, and its own balance and order. The paths are Heine and Kuteva's: a temporal
-//marker becoming conditional or causal, 'after' becoming 'because', an allative becoming a purpose
-//marker, an ablative a cause and a locative a time. WALS counts none of this, so every weight is a
-//guess
+/*
+  a subordinator sharing a marker keeps its own meaning in the gloss, so wenn is COND in one use and
+  TEMP in the other, and its own balance and order. The paths are Heine and Kuteva's: a temporal
+  marker becoming conditional or causal, 'after' becoming 'because', an allative becoming a purpose
+  marker, an ablative a cause and a locative a time. WALS counts none of this, so every weight is a
+  guess
+ */
 public static class SubordinatorMap
 {
     /// <summary>The subordinators, in no order that matters but the edges'.</summary>

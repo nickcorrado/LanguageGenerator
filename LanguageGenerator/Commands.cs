@@ -13,10 +13,12 @@ public enum ImperativeForms
 }
 
 /// <summary>How a language tells someone to do something, or not to.</summary>
-//WALS 70A and 71A. Singular and Plural mark the imperative; where one is missing, the language has
-//no form of its own for that number, and says the ordinary second person present instead. A marker
-//with no form is a bare stem, the imperative of many languages. Prohibitive is the negator a language
-//keeps for commands, as Latin has nē and Greek μή, and without one it uses its ordinary negation
+/*
+  WALS 70A and 71A. Singular and Plural mark the imperative; where one is missing, the language has
+  no form of its own for that number, and says the ordinary second person present instead. A marker
+  with no form is a bare stem, the imperative of many languages. Prohibitive is the negator a language
+  keeps for commands, as Latin has nē and Greek μή, and without one it uses its ordinary negation
+ */
 public record Commands(Morpheme? Singular, Morpheme? Plural, ExponentPosition Position, bool ProhibitiveUsesImperative, Negation? Prohibitive)
 {
     /// <summary>What marks a command to this many people. Anything but one person is plural here.</summary>

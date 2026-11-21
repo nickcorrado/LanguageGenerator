@@ -1,11 +1,13 @@
 ﻿using LanguageGenerator;
 using LanguageGenerator.Cli;
 
-//pass a seed to regenerate the same language; without one, a fresh seed is picked and printed.
-//"translate <file> [seed]" translates a file of clauses (see ClauseFile) instead of describing
-//the language, with the noun file (see NounFile) that --nouns names or else the one beside it, and
-//"gloss <english.txt>" writes such files from English (see Glosser). Either of the first two takes
-//--spec with a JSON file fixing some of the language's settings (see SpecFile)
+/*
+  pass a seed to regenerate the same language; without one, a fresh seed is picked and printed.
+  "translate <file> [seed]" translates a file of clauses (see ClauseFile) instead of describing
+  the language, with the noun file (see NounFile) that --nouns names or else the one beside it, and
+  "gloss <english.txt>" writes such files from English (see Glosser). Either of the first two takes
+  --spec with a JSON file fixing some of the language's settings (see SpecFile)
+ */
 if (args is ["gloss", .. var glossArguments])
 {
     return await GlossCommand.Run(glossArguments);

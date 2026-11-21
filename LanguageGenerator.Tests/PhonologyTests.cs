@@ -159,9 +159,11 @@ public class PhonologyTests
         Assert.Equal("kabək-əs", surface.Segmented(Orthography.Ipa));
     }
 
-    //segments tell morphemes apart by comparing them, so a morpheme that came twice in a word would
-    //have no boundary between its two copies, and each would be segmented as both. One with no sounds
-    //has no segments to confuse. Sentences are here because some affixes only join a word there
+    /*
+      segments tell morphemes apart by comparing them, so a morpheme that came twice in a word would
+      have no boundary between its two copies, and each would be segmented as both. One with no sounds
+      has no segments to confuse. Sentences are here because some affixes only join a word there
+     */
     [Fact]
     public void GeneratedLanguages_NoWordHasTheSameSoundedMorphemeTwice()
     {

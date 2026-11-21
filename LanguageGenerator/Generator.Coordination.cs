@@ -6,9 +6,11 @@ public static partial class Generator
     //WALS 63A: 'and' between nouns is the word for 'with' in 103 of 234 languages
     private static readonly (bool Value, int Languages)[] AndIsWithCounts = [(true, 103), (false, 131)];
 
-    //WALS 64A: of 301 languages, 161 join nouns and clauses alike, 125 differently, and 15 set both
-    //side by side. Where 'and' between nouns is 'with', clauses get their own word or none, since
-    //'with' doesn't join clauses
+    /*
+      WALS 64A: of 301 languages, 161 join nouns and clauses alike, 125 differently, and 15 set both
+      side by side. Where 'and' between nouns is 'with', clauses get their own word or none, since
+      'with' doesn't join clauses
+     */
     private static readonly (ClauseAnd Value, int Languages)[] ClauseAndCounts =
         [(ClauseAnd.SameAsNouns, 161), (ClauseAnd.OwnWord, 125), (ClauseAnd.Juxtaposition, 15)];
 

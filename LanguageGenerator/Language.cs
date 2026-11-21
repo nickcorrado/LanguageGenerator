@@ -39,6 +39,8 @@ public class Language
     public required Passive? Passive { get; init; }
     public required Conjunctions Conjunctions { get; init; }
     public required Subordination Subordination { get; init; }
+    /// <summary>How clauses are marked as objects, and quotations as what was said.</summary>
+    public required Complementation Complementation { get; init; }
     public required Modals Modals { get; init; }
     public required Questions Questions { get; init; }
 
@@ -48,9 +50,11 @@ public class Language
     /// What the language calls itself: its word for 'people', spelled its own way and capitalized
     /// like a name.
     /// </summary>
-    //the plural of 'person', as Bantu is the plural of -ntu 'person' and Inuit of inuk. A language
-    //that doesn't mark the plural calls itself just 'person', as many do. It's read off the
-    //lexicon, so it's always the word the language itself would say
+    /*
+      the plural of 'person', as Bantu is the plural of -ntu 'person' and Inuit of inuk. A language
+      that doesn't mark the plural calls itself just 'person', as many do. It's read off the
+      lexicon, so it's always the word the language itself would say
+     */
     public string Name => Capitalized(Endonym.Spell(Orthography));
 
     /// <summary>The word Name spells, for its gloss.</summary>
@@ -121,9 +125,11 @@ public enum ThirdPersonZero
 /// <summary>Which values a language leaves unmarked, expressed by no form at all.</summary>
 public record ZeroMarking(bool Singular, bool CoreCase, bool Present, ThirdPersonZero ThirdPerson)
 {
-    //whether this combination of values, all in one slot, has no form. Every value in it has to be
-    //one the language leaves unmarked, so a fused SG.NOM is zero only if both singular and the core
-    //case are, and a plural is never zero except as part of a zero third person
+    /*
+      whether this combination of values, all in one slot, has no form. Every value in it has to be
+      one the language leaves unmarked, so a fused SG.NOM is zero only if both singular and the core
+      case are, and a plural is never zero except as part of a zero third person
+     */
     public bool IsZero(IReadOnlyList<Grammeme> values)
     {
         var agreement = values.Any(v => v is Person);

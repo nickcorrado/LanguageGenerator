@@ -13,9 +13,11 @@ public static partial class Generator
         (ImperativeForms.None, 122),
     ];
 
-    // https://wals.info/feature/71A: whether a prohibitive uses the imperative's verb form, and whether
-    //its negator is one that declaratives don't use. Where it doesn't use the imperative, Spanish and
-    //others use a subjunctive; with no such form here, it's the ordinary second person present
+    /*
+       https://wals.info/feature/71A: whether a prohibitive uses the imperative's verb form, and whether
+      its negator is one that declaratives don't use. Where it doesn't use the imperative, Spanish and
+      others use a subjunctive; with no such form here, it's the ordinary second person present
+     */
     private static readonly ((bool UsesImperative, bool OwnNegator) Value, int Languages)[] ProhibitiveCounts =
     [
         ((true, false), 113),
@@ -24,9 +26,11 @@ public static partial class Generator
         ((false, true), 146),
     ];
 
-    //WALS counts a bare stem as an imperative of its own, and says that many languages use one,
-    //especially for the singular, but gives no figure, so the half is a guess. A plural is marked,
-    //like the plural everywhere else here
+    /*
+      WALS counts a bare stem as an imperative of its own, and says that many languages use one,
+      especially for the singular, but gives no figure, so the half is a guess. A plural is marked,
+      like the plural everywhere else here
+     */
     public static Commands GenerateCommands(Random rand, MorphologicalProfile morphology, WordOrder wordOrder, Phonology phonology)
     {
         var position = rand.NextDouble() < ParticleChance(morphology)

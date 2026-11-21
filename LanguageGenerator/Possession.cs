@@ -18,9 +18,11 @@ public enum PossessiveMarking
 }
 
 /// <summary>How a language says whose something is.</summary>
-//the possessor goes before the possessed noun or after it, outside any adjectives and numerals, and
-//Affixes, where the possessed noun is marked, agree with the possessor's person and number, glossed
-//as possessive, as in 3SG.POSS
+/*
+  the possessor goes before the possessed noun or after it, outside any adjectives and numerals, and
+  Affixes, where the possessed noun is marked, agree with the possessor's person and number, glossed
+  as possessive, as in 3SG.POSS
+ */
 public record Possession(PossessiveMarking Marking, bool PossessorFirst, IReadOnlyDictionary<(Person, Number), Affix>? Affixes, ExponentPosition AffixPosition)
 {
     private static readonly Number[] Numbers = [Number.Singular, Number.Plural];
@@ -28,9 +30,11 @@ public record Possession(PossessiveMarking Marking, bool PossessorFirst, IReadOn
     public bool MarksPossessor => Marking is PossessiveMarking.Dependent or PossessiveMarking.Double;
     public bool MarksPossessed => Marking is PossessiveMarking.Head or PossessiveMarking.Double;
 
-    //the possessed noun with its affix for a possessor of this person and number, with a dual or a
-    //paucal falling back on the plural, as pronouns' numbers do. It goes outside the noun's own
-    //number but inside its case, as in Turkish ev-ler-im-i 'house-PL-1SG-ACC'
+    /*
+      the possessed noun with its affix for a possessor of this person and number, with a dual or a
+      paucal falling back on the plural, as pronouns' numbers do. It goes outside the noun's own
+      number but inside its case, as in Turkish ev-ler-im-i 'house-PL-1SG-ACC'
+     */
     public Word Agree(Word noun, Person person, Number number)
     {
         var nearest = (Number)(Syntax.Nearest(number, Numbers) ?? Number.Plural);

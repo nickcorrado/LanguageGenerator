@@ -26,10 +26,12 @@ public enum Configuration
 /// Tsez have one, and as Finnish and Hungarian have fused with their local cases: Finnish talo-ssa
 /// 'in the house', talo-lla 'at the house'.
 /// </summary>
-//the glosses are the ones grammars of Daghestanian languages use, where these are commonest, except
-//SUPRA, coined here for above without touching, which those grammars rarely need, and RETRO for
-//behind, since their POST is already 'after' here. None, the form for everything that isn't spatial,
-//has no gloss, so it never shows in one
+/*
+  the glosses are the ones grammars of Daghestanian languages use, where these are commonest, except
+  SUPRA, coined here for above without touching, which those grammars rarely need, and RETRO for
+  behind, since their POST is already 'after' here. None, the form for everything that isn't spatial,
+  has no gloss, so it never shows in one
+ */
 public record Localization(string Name, string Gloss) : Grammeme(Name, Gloss)
 {
     public static Localization None { get; } = new("None", "");
@@ -223,9 +225,11 @@ public record ConfigurationPlan(ConfigurationRegions Map, ConfigurationStrategy 
     /// neither does a marker for a region that has At, nor a case where the language can't have one;
     /// the spec's rules keep what came before agreeing.
     /// </summary>
-    //an adposition governs what the language's other spatial adpositions do, or nothing; a relational
-    //noun is the region's commonest one no other region has, or its commonest if they all do, as
-    //'face' says both in front and against in many languages
+    /*
+      an adposition governs what the language's other spatial adpositions do, or nothing; a relational
+      noun is the region's commonest one no other region has, or its commonest if they all do, as
+      'face' says both in front and against in many languages
+     */
     public ConfigurationPlan WithStrategy(Configuration configuration, ConfigurationStrategy strategy)
     {
         var region = Map.Regions.First(r => r.Contains(configuration));

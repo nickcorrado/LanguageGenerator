@@ -44,7 +44,8 @@ Rules keep a value written in from contradicting what was drawn before it: a spa
 - An isolating language has no affixes, so negation and polar questions can't be a prefix or suffix, possession can't be marked on the possessed noun, and a comparative, similative, modal or article can't be an affix.
 - An article agreeing in gender needs genders, and an article that can agree: a definite article, or an indefinite one that isn't the word for 'one'.
 - Modalities joined by an edge share a marker, so two marked differently can't be joined, and the same goes for subordinators marked in different places.
-- An isolating language can't mark a subordinate clause with a suffix.
+- An isolating language can't mark a subordinate clause or a complement with a suffix, or say 'want' with an affix.
+- A quotation can only be marked with the complementizer where a proposition has one.
 - 'And' between nouns that's the word for 'with' doesn't join clauses, so clauses can't be joined like nouns then.
 - Possessive affixes can only be prefixes where possession is marked on the possessed noun.
 - An inventory needs at least one sound, and each sound once, so not every vowel or every consonant can be forbidden.
@@ -147,5 +148,10 @@ The symbols are the generator's 53 phonemes, given exactly, so `ʦ` and not `ts`
 | `if-subordinator`, `when-subordinator`, `before-subordinator`, `after-subordinator`, `until-subordinator`, `because-subordinator`, `purpose-subordinator` | `Initial` or `Final`, a word at the start or end of the clause, or `Suffix`, on its verb |
 | `if-clause-first`, `when-clause-first`, `before-clause-first`, `after-clause-first`, `until-clause-first`, `because-clause-first`, `purpose-clause-first` | `true` if the clause comes before the main one |
 | `purpose-balance`, `reason-balance`, `temporal-balance` | `Balanced`, if the verb keeps its ordinary form, `Deranked`, if it loses its tense and agreement, or `Either`, deranked where the clauses share a subject. `temporal-balance` is for 'when' clauses, and the other temporal and conditional ones follow it |
+| `proposition-complementizer`, `event-complementizer` | `None`, `Initial` or `Final`, a word at the start or end of the clause, or `Suffix`, on its verb, for a clause saying what's said, known or seen, and one saying what's wanted, tried or begun |
+| `proposition-balance`, `event-balance` | `Balanced`, `Deranked` or `Either`, as for subordinate clauses. `event-balance` is WALS 124A's question of 'want': `Deranked` leaves the subject of what's wanted implicit, and `Balanced` expresses it |
+| `quotative` | `None`, `Complementizer`, marking a quotation with a proposition's complementizer, or `Word`, with a word of its own |
+| `complements-last` | `true` if a complement that keeps its verb, and a quotation, go last in the clause, rather than where the object goes |
+| `desiderative` | `Verb`, `Affix` or `Particle`, how 'want' is said, as WALS 124A has it |
 | `comparison` | `Locational`, marking the standard as a place, `Exceed`, with a verb meaning 'exceed', `Conjoined`, with two clauses side by side, or `Particle`, with a word like than |
 | `comparative`, `similative` | `Affix` or `Word`, how 'more' and 'like' are marked |

@@ -3,16 +3,20 @@
 //numerals
 public static partial class Generator
 {
-    //WALS 131A, leaving out its 5 languages with other bases and 4 that count on body parts. Its
-    //hybrid vigesimal-decimal languages (22) and pure vigesimal ones (20) are both vigesimal here,
-    //since most of the pure ones build 11 to 19 on ten or five too
+    /*
+      WALS 131A, leaving out its 5 languages with other bases and 4 that count on body parts. Its
+      hybrid vigesimal-decimal languages (22) and pure vigesimal ones (20) are both vigesimal here,
+      since most of the pure ones build 11 to 19 on ten or five too
+     */
     private static readonly (NumeralBase Value, int Languages)[] NumeralBaseCounts =
         [(NumeralBase.Decimal, 125), (NumeralBase.Vigesimal, 42), (NumeralBase.Restricted, 20)];
     //WALS 89A, leaving out its 21 languages with no dominant order and 37 with both
     private static readonly (bool Value, int Languages)[] NumeralBeforeNounCounts = [(true, 479), (false, 607)];
-    //WALS 53A, of 321 languages. Its 33 with no ordinals at all say them with cardinals, as do its 13
-    //whose ordinals are the cardinals, and its 8 with both 'first' and 'one-th' count as building
-    //every ordinal. Its 35 with systems too various for these types are left out
+    /*
+      WALS 53A, of 321 languages. Its 33 with no ordinals at all say them with cardinals, as do its 13
+      whose ordinals are the cardinals, and its 8 with both 'first' and 'one-th' count as building
+      every ordinal. Its 35 with systems too various for these types are left out
+     */
     private static readonly (OrdinalType Value, int Languages)[] OrdinalCounts =
     [
         (OrdinalType.Cardinal, 46),
@@ -22,9 +26,11 @@ public static partial class Generator
         (OrdinalType.FirstSecondThenDerived, 61),
     ];
 
-    //a short word for each number the base needs, each redrawn to keep it from sounding like the
-    //others. A restricted system's limit, and the odds of a singular noun after a numeral and of
-    //compound numbers putting units last, are guesses: WALS doesn't count them
+    /*
+      a short word for each number the base needs, each redrawn to keep it from sounding like the
+      others. A restricted system's limit, and the odds of a singular noun after a numeral and of
+      compound numbers putting units last, are guesses: WALS doesn't count them
+     */
     public static NumeralSystem GenerateNumerals(Random rand, MorphologicalProfile morphology, Phonology phonology)
     {
         var numeralBase = Sampling.Categorical(rand, NumeralBaseCounts);
@@ -49,10 +55,12 @@ public static partial class Generator
         return new NumeralSystem(numeralBase, limit, words, many, beforeNoun, nounStaysSingular, largestFirst, ordinals);
     }
 
-    //words of their own for 'first' and 'second' where the type has them, kept apart from the
-    //cardinals, and a marker that builds the rest. WALS doesn't count how ordinals are marked, so
-    //the marker goes on the side the language puts its other affixes, and an isolating language
-    //uses a word, as Mandarin puts dì before the numeral in dì sān 'third'
+    /*
+      words of their own for 'first' and 'second' where the type has them, kept apart from the
+      cardinals, and a marker that builds the rest. WALS doesn't count how ordinals are marked, so
+      the marker goes on the side the language puts its other affixes, and an isolating language
+      uses a word, as Mandarin puts dì before the numeral in dì sān 'third'
+     */
     private static Ordinals GenerateOrdinals(Random rand, MorphologicalProfile morphology, Phonology phonology, Func<string, Lexeme> word)
     {
         var type = Sampling.Categorical(rand, OrdinalCounts);

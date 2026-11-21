@@ -3,10 +3,12 @@ namespace LanguageGenerator;
 //configurations: in, on, under and the rest, apart from the path a role says
 public static partial class Generator
 {
-    //how a language marks its configurations, as a preference that most of them follow. Guesses: WALS
-    //doesn't count these, but Svorou finds relational nouns the commonest source of spatial words,
-    //and adpositions what they become, and only a minority of languages have spatial cases beyond
-    //a locative, mostly in Uralic and the Caucasus
+    /*
+      how a language marks its configurations, as a preference that most of them follow. Guesses: WALS
+      doesn't count these, but Svorou finds relational nouns the commonest source of spatial words,
+      and adpositions what they become, and only a minority of languages have spatial cases beyond
+      a locative, mostly in Uralic and the Caucasus
+     */
     private static readonly (ConfigurationStrategy Value, int Weight)[] ConfigurationStrategyWeights =
     [
         (ConfigurationStrategy.Adposition, 45),
@@ -21,10 +23,12 @@ public static partial class Generator
     /// How a language marks each region of its configuration map that isn't said like At: an
     /// adposition, a relational noun or a localization in the noun. No word is coined yet.
     /// </summary>
-    //a localization needs a noun that inflects, and a location marked by case for it to go with, as
-    //Finnish talo-ssa 'house-IN.LOC' has one. Most regions follow the language's preference, and the
-    //rest are drawn again, so a language can mix them, as Finnish has cases for in and on and
-    //postpositions for under and behind; in and on are likelier cases than the rest, as there
+    /*
+      a localization needs a noun that inflects, and a location marked by case for it to go with, as
+      Finnish talo-ssa 'house-IN.LOC' has one. Most regions follow the language's preference, and the
+      rest are drawn again, so a language can mix them, as Finnish has cases for in and on and
+      postpositions for under and behind; in and on are likelier cases than the rest, as there
+     */
     public static ConfigurationPlan PlanConfigurations(Random rand, ConfigurationRegions map, MorphologicalProfile morphology, MorphosyntacticAlignment alignment,
         IReadOnlyList<RoleRegion> roleRegions, IReadOnlyList<Case> cases)
     {

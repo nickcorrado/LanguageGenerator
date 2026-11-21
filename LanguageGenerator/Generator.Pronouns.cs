@@ -12,18 +12,22 @@ public static partial class Generator
         (FirstPersonPlural.InclusiveExclusive, 63),
     ];
 
-    //WALS 101A, read as whether subject pronouns are usually left out: they are with subject affixes
-    //on the verb (437 languages) or optional pronouns (61), and aren't where they're obligatory (82).
-    //Optional pronouns are the only kind of dropping open to a language whose verbs don't agree. The
-    //rest of its languages put subject markers somewhere this doesn't model (clitics, a different
-    //position, mixed)
+    /*
+      WALS 101A, read as whether subject pronouns are usually left out: they are with subject affixes
+      on the verb (437 languages) or optional pronouns (61), and aren't where they're obligatory (82).
+      Optional pronouns are the only kind of dropping open to a language whose verbs don't agree. The
+      rest of its languages put subject markers somewhere this doesn't model (clitics, a different
+      position, mixed)
+     */
     private static readonly (bool Value, int Languages)[] AgreeingSubjectDropCounts = [(true, 437 + 61), (false, 82)];
     private static readonly (bool Value, int Languages)[] NonAgreeingSubjectDropCounts = [(true, 61), (false, 82)];
 
-    //one short root per person and number, kept distinct from each other where the phonology allows,
-    //since a pronoun is never helped by context the way a noun is. Pronouns are among a language's
-    //most frequent words, so they're short, by the law of abbreviation: mostly one syllable, never
-    //more than two
+    /*
+      one short root per person and number, kept distinct from each other where the phonology allows,
+      since a pronoun is never helped by context the way a noun is. Pronouns are among a language's
+      most frequent words, so they're short, by the law of abbreviation: mostly one syllable, never
+      more than two
+     */
     public static PronounSystem GeneratePronouns(Random rand, Paradigms paradigms, MorphologicalProfile morphology, WordOrder wordOrder, Phonology phonology)
     {
         var firstPersonPlural = Sampling.Categorical(rand, FirstPersonPluralCounts);
@@ -55,10 +59,12 @@ public static partial class Generator
             forms[new(Person.First, Number.Plural)] = forms[new(Person.First, Number.Singular)];
         }
 
-        //pronouns take the nouns' case markers where nouns mark case in a slot of its own, as in
-        //Turkish ben-i 'me', like ev-i 'the house'. Where case is fused with number, pronouns get
-        //case markers of their own, since a pronoun's number is already part of it. A localization
-        //goes with case, as 'under it' is as spatial as 'under the table'
+        /*
+          pronouns take the nouns' case markers where nouns mark case in a slot of its own, as in
+          Turkish ben-i 'me', like ev-i 'the house'. Where case is fused with number, pronouns get
+          case markers of their own, since a pronoun's number is already part of it. A localization
+          goes with case, as 'under it' is as spatial as 'under the table'
+         */
         var nouns = paradigms.Nouns;
         static bool Takes(InflectionalCategory category) => category.Is<Case>() || category.Is<Localization>();
         List<InflectionalCategory> categories = [.. nouns.Categories.Where(Takes)];
@@ -103,9 +109,11 @@ public static partial class Generator
         };
     }
 
-    //WALS 44A, leaving out its 3 languages with gender only outside the third person singular and
-    //plural. Whether the gendered pronouns have a neuter, like English it, is a guess: WALS 30A
-    //counts the genders of nouns, not of pronouns
+    /*
+      WALS 44A, leaving out its 3 languages with gender only outside the third person singular and
+      plural. Whether the gendered pronouns have a neuter, like English it, is a guess: WALS 30A
+      counts the genders of nouns, not of pronouns
+     */
     private static readonly (PronounGender Value, int Languages)[] PronounGenderCounts =
     [
         (PronounGender.None, 254),

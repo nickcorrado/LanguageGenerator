@@ -28,11 +28,13 @@ public record Predication(PredicativeAdjectives Adjectives, bool ZeroCopula, Lex
 
     public Lexeme CopulaFor(bool locational) => locational ? LocationalCopula ?? Copula : Copula;
 
-    //WALS 120A counts zero copulas with predicate nouns. Where one is possible, the copula is left
-    //out here in the present tense, as in Russian ty durak 'you are a fool', where it's most often
-    //dropped; a past or a negative keeps it to carry the tense or the negative, and nonverbal
-    //adjectives follow the same rule as nouns. So does a location said with the same copula, as in
-    //Russian ja doma 'I'm at home', but a locational verb of its own is never dropped
+    /*
+      WALS 120A counts zero copulas with predicate nouns. Where one is possible, the copula is left
+      out here in the present tense, as in Russian ty durak 'you are a fool', where it's most often
+      dropped; a past or a negative keeps it to carry the tense or the negative, and nonverbal
+      adjectives follow the same rule as nouns. So does a location said with the same copula, as in
+      Russian ja doma 'I'm at home', but a locational verb of its own is never dropped
+     */
     public bool Drops(Tense tense, bool negative, bool locational = false) =>
         ZeroCopula && tense == Tense.Present && !negative && !(locational && LocationalCopula is not null);
 }

@@ -4,11 +4,13 @@ namespace LanguageGenerator;
 /// A list of what nouns name, one noun to a line, as in "marta F" or "crow ANIM": the format between
 /// the front end and the generator, like <see cref="ClauseFile"/>.
 /// </summary>
-//it says what a noun means, not what gender it has: a clause file can be translated into any
-//language, and each language decides what to make of this, if anything. It's a list of its own
-//because a noun's meaning belongs to the word, not to any one sentence, and several texts can share
-//one. Tags say what the word itself entails, so 'mother' is F but 'hunter' is HUM, even of a woman.
-//Lines starting with # are comments
+/*
+  it says what a noun means, not what gender it has: a clause file can be translated into any
+  language, and each language decides what to make of this, if anything. It's a list of its own
+  because a noun's meaning belongs to the word, not to any one sentence, and several texts can share
+  one. Tags say what the word itself entails, so 'mother' is F but 'hunter' is HUM, even of a woman.
+  Lines starting with # are comments
+ */
 public static class NounFile
 {
     private static readonly Dictionary<string, SemanticClass> Tags = new()

@@ -3,9 +3,11 @@ namespace LanguageGenerator;
 //voice
 public static partial class Generator
 {
-    //WALS 107A crossed with 98A: a passive in 37 of 52 nominative-accusative languages, but only 7 of
-    //32 ergative ones, whose patients are already in the case an intransitive subject takes, and 42
-    //of 97 with no core cases
+    /*
+      WALS 107A crossed with 98A: a passive in 37 of 52 nominative-accusative languages, but only 7 of
+      32 ergative ones, whose patients are already in the case an intransitive subject takes, and 42
+      of 97 with no core cases
+     */
     private static double PassiveChance(MorphosyntacticAlignment alignment) => alignment switch
     {
         MorphosyntacticAlignment.NominativeAccusative => 37.0 / 52,

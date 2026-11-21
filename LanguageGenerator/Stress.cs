@@ -4,10 +4,12 @@ namespace LanguageGenerator;
 /// Which syllable of a word is stressed, counted over the whole word, affixes and all, so stress can
 /// move as a word is inflected.
 /// </summary>
-//a stress accent, made by loudness and length, as in Spanish or Russian, not a pitch accent like
-//Japanese's, which is out of scope with tone. Stress here is always predictable from the word's
-//syllables, either at a fixed place or drawn to heavy syllables, ones with a long vowel or a coda;
-//lexical stress, which each word would have to store, as Russian's does, is left out
+/*
+  a stress accent, made by loudness and length, as in Spanish or Russian, not a pitch accent like
+  Japanese's, which is out of scope with tone. Stress here is always predictable from the word's
+  syllables, either at a fixed place or drawn to heavy syllables, ones with a long vowel or a coda;
+  lexical stress, which each word would have to store, as Russian's does, is left out
+ */
 public enum Stress
 {
     Initial,

@@ -359,4 +359,35 @@ public class ClauseFileTests
             Assert.All(entries, e => Assert.NotEmpty(Syntax.Realize(language, e.Statement, e.Translation).Text));
         }
     }
+
+    //what's nested in what is read before what it means, so a bracket that doesn't close or a part
+    //that runs on past its closing bracket is refused for what it is, wherever it's written
+    [Theory]
+    [InlineData("sleep  subject:(dog big", "There's a ( that isn't closed")]
+    [InlineData("sleep  subject:dog big)", "There's a ) without a ( before it")]
+    [InlineData("sleep  subject:(dog]", "There's a ] where a ) should close what's open")]
+    [InlineData("say  subject:dog  object:[that  sleep  subject:(cat]", "There's a ] where a ) should close what's open")]
+    [InlineData("sleep  subject:(dog)big", "'(dog)big' has to end at its )")]
+    [InlineData("say  subject:dog  object:[that  sleep  subject:cat]x", "'[that  sleep  subject:cat]x' has to end at its ]")]
+    [InlineData("sleep  subject:dog(big)", "'dog(big)' has a ( in the middle of it")]
+    [InlineData("be  subject:dog  adjective:(and warm (big))", "Adjectives in parentheses are joined")]
+    [InlineData("sleep  subject:(and dog possessor:cat)", "has none of its own")]
+    [InlineData("sleep  subject:(possessor:cat dog)", "starts with its noun")]
+    public void Parse_BadNesting_SaysWhatsWrong(string gloss, string message) => Assert.Contains(message, Error($"x\n  {gloss}").Message);
+
+    [Fact]
+    public void Parse_SubjectWrittenAfterAClauseThatSharesIt_IsShared()
+    {
+        var complement = Assert.IsType<ComplementClause>(Verbal(Single("x\n  want  object:[to  go  goal:home]  subject:3PL")).Object.GetValueOrDefault().Value);
+
+        Assert.Equal(new Pronoun(Person.Third, Number.Plural), Assert.IsType<Clause>(complement.Clause.Value).Subject.Value);
+    }
+
+    [Fact]
+    public void Parse_ObliquesAroundTheSubject_KeepTheOrderWritten()
+    {
+        var clause = Verbal(Single("x\n  go  goal:river  subject:dog  source:house"));
+
+        Assert.Equal([Role.Goal, Role.Source], clause.Obliques.Select(o => o.Role));
+    }
 }

@@ -11,10 +11,12 @@ public static partial class Generator
         Intonation,
     }
 
-    // https://wals.info/feature/116A: a question particle in 585 languages, interrogative verb
-    //morphology in 164, a mixture of the two in 15, which are made a particle here, interrogative
-    //word order in 13, and intonation alone in 173. The 4 that mark a question by leaving out a
-    //statement's morpheme and the 1 that doesn't tell them apart are made intonation
+    /*
+       https://wals.info/feature/116A: a question particle in 585 languages, interrogative verb
+      morphology in 164, a mixture of the two in 15, which are made a particle here, interrogative
+      word order in 13, and intonation alone in 173. The 4 that mark a question by leaving out a
+      statement's morpheme and the 1 that doesn't tell them apart are made intonation
+     */
     private static readonly (PolarKind Value, int Languages)[] PolarCounts =
         [(PolarKind.Particle, 600), (PolarKind.Affix, 164), (PolarKind.Inversion, 13), (PolarKind.Intonation, 178)];
 

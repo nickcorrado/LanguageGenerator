@@ -48,10 +48,12 @@ internal static class TestNouns
     public static SemanticClass Of(string meaning) => All.GetValueOrDefault(meaning, SemanticClass.Thing);
 }
 
-//generated languages, shared between tests since generating them is the slow part. Seeds are
-//fixed, so tests over them are deterministic. Their lexicons are frozen, since a test that coined
-//a word into one would change what every other test sees; a test that needs new words generates
-//a language of its own
+/*
+  generated languages, shared between tests since generating them is the slow part. Seeds are
+  fixed, so tests over them are deterministic. Their lexicons are frozen, since a test that coined
+  a word into one would change what every other test sees; a test that needs new words generates
+  a language of its own
+ */
 internal static class GeneratedLanguages
 {
     private static readonly Lazy<IReadOnlyList<Language>> sample = new(() => [.. Enumerable.Range(0, 300).Select(seed =>
@@ -64,9 +66,11 @@ internal static class GeneratedLanguages
 
     public static IReadOnlyList<Language> Sample => sample.Value;
 
-    //a language with some settings fixed, for a test that needs one with some feature, so it doesn't
-    //depend on which of the sample happen to have it. It's the test's own, so it's neither classified
-    //nor frozen
+    /*
+      a language with some settings fixed, for a test that needs one with some feature, so it doesn't
+      depend on which of the sample happen to have it. It's the test's own, so it's neither classified
+      nor frozen
+     */
     public static Language With(Func<LanguageSpec, LanguageSpec> fix) => Generator.Generate(1, fix(LanguageSpec.Free));
 
     //a spec that inflects, by any fusion but isolating

@@ -3,9 +3,11 @@
 //noun gender and the markers that agree with it
 public static partial class Generator
 {
-    //WALS 30A for how many genders, leaving out its 36 languages with four or more. 31A says some of
-    //the two-gender systems aren't sex-based; splitting them about four to one into masculine and
-    //feminine and animate and inanimate is a guess
+    /*
+      WALS 30A for how many genders, leaving out its 36 languages with four or more. 31A says some of
+      the two-gender systems aren't sex-based; splitting them about four to one into masculine and
+      feminine and animate and inanimate is a guess
+     */
     private static readonly (NounGenders Value, int Languages)[] NounGenderCounts =
     [
         (NounGenders.None, 145),
@@ -17,9 +19,11 @@ public static partial class Generator
     private static readonly (GenderAssignment Value, int Languages)[] GenderAssignmentCounts =
         [(GenderAssignment.Semantic, 53), (GenderAssignment.SemanticAndFormal, 59)];
 
-    //a marker per gender for words that agree with a noun, all on one side, with the first gender
-    //unmarked, as the masculine or the animate usually is. Whether verbs agree too, where they agree
-    //with their subject at all, is a guess at even odds
+    /*
+      a marker per gender for words that agree with a noun, all on one side, with the first gender
+      unmarked, as the masculine or the animate usually is. Whether verbs agree too, where they agree
+      with their subject at all, is a guess at even odds
+     */
     public static GenderSystem GenerateGenders(Random rand, MorphologicalProfile morphology, Paradigms paradigms, Phonology phonology)
     {
         var kind = Sampling.Categorical(rand, NounGenderCounts);
