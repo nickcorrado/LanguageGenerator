@@ -190,6 +190,23 @@ public static class LanguageDescription
         };
         output.WriteLine($"Complement clauses: 'that' {Complements(ComplementKind.Proposition)}; 'to' {Complements(ComplementKind.Event)}; quotations {quotative}; " +
             $"{(complementation.Last ? "last in the clause" : "where the object goes")}; {want}");
+        var relativization = lang.Relativization;
+        static string Strategy(RelativeStrategy strategy) => strategy switch
+        {
+            RelativeStrategy.Gap => "a gap",
+            RelativeStrategy.Pronoun => "a relative pronoun",
+            _ => "a resumptive pronoun",
+        };
+        var relativizer = relativization.Relativizer;
+        var marked = relativizer.Kind switch
+        {
+            RelativizerKind.None => "unmarked",
+            RelativizerKind.Affix => $"{Spelled(relativizer.AffixPosition, relativizer.Marker)} on a participle",
+            _ => $"marked by {relativizer.Marker.Spell(orthography)} beside the noun",
+        };
+        var relativePronoun = relativization.Pronoun.FromQuestionWords ? "the question words" : SpelledWord(relativization.Pronoun.Own);
+        output.WriteLine($"Relative clauses: {(relativization.BeforeNoun ? "before" : "after")} the noun, {marked}; subjects by {Strategy(relativization.Subject)}, " +
+            $"objects by {Strategy(relativization.Object)}, obliques by {Strategy(relativization.Oblique)}; relative pronoun {relativePronoun}");
         output.WriteLine("Comparison: " + lang.Comparison switch
         {
             LocationalComparison l => $"the standard is marked like a place, as the {l.Role.ToString().ToLowerInvariant()} is",
@@ -411,6 +428,18 @@ public static class LanguageDescription
             (new Clause("say", Tense.Past, Aspect.Perfective, Phrase("bird", Number.Singular), new Quotation(new Command("walk", Number.Singular,
                 Obliques: [new(Role.Goal, Phrase("house", Number.Singular), Configuration.At)]) { Adverbs = [] })) { Adverbs = [] }, "the bird said, \"go to the house\""),
         ];
+        Clause Gapped(string verb, Argument subject, Argument? @object = null, ValueList<Oblique> obliques = default) =>
+            new(verb, Tense.Past, Aspect.Perfective, subject, @object, Obliques: obliques) { Adverbs = [] };
+        (Statement Clause, string Translation)[] relatives =
+        [
+            (new Clause("sleep", Tense.Present, Aspect.Imperfective, Phrase("dog", Number.Singular) with { Relative = Gapped("see", new Gap(null), Phrase("cat", Number.Plural)) }) { Adverbs = [] },
+                "the dog that saw the cats sleeps"),
+            (new Clause("see", Tense.Present, Aspect.Imperfective, Phrase("cat", Number.Singular), Phrase("fish", Number.Singular) with { Relative = Gapped("eat", Phrase("dog", Number.Singular), new Gap(null)) }) { Adverbs = [] },
+                "the cat sees the fish that the dog ate"),
+            (new Clause("walk", Tense.Past, Aspect.Perfective, Phrase("person", Number.Singular),
+                Obliques: [new(Role.Goal, Phrase("house", Number.Singular) with { Relative = Gapped("sleep", Phrase("bird", Number.Plural), obliques: [new(Role.Location, new Gap(null), Configuration.In)]) }, Configuration.At)]) { Adverbs = [] },
+                "the person walked to the house that the birds slept in"),
+        ];
         (Statement Clause, string Translation)[] adverbs =
         [
             (new Clause("sleep", Tense.Present, Aspect.Imperfective, Phrase("dog", Number.Singular)) { Adverbs = [new Adverb("now", AdverbKind.When)] }, "the dog is sleeping now"),
@@ -424,7 +453,7 @@ public static class LanguageDescription
         ];
         (Statement Clause, string Translation)[] all =
             [.. examples, .. copular, .. commands, .. copularCommands, .. coordinated, .. subordinated, .. passives, .. comparatives, .. addressed, .. modalized, .. questions,
-                .. complements, .. adverbs];
+                .. complements, .. relatives, .. adverbs];
         foreach (var (clause, translation) in all)
         {
             output.WriteLine();

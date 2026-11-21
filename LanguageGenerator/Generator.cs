@@ -87,6 +87,7 @@ public static partial class Generator
         var conjunctions = stages.Draw(Settings.ConjunctionStage, rand => GenerateConjunctions(rand, phonology));
         var subordination = stages.Draw(Settings.SubordinationStage, rand => GenerateSubordination(rand, morphology, wordOrder, phonology));
         var complementation = stages.Draw(Settings.ComplementationStage, rand => GenerateComplementation(rand, morphology, wordOrder, phonology));
+        var relativization = stages.Draw(Settings.RelativizationStage, rand => GenerateRelativization(rand, morphology, wordOrder, phonology));
         var modals = stages.Draw(Settings.ModalStage, rand => GenerateModals(rand, morphology, wordOrder, predication, phonology));
         var questions = stages.Draw(Settings.QuestionStage, rand => GenerateQuestions(rand, morphology, wordOrder, phonology));
 
@@ -139,6 +140,7 @@ public static partial class Generator
             Conjunctions = conjunctions,
             Subordination = subordination,
             Complementation = complementation,
+            Relativization = relativization,
             Modals = modals,
             Questions = questions,
         };
