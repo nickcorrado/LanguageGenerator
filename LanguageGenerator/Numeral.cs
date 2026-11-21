@@ -32,16 +32,20 @@ public enum OrdinalType
 /// A language's ordinals: words of their own for the first one or two, if it has them, and a marker
 /// that makes the rest from cardinals, if it builds them.
 /// </summary>
-//the marker goes on the whole numeral, as English -th goes on thirty-seven, so a prefix goes on its
-//first word and a suffix on its last. Only the ordinal alone is suppletive: 21st is twenty-one-th,
-//as in German einundzwanzigste, not twenty-first
+/*
+  the marker goes on the whole numeral, as English -th goes on thirty-seven, so a prefix goes on its
+  first word and a suffix on its last. Only the ordinal alone is suppletive: 21st is twenty-one-th,
+  as in German einundzwanzigste, not twenty-first
+ */
 public record Ordinals(OrdinalType Type, Lexeme? First, Lexeme? Second, (ExponentPosition Position, Morpheme Marker)? Marking);
 
 /// <summary>A language's numerals, each a word of its own.</summary>
-//Words has one for each number from 1 to 9 and for each power of the base (10 and 100, or 10, 20
-//and 400), or in a restricted system for each number up to Limit, with Many past it. A numeral goes
-//before or after its noun, outside any adjectives, and some languages leave the noun singular after
-//one, as Turkish üç kurt 'three wolf' does
+/*
+  Words has one for each number from 1 to 9 and for each power of the base (10 and 100, or 10, 20
+  and 400), or in a restricted system for each number up to Limit, with Many past it. A numeral goes
+  before or after its noun, outside any adjectives, and some languages leave the noun singular after
+  one, as Turkish üç kurt 'three wolf' does
+ */
 public record NumeralSystem(NumeralBase Base, int Limit, IReadOnlyDictionary<int, Lexeme> Words, Lexeme? Many,
     bool BeforeNoun, bool NounStaysSingular, bool LargestFirst, Ordinals Ordinals)
 {
@@ -81,9 +85,11 @@ public record NumeralSystem(NumeralBase Base, int Limit, IReadOnlyDictionary<int
     //the largest number the clause format can ask for, which every base can say
     public const int Largest = 999;
 
-    //the words for a number: each power of the base it has, after how many of it if more than one,
-    //and then the units, largest first, as in English thirty-seven, or smallest first, as in German
-    //siebenunddreißig
+    /*
+      the words for a number: each power of the base it has, after how many of it if more than one,
+      and then the units, largest first, as in English thirty-seven, or smallest first, as in German
+      siebenunddreißig
+     */
     public IReadOnlyList<Lexeme> Say(int number)
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(number, 1);

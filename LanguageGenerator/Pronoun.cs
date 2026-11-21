@@ -57,10 +57,12 @@ public class PronounSystem
 
     private static readonly Number[] Numbers = [Number.Singular, Number.Plural];
 
-    //the pronoun the language uses for this meaning: a dual falls back on the plural, 'we' is
-    //exclusive unless said otherwise, in a language that tells them apart, and a gendered pronoun
-    //is masculine unless said otherwise, as it is by default in most languages that have one. So
-    //is a gender the pronoun doesn't have, like a neuter 'you'
+    /*
+      the pronoun the language uses for this meaning: a dual falls back on the plural, 'we' is
+      exclusive unless said otherwise, in a language that tells them apart, and a gendered pronoun
+      is masculine unless said otherwise, as it is by default in most languages that have one. So
+      is a gender the pronoun doesn't have, like a neuter 'you'
+     */
     public Lexeme For(Pronoun pronoun)
     {
         var number = (Number)(Syntax.Nearest(pronoun.Number, Numbers) ?? Number.Plural);

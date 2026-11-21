@@ -14,10 +14,12 @@ public static partial class Generator
         (NegationStrategy.Double, 114),
     ];
 
-    //an isolating language has no affixes to negate with, so it puts a word where an affix would go.
-    //Double negation is two words, as French ne and pas are written; the first is often a clitic in
-    //speech, but that's a distinction the generator doesn't make. A language's prohibitive negator is
-    //drawn the same way, with what it means in place of plain negation
+    /*
+      an isolating language has no affixes to negate with, so it puts a word where an affix would go.
+      Double negation is two words, as French ne and pas are written; the first is often a clitic in
+      speech, but that's a distinction the generator doesn't make. A language's prohibitive negator is
+      drawn the same way, with what it means in place of plain negation
+     */
     public static Negation GenerateNegation(Random rand, MorphologicalProfile morphology, Phonology phonology, Grammeme? meaning = null)
     {
         var grammemes = (IReadOnlyList<Grammeme>)[meaning ?? Polarity.Negative];

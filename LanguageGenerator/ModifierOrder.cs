@@ -4,15 +4,17 @@ namespace LanguageGenerator;
 /// How near its head a modifier goes, nearest first: what a verb's meaning calls for, how, where, how
 /// often or how long, when, and why.
 /// </summary>
-//languages largely agree on which modifiers go nearest their head, and differ mostly in which side
-//of it they put them, so the order on one side is the mirror of the order on the other. English
-//says 'she sang beautifully in the hall every night last year' after the verb, and an OV language
-//says 'last year every night in the hall beautifully sang' before it, as Japanese and Turkish do,
-//which is Cinque's hierarchy of adverbs. Adjectives work the same way, with colour and material
-//nearer the noun than size, and size nearer than opinion, as Dixon and Scontras et al. find, so
-//'big gray wolf' is 'wolf gray big' after the noun in most languages, though not in all. A clause
-//file writes adjectives in English order, before the noun, which already says how near each goes,
-//so they need no ranks. Modifiers of a rank keep the order they're written in
+/*
+  languages largely agree on which modifiers go nearest their head, and differ mostly in which side
+  of it they put them, so the order on one side is the mirror of the order on the other. English
+  says 'she sang beautifully in the hall every night last year' after the verb, and an OV language
+  says 'last year every night in the hall beautifully sang' before it, as Japanese and Turkish do,
+  which is Cinque's hierarchy of adverbs. Adjectives work the same way, with colour and material
+  nearer the noun than size, and size nearer than opinion, as Dixon and Scontras et al. find, so
+  'big gray wolf' is 'wolf gray big' after the noun in most languages, though not in all. A clause
+  file writes adjectives in English order, before the noun, which already says how near each goes,
+  so they need no ranks. Modifiers of a rank keep the order they're written in
+ */
 public enum Closeness
 {
     //what the verb's meaning calls for, as giving does a recipient and going a goal, and in a VO

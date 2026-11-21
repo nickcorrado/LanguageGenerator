@@ -59,9 +59,11 @@ public static class ModalityMap
         //a marker of possibility and necessity alike, as Old English mōt was 'may' and 'must', and
         //St'át'imcets's modals are neither
         (Modality.Permission, Modality.Obligation, 0.05),
-        //'should' as a softer 'must', which many languages don't tell apart, or tell apart only by
-        //putting 'must' in a conditional, as French devrais and Spanish debería do, against English
-        //should, German sollen or Russian sledovalo by
+        /*
+          'should' as a softer 'must', which many languages don't tell apart, or tell apart only by
+          putting 'must' in a conditional, as French devrais and Spanish debería do, against English
+          should, German sollen or Russian sledovalo by
+         */
         (Modality.Obligation, Modality.Advisability, 0.5),
     ];
 

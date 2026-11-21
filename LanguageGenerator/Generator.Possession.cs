@@ -12,10 +12,12 @@ public static partial class Generator
         (PossessiveMarking.None, 32),
     ];
 
-    //possessors go where adpositions' objects do, before the noun with postpositions and after it
-    //with prepositions: Greenberg's Universal 2, which has few exceptions. An isolating language
-    //can't mark the possessed noun with an affix, so it marks the possessor, as Mandarin does with
-    //de. The affixes agreeing with a possessor are each a short vowel or a syllable, all on one side
+    /*
+      possessors go where adpositions' objects do, before the noun with postpositions and after it
+      with prepositions: Greenberg's Universal 2, which has few exceptions. An isolating language
+      can't mark the possessed noun with an affix, so it marks the possessor, as Mandarin does with
+      de. The affixes agreeing with a possessor are each a short vowel or a syllable, all on one side
+     */
     public static Possession GeneratePossession(Random rand, MorphologicalProfile morphology, WordOrder wordOrder, Phonology phonology)
     {
         var marking = Sampling.Categorical(rand, PossessiveMarkingCounts);

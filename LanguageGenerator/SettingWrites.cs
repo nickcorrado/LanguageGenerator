@@ -432,9 +432,11 @@ internal static class SettingWrites
         return modals with { Markers = markers };
     }
 
-    //a modality's region keeps its form in its new kind. An affix goes where the language's other
-    //modal affixes go, or last; a verb or particle on the side the language's other modal words
-    //go, which only the word order says when it has none
+    /*
+      a modality's region keeps its form in its new kind. An affix goes where the language's other
+      modal affixes go, or last; a verb or particle on the side the language's other modal words
+      go, which only the word order says when it has none
+     */
     public static Modals WithModalKind(Modals drawn, Modality modality, ModalKind kind)
     {
         var marker = drawn.Markers[modality];

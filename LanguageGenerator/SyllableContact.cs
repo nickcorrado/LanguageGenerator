@@ -4,11 +4,13 @@ namespace LanguageGenerator;
 /// What may meet across a syllable boundary, where one syllable's coda comes right before the next
 /// one's onset.
 /// </summary>
-//Vennemann's Syllable Contact Law: a boundary is better the further sonority falls across it, so
-//al.ta is better than at.la. Languages differ in where they draw the line (Gouskova 2004 on the
-//typology): some allow anything, as English does in atlas, some only a gentle rise, and some
-//nothing rising at all, as Korean, where the n of sin-la becomes l. Languages that also ban a
-//level contact, like n.m, are left out, since across obstruents that would ban t.k too
+/*
+  Vennemann's Syllable Contact Law: a boundary is better the further sonority falls across it, so
+  al.ta is better than at.la. Languages differ in where they draw the line (Gouskova 2004 on the
+  typology): some allow anything, as English does in atlas, some only a gentle rise, and some
+  nothing rising at all, as Korean, where the n of sin-la becomes l. Languages that also ban a
+  level contact, like n.m, are left out, since across obstruents that would ban t.k too
+ */
 public enum SyllableContact
 {
     Any,

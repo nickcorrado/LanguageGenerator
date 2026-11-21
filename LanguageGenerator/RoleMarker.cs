@@ -15,13 +15,15 @@ public record Adposition(Lexeme Lexeme, AdpositionType Type)
 /// one. An adposition governs the case beside it, as German mit takes the dative, and a role with
 /// neither is recovered from word order, as English's core arguments are, or from context.
 /// </summary>
-//a null case is the plain one a noun is cited in
-//TODO cases are a fixed list named for one use each, and a role with no case of its own gets an
-//adposition. Real cases cover connected regions of a semantic map of roles (Haspelmath): Latin's
-//ablative covers source, instrument and location, and Greek, with no ablative, puts more on its
-//dative. Drawing a language's cases as a partition of that map would let a missing case fall back on
-//its neighbor's, as Features does for number and tense. Merging neighbors is also how a case is lost
-//over time, as with Late Latin's locative, if languages ever get histories
+/*
+  a null case is the plain one a noun is cited in
+  TODO cases are a fixed list named for one use each, and a role with no case of its own gets an
+  adposition. Real cases cover connected regions of a semantic map of roles (Haspelmath): Latin's
+  ablative covers source, instrument and location, and Greek, with no ablative, puts more on its
+  dative. Drawing a language's cases as a partition of that map would let a missing case fall back on
+  its neighbor's, as Features does for number and tense. Merging neighbors is also how a case is lost
+  over time, as with Late Latin's locative, if languages ever get histories
+ */
 public record RoleMarker(Case? Case, Adposition? Adposition)
 {
     public override string ToString() => (Case, Adposition) switch

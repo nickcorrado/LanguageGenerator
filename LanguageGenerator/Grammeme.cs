@@ -7,9 +7,11 @@
 //flags it
 public closed record Grammeme(string Name, string Gloss)
 {
-    // https://www.eva.mpg.de/lingua/resources/glossing-rules.php
-    //person and number labels run together (3SG); everything else is
-    //separated by a period (3SG.PST)
+    /*
+       https://www.eva.mpg.de/lingua/resources/glossing-rules.php
+      person and number labels run together (3SG); everything else is
+      separated by a period (3SG.PST)
+     */
     public static string Separator(Grammeme left, Grammeme right) => (left, right) switch
     {
         (Person, Number) or (Number, Person) => "",
@@ -63,9 +65,11 @@ public record Mood(string Name, string Gloss) : Grammeme(Name, Gloss)
 /// What a clause says is possible or necessary for its subject: that they can do it, may do it,
 /// must, or should.
 /// </summary>
-//the Leipzig rules have no glosses for these, so they're the ones grammars commonly coin, except
-//ADVS, for which there's no common one. They're situational modality only, which WALS 74A counts;
-//epistemic modality, as in 'it may rain', isn't here yet
+/*
+  the Leipzig rules have no glosses for these, so they're the ones grammars commonly coin, except
+  ADVS, for which there's no common one. They're situational modality only, which WALS 74A counts;
+  epistemic modality, as in 'it may rain', isn't here yet
+ */
 public record Modality(string Name, string Gloss) : Grammeme(Name, Gloss)
 {
     /// <summary>Able to, as in 'you can swim'.</summary>
@@ -127,9 +131,11 @@ public record Case(string Name, string Gloss) : Grammeme(Name, Gloss)
 /// </summary>
 public enum Role
 {
-    //the subject is split in two because alignments group the core roles differently:
-    //nominative/accusative marks both subjects alike, while ergative/absolutive marks
-    //the intransitive subject like the direct object
+    /*
+      the subject is split in two because alignments group the core roles differently:
+      nominative/accusative marks both subjects alike, while ergative/absolutive marks
+      the intransitive subject like the direct object
+     */
     IntransitiveSubject,
     TransitiveSubject,
     DirectObject,
@@ -185,9 +191,11 @@ public record Number(string Name, string Gloss) : Grammeme(Name, Gloss)
 }
 
 
-//there's a more general form of gender found in languages
-//like Swahili, which has 20 noun classes. That will not
-//be supported. Also, animacy might want to be split off
+/*
+  there's a more general form of gender found in languages
+  like Swahili, which has 20 noun classes. That will not
+  be supported. Also, animacy might want to be split off
+ */
 public record Gender(string Name, string Gloss) : Grammeme(Name, Gloss)
 {
     public static Gender Masculine { get; } = new("Masculine", "M");

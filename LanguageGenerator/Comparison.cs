@@ -22,9 +22,11 @@ public record ConjoinedComparison;
 /// The standard of comparison is the object of a verb meaning 'exceed' or 'pass', said after the
 /// property, as Yoruba says 'he is big, exceeds the elephant'.
 /// </summary>
-//the verb is bare, as the second verb of a serial construction is, and its phrase goes where
-//obliques go. It's coined with the comparison, so a clause with the verb exceed itself would get
-//the lexicon's own root, not this one
+/*
+  the verb is bare, as the second verb of a serial construction is, and its phrase goes where
+  obliques go. It's coined with the comparison, so a clause with the verb exceed itself would get
+  the lexicon's own root, not this one
+ */
 public record ExceedComparison(Lexeme Exceed);
 
 /// <summary>How a language says one thing has more of a property than another, as WALS 121A types it.</summary>

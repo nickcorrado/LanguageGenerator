@@ -85,9 +85,11 @@ public class SpecTests
     [Fact]
     public void Generate_FirstSoundInTheInventory_IsTheCommonest()
     {
-        //with no codas, which a coda restriction can fill with one sound, and a steep dropoff, since
-        //at the usual 0.15 each sound is 0.85 times as likely as the one before, too close to tell
-        //apart in a small lexicon
+        /*
+          with no codas, which a coda restriction can fill with one sound, and a steep dropoff, since
+          at the usual 0.15 each sound is 0.85 times as likely as the one before, too close to tell
+          apart in a small lexicon
+         */
         var language = Generator.Generate(3, LanguageSpec.Free
             .Fix(Settings.Consonants, [Consonant.ʃ, Consonant.t, Consonant.k, Consonant.n, Consonant.m])
             .Fix(Settings.SyllableTemplate, SyllableTemplates.CV)

@@ -72,13 +72,15 @@ public readonly record struct Site(Segment Segment, Segment? Previous, Segment? 
 /// A regular change from underlying to surface sounds, like a rule of sandhi, the changes sounds
 /// undergo where they meet: which sounds it applies to, in what surroundings, and what they become.
 /// </summary>
-//each change is applied across a whole word, left to right, so it sees morpheme boundaries, and a
-//language applies its changes in order, so one can feed or bleed the next. Changes only ever use
-//phonemes from the language's own inventory; where it has no suitable phoneme, the sound is left
-//alone. A change is a value, so a language's are a list that can be drawn, compared or extended.
-//Besides changing or deleting a sound, a change can insert one after it, which belongs to the
-//morpheme after it, as an inserted consonant starts the suffix it comes before. Only changes
-//that run before syllables can insert, since syllable places are counted by sound
+/*
+  each change is applied across a whole word, left to right, so it sees morpheme boundaries, and a
+  language applies its changes in order, so one can feed or bleed the next. Changes only ever use
+  phonemes from the language's own inventory; where it has no suitable phoneme, the sound is left
+  alone. A change is a value, so a language's are a list that can be drawn, compared or extended.
+  Besides changing or deleting a sound, a change can insert one after it, which belongs to the
+  morpheme after it, as an inserted consonant starts the suffix it comes before. Only changes
+  that run before syllables can insert, since syllable places are counted by sound
+ */
 public sealed class SoundChange(string name, Func<Site, bool> when, Func<Site, Phonology, Phoneme?> becomes, (Vowel First, Vowel Second)[]? pairs = null,
     Func<Site, Phonology, Phoneme?>? insertsAfter = null)
 {
@@ -119,10 +121,12 @@ public sealed class SoundChange(string name, Func<Site, bool> when, Func<Site, P
         Nothing);
 
     /// <summary>A nasal takes the place of articulation of a following stop or nasal.</summary>
-    //only where the new nasal can still close its syllable. A language whose codas allow only n, like
-    //Japanese, would otherwise turn n before k into a ŋ it can't end a syllable with, and cluster
-    //repair would then delete it. Japanese's n does take the next consonant's place, but as one
-    //phoneme, which there's no way to say here, so the n stays n
+    /*
+      only where the new nasal can still close its syllable. A language whose codas allow only n, like
+      Japanese, would otherwise turn n before k into a ŋ it can't end a syllable with, and cluster
+      repair would then delete it. Japanese's n does take the next consonant's place, but as one
+      phoneme, which there's no way to say here, so the n stays n
+     */
     public static SoundChange NasalAssimilation { get; } = new("nasal assimilation (np → mp)",
         site => site.Sound is Consonant { Manner: ConsonantManner.Nasal } nasal
             && site.Next?.Phoneme is Consonant { Manner: ConsonantManner.Plosive or ConsonantManner.Nasal } next && next.Place != nasal.Place,
@@ -193,10 +197,12 @@ public sealed class SoundChange(string name, Func<Site, bool> when, Func<Site, P
     /// <summary>Whether a language has both vowels of any pair this change needs, if it needs any.</summary>
     public bool CanApplyTo(IReadOnlyCollection<Vowel> vowels) => pairs?.Any(p => vowels.Contains(p.First) && vowels.Contains(p.Second)) ?? true;
 
-    //harmony spreads from the root both ways, so prefixes agree too, and it reaches the root's own
-    //vowels, since real languages with harmony have roots that keep it. A vowel with no partner, like
-    //ə, is neutral: it doesn't change and harmony passes through it. It runs before epenthesis, so an
-    //inserted vowel doesn't take part
+    /*
+      harmony spreads from the root both ways, so prefixes agree too, and it reaches the root's own
+      vowels, since real languages with harmony have roots that keep it. A vowel with no partner, like
+      ə, is neutral: it doesn't change and harmony passes through it. It runs before epenthesis, so an
+      inserted vowel doesn't take part
+     */
     private static SoundChange Harmony(string name, (Vowel First, Vowel Second)[] pairs)
     {
         (Vowel First, Vowel Second)? PairOf(Phoneme sound) => pairs.FirstOrDefault(p => p.First == sound || p.Second == sound) is { First: not null } pair ? pair : null;
@@ -262,9 +268,11 @@ public sealed class SoundChange(string name, Func<Site, bool> when, Func<Site, P
     /// calidus became Italian caldo, so long as the consonants can then close one syllable and open
     /// the next.
     /// </summary>
-    //the vowel needs a vowel two sounds away on each side, the stressed one before it, so it's never
-    //in the last syllable, and only one vowel goes, leaving a cluster of two. The stress is found
-    //again afterwards, over the syllables that are left
+    /*
+      the vowel needs a vowel two sounds away on each side, the stressed one before it, so it's never
+      in the last syllable, and only one vowel goes, leaving a cluster of two. The stress is found
+      again afterwards, over the syllables that are left
+     */
     public static SoundChange Syncope { get; } = new("syncope (ˈkalida → ˈkalda)",
         site => Unstressed(site) && site.Sound is Vowel { Long: false } && site.Index >= 2 && site.Index + 2 < site.Word.Count
             && site.Word[site.Index - 1].Phoneme is Consonant && site.Word[site.Index - 2].Phoneme is Vowel
@@ -302,9 +310,11 @@ public sealed class SoundChange(string name, Func<Site, bool> when, Func<Site, P
             ? (coda, onset)
             : null;
 
-    //the contact repairs below change only what the language's syllable contact doesn't allow, so
-    //where morphemes meet, a coda and an onset that roots would never put together are brought
-    //into line, as each language does it
+    /*
+      the contact repairs below change only what the language's syllable contact doesn't allow, so
+      where morphemes meet, a coda and an onset that roots would never put together are brought
+      into line, as each language does it
+     */
 
     /// <summary>
     /// An obstruent closing a syllable becomes a nasal before a nasal, as Korean kuk-mul 'soup' is
@@ -363,9 +373,11 @@ public sealed class SoundChange(string name, Func<Site, bool> when, Func<Site, P
     /// The same vowel twice in a row merges into one, long where the language has long vowels, as
     /// in Greek, where ε + ε gave long ει.
     /// </summary>
-    //nearly every language does this, even ones that otherwise leave vowels side by side, so every
-    //language has it. The merged vowel keeps the first one's morpheme, so a suffix can be left with
-    //no sound of its own, and it runs before the language's own way with vowels that meet
+    /*
+      nearly every language does this, even ones that otherwise leave vowels side by side, so every
+      language has it. The merged vowel keeps the first one's morpheme, so a suffix can be left with
+      no sound of its own, and it runs before the language's own way with vowels that meet
+     */
     public static SoundChange IdenticalVowelFusion { get; } = new("identical vowel fusion (ka-a → kaː)",
         site => site.Sound is Vowel vowel
             && (site.Next?.Phoneme is Vowel next && SameQuality(vowel, next) || site.Previous?.Phoneme is Vowel previous && SameQuality(vowel, previous)),
@@ -388,10 +400,12 @@ public sealed class SoundChange(string name, Func<Site, bool> when, Func<Site, P
     /// A close vowel before another vowel becomes a glide, i to j and u to w, as in Spanish or
     /// Sanskrit, where i + a gives ya.
     /// </summary>
-    //only where the syllable the glide joins is legal: the consonants before it have to split into
-    //a coda for the syllable before, if there is one, and an onset ending in the glide. Elsewhere the
-    //vowel stays, for whatever else the language does with vowels that meet. ɨ has no glide, so it
-    //stays too
+    /*
+      only where the syllable the glide joins is legal: the consonants before it have to split into
+      a coda for the syllable before, if there is one, and an onset ending in the glide. Elsewhere the
+      vowel stays, for whatever else the language does with vowels that meet. ɨ has no glide, so it
+      stays too
+     */
     public static SoundChange GlideFormation { get; } = new("glide formation (ki-a → kja)",
         site => Glides.ContainsKey(site.Sound) && site.Next?.Phoneme is Vowel,
         (site, phonology) => Glides[site.Sound] is var glide && phonology.Consonants.Contains(glide) && CanStartSyllable(glide, site, phonology.SyllableRule)
@@ -466,18 +480,22 @@ public sealed class SoundChange(string name, Func<Site, bool> when, Func<Site, P
     /// Vowels that meet merge into one halfway between them, wherever they meet, as in Sanskrit, where
     /// a + i gives long e and a + u long o.
     /// </summary>
-    //the merged vowel keeps the first one's morpheme, so a suffix can be left with no sound of its own.
-    //Languages that do this turn close vowels into glides first, as Sanskrit does, so it mostly
-    //merges vowels that glide formation couldn't
+    /*
+      the merged vowel keeps the first one's morpheme, so a suffix can be left with no sound of its own.
+      Languages that do this turn close vowels into glides first, as Sanskrit does, so it mostly
+      merges vowels that glide formation couldn't
+     */
     public static SoundChange VowelCoalescence { get; } = new("vowel coalescence (ka-i → keː, ka-u → koː)",
         site => site.Sound is Vowel && (site.Before is Vowel || site.Next?.Phoneme is Vowel),
         (site, phonology) => site.Before is Vowel
             ? null
             : site.Word.Skip(site.Index).Select(s => s.Phoneme).TakeWhile(p => p is Vowel).Cast<Vowel>().Aggregate((first, second) => Merged(first, second, phonology)));
 
-    //schwa gives way to anything. Otherwise the result is rounded if either vowel was, as Greek o wins
-    //over e, and halfway between their heights, and long if it can be, since it fills the time of two.
-    //Going by features means it works for any inventory
+    /*
+      schwa gives way to anything. Otherwise the result is rounded if either vowel was, as Greek o wins
+      over e, and halfway between their heights, and long if it can be, since it fills the time of two.
+      Going by features means it works for any inventory
+     */
     private static Vowel Merged(Vowel first, Vowel second, Phonology phonology)
     {
         if (first == Vowel.ə || second == Vowel.ə)

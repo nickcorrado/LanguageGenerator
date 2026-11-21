@@ -6,16 +6,18 @@ namespace LanguageGenerator;
 /// A file of clauses to translate, each the English it means followed by an indented line saying
 /// what it means in glosses.
 /// </summary>
-//for example:
-//
-//  # a comment
-//  the dog didn't see the cat
-//    see.PST.PFV.NEG  subject:dog  object:cat
-//
-//docs/clause-format.md describes the format. A gloss line is read in two steps: ClauseSyntax reads
-//what's nested in what, words, groups in parentheses and clauses in brackets, each with the role
-//it's written with, and this builds what that means into a Statement, refusing whatever the
-//generator can't express yet, never dropping it
+/*
+  for example:
+
+    # a comment
+    the dog didn't see the cat
+      see.PST.PFV.NEG  subject:dog  object:cat
+
+  docs/clause-format.md describes the format. A gloss line is read in two steps: ClauseSyntax reads
+  what's nested in what, words, groups in parentheses and clauses in brackets, each with the role
+  it's written with, and this builds what that means into a Statement, refusing whatever the
+  generator can't express yet, never dropping it
+ */
 public static class ClauseFile
 {
     public record Entry(string Translation, Statement Statement, int Line);
@@ -98,9 +100,11 @@ public static class ClauseFile
     private static Subordinator? SubordinatorOf(string line) =>
         line.Trim().Split(' ', 2) is [var first, _] && Subordinators.TryGetValue(first, out var subordinator) ? subordinator : null;
 
-    //a clause under the ones above it. Only a purpose clause can leave out its subject, which is then
-    //the main clause's, as in 'to cross the river, you need a rope'. It can't be a command, or be said
-    //to someone, since the main clause is
+    /*
+      a clause under the ones above it. Only a purpose clause can leave out its subject, which is then
+      the main clause's, as in 'to cross the river, you need a rope'. It can't be a command, or be said
+      to someone, since the main clause is
+     */
     private static Subordinated ToSubordinated(Statement main, Subordinator subordinator, SyntaxClause line, int number)
     {
         var shares = subordinator == Subordinator.Purpose && !line.Items.Any(i => i.Role == "subject");
@@ -164,10 +168,12 @@ public static class ClauseFile
         Quotation q => ArgumentsOf(q.Statement).SelectMany(NounsIn),
     };
 
-    //the roles a clause can have. An oblique role is written as its name in lowercase, but for the
-    //similative, which is like:. A noun or adjective is what be says its subject is, a standard what
-    //an adjective compares it with, and an addressee who the clause is said to. An adverb fills no
-    //role, but is written as one named for what it says, and a clause can have any number of them
+    /*
+      the roles a clause can have. An oblique role is written as its name in lowercase, but for the
+      similative, which is like:. A noun or adjective is what be says its subject is, a standard what
+      an adjective compares it with, and an addressee who the clause is said to. An adverb fills no
+      role, but is written as one named for what it says, and a clause can have any number of them
+     */
     private static readonly Dictionary<string, Role> ObliqueRoles = Oblique.Roles.ToDictionary(r => r == Role.Similative ? "like" : r.ToString().ToLowerInvariant());
     private static readonly Dictionary<string, AdverbKind> AdverbRoles = Enum.GetValues<AdverbKind>().ToDictionary(k => k.ToString().ToLowerInvariant());
     private static readonly string[] Roles = ["subject", "object", "quote", "noun", "adjective", "standard", .. ObliqueRoles.Keys, "agent", "addressee", .. AdverbRoles.Keys, "manner"];
@@ -264,9 +270,11 @@ public static class ClauseFile
     //the question words, in the roles they ask about
     private static readonly Dictionary<string, Interrogative> QuestionWords = Enum.GetValues<Interrogative>().ToDictionary(w => w.ToString().ToLowerInvariant());
 
-    //whether the clause is a question: a yes-no question with Q, or a content question with one
-    //question word in a role or why. Where asks about a place, so it's only where, to where or from
-    //where, and a question word can't be a standard yet
+    /*
+      whether the clause is a question: a yes-no question with Q, or a content question with one
+      question word in a role or why. Where asks about a place, so it's only where, to where or from
+      where, and a question word can't be a standard yet
+     */
     private static bool CheckQuestion(VerbFeatures features, ClauseRoles roles, bool why, int number)
     {
         var questioned = roles.Arguments.Select(a => (a.Key, a.Value)).Concat(roles.Obliques.Select(o => (Key: o.Role, o.Oblique.Argument)))
@@ -384,9 +392,11 @@ public static class ClauseFile
         _ => new($"'{verb}' can't take {feature.Gloss} ({feature.Name}) yet: verbs have only tense, aspect, polarity, the imperative, Q for a question, the passive and the modals {string.Join(", ", ValuesOf<Modality>().Select(m => m.Gloss))}.", number),
     };
 
-    //the subject and addressee are read first, whatever order they're written in, so that a clause
-    //in brackets can share the subject, which a command's is 'you'. The obliques and adverbs keep
-    //the order they're written in
+    /*
+      the subject and addressee are read first, whatever order they're written in, so that a clause
+      in brackets can share the subject, which a command's is 'you'. The obliques and adverbs keep
+      the order they're written in
+     */
     private static ClauseRoles ParseRoles(string verb, IEnumerable<SyntaxItem> items, bool imperative, Argument? impliedSubject, int number)
     {
         var arguments = new Dictionary<string, Argument>();
@@ -551,11 +561,13 @@ public static class ClauseFile
         ["to"] = ComplementKind.Event,
     };
 
-    //an object: or quote: in brackets. A quotation is said as it was said, so it can be anything a
-    //clause can, and takes nothing from the clause around it. A complement starts with that, for
-    //what's said, known or seen, which has a time of its own, or to, for what's wanted, tried or
-    //begun, whose time the main verb sets, so it has no tense or aspect; and only an event can leave
-    //out its subject, which is then the main clause's, as in 'they want to go home'
+    /*
+      an object: or quote: in brackets. A quotation is said as it was said, so it can be anything a
+      clause can, and takes nothing from the clause around it. A complement starts with that, for
+      what's said, known or seen, which has a time of its own, or to, for what's wanted, tried or
+      begun, whose time the main verb sets, so it has no tense or aspect; and only an event can leave
+      out its subject, which is then the main clause's, as in 'they want to go home'
+     */
     private static Argument ParseEmbedded(string role, SyntaxClause embedded, Argument subject, int number)
     {
         if (role == "quote")
@@ -658,9 +670,11 @@ public static class ClauseFile
         }
     }
 
-    //a noun and its adjectives, in parentheses, as in (dog.PL big old). A possessor can be a noun
-    //phrase in parentheses of its own, as in (son possessor:(sister possessor:1SG)) for 'my sister's
-    //son', and nothing else can
+    /*
+      a noun and its adjectives, in parentheses, as in (dog.PL big old). A possessor can be a noun
+      phrase in parentheses of its own, as in (son possessor:(sister possessor:1SG)) for 'my sister's
+      son', and nothing else can
+     */
     private static NounPhrase ParseModifiedNounPhrase(SyntaxGroup group, int number)
     {
         var items = group.Items;
@@ -790,9 +804,11 @@ public static class ClauseFile
         "thirtieth", "fortieth", "fiftieth", "sixtieth", "seventieth", "eightieth", "ninetieth", "hundredth",
     ];
 
-    //a coordination in parentheses, conjunction first, as in (and dog.DEF cat.DEF): the conjunction and
-    //the two or more things it joins, which fill no roles of their own, or null if the parentheses
-    //hold something else
+    /*
+      a coordination in parentheses, conjunction first, as in (and dog.DEF cat.DEF): the conjunction and
+      the two or more things it joins, which fill no roles of their own, or null if the parentheses
+      hold something else
+     */
     private static (Conjunction Conjunction, List<SyntaxValue> Items)? Coordinating(SyntaxGroup group, int number)
     {
         if (group.Items is not [{ Role: null, Value.Value: SyntaxWord { Text: var first } }, ..] || !Conjunctions.TryGetValue(first, out var conjunction))

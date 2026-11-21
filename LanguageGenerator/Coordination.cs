@@ -50,9 +50,11 @@ public enum ClauseAnd
 }
 
 /// <summary>A language's ways of saying 'and', 'or' and 'but'.</summary>
-//ClauseAnd is null where clauses are just set side by side. Each word goes between the two things
-//it joins, the commonest place for one, though some languages put it after the second, as Latin
-//-que does
+/*
+  ClauseAnd is null where clauses are just set side by side. Each word goes between the two things
+  it joins, the commonest place for one, though some languages put it after the second, as Latin
+  -que does
+ */
 public record Conjunctions(NounAnd NounAnd, Lexeme? ClauseAnd, Lexeme Or, Lexeme But)
 {
     /// <summary>The word that joins clauses, or adjectives said of one subject, with this conjunction.</summary>

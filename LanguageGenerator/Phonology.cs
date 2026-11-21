@@ -31,9 +31,11 @@ public record Phonology
     public required SyllableContact SyllableContact { get; init; }
     /// <summary>Applied in order across the whole word, before clusters are repaired.</summary>
     public required IReadOnlyList<SoundChange> SoundChanges { get; init; }
-    //TODO stress: syllables don't have any yet. WALS 14A counts fixed stress positions, and 15A what
-    //weight does to them. It would bring unstressed vowel reduction and syncope, as more changes here
-    //that run after harmony, and the homophone check should then look at inflected forms too
+    /*
+      TODO stress: syllables don't have any yet. WALS 14A counts fixed stress positions, and 15A what
+      weight does to them. It would bring unstressed vowel reduction and syncope, as more changes here
+      that run after harmony, and the homophone check should then look at inflected forms too
+     */
     /// <summary>Changes that depend on syllables, so they apply once a word has them.</summary>
     public IReadOnlyList<SoundChange> SyllableChanges { get; init; } = [];
     public required ClusterRepair ClusterRepair { get; init; }
@@ -55,11 +57,13 @@ public record Phonology
         Consonants.FirstOrDefault(c => c.Place == (place ?? consonant.Place) && c.Manner == (manner ?? consonant.Manner) && c.Voiced == (voiced ?? consonant.Voiced)
             && c.Aspirated == consonant.Aspirated && c.Labialized == consonant.Labialized);
 
-    //underlying morphemes, run together → sound changes → cluster repair → syllables and stress →
-    //changes that depend on syllables, each followed by repair, syllables and stress again, since it
-    //can leave a word that needs them: a syllable lost to syncope moves the stress, as it would in a
-    //language that had lost it. Every segment keeps track of its morpheme throughout, so the result
-    //can still be segmented
+    /*
+      underlying morphemes, run together → sound changes → cluster repair → syllables and stress →
+      changes that depend on syllables, each followed by repair, syllables and stress again, since it
+      can leave a word that needs them: a syllable lost to syncope moves the stress, as it would in a
+      language that had lost it. Every segment keeps track of its morpheme throughout, so the result
+      can still be segmented
+     */
     public SurfaceForm Realize(Word word)
     {
         var segments = new List<Segment>();
@@ -113,9 +117,11 @@ public record Phonology
         }),
     ];
 
-    //every vowel is a nucleus. Consonants before the first vowel are its onset and those after the
-    //last are the final coda; between two vowels, the onset takes as many as it legally can and the
-    //coda the rest. Returns null, with the offending cluster's [Start, End), when that's impossible
+    /*
+      every vowel is a nucleus. Consonants before the first vowel are its onset and those after the
+      last are the final coda; between two vowels, the onset takes as many as it legally can and the
+      coda the rest. Returns null, with the offending cluster's [Start, End), when that's impossible
+     */
     private List<Syllable>? Syllabify(List<Segment> segments, out (int Start, int End) badCluster)
     {
         badCluster = default;
@@ -160,10 +166,12 @@ public record Phonology
         return [.. nuclei.Select((n, k) => new Syllable([.. onsets[k]], (Vowel)segments[n].Phoneme, codas[k].SingleOrDefault()))];
     }
 
-    //one edit to the bad cluster: the first one that fixes it if any does, and otherwise the first
-    //one at all. Every edit leaves shorter clusters behind, so repeating this always ends: a lone
-    //consonant between vowels or at either edge is legal as an onset or a coda, or else it's legal
-    //nowhere (a coda restriction in a template with no onsets), and then it's deleted
+    /*
+      one edit to the bad cluster: the first one that fixes it if any does, and otherwise the first
+      one at all. Every edit leaves shorter clusters behind, so repeating this always ends: a lone
+      consonant between vowels or at either edge is legal as an onset or a coda, or else it's legal
+      nowhere (a coda restriction in a template with no onsets), and then it's deleted
+     */
     private List<Segment> Repair(List<Segment> segments, (int Start, int End) cluster)
     {
         var atStart = cluster.Start == 0;
