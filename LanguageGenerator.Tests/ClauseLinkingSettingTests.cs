@@ -57,6 +57,27 @@ public class ClauseLinkingSettingTests
         });
     }
 
+    /*
+      the edges between them free, and positions no VO draw gives all at once, so they're written
+      in; where 'if', 'when' and 'because' are drawn joined, their region has no position all three
+      allow, and is parted rather than left with the last one written
+     */
+    [Fact]
+    public void Generate_JoinedSubordinatorsWithNoPositionInCommon_EachKeepTheirs()
+    {
+        var spec = SpecFile.Parse("""
+            {
+              "constituent-order": "VOS",
+              "if-subordinator": ["Initial", "Suffix"],
+              "when-subordinator": ["Final", "Suffix"],
+              "because-subordinator": "Final",
+              "before-subordinator": "Suffix"
+            }
+            """);
+
+        Assert.All(Enumerable.Range(0, 20).Select(seed => Generator.Generate(seed, spec)), l => SpecTests.AssertMeets(l, spec));
+    }
+
     [Fact]
     public void Generate_SuffixInAVerbObjectLanguage_IsWrittenIn()
     {

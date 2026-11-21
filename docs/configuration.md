@@ -44,7 +44,7 @@ Roles, configurations, modalities and subordinators are each a semantic map, who
 
 - **Regions are the connected parts of the joined edges,** so a region the map can't draw, like possessors and times alone, can't be written. That's the one place configuration doesn't allow the odd, since connectivity is what a region means rather than a tendency.
 - **Nodes joined by an edge share a marker,** so they can't be fixed to different ones, and narrowing goes along paths: fixing two edges joined narrows all three nodes together.
-- **A marker written in moves its whole region,** keeping its form, and joining two regions gives the second the first's marker. Parting them would need a form for the second, so it's only ever drawn.
+- **A marker written in moves its whole region,** keeping its form, and joining two regions gives the second the first's marker. Parting them would need a form for the second, so it's only ever drawn. The one exception is a region of subordinators drawn joined along edges the spec leaves free, whose fixed positions have none in common: it's parted along those edges, and its parts keep one form, as homophones.
 - **Cases** are a true or false setting for each oblique case, `configuration-marking` is the preference most configuration regions follow, and `temporal-balance` covers 'when' and the clauses that follow it, as the generator draws them.
 
 ## Inventories
