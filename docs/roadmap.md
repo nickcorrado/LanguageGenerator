@@ -1,13 +1,13 @@
 # Roadmap
 
-[examples/hollow.txt](../examples/hollow.txt), a short text adventure, is the test of what real text needs. The front end refuses 18 of its 190 sentences. Refusals are the easy part, though: a refusal names what's missing, while a sentence that glosses can still lose half of what it said. *They pass so close that you could touch them* comes out as just 'they pass very close', and *at dusk* doesn't come out at all. So this list counts both.
+[examples/hollow.txt](../examples/hollow.txt), a short text adventure, is the test of what real text needs. The front end refuses 10 of its 190 sentences. Refusals are the easy part, though: a refusal names what's missing, while a sentence that glosses can still lose half of what it said. *The road from the coast washed out three winters ago* comes out as just 'the road from the coast collapsed', and *few travelers come here now* loses its *here*. So this list counts both.
 
 ## Clauses
 
 Roughly in the order to build them, since the later ones lean on the earlier ones.
 
 - **More adverbs.** Words for where (*here*, *there*, *upstream*), which come with demonstratives; *ago* and *later* after a noun (*three winters ago*, *a month later*); manners that compare (*more slowly*); and a time first in the clause, as many languages put one, where today every adverb goes with the obliques, ranked by how near the verb it goes.
-- **Places in noun phrases.** A noun phrase should be able to take a place, for *the old woman from the gate* and *a hunter at the fire*, which today only a clause can.
+- **Places in noun phrases.** A noun phrase should be able to take a place, for *the old woman from the gate* and *a hunter at the fire*, which today only a clause can. The glosser now says them as relative clauses, 'a hunter who is at the fire', which keeps their meaning but has every language say them that way, where many would put the place in the noun phrase as English does, or make it an adjective, as Turkish *ateş-teki avcı* 'fire-LOC-ADJ hunter' does.
 - **Roles English says with places.** English borrows spatial words for meanings that aren't places, and a language should borrow them only as its own map of roles says, as a time already shares the location's marker in most languages and not all. The ones the glosser now has to drop or bend:
   - Manner as a noun phrase (*in a line*, *in silence*). Russian puts it in the instrumental, *idti gus'kom* 'walk goose-INS' for 'in single file', Latin in the ablative, and others in an essive or a converb ('having become a line'), so it wants a marker with edges to the instrument, companion and location.
   - Opposition (*against the wind*, *fight against*), which German says with *gegen*, apart from *an* for touching. It takes a facing word or the goal's marker in many languages. The `against` configuration should then mean touching alone.
