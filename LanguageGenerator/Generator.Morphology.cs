@@ -11,11 +11,13 @@ public static partial class Generator
     public static Paradigm GenerateVerbParadigm(Random rand, MorphologicalProfile morphology, WordOrder wordOrder, Phonology phonology) =>
         GenerateParadigm(rand, PartOfSpeech.Verb, SelectVerbCategories(rand), morphology, wordOrder.VerbPhraseDirectionality, phonology);
 
-    //innermost first: number sits closer to the root than case, as it overwhelmingly does.
-    //gender isn't here because a noun doesn't inflect for it; it has one, and adjectives and
-    //verbs agree with it. A localization goes between number and case, as Lezgian puts it just
-    //inside the case that says whether anything moves, in sew-re-l-aj 'bear-OBL-SUPER-ELAT', 'from
-    //on the bear'
+    /*
+      innermost first: number sits closer to the root than case, as it overwhelmingly does.
+      gender isn't here because a noun doesn't inflect for it; it has one, and adjectives and
+      verbs agree with it. A localization goes between number and case, as Lezgian puts it just
+      inside the case that says whether anything moves, in sew-re-l-aj 'bear-OBL-SUPER-ELAT', 'from
+      on the bear'
+     */
     public static List<InflectionalCategory> SelectNounCategories(Random rand, MorphosyntacticAlignment alignment, IReadOnlyList<Case> cases, IReadOnlyList<Localization> localizations)
     {
         var categories = new List<InflectionalCategory>();
@@ -126,9 +128,11 @@ public static partial class Generator
         return new Paradigm { PartOfSpeech = partOfSpeech, Categories = categories, Slots = slots };
     }
 
-    //one exponent per combination of values, with no form at all for combinations the language
-    //leaves unmarked. Other forms are kept distinct within a slot where possible; if the phonology
-    //keeps producing repeats, the syncretism is allowed
+    /*
+      one exponent per combination of values, with no form at all for combinations the language
+      leaves unmarked. Other forms are kept distinct within a slot where possible; if the phonology
+      keeps producing repeats, the syncretism is allowed
+     */
     private static List<(IReadOnlyList<Grammeme> Values, Morpheme Exponent)> GenerateExponents(Random rand, IReadOnlyList<InflectionalCategory> categories, ExponentPosition position, ZeroMarking zeroMarking, Phonology phonology)
     {
         var exponents = new List<(IReadOnlyList<Grammeme>, Morpheme)>();
@@ -155,11 +159,13 @@ public static partial class Generator
     //WALS won't classify languages as fusional, agglutinative or analytic, but it does measure the
     //properties underneath, each drawn here in proportion to WALS's language counts
 
-    // https://wals.info/combinations/20A_83A: fusion by the order of object and verb. Isolating
-    //morphology is far commoner in VO languages; the OV counts are small, but 26A's languages with
-    //little affixation lean the same way (35 OV to 100 VO). Neither tone nor ablaut is modeled, so
-    //values pairing one with another strategy count as that strategy, and the exclusively tonal
-    //languages are left out, as are those with no dominant order
+    /*
+       https://wals.info/combinations/20A_83A: fusion by the order of object and verb. Isolating
+      morphology is far commoner in VO languages; the OV counts are small, but 26A's languages with
+      little affixation lean the same way (35 OV to 100 VO). Neither tone nor ablaut is modeled, so
+      values pairing one with another strategy count as that strategy, and the exclusively tonal
+      languages are left out, as are those with no dominant order
+     */
     private static readonly (Fusion Value, int Languages)[] ObjectVerbFusionCounts =
     [
         (Fusion.Concatenative, 70 + 1 + 0),
@@ -173,10 +179,12 @@ public static partial class Generator
         (Fusion.Isolating, 12 + 1),
     ];
 
-    // https://wals.info/combinations/26A_83A: affixation by the order of object and verb, which makes
-    //a big difference, since OV languages strongly prefer suffixes. Languages with little or no
-    //affixation are left out, since fusion already decides that, and so are the 60 with no
-    //dominant order, since every generated language has one
+    /*
+       https://wals.info/combinations/26A_83A: affixation by the order of object and verb, which makes
+      a big difference, since OV languages strongly prefer suffixes. Languages with little or no
+      affixation are left out, since fusion already decides that, and so are the 60 with no
+      dominant order, since every generated language has one
+     */
     private static readonly (Affixation Value, int Languages)[] ObjectVerbAffixationCounts =
     [
         (Affixation.StronglySuffixing, 269),
@@ -208,17 +216,21 @@ public static partial class Generator
             CaseWithLocalization: rand.NextDouble() < 0.5),
         Sampling.Categorical(rand, WordOrder.ObjectPrecedesVerb(order) ? ObjectVerbAffixationCounts : VerbObjectAffixationCounts),
         new ZeroMarking(
-            //guesses, but grounded in Greenberg's universals: the singular can be expressed only by
-            //zero while the plural never is (35), and the only case that can be zero is the one for
-            //the intransitive subject (38). WALS has no counts for either, or for the present tense
+            /*
+              guesses, but grounded in Greenberg's universals: the singular can be expressed only by
+              zero while the plural never is (35), and the only case that can be zero is the one for
+              the intransitive subject (38). WALS has no counts for either, or for the present tense
+             */
             Singular: rand.NextDouble() < 0.9,
             CoreCase: rand.NextDouble() < 0.8,
             Present: rand.NextDouble() < 0.6,
             ThirdPerson: Sampling.Categorical(rand, ThirdPersonZeroCounts)));
 
-    // https://wals.info/feature/103A, among the 284 languages with person marking on verbs. The 21
-    //with zero in only some third singular forms are left out, since a paradigm here has one form
-    //per cell, and so is the 1 with zero only in the third person nonsingular
+    /*
+       https://wals.info/feature/103A, among the 284 languages with person marking on verbs. The 21
+      with zero in only some third singular forms are left out, since a paradigm here has one form
+      per cell, and so is the 1 with zero only in the third person nonsingular
+     */
     private static readonly (ThirdPersonZero Value, int Languages)[] ThirdPersonZeroCounts =
     [
         (ThirdPersonZero.None, 181),

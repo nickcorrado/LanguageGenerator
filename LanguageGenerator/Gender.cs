@@ -65,15 +65,17 @@ public class GenderSystem
         _ => throw new InvalidOperationException($"{Genders} isn't a gender system."),
     };
 
-    //a noun's gender, from what it means and, where assignment is formal, from how its root ends:
-    //a front or open vowel makes it feminine, as -a does in Latin, Spanish or Russian, another vowel
-    //masculine, and a consonant neuter, or masculine
-    //where there's no neuter. In an animacy system, a thing ending in a consonant is animate, as
-    //some things are in Ojibwe. People of no particular sex are masculine, the usual default.
-    //TODO variance: real systems stray from the semantic core (German Kind 'child' is neuter), so
-    //with a small chance, seeded from the language and the meaning, a Human noun could follow its
-    //form where assignment is formal. Kin terms and names shouldn't stray, and M and F can't tell
-    //those from other words, so Mädchen 'girl' would need more than this
+    /*
+      a noun's gender, from what it means and, where assignment is formal, from how its root ends:
+      a front or open vowel makes it feminine, as -a does in Latin, Spanish or Russian, another vowel
+      masculine, and a consonant neuter, or masculine
+      where there's no neuter. In an animacy system, a thing ending in a consonant is animate, as
+      some things are in Ojibwe. People of no particular sex are masculine, the usual default.
+      TODO variance: real systems stray from the semantic core (German Kind 'child' is neuter), so
+      with a small chance, seeded from the language and the meaning, a Human noun could follow its
+      form where assignment is formal. Kin terms and names shouldn't stray, and M and F can't tell
+      those from other words, so Mädchen 'girl' would need more than this
+     */
     public Gender? Of(Lexeme noun, SemanticClass meaning)
     {
         var final = noun.Root.Form.LastOrDefault();
@@ -98,9 +100,11 @@ public class GenderSystem
         };
     }
 
-    //the word, agreeing with this gender: the marker goes next to the root for an adjective, as
-    //gender sits inside number and case in Latin magn-a, and at the edge of a verb, outside its
-    //other affixes
+    /*
+      the word, agreeing with this gender: the marker goes next to the root for an adjective, as
+      gender sits inside number and case in Latin magn-a, and at the edge of a verb, outside its
+      other affixes
+     */
     public Word Agree(Word word, Gender gender, bool nextToRoot)
     {
         if (Markers is null || !Markers.TryGetValue(gender, out var marker) || marker.Form.Count == 0)

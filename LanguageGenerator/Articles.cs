@@ -29,9 +29,11 @@ public enum IndefiniteArticle
 /// noun phrase, as English the is, with a form for each gender and number it agrees in, as Spanish
 /// has el, la, los and las.
 /// </summary>
-//a form is a Particle or an Affix, glossed DEF or NDF and whatever it agrees in, or the Root of the
-//language's word for 'one', glossed one, where that's the indefinite article, which agrees in
-//nothing. A key's gender or number is null when the article doesn't agree in it
+/*
+  a form is a Particle or an Affix, glossed DEF or NDF and whatever it agrees in, or the Root of the
+  language's word for 'one', glossed one, where that's the indefinite article, which agrees in
+  nothing. A key's gender or number is null when the article doesn't agree in it
+ */
 public record Article(ExponentPosition Position, IReadOnlyDictionary<(Gender? Gender, Number? Number), Morpheme> Forms)
 {
     public bool AgreesInGender => Forms.Keys.Any(k => k.Gender is not null);

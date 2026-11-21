@@ -3,10 +3,12 @@ using System.Text;
 
 namespace LanguageGenerator.Tests;
 
-//the static phonemes are named by their IPA symbols, which the compiler checks only in the
-//property name, not in the IpaSymbol string beside it. These catch the two drifting apart,
-//lookalike characters (Greek ε for IPA ɛ, ASCII g for IPA ɡ), decomposed diacritics, and
-//phonemes left out of their class's All list
+/*
+  the static phonemes are named by their IPA symbols, which the compiler checks only in the
+  property name, not in the IpaSymbol string beside it. These catch the two drifting apart,
+  lookalike characters (Greek ε for IPA ɛ, ASCII g for IPA ɡ), decomposed diacritics, and
+  phonemes left out of their class's All list
+ */
 public class PhonemeTests
 {
     private static IEnumerable<PropertyInfo> StaticPhonemes(Type type) =>

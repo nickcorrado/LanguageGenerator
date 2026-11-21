@@ -60,9 +60,11 @@ public record CaseSystem(IReadOnlyList<RoleRegion> Regions, IReadOnlyList<Case> 
 /// A semantic map of the oblique roles: which can share a marker, and how often. Any one marker covers
 /// a connected region of it, as Haspelmath's connectivity hypothesis has it.
 /// </summary>
-//the core roles are left to alignment, and the addressee to the vocative. A standard of comparison
-//hangs off the source, goal or location without heading a region of its own, which is what a
-//LocationalComparison's role says
+/*
+  the core roles are left to alignment, and the addressee to the vocative. A standard of comparison
+  hangs off the source, goal or location without heading a region of its own, which is what a
+  LocationalComparison's role says
+ */
 public static class RoleMap
 {
     /// <summary>
@@ -102,9 +104,11 @@ public static class RoleMap
         //a time is marked like a place in most languages, as English at night, Turkish gece-de
         //'night-LOC' and Japanese ni; a guess, since WALS doesn't count it
         (Role.Time, Role.Location, 0.6),
-        //a route is marked like a place in many languages, like an instrument in Russian, which
-        //says shel lesom 'went forest-INS' for 'went through the forest', and like a source in some
-        //Australian languages; guesses, since WALS doesn't count it
+        /*
+          a route is marked like a place in many languages, like an instrument in Russian, which
+          says shel lesom 'went forest-INS' for 'went through the forest', and like a source in some
+          Australian languages; guesses, since WALS doesn't count it
+         */
         (Role.Route, Role.Location, 0.2),
         (Role.Route, Role.Instrument, 0.15),
         (Role.Route, Role.Source, 0.15),
@@ -114,9 +118,11 @@ public static class RoleMap
         ? rank
         : throw new ArgumentOutOfRangeException(nameof(role), role, "Only oblique roles are on the map.");
 
-    //an agent has no case of its own here: an agentive case is rare, and a passive's agent alone in
-    //its region is marked by an adposition, as English by is. So is a time apart from places, which a
-    //temporal case marks in only a few languages
+    /*
+      an agent has no case of its own here: an agentive case is rare, and a passive's agent alone in
+      its region is marked by an adposition, as English by is. So is a time apart from places, which a
+      temporal case marks in only a few languages
+     */
     public static Case? CaseFor(Role head) => head switch
     {
         Role.Possessor => Case.Genitive,

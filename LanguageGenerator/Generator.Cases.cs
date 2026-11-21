@@ -3,9 +3,11 @@
 //alignment, cases, adpositions, and how each role is marked
 public static partial class Generator
 {
-    //WALS 98A, by how full noun phrases are case-marked: 98 languages neutral, with no core cases, 46
-    //nominative-accusative and 6 more with a marked nominative, and 32 ergative-absolutive. Its 4
-    //tripartite and 4 active-inactive languages are left out
+    /*
+      WALS 98A, by how full noun phrases are case-marked: 98 languages neutral, with no core cases, 46
+      nominative-accusative and 6 more with a marked nominative, and 32 ergative-absolutive. Its 4
+      tripartite and 4 active-inactive languages are left out
+     */
     private static readonly (MorphosyntacticAlignment Value, int Languages)[] AlignmentCounts =
     [
         (MorphosyntacticAlignment.None, 98),
@@ -23,18 +25,22 @@ public static partial class Generator
     //often than their edge alone says
     public static RoleRegions SelectRegions(Random rand) => new(SemanticMap.Joined(rand, RoleMap.Edges));
 
-    //WALS 49A, by how many cases a language has besides its core ones. A language with core cases is
-    //drawn from the 137 with two or more, which are the core two and the rest; one without them from
-    //all 237 but the 24 with only borderline case marking, where a direct case counts as one. The
-    //ranges WALS gives are drawn from evenly, and 10 or more is as many as the map allows
+    /*
+      WALS 49A, by how many cases a language has besides its core ones. A language with core cases is
+      drawn from the 137 with two or more, which are the core two and the rest; one without them from
+      all 237 but the 24 with only borderline case marking, where a direct case counts as one. The
+      ranges WALS gives are drawn from evenly, and 10 or more is as many as the map allows
+     */
     private static readonly ((int Least, int Most) Obliques, int Languages)[] ObliqueCaseCountsWithCore =
         [((0, 0), 23), ((1, 1), 9), ((2, 2), 9), ((3, 3), 12), ((4, 5), 37), ((6, 7), 23), ((8, int.MaxValue), 24)];
     private static readonly ((int Least, int Most) Obliques, int Languages)[] ObliqueCaseCountsWithoutCore =
         [((0, 0), 100), ((1, 1), 23), ((2, 2), 9), ((3, 3), 9), ((4, 4), 12), ((5, 6), 37), ((7, 8), 23), ((9, int.MaxValue), 24)];
 
-    //how likely a region is to get a case of its own, by its head's place in Blake's hierarchy, so
-    //a language with any oblique case most likely has a genitive and a dative. A guess: Blake's
-    //hierarchy is a tendency, and an instrumental without a dative is rare but real
+    /*
+      how likely a region is to get a case of its own, by its head's place in Blake's hierarchy, so
+      a language with any oblique case most likely has a genitive and a dative. A guess: Blake's
+      hierarchy is a tendency, and an instrumental without a dative is rare but real
+     */
     private static readonly int[] CaseWeightsByRank = [8, 6, 5, 4, 3, 2, 2, 2];
 
     /// <summary>
@@ -91,10 +97,12 @@ public static partial class Generator
         return words;
     }
 
-    //each adposition governs a case, where the language has cases: mostly the object's, as the
-    //accusative is governed in Latin and Turkish, often the genitive, as in Russian, Hindi and the
-    //Turkish postpositions made from nouns, and sometimes the dative, as German mit takes it. Guesses,
-    //since WALS doesn't count these
+    /*
+      each adposition governs a case, where the language has cases: mostly the object's, as the
+      accusative is governed in Latin and Turkish, often the genitive, as in Russian, Hindi and the
+      Turkish postpositions made from nouns, and sometimes the dative, as German mit takes it. Guesses,
+      since WALS doesn't count these
+     */
     private static Case? GovernedCase(Random rand, MorphosyntacticAlignment alignment, IReadOnlyList<Case> cases)
     {
         Case? core = alignment switch
@@ -120,9 +128,11 @@ public static partial class Generator
         };
     }
 
-    //a role gets its region's case if the language has one, and otherwise its region's adposition,
-    //with the case that adposition governs. A duration is marked like the role it's like, or with
-    //its own word
+    /*
+      a role gets its region's case if the language has one, and otherwise its region's adposition,
+      with the case that adposition governs. A duration is marked like the role it's like, or with
+      its own word
+     */
     public static Dictionary<Role, RoleMarker> SelectRoleMarkers(Random rand, MorphosyntacticAlignment alignment, IReadOnlyList<Case> cases, IReadOnlyList<RoleRegion> regions,
         WordOrder wordOrder, IReadOnlyDictionary<Role, Lexeme> adpositions, (Role? Like, Lexeme? Word) duration)
     {

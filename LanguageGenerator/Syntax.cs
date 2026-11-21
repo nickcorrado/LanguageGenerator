@@ -1,8 +1,10 @@
 ﻿namespace LanguageGenerator;
 
-//what a sentence means, independent of any language: words are meanings, like "dog", which each
-//language's lexicon turns into its own roots. Realizing one in a language is where all of that
-//language's choices (word order, role markers, paradigms, phonology) come together
+/*
+  what a sentence means, independent of any language: words are meanings, like "dog", which each
+  language's lexicon turns into its own roots. Realizing one in a language is where all of that
+  language's choices (word order, role markers, paradigms, phonology) come together
+ */
 /// <summary>
 /// A noun with any adjectives modifying it, in English order, how many of it there are if a numeral
 /// says, as in 'three wolves', whose it is, as in 'the king's house', which one it is, as in 'the
@@ -124,13 +126,15 @@ public static class Syntax
 
     public static Sentence Realize(Language language, Subordinated subordinated, string translation) => Sentence(language, Words(language, subordinated), translation);
 
-    //the subordinate clause, marked by its word or suffix, before or after the main one as the language
-    //puts that kind. Its verb is deranked, bare of tense and agreement, where the language derank
-    //this kind, or does either and the two clauses share a subject, which a deranked clause then
-    //leaves unsaid; only a verb's clause can be deranked here, and a copular one is always balanced.
-    //A balanced clause whose subject was taken from the main clause says it as a pronoun. A deranked
-    //clause the language marks like a role takes that role's case on its verb, or its adposition, in
-    //place of the subordinator, as a noun in that role would
+    /*
+      the subordinate clause, marked by its word or suffix, before or after the main one as the language
+      puts that kind. Its verb is deranked, bare of tense and agreement, where the language derank
+      this kind, or does either and the two clauses share a subject, which a deranked clause then
+      leaves unsaid; only a verb's clause can be deranked here, and a copular one is always balanced.
+      A balanced clause whose subject was taken from the main clause says it as a pronoun. A deranked
+      clause the language marks like a role takes that role's case on its verb, or its adposition, in
+      place of the subordinator, as a noun in that role would
+     */
     private static IReadOnlyList<Word> Words(Language language, Subordinated subordinated)
     {
         var marking = language.Subordination.Markers[subordinated.Subordinator];
@@ -190,13 +194,15 @@ public static class Syntax
         }
     }
 
-    //a complement, and whether it kept its verb. It's marked as the language marks its kind: its verb
-    //deranked where the language deranks that kind, or does either and the two clauses share a
-    //subject, which a deranked complement then leaves unsaid, as subordinate clauses are. A deranked
-    //complement the language marks like a role takes that role's case or adposition in place of the
-    //complementizer, as Turkish puts a nominalized clause in the accusative. A balanced one whose
-    //subject was taken from the main clause says it as a pronoun, as Greek thélo na páo 'I want
-    //that I go' says it in the verb
+    /*
+      a complement, and whether it kept its verb. It's marked as the language marks its kind: its verb
+      deranked where the language deranks that kind, or does either and the two clauses share a
+      subject, which a deranked complement then leaves unsaid, as subordinate clauses are. A deranked
+      complement the language marks like a role takes that role's case or adposition in place of the
+      complementizer, as Turkish puts a nominalized clause in the accusative. A balanced one whose
+      subject was taken from the main clause says it as a pronoun, as Greek thélo na páo 'I want
+      that I go' says it in the verb
+     */
     private static (IReadOnlyList<Word> Words, bool Balanced) Complement(Language language, ComplementClause complement, Argument subject)
     {
         var marking = language.Complementation.MarkingOf(complement.Kind);
@@ -219,11 +225,13 @@ public static class Syntax
         return language.Complementation.QuotativeMarker is var (marker, position) ? Subordinate(words, marker, position, VerbRoot(language, quotation.Statement)) : words;
     }
 
-    //what's wanted, with 'want' as a marker on its verb, where the language has no verb for 'want': it
-    //takes the wanting clause's tense, aspect and subject, its modifiers too, and its negation as
-    //the marker's, as Japanese tabe-taku-nai 'eat-DESID-NEG' is 'doesn't want to eat'. Null where
-    //'want' is a verb, or what's wanted isn't an event its subject would do, or can't take a marker
-    //on its verb, as a comparison or a clause with a modal can't
+    /*
+      what's wanted, with 'want' as a marker on its verb, where the language has no verb for 'want': it
+      takes the wanting clause's tense, aspect and subject, its modifiers too, and its negation as
+      the marker's, as Japanese tabe-taku-nai 'eat-DESID-NEG' is 'doesn't want to eat'. Null where
+      'want' is a verb, or what's wanted isn't an event its subject would do, or can't take a marker
+      on its verb, as a comparison or a clause with a modal can't
+     */
     private static (Statement Wanted, Modal Want)? Desired(Language language, Clause clause)
     {
         if (clause.Verb != "want" || language.Complementation.Desiderative.Marking is not { } marking || !clause.Object.HasValue
@@ -259,10 +267,12 @@ public static class Syntax
         _ => null,
     };
 
-    //a verb's clause with its verb bare of tense and agreement, keeping negation and the passive,
-    //and without its subject where it shares the main clause's. Marked like a role, its verb takes
-    //that role's case, or the whole clause its adposition. Null for any other kind of clause,
-    //including one with a modal, which stays balanced
+    /*
+      a verb's clause with its verb bare of tense and agreement, keeping negation and the passive,
+      and without its subject where it shares the main clause's. Marked like a role, its verb takes
+      that role's case, or the whole clause its adposition. Null for any other kind of clause,
+      including one with a modal, which stays balanced
+     */
     private static IReadOnlyList<Word>? Deranked(Language language, Statement statement, bool dropSubject, Role? markedAs)
     {
         var marker = markedAs is { } role ? language.RoleMarkers[role] : null;
@@ -346,9 +356,11 @@ public static class Syntax
         _ => null,
     };
 
-    //the addressee comes first, in the addressee's case: the vocative, where the language has one,
-    //and otherwise the case a noun is cited in. Where a vocative goes is a matter of discourse more
-    //than grammar, which WALS doesn't count, and first is the commonest place
+    /*
+      the addressee comes first, in the addressee's case: the vocative, where the language has one,
+      and otherwise the case a noun is cited in. Where a vocative goes is a matter of discourse more
+      than grammar, which WALS doesn't count, and first is the commonest place
+     */
     public static Sentence Realize(Language language, Addressed addressed, string translation) => Sentence(language, Words(language, addressed), translation);
 
     private static IReadOnlyList<Word> Words(Language language, Addressed addressed)
@@ -356,9 +368,11 @@ public static class Syntax
         return [.. Marked(language, addressed.Addressee, Role.Addressee), .. Words(language, addressed.Statement)];
     }
 
-    //the verb takes the language's imperative, or its ordinary second person where it has none for
-    //this number or doesn't use it to forbid, and only its prohibitive negator says 'don't', if it
-    //has one. The subject goes unsaid even in a language that says its pronouns, as in English
+    /*
+      the verb takes the language's imperative, or its ordinary second person where it has none for
+      this number or doesn't use it to forbid, and only its prohibitive negator says 'don't', if it
+      has one. The subject goes unsaid even in a language that says its pronouns, as in English
+     */
     public static Sentence Realize(Language language, Command command, string translation) => Sentence(language, Words(language, command), translation);
 
     private static IReadOnlyList<Word> Words(Language language, Command command)
@@ -378,11 +392,13 @@ public static class Syntax
         return negative ? (commands.Prohibitive ?? language.Negation).Apply(words) : words;
     }
 
-    //the copula takes the imperative as any verb would, even in a language that drops it in the
-    //present, since a command isn't a statement about the present: Russian has no copula in 'you are
-    //careful' but has one in bud' ostorozhen 'be careful'. A verbal adjective takes the imperative
-    //itself, a location takes the locational copula, and a predicate noun or adjective is what it
-    //would be said of 'you'
+    /*
+      the copula takes the imperative as any verb would, even in a language that drops it in the
+      present, since a command isn't a statement about the present: Russian has no copula in 'you are
+      careful' but has one in bud' ostorozhen 'be careful'. A verbal adjective takes the imperative
+      itself, a location takes the locational copula, and a predicate noun or adjective is what it
+      would be said of 'you'
+     */
     public static Sentence Realize(Language language, CopularCommand command, string translation) => Sentence(language, Words(language, command), translation);
 
     private static IReadOnlyList<Word> Words(Language language, CopularCommand command)
@@ -424,10 +440,12 @@ public static class Syntax
         return [.. Flat(Order(language.WordOrder, subject, verb, @object, WhereObliquesGo(language, [(Closeness.Reason, adverbs), .. Adverbials(language, clause.Adverbs, clause.Obliques)]))), .. last];
     }
 
-    //the patient takes the case of an intransitive subject, which in an ergative language is the one
-    //it had already, and the verb agrees with it; the agent, if there is one, goes before the other
-    //obliques, marked for its role. A language without a passive says the active instead, as real
-    //ones do, with the agent as its subject, or 'they' where nobody says who
+    /*
+      the patient takes the case of an intransitive subject, which in an ergative language is the one
+      it had already, and the verb agrees with it; the agent, if there is one, goes before the other
+      obliques, marked for its role. A language without a passive says the active instead, as real
+      ones do, with the agent as its subject, or 'they' where nobody says who
+     */
     public static Sentence Realize(Language language, PassiveClause clause, string translation) => Sentence(language, Words(language, clause, null, []), translation);
 
     private static IReadOnlyList<Word> Words(Language language, PassiveClause clause, Modal? modal, IReadOnlyList<Word> adverbs)
@@ -462,9 +480,11 @@ public static class Syntax
     private static IReadOnlyList<Word> WhereObliquesGo(Language language, IEnumerable<(Closeness Rank, IReadOnlyList<Word> Words)> modifiers) =>
         ModifierOrder.Arranged(modifiers, beforeHead: language.WordOrder.ObliquePosition != ObliquePosition.AfterVerbAndObject);
 
-    //an adverb is its own root, uninflected. One saying how is made from its adjective as the
-    //language makes them, with 'very' beside the adjective if it has it, outside the adverb's marker,
-    //as in 'very slowly'
+    /*
+      an adverb is its own root, uninflected. One saying how is made from its adjective as the
+      language makes them, with 'very' beside the adjective if it has it, outside the adverb's marker,
+      as in 'very slowly'
+     */
     private static IReadOnlyList<Word> Adverbial(Language language, Adverbial adverbial)
     {
         switch (adverbial)
@@ -505,15 +525,17 @@ public static class Syntax
             : Marked(language, oblique.Argument, oblique.Role);
     }
 
-    //a place with its configuration and its role's marker together.
-    //A relational noun is possessed by the place and takes the role's marker itself, as Turkish
-    //masa-nın alt-ın-da is 'table-GEN bottom-3SG-LOC' for 'under the table'.
-    //An adposition goes beside the place with the role's case, if the role has one, as Latin sub
-    //mensā 'under the table' has the ablative, and the case it governs otherwise. A role marked by an
-    //adposition keeps it outside, as English says 'from under the table', except a location, whose
-    //plain 'at' the configuration's word replaces.
-    //A localization goes in the noun beside the role's case, and the role's adposition, if it has one,
-    //outside it
+    /*
+      a place with its configuration and its role's marker together.
+      A relational noun is possessed by the place and takes the role's marker itself, as Turkish
+      masa-nın alt-ın-da is 'table-GEN bottom-3SG-LOC' for 'under the table'.
+      An adposition goes beside the place with the role's case, if the role has one, as Latin sub
+      mensā 'under the table' has the ablative, and the case it governs otherwise. A role marked by an
+      adposition keeps it outside, as English says 'from under the table', except a location, whose
+      plain 'at' the configuration's word replaces.
+      A localization goes in the noun beside the role's case, and the role's adposition, if it has one,
+      outside it
+     */
     private static IReadOnlyList<Word> Placed(Language language, Argument place, Role role, ConfigurationMarker marker)
     {
         var path = language.RoleMarkers[role];
@@ -571,13 +593,15 @@ public static class Syntax
 
     public static Sentence Realize(Language language, CopularClause clause, string translation) => Sentence(language, Copular(language, clause, [], null, null, []), translation);
 
-    //a copular clause's complement goes where an object would, so it precedes the copula in an OV
-    //language, as in Turkish and Japanese, and follows it in a VO one. Where adjectives are verbal,
-    //the adjective takes the verb's place instead, with no copula. A standard of comparison, if the
-    //clause has one, goes as Standing says, and a comparative's marker, if it has one, goes on the
-    //adjective, whether it's verbal or not. A copula with a modal is never dropped, since the modal
-    //goes with it, as Russian has no copula in ty ostorožen 'you are careful' but has one in ty
-    //dolžen byt' ostorožen 'you must be careful'
+    /*
+      a copular clause's complement goes where an object would, so it precedes the copula in an OV
+      language, as in Turkish and Japanese, and follows it in a VO one. Where adjectives are verbal,
+      the adjective takes the verb's place instead, with no copula. A standard of comparison, if the
+      clause has one, goes as Standing says, and a comparative's marker, if it has one, goes on the
+      adjective, whether it's verbal or not. A copula with a modal is never dropped, since the modal
+      goes with it, as Russian has no copula in ty ostorožen 'you are careful' but has one in ty
+      dolžen byt' ostorožen 'you must be careful'
+     */
     private static IReadOnlyList<Word> Copular(Language language, CopularClause clause, IReadOnlyList<Word> standard, DegreeMarker? degree, Modal? modal,
         IReadOnlyList<Word> adverbs)
     {
@@ -616,9 +640,11 @@ public static class Syntax
             return Flat(Order(language.WordOrder, subject, be, null, WhereObliquesGo(language, [(Closeness.Place, Oblique(language, location)), .. modifiers])));
         }
 
-        //a predicate noun takes the same case as an intransitive subject. A predicate adjective, in a
-        //language whose adjectives agree, agrees with the subject in number, gender and that case,
-        //as in Latin canis magnus est 'the dog is big'; otherwise it's just its root
+        /*
+          a predicate noun takes the same case as an intransitive subject. A predicate adjective, in a
+          language whose adjectives agree, agrees with the subject in number, gender and that case,
+          as in Latin canis magnus est 'the dog is big'; otherwise it's just its root
+         */
         var complement = clause.Complement.Value is Adjective adjective
             ? Standing(Graded(PredicateComplement(language, adjective, clause.Subject), language.Lexicon.Adjective(adjective.Meaning).Root, degree))
             : PredicateComplement(language, clause.Complement, clause.Subject);
@@ -628,20 +654,24 @@ public static class Syntax
         return Flat(Order(language.WordOrder, subject, copula, complement, WhereObliquesGo(language, modifiers)));
     }
 
-    //a standard of comparison goes right before the adjective in an OV language, as Japanese Taroo
-    //yori takai 'Taro-from tall' and Turkish kedi-den büyük 'cat-from big' have it, which Dryer finds
-    //follows the order of object and verb as degree words don't. In a VO language it stays nearest
-    //the verb where obliques go, which comes after the adjective in all but the few VO languages whose
-    //obliques go first. An exceeded standard goes the same way, though whether an OV language puts
-    //its 'exceed' phrase first is a guess
+    /*
+      a standard of comparison goes right before the adjective in an OV language, as Japanese Taroo
+      yori takai 'Taro-from tall' and Turkish kedi-den büyük 'cat-from big' have it, which Dryer finds
+      follows the order of object and verb as degree words don't. In a VO language it stays nearest
+      the verb where obliques go, which comes after the adjective in all but the few VO languages whose
+      obliques go first. An exceeded standard goes the same way, though whether an OV language puts
+      its 'exceed' phrase first is a guess
+     */
     private static bool StandardBeforeAdjective(Language language) => language.WordOrder.VerbPhraseDirectionality == HeadDirectionality.Final;
 
-    //a locational standard takes its role's case or adposition, and a particle's standard the plain
-    //case a subject takes, with the particle on its side. A standard that's exceeded is the object
-    //of a bare verb 'exceed', on the side of it the language puts objects. A conjoined comparison is
-    //two clauses, the second denying the property of the standard, as in 'Marta is tall, the men
-    //are not tall'. The adjective is comparative where the language marks it so alongside a
-    //standard, and always with no standard, which is 'more' than something already known
+    /*
+      a locational standard takes its role's case or adposition, and a particle's standard the plain
+      case a subject takes, with the particle on its side. A standard that's exceeded is the object
+      of a bare verb 'exceed', on the side of it the language puts objects. A conjoined comparison is
+      two clauses, the second denying the property of the standard, as in 'Marta is tall, the men
+      are not tall'. The adjective is comparative where the language marks it so alongside a
+      standard, and always with no standard, which is 'more' than something already known
+     */
     public static Sentence Realize(Language language, Comparative comparative, string translation) => Sentence(language, Words(language, comparative, []), translation);
 
     private static IReadOnlyList<Word> Words(Language language, Comparative comparative, IReadOnlyList<Word> adverbs)
@@ -745,15 +775,17 @@ public static class Syntax
 
     public static Sentence Realize(Language language, Question question, string translation) => Sentence(language, Words(language, question), translation);
 
-    //a content question puts its question word first, with the rest of its phrase, where the
-    //language fronts them, as English does, and otherwise leaves it in its role's own place, as
-    //Mandarin and Japanese do; 'why' goes first too, or else where obliques go, as a phrase saying
-    //why would. It needs no other marking. A yes-no question takes the language's particle, its
-    //affix on the finite verb, or the finite verb first, or nothing but intonation. A language that
-    //puts the verb first in a yes-no question puts it right after a fronted question word in a
-    //content one, as German does
-    //TODO many languages use their yes-no marker in content questions too, as Japanese does its ka,
-    //which WALS doesn't count
+    /*
+      a content question puts its question word first, with the rest of its phrase, where the
+      language fronts them, as English does, and otherwise leaves it in its role's own place, as
+      Mandarin and Japanese do; 'why' goes first too, or else where obliques go, as a phrase saying
+      why would. It needs no other marking. A yes-no question takes the language's particle, its
+      affix on the finite verb, or the finite verb first, or nothing but intonation. A language that
+      puts the verb first in a yes-no question puts it right after a fronted question word in a
+      content one, as German does
+      TODO many languages use their yes-no marker in content questions too, as Japanese does its ka,
+      which WALS doesn't count
+     */
     private static IReadOnlyList<Word> Words(Language language, Question question)
     {
         var questions = language.Questions;
@@ -790,9 +822,11 @@ public static class Syntax
         _ => throw new ArgumentException("Only a clause with a verb or be can be asked.", nameof(statement)),
     };
 
-    //a yes-no question's marker: a particle first, last or after the first word, or an affix on the
-    //finite verb outside everything else on it, or on the last word where there's no verb, as a
-    //copular clause that drops its copula has none, the way Turkish puts mi on the predicate
+    /*
+      a yes-no question's marker: a particle first, last or after the first word, or an affix on the
+      finite verb outside everything else on it, or on the last word where there's no verb, as a
+      copular clause that drops its copula has none, the way Turkish puts mi on the predicate
+     */
     private static IReadOnlyList<Word> Polar(Language language, IReadOnlyList<Word> clause, Root? finite) => language.Questions.Polar switch
     {
         QuestionParticle { Position: QuestionParticlePosition.Initial } p => [new Word([p.Marker]), .. clause],
@@ -863,14 +897,16 @@ public static class Syntax
         };
     }
 
-    //a verb with its passive, its modal and its negation, each where the language puts it. A modal
-    //verb takes the tense, the agreement and the modal's negation, and the verb itself goes bare
-    //beside it with its own, as in French il ne peut pas nager 'he can't swim'. A modal affix goes
-    //next to the root, outside only the passive, as in Turkish gör-ül-ebil-ir 'can be seen', and a
-    //modal particle beside the verb. With either of those, a negation goes where it always does,
-    //whichever it negates
-    //TODO a language whose negation is an affix could show its scope by its order, as Turkish
-    //git-me-meli 'must not go' puts its negation inside the modal and gid-eme-z 'cannot go' outside
+    /*
+      a verb with its passive, its modal and its negation, each where the language puts it. A modal
+      verb takes the tense, the agreement and the modal's negation, and the verb itself goes bare
+      beside it with its own, as in French il ne peut pas nager 'he can't swim'. A modal affix goes
+      next to the root, outside only the passive, as in Turkish gör-ül-ebil-ir 'can be seen', and a
+      modal particle beside the verb. With either of those, a negation goes where it always does,
+      whichever it negates
+      TODO a language whose negation is an affix could show its scope by its order, as Turkish
+      git-me-meli 'must not go' puts its negation inside the modal and gid-eme-z 'cannot go' outside
+     */
     private static IReadOnlyList<Word> Predicate(Language language, Lexeme verb, Tense tense, Aspect aspect, Argument subject, bool negative, Modal? modal, Passive? passive)
     {
         IReadOnlyList<Word> Voiced(IReadOnlyList<Word> words) => passive is null ? words : passive.Apply(words);
@@ -928,11 +964,13 @@ public static class Syntax
     private static Number NumberOf(Language language, NounPhrase phrase) =>
         phrase.Count is not null && language.Numerals.NounStaysSingular ? Number.Singular : phrase.Number;
 
-    //what a verb or adjective agrees with: a noun is third person, in the number of its word, so
-    //that a verb is singular with 'three wolf' too, as in Hungarian. Things joined by 'and' are
-    //plural, or dual if there are two and the language has a dual, as Slovene's are, in the first
-    //person if any of them is, else the second if any is, so 'you and I' is 'we'; 'or' agrees with
-    //its last, as English 'either the dogs or the cat is'
+    /*
+      what a verb or adjective agrees with: a noun is third person, in the number of its word, so
+      that a verb is singular with 'three wolf' too, as in Hungarian. Things joined by 'and' are
+      plural, or dual if there are two and the language has a dual, as Slovene's are, in the first
+      person if any of them is, else the second if any is, so 'you and I' is 'we'; 'or' agrees with
+      its last, as English 'either the dogs or the cat is'
+     */
     private static (Person Person, Number Number) AgreementOf(Language language, Argument argument) => argument switch
     {
         NounPhrase n => (Person.Third, NumberOf(language, n)),
@@ -945,10 +983,12 @@ public static class Syntax
             c.Items.Count == 2 ? Number.Dual : Number.Plural),
     };
 
-    //the gender something agrees with: a noun's own, or a pronoun's, if the language has that gender.
-    //A pronoun with no gender given has none to agree with, since what it refers to isn't known
-    //Things joined by 'or' take their last's gender; things joined by 'and' share it if they all have
-    //one, and otherwise take the masculine, or the animate, as real gender systems mostly resolve them
+    /*
+      the gender something agrees with: a noun's own, or a pronoun's, if the language has that gender.
+      A pronoun with no gender given has none to agree with, since what it refers to isn't known
+      Things joined by 'or' take their last's gender; things joined by 'and' share it if they all have
+      one, and otherwise take the masculine, or the animate, as real gender systems mostly resolve them
+     */
     private static Gender? GenderOf(Language language, Argument argument) => argument.Value switch
     {
         NounPhrase n => language.GenderOf(language.Lexicon.Noun(n.Noun)),
@@ -964,9 +1004,11 @@ public static class Syntax
         : genders.Contains(Gender.Animate) ? Gender.Animate
         : genders.FirstOrDefault(g => g is not null);
 
-    //an adjective agreeing with a noun: it takes the noun's markers for these features, but only its
-    //affixes, since a particle belongs to the phrase and is said once, and a marker for its gender.
-    //Its zero markers go unglossed, since the noun's gloss already shows them
+    /*
+      an adjective agreeing with a noun: it takes the noun's markers for these features, but only its
+      affixes, since a particle belongs to the phrase and is said once, and a marker for its gender.
+      Its zero markers go unglossed, since the noun's gloss already shows them
+     */
     private static Word AgreeingAdjective(Language language, Lexeme adjective, IReadOnlyList<Grammeme> features, Gender? gender)
     {
         var inflected = language.Paradigms.Nouns.Inflect(adjective with { PartOfSpeech = PartOfSpeech.Noun }, features);
@@ -1002,9 +1044,11 @@ public static class Syntax
         };
     }
 
-    //each part in the case, with the language's 'and' or 'or' between each two, or for 'and' in a
-    //language whose 'and' is 'with', every part after the first marked as a companion. An adposition
-    //for the whole is said once, outside it all
+    /*
+      each part in the case, with the language's 'and' or 'or' between each two, or for 'and' in a
+      language whose 'and' is 'with', every part after the first marked as a companion. An adposition
+      for the whole is said once, outside it all
+     */
     private static IReadOnlyList<Word> Joined(Language language, Coordination coordination, Case @case, Localization localization)
     {
         var conjunctions = language.Conjunctions;
@@ -1019,11 +1063,13 @@ public static class Syntax
         };
     }
 
-    //a phrase with its possessor, if it has one, before or after it all, as the language puts them.
-    //The possessor takes the possessive role's case or adposition where the language marks it, and
-    //is plain otherwise. Where the language marks the possessed noun, the noun takes an affix
-    //agreeing with the possessor, and where it marks only that, the affix is all a pronoun possessor
-    //needs, as in Hungarian ház-am 'my house'
+    /*
+      a phrase with its possessor, if it has one, before or after it all, as the language puts them.
+      The possessor takes the possessive role's case or adposition where the language marks it, and
+      is plain otherwise. Where the language marks the possessed noun, the noun takes an affix
+      agreeing with the possessor, and where it marks only that, the affix is all a pronoun possessor
+      needs, as in Hungarian ház-am 'my house'
+     */
     private static IReadOnlyList<Word> Possessed(Language language, NounPhrase phrase, IReadOnlyList<Word> words)
     {
         if (!phrase.Possessor.HasValue)
@@ -1048,13 +1094,15 @@ public static class Syntax
         return possession.PossessorFirst ? [.. owner, .. possessed] : [.. possessed, .. owner];
     }
 
-    //the noun's words with its adjectives placed around it: after the noun in a language whose noun
-    //phrases are head-initial, before it in one whose are head-final, nearest the noun as
-    //ModifierOrder says.
-    //A numeral goes outside them, before or after, as the language puts numerals, so that 'three big
-    //wolves' is either three big wolf or wolf big three. An ordinal goes like the outermost
-    //adjective, inside the numeral, as in 'the first three big wolves', but never agrees, even where
-    //adjectives do. The noun's particles stay outside it all
+    /*
+      the noun's words with its adjectives placed around it: after the noun in a language whose noun
+      phrases are head-initial, before it in one whose are head-final, nearest the noun as
+      ModifierOrder says.
+      A numeral goes outside them, before or after, as the language puts numerals, so that 'three big
+      wolves' is either three big wolf or wolf big three. An ordinal goes like the outermost
+      adjective, inside the numeral, as in 'the first three big wolves', but never agrees, even where
+      adjectives do. The noun's particles stay outside it all
+     */
     private static IReadOnlyList<Word> Modified(Language language, NounPhrase phrase, IReadOnlyList<Grammeme> features)
     {
         var nounLexeme = language.Lexicon.Noun(phrase.Noun);
@@ -1113,9 +1161,11 @@ public static class Syntax
         _ => Case.Direct,
     };
 
-    //each category the paradigm inflects for takes whichever wanted value it distinguishes. A value
-    //the language doesn't have falls back on the nearest one it does, and failing that on the
-    //category's first value
+    /*
+      each category the paradigm inflects for takes whichever wanted value it distinguishes. A value
+      the language doesn't have falls back on the nearest one it does, and failing that on the
+      category's first value
+     */
     private static List<Grammeme> Features(Paradigm paradigm, IReadOnlyList<Grammeme> wanted) =>
         [.. paradigm.Categories.Select(category =>
             wanted.Where(w => w.GetType() == category.Values[0].GetType())
@@ -1126,9 +1176,11 @@ public static class Syntax
     public static Grammeme? Nearest(Grammeme wanted, IReadOnlyCollection<Grammeme> available) =>
         ((Grammeme[])[wanted, .. Fallbacks.GetValueOrDefault(wanted, [])]).FirstOrDefault(available.Contains);
 
-    //what a value turns into in a language that doesn't distinguish it, nearest first: a dual or a
-    //paucal is still more than one, a language without a future speaks of it in the present, as
-    //English often does, and an aorist is a perfective
+    /*
+      what a value turns into in a language that doesn't distinguish it, nearest first: a dual or a
+      paucal is still more than one, a language without a future speaks of it in the present, as
+      English often does, and an aorist is a perfective
+     */
     private static readonly Dictionary<Grammeme, Grammeme[]> Fallbacks = new()
     {
         [Number.Dual] = [Number.Paucal, Number.Plural],

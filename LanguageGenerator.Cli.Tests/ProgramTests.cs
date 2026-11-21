@@ -1,8 +1,10 @@
 ﻿namespace LanguageGenerator.Cli.Tests;
 
-//runs the program itself, since printing a language exercises paths the library tests don't, like
-//showing a negative affix on its own. Nothing else in the tests writes to the console, so taking
-//it over for a moment is safe
+/*
+  runs the program itself, since printing a language exercises paths the library tests don't, like
+  showing a negative affix on its own. Nothing else in the tests writes to the console, so taking
+  it over for a moment is safe
+ */
 public class ProgramTests
 {
     private static (int ExitCode, string Output) Run(params string[] args)

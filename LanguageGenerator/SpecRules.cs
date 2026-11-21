@@ -115,10 +115,12 @@ public static class SpecRules
         .. Settings.ConfigurationMarkers.Append(Settings.ConfigurationMarking).Select(marker => SpecRule.Together(Settings.Fusion, marker,
             (fusion, strategy) => strategy != ConfigurationStrategy.Case || fusion != Fusion.Isolating,
             $"{marker.Name} can only be Case where nouns inflect, so fusion can't be Isolating.")),
-        //a configuration can only be marked in a way some arrangement of the map's edges allows,
-        //given the spec's other markers and edges: against, which reaches at only through on, can't
-        //be said like at where on has a marker of its own. Narrowing it to what's left lets the rules
-        //for spatial cases see a case the spec only implies
+        /*
+          a configuration can only be marked in a way some arrangement of the map's edges allows,
+          given the spec's other markers and edges: against, which reaches at only through on, can't
+          be said like at where on has a marker of its own. Narrowing it to what's left lets the rules
+          for spatial cases see a case the spec only implies
+         */
         new SpecRule.Narrowing("No arrangement of the configuration map's edges fits the markers the spec fixes.", NarrowMarkersToTheMap),
         SpecRule.On(Settings.RoleRegionStage, spec => NeedsSpatialCase(spec)
             ? [new Condition<RoleRegions>(Settings.RoleRegionStage, "A spatial case needs a case on the location's region, and the spec rules out the case it would have.",
@@ -243,9 +245,11 @@ public static class SpecRules
     {
         var narrowed = spec;
         List<string> problems = [];
-        //a rule returns the spec it was given when it has nothing to narrow. One that returns a new
-        //spec every time would keep this going forever, so a few hundred passes, far more than any
-        //spec needs, means a rule is at fault
+        /*
+          a rule returns the spec it was given when it has nothing to narrow. One that returns a new
+          spec every time would keep this going forever, so a few hundred passes, far more than any
+          spec needs, means a rule is at fault
+         */
         SpecRule.Narrowing? lastChanged = null;
         for (var (changed, pass) = (true, 0); changed && problems.Count == 0; pass++)
         {
@@ -299,17 +303,19 @@ public static class SpecRules
     private static bool NeedsSpatialCase(LanguageSpec spec) =>
         Settings.ConfigurationMarkers.Append(Settings.ConfigurationMarking).Any(s => spec.Allowed(s) is [ConfigurationStrategy.Case]);
 
-    //each value a marker allows is tried with every arrangement of the map's edges, assuming the
-    //best of the stages before them, as a spec is checked. A spec fixing nothing about the map has
-    //nothing to narrow, which keeps checking it quick. It never refuses a spec itself.
-    //
-    //Trying markers one at a time finds every case the map forces, not just those it forces on one
-    //marker: configurations joined by edges the spec fixes share a marker, so a value that fits one
-    //of them fits them all, and an edge left free can always be left unjoined, keeping a group in a
-    //region of its own. A group said like at reaches it only through groups that are said like at
-    //too, which any value that fits has to allow already. So where every marker that allows a case
-    //has some other value that fits, those values all fit together, and no case is needed. Random
-    //specs bear this out. A map with edges that join groups some other way would need checking anew
+    /*
+      each value a marker allows is tried with every arrangement of the map's edges, assuming the
+      best of the stages before them, as a spec is checked. A spec fixing nothing about the map has
+      nothing to narrow, which keeps checking it quick. It never refuses a spec itself.
+
+      Trying markers one at a time finds every case the map forces, not just those it forces on one
+      marker: configurations joined by edges the spec fixes share a marker, so a value that fits one
+      of them fits them all, and an edge left free can always be left unjoined, keeping a group in a
+      region of its own. A group said like at reaches it only through groups that are said like at
+      too, which any value that fits has to allow already. So where every marker that allows a case
+      has some other value that fits, those values all fit together, and no case is needed. Random
+      specs bear this out. A map with edges that join groups some other way would need checking anew
+     */
     private static LanguageSpec? NarrowMarkersToTheMap(LanguageSpec spec)
     {
         if (!Settings.ConfigurationMarkers.Concat<ISetting>(Settings.ConfigurationEdges).Any(s => spec.Allowed(s) is not null))
@@ -351,12 +357,14 @@ public static class SpecRules
             spec.Allowed(Setting) is { } values && values.All(v => Needs(v) is not null) ? phonemes => values.Any(v => Allows(v, phonemes)) : null;
     }
 
-    //an inventory can meet a need exactly when every sound the spec doesn't forbid, all together,
-    //does. Where the inventory is fixed exactly, or sounds forbidden, a value no inventory the spec
-    //allows can have is narrowed away, and if every value left needs sounds, exact inventories are
-    //narrowed to those that have them. Where the setting allows only values that need sounds, the
-    //inventory is drawn again until it has the sounds of one of them, and failing that, has the
-    //commonest sounds the spec allows added until it does
+    /*
+      an inventory can meet a need exactly when every sound the spec doesn't forbid, all together,
+      does. Where the inventory is fixed exactly, or sounds forbidden, a value no inventory the spec
+      allows can have is narrowed away, and if every value left needs sounds, exact inventories are
+      narrowed to those that have them. Where the setting allows only values that need sounds, the
+      inventory is drawn again until it has the sounds of one of them, and failing that, has the
+      commonest sounds the spec allows added until it does
+     */
     private static IEnumerable<SpecRule> NeedRules<TPhoneme>(SoundNeed<TPhoneme> need, InventorySettings<TPhoneme> inventory) where TPhoneme : Phoneme
     {
         var (setting, says) = (need.Setting, need.Says);
@@ -390,10 +398,12 @@ public static class SpecRules
             : []);
     }
 
-    //an inventory needs a sound, and an exact one has to keep to the sounds the spec requires and
-    //forbids, which it then says all there is to say about. Where some sounds are forbidden and none
-    //required, a draw with the forbidden ones taken out could be left with none, so the commonest
-    //sound allowed is put back
+    /*
+      an inventory needs a sound, and an exact one has to keep to the sounds the spec requires and
+      forbids, which it then says all there is to say about. Where some sounds are forbidden and none
+      required, a draw with the forbidden ones taken out could be left with none, so the commonest
+      sound allowed is put back
+     */
     private static IEnumerable<SpecRule> InventoryRules<T>(InventorySettings<T> inventory) where T : Phoneme
     {
         yield return new SpecRule.Narrowing($"An inventory needs at least one sound, so not every {inventory.Noun} can be forbidden.",
@@ -419,10 +429,12 @@ public static class SpecRules
             : []);
     }
 
-    //a count has to leave room for the sounds the spec requires and its sound changes need, and can't
-    //be more than the sounds it allows; an exact inventory says what its count is. A count no draw
-    //gives is written in by cutting the rarest sounds the spec and its needs can spare, or adding the
-    //commonest it allows
+    /*
+      a count has to leave room for the sounds the spec requires and its sound changes need, and can't
+      be more than the sounds it allows; an exact inventory says what its count is. A count no draw
+      gives is written in by cutting the rarest sounds the spec and its needs can spare, or adding the
+      commonest it allows
+     */
     private static IEnumerable<SpecRule> CountRules<T>(InventorySettings<T> inventory, IReadOnlyList<SoundNeed<T>> needs) where T : Phoneme
     {
         var name = inventory.Count.Name;
@@ -467,9 +479,11 @@ public static class SpecRules
         return phonemes => active.All(a => a(phonemes));
     }
 
-    //the fewest sounds the spec allows that keep the ones it requires and meet its needs, commonest
-    //first, or null if even every sound it allows doesn't. The needs ask for a few sounds at most, so
-    //trying the smaller sets first ends quickly
+    /*
+      the fewest sounds the spec allows that keep the ones it requires and meet its needs, commonest
+      first, or null if even every sound it allows doesn't. The needs ask for a few sounds at most, so
+      trying the smaller sets first ends quickly
+     */
     private static IReadOnlyList<T>? Smallest<T>(InventorySettings<T> inventory, LanguageSpec spec, Func<IReadOnlyCollection<T>, bool> needs) where T : Phoneme
     {
         var required = inventory.Required(spec);
@@ -508,11 +522,13 @@ public static class SpecRules
         }
     }
 
-    //an inventory brought to a count the spec allows, the nearest to what it has, keeping the sounds
-    //the spec requires and meeting its needs: the rarest sounds it can spare are cut, and the
-    //commonest it allows added. Cutting one at a time can leave more than the count where a need
-    //has two ways to be met, as ə or else a mid vowel with i and u, so then it starts over from the
-    //fewest sounds that meet it
+    /*
+      an inventory brought to a count the spec allows, the nearest to what it has, keeping the sounds
+      the spec requires and meeting its needs: the rarest sounds it can spare are cut, and the
+      commonest it allows added. Cutting one at a time can leave more than the count where a need
+      has two ways to be met, as ə or else a mid vowel with i and u, so then it starts over from the
+      fewest sounds that meet it
+     */
     private static IReadOnlyList<T> Fit<T>(IReadOnlyList<T> drawn, InventorySettings<T> inventory, LanguageSpec spec, IReadOnlyList<int> counts, Func<IReadOnlyCollection<T>, bool> needs)
         where T : Phoneme
     {
@@ -533,9 +549,11 @@ public static class SpecRules
 
     private static Case LocationCase(IReadOnlyList<RoleRegion> regions) => regions.First(r => r.Contains(Role.Location)).Case!;
 
-    //a configuration can be said like at only in a region with at, have a marker of its own only in
-    //a region without, and be marked by case only where the language can have spatial cases, which
-    //is assumed when nothing's been drawn yet
+    /*
+      a configuration can be said like at only in a region with at, have a marker of its own only in
+      a region without, and be marked by case only where the language can have spatial cases, which
+      is assumed when nothing's been drawn yet
+     */
     private static bool Possible(ConfigurationStrategy strategy, ConfigurationRegion region, Earlier earlier) => strategy switch
     {
         ConfigurationStrategy.At => region.Contains(Configuration.At),

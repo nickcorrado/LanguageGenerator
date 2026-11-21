@@ -3,9 +3,11 @@ namespace LanguageGenerator;
 //adverbs: 'very', manner adverbs, and how a duration is marked
 public static partial class Generator
 {
-    //'very' is a word beside the adjective, as nearly every language's is, on the side the language
-    //puts degree words, as its comparative's is where that's a word too. Its form is kept apart
-    //from the comparative's
+    /*
+      'very' is a word beside the adjective, as nearly every language's is, on the side the language
+      puts degree words, as its comparative's is where that's a word too. Its form is kept apart
+      from the comparative's
+     */
     public static DegreeWord GenerateIntensifier(Random rand, DegreeMarking degree, WordOrder wordOrder, Phonology phonology)
     {
         var forms = new DistinctForms();
@@ -18,10 +20,12 @@ public static partial class Generator
 
     private enum MannerType { Bare, Affix, Word }
 
-    //WALS doesn't count how languages make manner adverbs, so these are guesses: many use the
-    //adjective itself, as German and Mandarin often do, many an affix, as English -ly, Turkish -ce
-    //and Russian -o, and fewer a word beside it, as Mandarin de and Japanese ni. An isolating
-    //language has no affix. A word mostly follows the adjective, as both of those do
+    /*
+      WALS doesn't count how languages make manner adverbs, so these are guesses: many use the
+      adjective itself, as German and Mandarin often do, many an affix, as English -ly, Turkish -ce
+      and Russian -o, and fewer a word beside it, as Mandarin de and Japanese ni. An isolating
+      language has no affix. A word mostly follows the adjective, as both of those do
+     */
     private static readonly (MannerType Value, int Weight)[] MannerCounts = [(MannerType.Bare, 40), (MannerType.Affix, 40), (MannerType.Word, 20)];
     private const double MannerWordBeforeChance = 0.3;
 
@@ -39,10 +43,12 @@ public static partial class Generator
 
     private enum DurationType { AsObject, AsTime, Word }
 
-    //how long something goes on is often marked like an object, as Latin duos annos and Russian vsju
-    //noč' 'all night' are accusative, and Mandarin's is a bare phrase after the verb; often with a
-    //word of its own, as English for, Spanish durante and Turkish boyunca; and sometimes like a time.
-    //WALS doesn't count these, so the odds are guesses
+    /*
+      how long something goes on is often marked like an object, as Latin duos annos and Russian vsju
+      noč' 'all night' are accusative, and Mandarin's is a bare phrase after the verb; often with a
+      word of its own, as English for, Spanish durante and Turkish boyunca; and sometimes like a time.
+      WALS doesn't count these, so the odds are guesses
+     */
     private static readonly (DurationType Value, int Weight)[] DurationCounts = [(DurationType.AsObject, 40), (DurationType.Word, 35), (DurationType.AsTime, 25)];
 
     /// <summary>

@@ -3,9 +3,11 @@ namespace LanguageGenerator;
 //complement clauses and quotations
 public static partial class Generator
 {
-    //WALS 124A, Haspelmath's 'want' complement subjects: left implicit in 144 languages, expressed
-    //overtly in 72, and 'want' a desiderative affix in 45 and a particle in 8. The 14 with both
-    //constructions are left out, since a language here has one
+    /*
+      WALS 124A, Haspelmath's 'want' complement subjects: left implicit in 144 languages, expressed
+      overtly in 72, and 'want' a desiderative affix in 45 and a particle in 8. The 14 with both
+      constructions are left out, since a language here has one
+     */
     private enum WantComplement
     {
         Implicit,
@@ -17,12 +19,14 @@ public static partial class Generator
     private static readonly (WantComplement Value, int Languages)[] WantCounts =
         [(WantComplement.Implicit, 144), (WantComplement.Overt, 72), (WantComplement.Affix, 45), (WantComplement.Particle, 8)];
 
-    //where a complementizer goes, by the order of verb and object. WALS doesn't count complementizers,
-    //so these are guesses after Dryer, who finds a word at the start of the clause in nearly every VO
-    //language, and in OV languages a word at either end or a suffix, as Japanese to, Hindi ki and
-    //Korean -ko, with plenty of languages using none, as Mandarin uses none. An event's complement
-    //goes unmarked more often, as serial verbs and bare stems are, and is a suffix more often in OV
-    //languages, as Turkish git-mek is
+    /*
+      where a complementizer goes, by the order of verb and object. WALS doesn't count complementizers,
+      so these are guesses after Dryer, who finds a word at the start of the clause in nearly every VO
+      language, and in OV languages a word at either end or a suffix, as Japanese to, Hindi ki and
+      Korean -ko, with plenty of languages using none, as Mandarin uses none. An event's complement
+      goes unmarked more often, as serial verbs and bare stems are, and is a suffix more often in OV
+      languages, as Turkish git-mek is
+     */
     private static (ComplementizerPosition Value, int Weight)[] ComplementizerOdds(ComplementKind kind, bool objectFirst) => (kind, objectFirst) switch
     {
         (ComplementKind.Proposition, false) => [(ComplementizerPosition.Initial, 60), (ComplementizerPosition.None, 30), (ComplementizerPosition.Final, 5), (ComplementizerPosition.Suffix, 5)],
@@ -32,17 +36,21 @@ public static partial class Generator
         _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
     };
 
-    //Cristofaro finds the complements of verbs of saying, knowing and thinking deranked far less often
-    //than those of wanting, and never deranked where wanting's aren't, but WALS doesn't count them,
-    //so the odds of a proposition's are a guess. An event's follow WALS 124A: an implicit subject is
-    //deranked, always or where it's shared, an overt one balanced, as Greek thélo na páo 'I want
-    //that I go' is
+    /*
+      Cristofaro finds the complements of verbs of saying, knowing and thinking deranked far less often
+      than those of wanting, and never deranked where wanting's aren't, but WALS doesn't count them,
+      so the odds of a proposition's are a guess. An event's follow WALS 124A: an implicit subject is
+      deranked, always or where it's shared, an overt one balanced, as Greek thélo na páo 'I want
+      that I go' is
+     */
     private static readonly (Balance Value, int Weight)[] PropositionBalance = [(Balance.Balanced, 75), (Balance.Deranked, 15), (Balance.Either, 10)];
     private const double ImplicitAlwaysDeranked = 0.7;
 
-    //the role a deranked complement is marked like, if any: an object's case, as Turkish puts a
-    //nominalized clause in the accusative, or for an event a goal's marker, as English to go and
-    //Spanish a are, or nothing, as a bare infinitive or stem has. Guesses
+    /*
+      the role a deranked complement is marked like, if any: an object's case, as Turkish puts a
+      nominalized clause in the accusative, or for an event a goal's marker, as English to go and
+      Spanish a are, or nothing, as a bare infinitive or stem has. Guesses
+     */
     private static (Role? Role, int Weight)[] MarkedAsOdds(ComplementKind kind) => kind switch
     {
         ComplementKind.Proposition => [(Role.DirectObject, 60), (null, 40)],
@@ -50,11 +58,13 @@ public static partial class Generator
         _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
     };
 
-    //how often a complement that keeps its verb goes last in its clause. A heavy clause goes last in
-    //VO languages, where the object already follows the verb. In OV languages it goes last mostly
-    //where its complementizer starts it, as Hindi ki and Persian ke clauses follow the verb, Dryer
-    //and Hawkins find, since a word at the start of a clause before the verb would part the verb from
-    //the rest; where it's marked at its end it stays before the verb, as in Japanese. Guesses
+    /*
+      how often a complement that keeps its verb goes last in its clause. A heavy clause goes last in
+      VO languages, where the object already follows the verb. In OV languages it goes last mostly
+      where its complementizer starts it, as Hindi ki and Persian ke clauses follow the verb, Dryer
+      and Hawkins find, since a word at the start of a clause before the verb would part the verb from
+      the rest; where it's marked at its end it stays before the verb, as in Japanese. Guesses
+     */
     private static double LastChance(bool objectFirst, ComplementizerPosition proposition) => !objectFirst ? 0.9 : proposition switch
     {
         ComplementizerPosition.Initial => 0.9,
@@ -62,10 +72,12 @@ public static partial class Generator
         _ => 0.1,
     };
 
-    //how quotations are marked. Güldemann finds quotative markers all over Africa and Asia, many of
-    //them from words for 'say' that became complementizers too, and Europe's languages mostly mark
-    //none, but nobody counts them, so the odds are guesses. A quotative word goes before the quote in
-    //a VO language, as Ewe bé does, and after it in an OV one, as Turkish diye does
+    /*
+      how quotations are marked. Güldemann finds quotative markers all over Africa and Asia, many of
+      them from words for 'say' that became complementizers too, and Europe's languages mostly mark
+      none, but nobody counts them, so the odds are guesses. A quotative word goes before the quote in
+      a VO language, as Ewe bé does, and after it in an OV one, as Turkish diye does
+     */
     private static (QuotativeKind Value, int Weight)[] QuotativeOdds(bool objectFirst) => objectFirst
         ? [(QuotativeKind.None, 30), (QuotativeKind.Complementizer, 30), (QuotativeKind.Word, 40)]
         : [(QuotativeKind.None, 50), (QuotativeKind.Complementizer, 25), (QuotativeKind.Word, 25)];
@@ -75,9 +87,11 @@ public static partial class Generator
     //with both where English has that and to. A guess
     private const double SharedComplementizerChance = 0.3;
 
-    //a complementizer for each kind of complement, coined even where it goes unsaid, and how a
-    //quotation and 'want' are marked. An isolating language puts a word at the clause's end where
-    //another would use a suffix, and a particle for 'want' where another would use an affix
+    /*
+      a complementizer for each kind of complement, coined even where it goes unsaid, and how a
+      quotation and 'want' are marked. An isolating language puts a word at the clause's end where
+      another would use a suffix, and a particle for 'want' where another would use an affix
+     */
     public static Complementation GenerateComplementation(Random rand, MorphologicalProfile morphology, WordOrder wordOrder, Phonology phonology)
     {
         var objectFirst = wordOrder.VerbPhraseDirectionality == HeadDirectionality.Final;

@@ -6,13 +6,15 @@ namespace LanguageGenerator;
 /// A spec as JSON: an object naming each fixed setting, with its value, or an array of the values
 /// it allows any of. A list, as an inventory, is an array of IPA symbols, commonest first.
 /// </summary>
-//  {
-//    "constituent-order": "SOV",
-//    "adpositions": ["Prepositions", "Postpositions"],
-//    "consonants": ["t", "k", "n", "s", "m"],
-//    "mirrors-adjectives": true,
-//    "dropoff": 0.3
-//  }
+/*
+  {
+    "constituent-order": "SOV",
+    "adpositions": ["Prepositions", "Postpositions"],
+    "consonants": ["t", "k", "n", "s", "m"],
+    "mirrors-adjectives": true,
+    "dropoff": 0.3
+  }
+ */
 public static class SpecFile
 {
     public static LanguageSpec Parse(string json)

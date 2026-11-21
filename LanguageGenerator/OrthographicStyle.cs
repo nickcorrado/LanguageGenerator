@@ -1,8 +1,10 @@
 ﻿namespace LanguageGenerator;
 
-//the conventions an orthography is built from. Unlike the rest of a language, orthographies are
-//usually designed and then standardized, so a convention, once chosen, covers every sound it
-//applies to: a language that marks one long vowel with a macron marks them all that way
+/*
+  the conventions an orthography is built from. Unlike the rest of a language, orthographies are
+  usually designed and then standardized, so a convention, once chosen, covers every sound it
+  applies to: a language that marks one long vowel with a macron marks them all that way
+ */
 public enum PostalveolarSpelling
 {
     //š ž, as in Czech or Lithuanian

@@ -28,20 +28,26 @@ public static partial class Generator
             _ => new ConjoinedComparison(),
         };
 
-    //a degree word goes before the adjective in a language whose adjective phrases are head-final,
-    //and after it in one whose are head-initial, which word order draws from WALS 83A and 91A
-    //together, so that it leans the way the language's verb and object go
+    /*
+      a degree word goes before the adjective in a language whose adjective phrases are head-final,
+      and after it in one whose are head-initial, which word order draws from WALS 83A and 91A
+      together, so that it leans the way the language's verb and object go
+     */
     private static bool DegreeWordBefore(WordOrder wordOrder) => wordOrder.AdjectivePhraseDirectionality == HeadDirectionality.Final;
 
-    //WALS doesn't count how a comparative adjective is marked, so these are guesses: most languages
-    //say 'more' with a word of its own, as Turkish daha and Mandarin geng, and fewer with an affix,
-    //as English -er and Finnish -mpi do. An isolating language uses a word in place of an affix
+    /*
+      WALS doesn't count how a comparative adjective is marked, so these are guesses: most languages
+      say 'more' with a word of its own, as Turkish daha and Mandarin geng, and fewer with an affix,
+      as English -er and Finnish -mpi do. An isolating language uses a word in place of an affix
+     */
     private const double DegreeAffixChance = 0.25;
 
-    //Stassen finds a comparative adjective alongside a standard mostly among particle comparatives,
-    //as in English and the rest of Europe; elsewhere the adjective is usually plain, as in Turkish
-    //evden büyük 'big from the house'. The odds are guesses. A conjoined comparison says 'big' and
-    //'not big', so it never says 'bigger'
+    /*
+      Stassen finds a comparative adjective alongside a standard mostly among particle comparatives,
+      as in English and the rest of Europe; elsewhere the adjective is usually plain, as in Turkish
+      evden büyük 'big from the house'. The odds are guesses. A conjoined comparison says 'big' and
+      'not big', so it never says 'bigger'
+     */
     private static double DegreeWithStandardChance(Comparison comparison) => comparison switch
     {
         ParticleComparison => 0.6,
@@ -59,10 +65,12 @@ public static partial class Generator
         return new DegreeMarking(marker, rand.NextDouble() < DegreeWithStandardChance(comparison));
     }
 
-    //WALS doesn't count similatives either. Haspelmath finds 'like' most often a word, an adposition
-    //or a particle, as English like, Turkish gibi and Russian kak are, and less often an affix, as
-    //Quechua -hina is, so the odds are guesses. A word goes on the side the language's adpositions
-    //go, and isn't the comparative's than, though some languages do use one word for both
+    /*
+      WALS doesn't count similatives either. Haspelmath finds 'like' most often a word, an adposition
+      or a particle, as English like, Turkish gibi and Russian kak are, and less often an affix, as
+      Quechua -hina is, so the odds are guesses. A word goes on the side the language's adpositions
+      go, and isn't the comparative's than, though some languages do use one word for both
+     */
     private const double SimilativeAffixChance = 0.3;
 
     public static Similative GenerateSimilative(Random rand, Comparison comparison, MorphologicalProfile morphology, WordOrder wordOrder, Phonology phonology)

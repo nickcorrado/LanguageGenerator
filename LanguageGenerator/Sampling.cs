@@ -7,9 +7,11 @@ namespace LanguageGenerator;
 /// </summary>
 public static class Sampling
 {
-    //a Random for one key, like a word, that depends only on the seed and the key, so drawing for
-    //one key never shifts what's drawn for another. It hashes with FNV-1a because .NET randomizes
-    //string.GetHashCode per process, and these have to come out the same on every run
+    /*
+      a Random for one key, like a word, that depends only on the seed and the key, so drawing for
+      one key never shifts what's drawn for another. It hashes with FNV-1a because .NET randomizes
+      string.GetHashCode per process, and these have to come out the same on every run
+     */
     public static Random For(int seed, string key)
     {
         const ulong Offset = 14695981039346656037, Prime = 1099511628211;
@@ -37,10 +39,12 @@ public static class Sampling
         throw new System.Diagnostics.UnreachableException();
     }
 
-    //an index below max, where 0 is likeliest and each index after it is (1 - p) times as likely:
-    //a geometric distribution truncated at max. Wrapping past max instead of starting over keeps
-    //the truncation exact. Borrowed from Mark Rosenfelder at view-source:http://www.zompist.com/gen.html,
-    //which calls it a power law, though it decays exponentially rather than as a power
+    /*
+      an index below max, where 0 is likeliest and each index after it is (1 - p) times as likely:
+      a geometric distribution truncated at max. Wrapping past max instead of starting over keeps
+      the truncation exact. Borrowed from Mark Rosenfelder at view-source:http://www.zompist.com/gen.html,
+      which calls it a power law, though it decays exponentially rather than as a power
+     */
     public static int TruncatedGeometric(Random rand, int max, double p)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(max);
@@ -59,9 +63,11 @@ public static class Sampling
         }
     }
 
-    //1 plus a Poisson count with mean lambda, redrawn until it's at most max. The usual model of
-    //word length in syllables: a small lambda is commonest at 1, like English, and a larger one
-    //peaks at 2 or 3, like Hawaiian or Japanese
+    /*
+      1 plus a Poisson count with mean lambda, redrawn until it's at most max. The usual model of
+      word length in syllables: a small lambda is commonest at 1, like English, and a larger one
+      peaks at 2 or 3, like Hawaiian or Japanese
+     */
     public static int DisplacedPoisson(Random rand, double lambda, int max)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(max);

@@ -9,9 +9,11 @@ public enum AdverbKind
 }
 
 /// <summary>A word of its own saying when or how often, like 'now' or 'again'.</summary>
-//each is a root of the lexicon's, coined like any other. Words for where, like 'here' and 'there',
-//aren't, since they're demonstratives in most languages, and words for how are made from adjectives,
-//as Manner is
+/*
+  each is a root of the lexicon's, coined like any other. Words for where, like 'here' and 'there',
+  aren't, since they're demonstratives in most languages, and words for how are made from adjectives,
+  as Manner is
+ */
 public record Adverb(string Meaning, AdverbKind Kind);
 
 /// <summary>How something is done, said with an adjective, as 'carefully' is said with 'careful'.</summary>
