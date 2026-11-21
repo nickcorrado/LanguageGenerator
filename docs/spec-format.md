@@ -41,8 +41,11 @@ Rules keep a value written in from contradicting what was drawn before it: a spa
 - An oblique case needs its role to head its region: a dative can't be fixed along with the edge joining recipients to possessors, since the genitive would mark them both.
 - A configuration marked by case needs nouns that inflect, and a case on the location's region.
 - A configuration said like at needs edges joining it to at, one with a marker of its own can't be joined to at, and configurations joined into one region share its marker.
-- An isolating language has no affixes, so negation and polar questions can't be a prefix or suffix, possession can't be marked on the possessed noun, and a comparative, similative or modal can't be an affix.
-- Modalities joined by an edge share a marker, so two marked differently can't be joined.
+- An isolating language has no affixes, so negation and polar questions can't be a prefix or suffix, possession can't be marked on the possessed noun, and a comparative, similative, modal or article can't be an affix.
+- An article agreeing in gender needs genders, and an article that can agree: a definite article, or an indefinite one that isn't the word for 'one'.
+- Modalities joined by an edge share a marker, so two marked differently can't be joined, and the same goes for subordinators marked in different places.
+- An isolating language can't mark a subordinate clause with a suffix.
+- 'And' between nouns that's the word for 'with' doesn't join clauses, so clauses can't be joined like nouns then.
 - Possessive affixes can only be prefixes where possession is marked on the possessed noun.
 - An inventory needs at least one sound, and each sound once, so not every vowel or every consonant can be forbidden.
 - A count has to leave room for the sounds the spec requires and its sound changes need, can't be more than the sounds it doesn't forbid, and has to match an exact inventory.
@@ -102,12 +105,19 @@ The symbols are the generator's 53 phonemes, given exactly, so `ʦ` and not `ts`
 | `case-with-number`, `tam-with-agreement`, `tense-with-aspect`, `case-with-localization` | `true` if the two share one marker |
 | `zero-singular`, `zero-core-case`, `zero-present` | `true` if the singular, the intransitive subject's case or the present has no marker |
 | `zero-third-person` | `None`, `Singular`, `All` |
+| `noun-number` | `None`, `SingularPlural`, `SingularDualPlural`, the numbers nouns inflect for |
+| `tense` | `None`, `PresentPast`, `PresentPastFuture`, the tenses verbs inflect for |
+| `aspect` | `true` if verbs inflect for perfective and imperfective |
+| `verb-agreement` | `true` if verbs agree with their subject in person and number |
 | `alignment` | `NominativeAccusative`, `ErgativeAbsolutive`, `None` |
 | `roles-companion-instrument`, `roles-recipient-goal`, `roles-goal-location`, `roles-source-possessor`, `roles-possessor-recipient`, `roles-instrument-location`, `roles-location-source`, `roles-instrument-source`, `roles-agent-instrument`, `roles-agent-source`, `roles-agent-location`, `roles-time-location`, `roles-route-location`, `roles-route-instrument`, `roles-route-source` | `true` if the edge of the role map joins its two roles, so they share a marker |
 | `genitive-case`, `dative-case`, `locative-case`, `ablative-case`, `instrumental-case`, `comitative-case`, `allative-case`, `perlative-case`, `vocative-case` | `true` if the language has the case. Core cases follow the alignment |
 | `configurations-at-in`, `configurations-at-on`, `configurations-at-beside`, `configurations-in-on`, `configurations-in-between`, `configurations-on-over`, `configurations-on-against` | `true` if the edge of the configuration map joins its two configurations, so they share a marker, or for an edge to at, are said as plainly as 'at' |
 | `in-marker`, `on-marker`, `under-marker`, `over-marker`, `behind-marker`, `in-front-marker`, `beside-marker`, `between-marker`, `around-marker`, `against-marker` | `Adposition`, `RelationalNoun` or `Case`, how the configuration's region is marked, or `At` if it's said like at. Under, behind, in front and around are never said like at |
 | `configuration-marking` | `Adposition`, `RelationalNoun`, `Case`, the way of marking configurations most of the language's regions follow |
+| `imperatives` | `SingularAndPlural`, `SingularOnly`, `PluralOnly`, `OneForBoth` or `None`, which numbers have an imperative of their own |
+| `prohibitive-uses-imperative` | `true` if 'don't eat' uses the imperative's form of the verb |
+| `prohibitive-negator` | `true` if a prohibitive has a negator of its own, as Latin has nē beside nōn |
 | `negation` | `ParticleBefore`, `ParticleAfter`, `Prefix`, `Suffix`, `Double`, for a word on each side of the verb |
 | `polar-questions` | `InitialParticle`, `FinalParticle`, `SecondParticle`, `Prefix`, `Suffix`, `Inversion`, `Intonation` |
 | `fronts-question-words` | `true` if a question word goes first in its clause, as English who does |
@@ -118,5 +128,24 @@ The symbols are the generator's 53 phonemes, given exactly, so `ʦ` and not `ts`
 | `possessive-affixes` | `Prefix` or `Suffix`, the side of the possessed noun its affix goes on, where possession is marked there |
 | `genders` | `None`, `MasculineFeminine`, `MasculineFeminineNeuter`, `AnimateInanimate` |
 | `gender-assignment` | `Semantic`, by what a noun means, or `SemanticAndFormal`, by how it ends too |
+| `first-person-plural` | `Plain`, one 'we', `SameAsSingular`, with the word for 'I', or `InclusiveExclusive`, one 'we' with the hearer and one without |
+| `gendered-pronouns` | `None`, `ThirdSingular`, for he and she, `Third`, for the plural too, or `ThirdAndSecond`, for 'you' too |
+| `drops-subjects` | `true` if a subject pronoun is usually left out |
+| `predicative-adjectives` | `Verbal`, if an adjective said of something acts like a verb, or `Nonverbal`, if it needs a copula |
+| `zero-copula` | `true` if the copula is left out in the present, as in Russian |
+| `locational-copula` | `true` if the language has a verb of its own for where something is, like Spanish estar |
+| `adjective-agreement` | `None`, `Agreement`, if adjectives take their noun's markers, or `Phrasal`, if the phrase is marked once at its edge |
+| `numeral-base` | `Decimal`, `Vigesimal`, or `Restricted`, with words for only the first few numbers |
+| `numerals-before-noun` | `true` if a numeral goes before its noun |
+| `ordinals` | `Cardinal`, `FirstThenCardinal`, `Derived`, `FirstThenDerived`, `FirstSecondThenDerived`, how 'first', 'second' and the rest are said |
+| `definite-article` | `None`, `Word` or `Affix` |
+| `indefinite-article` | `None`, `Word`, `One`, the word for 'one', or `Affix` |
+| `article-gender-agreement` | `true` if an article agrees with its noun's gender |
+| `and-is-with` | `true` if 'and' between nouns is the word for 'with', as in 'the dog with the cat slept' |
+| `clause-and` | `SameAsNouns`, `OwnWord`, or `Juxtaposition`, setting clauses side by side, as nouns are then too unless 'and' is 'with' |
+| `subordinators-when-if`, `subordinators-when-after`, `subordinators-after-because`, `subordinators-purpose-because`, `subordinators-before-until`, `subordinators-when-because` | `true` if the edge of the subordinator map joins its two subordinators, so they share a marker, as German wenn is both 'if' and 'when' |
+| `if-subordinator`, `when-subordinator`, `before-subordinator`, `after-subordinator`, `until-subordinator`, `because-subordinator`, `purpose-subordinator` | `Initial` or `Final`, a word at the start or end of the clause, or `Suffix`, on its verb |
+| `if-clause-first`, `when-clause-first`, `before-clause-first`, `after-clause-first`, `until-clause-first`, `because-clause-first`, `purpose-clause-first` | `true` if the clause comes before the main one |
+| `purpose-balance`, `reason-balance`, `temporal-balance` | `Balanced`, if the verb keeps its ordinary form, `Deranked`, if it loses its tense and agreement, or `Either`, deranked where the clauses share a subject. `temporal-balance` is for 'when' clauses, and the other temporal and conditional ones follow it |
 | `comparison` | `Locational`, marking the standard as a place, `Exceed`, with a verb meaning 'exceed', `Conjoined`, with two clauses side by side, or `Particle`, with a word like than |
 | `comparative`, `similative` | `Affix` or `Word`, how 'more' and 'like' are marked |

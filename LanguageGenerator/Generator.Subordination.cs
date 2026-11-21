@@ -58,7 +58,8 @@ public static partial class Generator
 
         var forms = new DistinctForms();
         var markers = new Dictionary<Subordinator, SubordinatorMarking>();
-        foreach (var region in SemanticMap.Regions(SubordinatorMap.Subordinators, SemanticMap.Joined(rand, SubordinatorMap.Edges)))
+        var joined = SemanticMap.Joined(rand, SubordinatorMap.Edges);
+        foreach (var region in SemanticMap.Regions(SubordinatorMap.Subordinators, joined))
         {
             var position = mixed ? Sampling.Categorical(rand, counts) : shared;
             if (position == ExponentPosition.Suffix && morphology.Fusion == Fusion.Isolating)
@@ -75,6 +76,6 @@ public static partial class Generator
                     Sampling.Categorical(rand, SubordinatorMap.AttachmentsOf(subordinator)));
             }
         }
-        return new Subordination(markers);
+        return new Subordination(markers, joined);
     }
 }

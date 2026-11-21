@@ -5,7 +5,7 @@ namespace LanguageGenerator;
 /// These stages coin their markers along with what they decide, so a write reuses the forms the
 /// draw already has, as a negative particle's form becomes a prefix's. A value that needs a form
 /// where the draw has none, as a passive where it drew none, can't be written; but every such value
-/// is drawn at least 4% of the time, so redrawing always gives it long before the limit.
+/// is drawn at least 2% of the time, so redrawing always gives it long before the limit.
 /// </summary>
 internal static class SettingWrites
 {
@@ -32,8 +32,195 @@ internal static class SettingWrites
         IReadOnlyList<(TKind Kind, SoundChange? Change)> kinds, TKind kind) where TKind : notnull =>
         [.. order.Where(c => kinds.FirstOrDefault(k => k.Change == c) is { Change: not null } k ? k.Kind.Equals(kind) : changes.Contains(c))];
 
+    //a setting whose values each need forms a draw may not have, so it's only ever drawn
+    public static Func<T, TValue, T> Unwritable<T, TValue>(string value) => (_, _) => throw NoForm(value);
+
+    public static NounNumber NounNumberOf(Paradigm nouns) => nouns.Categories.FirstOrDefault(c => c.Is<Number>())?.Values.Count switch
+    {
+        null => NounNumber.None,
+        2 => NounNumber.SingularPlural,
+        _ => NounNumber.SingularDualPlural,
+    };
+
+    public static Tenses TensesOf(Paradigm verbs) => verbs.Categories.FirstOrDefault(c => c.Is<Tense>())?.Values.Count switch
+    {
+        null => Tenses.None,
+        2 => Tenses.PresentPast,
+        _ => Tenses.PresentPastFuture,
+    };
+
+    public static PronounSystem WithDropsSubjects(PronounSystem drawn, bool drops) => new()
+    {
+        FirstPersonPlural = drawn.FirstPersonPlural,
+        GenderedPronouns = drawn.GenderedPronouns,
+        Genders = drawn.Genders,
+        Forms = drawn.Forms,
+        Paradigm = drawn.Paradigm,
+        DropsSubjects = drops,
+    };
+
+    public static Predication WithLocationalCopula(Predication drawn, bool has) =>
+        has ? (drawn.LocationalCopula is not null ? drawn : throw NoForm("A locational copula")) : drawn with { LocationalCopula = null };
+
+    private static bool IsAffix(Article article) => article.Position is ExponentPosition.Prefix or ExponentPosition.Suffix;
+
+    public static DefiniteArticle DefiniteOf(Articles articles) => articles.Definite switch
+    {
+        null => DefiniteArticle.None,
+        var article when IsAffix(article) => DefiniteArticle.Affix,
+        _ => DefiniteArticle.Word,
+    };
+
+    public static IndefiniteArticle IndefiniteOf(Articles articles) => articles.Indefinite switch
+    {
+        null => IndefiniteArticle.None,
+        var article when IsAffix(article) => IndefiniteArticle.Affix,
+        var article when article.Forms.Values.Any(m => m.Value is Root) => IndefiniteArticle.One,
+        _ => IndefiniteArticle.Word,
+    };
+
+    //an article can be taken away, but one of another kind needs forms where it goes
+    public static Articles WithDefinite(Articles drawn, DefiniteArticle kind) =>
+        kind == DefiniteOf(drawn) ? drawn : kind == DefiniteArticle.None ? drawn with { Definite = null } : throw NoForm($"A definite article that's a {kind}");
+
+    public static Articles WithIndefinite(Articles drawn, IndefiniteArticle kind) =>
+        kind == IndefiniteOf(drawn) ? drawn : kind == IndefiniteArticle.None ? drawn with { Indefinite = null } : throw NoForm($"An indefinite article that's {kind}");
+
+    //an article stops agreeing in gender by keeping its first gender's forms for every noun
+    public static Articles WithArticleGenderAgreement(Articles drawn, bool agrees)
+    {
+        static Article? Ungendered(Article? article)
+        {
+            if (article is not { AgreesInGender: true })
+            {
+                return article;
+            }
+            var first = article.Forms.Keys.First().Gender;
+            return article with
+            {
+                Forms = article.Forms.Where(f => f.Key.Gender == first).ToDictionary(f => ((Gender?)null, f.Key.Number), f => f.Value.Value switch
+                {
+                    Affix a => (Morpheme)new Affix(a.Form, [.. a.Grammemes.Where(g => g is not Gender)]),
+                    Particle p => new Particle(p.Form, [.. p.Grammemes.Where(g => g is not Gender)]),
+                    _ => f.Value,
+                }),
+            };
+        }
+        var agreesNow = drawn.Definite?.AgreesInGender == true || drawn.Indefinite?.AgreesInGender == true;
+        return agrees == agreesNow ? drawn
+            : agrees ? throw NoForm("An article agreeing in gender")
+            : new Articles(Ungendered(drawn.Definite), Ungendered(drawn.Indefinite));
+    }
+
+    public static ImperativeForms ImperativesOf(Commands commands) => (commands.Singular, commands.Plural) switch
+    {
+        (null, null) => ImperativeForms.None,
+        (not null, null) => ImperativeForms.SingularOnly,
+        (null, not null) => ImperativeForms.PluralOnly,
+        var (singular, plural) when singular.Equals(plural) => ImperativeForms.OneForBoth,
+        _ => ImperativeForms.SingularAndPlural,
+    };
+
+    //an imperative written in reuses the form of one the draw has, glossed for its new numbers, though
+    //a plural of its own always has a form, and two imperatives need two
+    public static Commands WithImperatives(Commands drawn, ImperativeForms forms)
+    {
+        if (ImperativesOf(drawn) == forms)
+        {
+            return drawn;
+        }
+        static Morpheme Glossed(Morpheme marker, params Grammeme[] values) => marker switch
+        {
+            Affix a => new Affix(a.Form, values),
+            Particle p => new Particle(p.Form, values),
+            _ => marker,
+        };
+        var any = drawn.Singular ?? drawn.Plural;
+        var sounded = drawn.Plural is { Form.Count: > 0 } ? drawn.Plural : drawn.Singular is { Form.Count: > 0 } ? drawn.Singular : null;
+        switch (forms)
+        {
+            case ImperativeForms.None:
+                return drawn with { Singular = null, Plural = null };
+            case ImperativeForms.SingularOnly when any is { } marker:
+                return drawn with { Singular = Glossed(marker, Mood.Imperative, Number.Singular), Plural = null };
+            case ImperativeForms.PluralOnly when sounded is { } marker:
+                return drawn with { Singular = null, Plural = Glossed(marker, Mood.Imperative, Number.Plural) };
+            case ImperativeForms.OneForBoth when any is { } marker:
+                var both = Glossed(marker, Mood.Imperative);
+                return drawn with { Singular = both, Plural = both };
+            default:
+                throw NoForm($"An imperative for {forms}");
+        }
+    }
+
+    public static Commands WithProhibitiveNegator(Commands drawn, bool has) =>
+        has ? (drawn.Prohibitive is not null ? drawn : throw NoForm("A prohibitive negator")) : drawn with { Prohibitive = null };
+
+    public static ClauseAnd ClauseAndOf(Conjunctions conjunctions) => conjunctions switch
+    {
+        { ClauseAnd: null } => ClauseAnd.Juxtaposition,
+        { NounAnd.Value: AndWord word } when word.Word == conjunctions.ClauseAnd => ClauseAnd.SameAsNouns,
+        _ => ClauseAnd.OwnWord,
+    };
+
+    //nouns joined by 'with' need no word; nouns joined otherwise take the clauses' word, or none
+    //where clauses have none
+    public static Conjunctions WithAndIsWith(Conjunctions drawn, bool with) =>
+        (drawn.NounAnd.Value is AndWith) == with ? drawn
+        : with ? drawn with { NounAnd = new AndWith() }
+        : drawn with { NounAnd = drawn.ClauseAnd is { } word ? new AndWord(word) : new AndJuxtaposed() };
+
+    //clauses set side by side take nouns along, unless they're joined by 'with'; clauses joined like
+    //nouns take the nouns' word; and a word of their own needs one apart from the nouns'
+    public static Conjunctions WithClauseAnd(Conjunctions drawn, ClauseAnd kind) => (kind, drawn.NounAnd.Value) switch
+    {
+        _ when ClauseAndOf(drawn) == kind => drawn,
+        (ClauseAnd.Juxtaposition, AndWith) => drawn with { ClauseAnd = null },
+        (ClauseAnd.Juxtaposition, _) => drawn with { NounAnd = new AndJuxtaposed(), ClauseAnd = null },
+        (ClauseAnd.SameAsNouns, AndWord word) => drawn with { ClauseAnd = word.Word },
+        _ => throw NoForm($"Clauses joined {kind}"),
+    };
+
+    //a subordinator's region keeps its form in its new position, each subordinator with its own meaning
+    private static Subordination WithRegion(Subordination subordination, Subordinator subordinator, IReadOnlyList<Phoneme> form, ExponentPosition position)
+    {
+        var markers = new Dictionary<Subordinator, SubordinatorMarking>(subordination.Markers);
+        foreach (var s in subordination.RegionOf(subordinator))
+        {
+            List<Grammeme> meaning = [Linkage.For(s)];
+            markers[s] = markers[s] with
+            {
+                Marker = position == ExponentPosition.Suffix ? new Affix(form, meaning) : new Particle(form, meaning),
+                Position = position,
+            };
+        }
+        return subordination with { Markers = markers };
+    }
+
+    public static Subordination WithSubordinatorPosition(Subordination drawn, Subordinator subordinator, ExponentPosition position) =>
+        drawn.Markers[subordinator].Position == position ? drawn : WithRegion(drawn, subordinator, drawn.Markers[subordinator].Marker.Form, position);
+
+    //joining two regions gives them the first one's marker; parting them would need a form for the second
+    public static Subordination WithSubordinatorEdge(Subordination drawn, (Subordinator First, Subordinator Second) edge, bool joined)
+    {
+        if (drawn.Joined.Contains(edge) == joined)
+        {
+            return drawn;
+        }
+        if (!joined)
+        {
+            throw NoForm($"{edge.First} apart from {edge.Second}");
+        }
+        var kept = drawn.Markers[edge.First];
+        var result = drawn with { Joined = [.. SubordinatorMap.Edges.Select(e => (e.First, e.Second)).Where(e => e == edge || drawn.Joined.Contains(e))] };
+        return WithRegion(result, edge.First, kept.Marker.Form, kept.Position);
+    }
+
+    public static Subordination WithBalance(Subordination drawn, IReadOnlyList<Subordinator> subordinators, Balance balance) =>
+        drawn with { Markers = drawn.Markers.ToDictionary(m => m.Key, m => subordinators.Contains(m.Key) ? m.Value with { Balance = balance } : m.Value) };
+
     private static InvalidOperationException NoForm(string value) =>
-        new($"{value} can't be written in, since what was drawn has no form to reuse, and no draw gave it. A draw gives it at least 4% of the time, so this shouldn't happen.");
+        new($"{value} can't be written in, since what was drawn has no form to reuse, and no draw gave it. A draw gives it at least 2% of the time, so this shouldn't happen.");
 
     private static IReadOnlyList<Grammeme> GrammemesOf(Morpheme morpheme) => morpheme.Value switch
     {

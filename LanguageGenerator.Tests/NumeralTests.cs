@@ -126,7 +126,7 @@ public class NumeralTests
     [Fact]
     public void Realize_Numerals_AreGlossedByTheirNumbers()
     {
-        var decimalLanguage = GeneratedLanguages.Sample.First(l => l.Numerals.Base == NumeralBase.Decimal);
+        var decimalLanguage = GeneratedLanguages.With(s => s.Fix(Settings.NumeralBase, NumeralBase.Decimal));
         var sentence = Syntax.Realize(decimalLanguage, new Clause("sleep", Tense.Past, Aspect.Perfective, new NounPhrase("dog", Number.Plural, Count: 37)) { Adverbs = [] }, "x");
 
         //a language that marks the noun phrase at its edge can put the marking on a numeral, as in ten-PL-NOM

@@ -1,5 +1,17 @@
 namespace LanguageGenerator;
 
+/// <summary>Which numbers have an imperative of their own.</summary>
+//WALS 70A
+public enum ImperativeForms
+{
+    SingularAndPlural,
+    SingularOnly,
+    PluralOnly,
+    //one imperative, whoever it's said to
+    OneForBoth,
+    None,
+}
+
 /// <summary>How a language tells someone to do something, or not to.</summary>
 //WALS 70A and 71A. Singular and Plural mark the imperative; where one is missing, the language has
 //no form of its own for that number, and says the ordinary second person present instead. A marker

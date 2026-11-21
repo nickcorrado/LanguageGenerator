@@ -233,7 +233,73 @@ public static class Settings
         p => p.Preferred, (p, s) => s == ConfigurationStrategy.Case && !p.CasesAllowed ? p : p with { Preferred = s },
         Choice<ConfigurationStrategy>.Of(ConfigurationStrategy.Adposition, ConfigurationStrategy.RelationalNoun, ConfigurationStrategy.Case));
 
+    //inflection
+
+    public static Stage<Paradigm> NounParadigmStage { get; } = new("noun paradigm", l => l.Paradigms.Nouns, null);
+    /// <summary>Which numbers nouns inflect for: none, singular and plural, or a dual besides.</summary>
+    public static Setting<Paradigm, NounNumber> NounNumber { get; } = NounParadigmStage.Declare("noun-number", Morphology,
+        SettingWrites.NounNumberOf, SettingWrites.Unwritable<Paradigm, NounNumber>("A noun paradigm with other numbers"),
+        Choice<NounNumber>.Of(Enum.GetValues<NounNumber>()));
+
+    public static Stage<Paradigm> VerbParadigmStage { get; } = new("verb paradigm", l => l.Paradigms.Verbs, null);
+    /// <summary>Which tenses verbs inflect for.</summary>
+    public static Setting<Paradigm, Tenses> Tenses { get; } = VerbParadigmStage.Declare("tense", Morphology,
+        SettingWrites.TensesOf, SettingWrites.Unwritable<Paradigm, Tenses>("A verb paradigm with other tenses"),
+        Choice<Tenses>.Of(Enum.GetValues<Tenses>()));
+    /// <summary>Whether verbs inflect for perfective and imperfective aspect.</summary>
+    public static Setting<Paradigm, bool> Aspect { get; } = VerbParadigmStage.Declare("aspect", Morphology,
+        p => p.Categories.Has<Aspect>(), SettingWrites.Unwritable<Paradigm, bool>("A verb paradigm with or without aspect"), YesNo);
+    /// <summary>Whether verbs agree with their subject in person and number.</summary>
+    public static Setting<Paradigm, bool> VerbAgreement { get; } = VerbParadigmStage.Declare("verb-agreement", Morphology,
+        p => p.Categories.Has<Person>(), SettingWrites.Unwritable<Paradigm, bool>("A verb paradigm with or without agreement"), YesNo);
+
+    //pronouns
+
+    public static Stage<PronounSystem> PronounStage { get; } = new("pronouns", l => l.Pronouns, null);
+    /// <summary>How the pronouns say 'we': with one word, with the word for 'I', or apart for including the hearer.</summary>
+    public static Setting<PronounSystem, FirstPersonPlural> FirstPersonPlural { get; } = PronounStage.Declare("first-person-plural", Nouns,
+        p => p.FirstPersonPlural, SettingWrites.Unwritable<PronounSystem, FirstPersonPlural>("Pronouns saying 'we' another way"),
+        Choice<FirstPersonPlural>.Of(Enum.GetValues<FirstPersonPlural>()));
+    /// <summary>Which pronouns distinguish gender.</summary>
+    public static Setting<PronounSystem, PronounGender> GenderedPronouns { get; } = PronounStage.Declare("gendered-pronouns", Nouns,
+        p => p.GenderedPronouns, SettingWrites.Unwritable<PronounSystem, PronounGender>("Pronouns with gender in other persons"),
+        Choice<PronounGender>.Of(Enum.GetValues<PronounGender>()));
+    /// <summary>Whether a subject pronoun is usually left out.</summary>
+    public static Setting<PronounSystem, bool> DropsSubjects { get; } = PronounStage.Declare("drops-subjects", Nouns,
+        p => p.DropsSubjects, SettingWrites.WithDropsSubjects, YesNo);
+
+    //predication
+
+    public static Stage<Predication> PredicationStage { get; } = new("predication", l => l.Predication, null);
+    /// <summary>Whether an adjective said of something acts like a verb, or needs a copula.</summary>
+    public static Setting<Predication, PredicativeAdjectives> PredicativeAdjectives { get; } = PredicationStage.Declare("predicative-adjectives", Clauses,
+        p => p.Adjectives, (p, adjectives) => p with { Adjectives = adjectives }, Choice<PredicativeAdjectives>.Of(Enum.GetValues<PredicativeAdjectives>()));
+    /// <summary>Whether the copula is left out in the present, as in Russian ty durak 'you (are a) fool'.</summary>
+    public static Setting<Predication, bool> ZeroCopula { get; } = PredicationStage.Declare("zero-copula", Clauses,
+        p => p.ZeroCopula, (p, zero) => p with { ZeroCopula = zero }, YesNo);
+
+    public static Stage<Predication> LocationalCopulaStage { get; } = new("locational copula", l => l.Predication, null);
+    /// <summary>Whether the language has a verb of its own for where something is, like Spanish estar.</summary>
+    public static Setting<Predication, bool> LocationalCopula { get; } = LocationalCopulaStage.Declare("locational-copula", Clauses,
+        p => p.LocationalCopula is not null, SettingWrites.WithLocationalCopula, YesNo);
+
+    public static Stage<AdjectiveAgreement> AdjectiveAgreementStage { get; } = new("adjective agreement", l => l.AdjectiveAgreement, null);
+    /// <summary>Whether an adjective agrees with its noun, or the phrase is marked once at its edge.</summary>
+    public static Setting<AdjectiveAgreement, AdjectiveAgreement> AdjectiveAgreement { get; } = AdjectiveAgreementStage.Declare("adjective-agreement", Nouns,
+        a => a, (_, agreement) => agreement, Choice<AdjectiveAgreement>.Of(Enum.GetValues<AdjectiveAgreement>()));
+
     //clauses
+
+    public static Stage<Commands> CommandStage { get; } = new("commands", l => l.Commands, null);
+    /// <summary>Which numbers have an imperative of their own: both, one, the same one for both, or neither.</summary>
+    public static Setting<Commands, ImperativeForms> Imperatives { get; } = CommandStage.Declare("imperatives", Clauses,
+        SettingWrites.ImperativesOf, SettingWrites.WithImperatives, Choice<ImperativeForms>.Of(Enum.GetValues<ImperativeForms>()));
+    /// <summary>Whether a prohibitive, 'don't eat', uses the imperative's form of the verb.</summary>
+    public static Setting<Commands, bool> ProhibitiveUsesImperative { get; } = CommandStage.Declare("prohibitive-uses-imperative", Clauses,
+        c => c.ProhibitiveUsesImperative, (c, uses) => c with { ProhibitiveUsesImperative = uses }, YesNo);
+    /// <summary>Whether a prohibitive has a negator of its own, as Latin has nē beside nōn.</summary>
+    public static Setting<Commands, bool> ProhibitiveNegator { get; } = CommandStage.Declare("prohibitive-negator", Clauses,
+        c => c.Prohibitive is not null, SettingWrites.WithProhibitiveNegator, YesNo);
 
     public static Stage<Negation> NegationStage { get; } = new("negation", l => l.Negation, null);
     public static Setting<Negation, NegationStrategy> Negation { get; } = NegationStage.Declare("negation", Clauses,
@@ -282,6 +348,78 @@ public static class Settings
     public static Setting<GenderSystem, GenderAssignment> GenderAssignment { get; } = GenderStage.Declare("gender-assignment", Nouns,
         g => g.Assignment, SettingWrites.WithAssignment, Choice<GenderAssignment>.Of(Enum.GetValues<GenderAssignment>()));
 
+    public static Stage<NumeralSystem> NumeralStage { get; } = new("numerals", l => l.Numerals, null);
+    /// <summary>How numbers are built past the first few words: on tens, on twenties, or not at all.</summary>
+    public static Setting<NumeralSystem, NumeralBase> NumeralBase { get; } = NumeralStage.Declare("numeral-base", Nouns,
+        n => n.Base, SettingWrites.Unwritable<NumeralSystem, NumeralBase>("Numerals on another base"), Choice<NumeralBase>.Of(Enum.GetValues<NumeralBase>()));
+    /// <summary>Whether a numeral goes before its noun.</summary>
+    public static Setting<NumeralSystem, bool> NumeralsBeforeNoun { get; } = NumeralStage.Declare("numerals-before-noun", Nouns,
+        n => n.BeforeNoun, (n, before) => n with { BeforeNoun = before }, YesNo);
+    /// <summary>How 'first', 'second' and the rest are said.</summary>
+    public static Setting<NumeralSystem, OrdinalType> Ordinals { get; } = NumeralStage.Declare("ordinals", Nouns,
+        n => n.Ordinals.Type, SettingWrites.Unwritable<NumeralSystem, OrdinalType>("Ordinals of another type"), Choice<OrdinalType>.Of(Enum.GetValues<OrdinalType>()));
+
+    public static Stage<Articles> ArticleStage { get; } = new("articles", l => l.Articles, null);
+    public static Setting<Articles, DefiniteArticle> DefiniteArticle { get; } = ArticleStage.Declare("definite-article", Nouns,
+        SettingWrites.DefiniteOf, SettingWrites.WithDefinite, Choice<DefiniteArticle>.Of(Enum.GetValues<DefiniteArticle>()));
+    public static Setting<Articles, IndefiniteArticle> IndefiniteArticle { get; } = ArticleStage.Declare("indefinite-article", Nouns,
+        SettingWrites.IndefiniteOf, SettingWrites.WithIndefinite, Choice<IndefiniteArticle>.Of(Enum.GetValues<IndefiniteArticle>()));
+    /// <summary>Whether an article agrees with its noun's gender, as Spanish el and la do.</summary>
+    public static Setting<Articles, bool> ArticleGenderAgreement { get; } = ArticleStage.Declare("article-gender-agreement", Nouns,
+        a => a.Definite?.AgreesInGender == true || a.Indefinite?.AgreesInGender == true, SettingWrites.WithArticleGenderAgreement, YesNo);
+
+    //joining clauses and nouns
+
+    public static Stage<Conjunctions> ConjunctionStage { get; } = new("conjunctions", l => l.Conjunctions, null);
+    /// <summary>Whether 'and' between nouns is the word for 'with', as in 'the dog with the cat slept'.</summary>
+    public static Setting<Conjunctions, bool> AndIsWith { get; } = ConjunctionStage.Declare("and-is-with", Clauses,
+        c => c.NounAnd.Value is AndWith, SettingWrites.WithAndIsWith, YesNo);
+    /// <summary>How clauses are joined with 'and'.</summary>
+    public static Setting<Conjunctions, ClauseAnd> ClauseAnd { get; } = ConjunctionStage.Declare("clause-and", Clauses,
+        SettingWrites.ClauseAndOf, SettingWrites.WithClauseAnd, Choice<ClauseAnd>.Of(Enum.GetValues<ClauseAnd>()));
+
+    public static Stage<Subordination> SubordinationStage { get; } = new("subordination", l => l.Subordination, null);
+    //the edges come before the markers, since joining two regions gives them one marker, which a
+    //marker's fixed position then goes on
+    /// <summary>Whether each edge of the subordinator map joins its two subordinators, so they share a marker.</summary>
+    public static IReadOnlyList<Setting<Subordination, bool>> SubordinatorEdges { get; } =
+    [
+        .. SubordinatorMap.Edges.Select(e => (e.First, e.Second)).Select(edge => SubordinationStage.Declare(
+            $"subordinators-{Lower(edge.First)}-{Lower(edge.Second)}", Clauses,
+            s => s.Joined.Contains(edge), (s, joined) => SettingWrites.WithSubordinatorEdge(s, edge, joined), YesNo)),
+    ];
+    /// <summary>Where each kind of subordinate clause is marked: by a word at its start or its end, or a suffix on its verb.</summary>
+    public static IReadOnlyList<Setting<Subordination, ExponentPosition>> SubordinatorPositions { get; } =
+    [
+        .. SubordinatorMap.Subordinators.Select(subordinator => SubordinationStage.Declare($"{Lower(subordinator)}-subordinator", Clauses,
+            s => s.Markers[subordinator].Position, (s, position) => SettingWrites.WithSubordinatorPosition(s, subordinator, position),
+            new Choice<ExponentPosition>([("Initial", ExponentPosition.PrecedingParticle), ("Final", ExponentPosition.FollowingParticle), ("Suffix", ExponentPosition.Suffix)]))),
+    ];
+    /// <summary>Whether each kind of subordinate clause comes before the main clause.</summary>
+    public static IReadOnlyList<Setting<Subordination, bool>> SubordinateClauseFirst { get; } =
+    [
+        .. SubordinatorMap.Subordinators.Select(subordinator => SubordinationStage.Declare($"{Lower(subordinator)}-clause-first", Clauses,
+            s => s.Markers[subordinator].BeforeMain,
+            (s, first) => s with { Markers = new Dictionary<Subordinator, SubordinatorMarking>(s.Markers) { [subordinator] = s.Markers[subordinator] with { BeforeMain = first } } },
+            YesNo)),
+    ];
+    /// <summary>Whether a purpose clause's verb keeps its ordinary form, as WALS 125A asks.</summary>
+    public static Setting<Subordination, Balance> PurposeBalance { get; } = SubordinationStage.Declare("purpose-balance", Clauses,
+        s => s.Markers[Subordinator.Purpose].Balance, (s, balance) => SettingWrites.WithBalance(s, [Subordinator.Purpose], balance), Choice<Balance>.Of(Enum.GetValues<Balance>()));
+    /// <summary>Whether a reason clause's verb keeps its ordinary form, as WALS 127A asks.</summary>
+    public static Setting<Subordination, Balance> ReasonBalance { get; } = SubordinationStage.Declare("reason-balance", Clauses,
+        s => s.Markers[Subordinator.Because].Balance, (s, balance) => SettingWrites.WithBalance(s, [Subordinator.Because], balance), Choice<Balance>.Of(Enum.GetValues<Balance>()));
+    /// <summary>
+    /// Whether the verb of a 'when' clause keeps its ordinary form, as WALS 126A asks, and so the
+    /// other temporal and conditional clauses' verbs, which follow it.
+    /// </summary>
+    public static Setting<Subordination, Balance> TemporalBalance { get; } = SubordinationStage.Declare("temporal-balance", Clauses,
+        s => s.Markers[Subordinator.When].Balance,
+        (s, balance) => SettingWrites.WithBalance(s, [Subordinator.If, Subordinator.When, Subordinator.Before, Subordinator.After, Subordinator.Until], balance),
+        Choice<Balance>.Of(Enum.GetValues<Balance>()));
+
+    private static string Lower(Subordinator subordinator) => subordinator.ToString().ToLowerInvariant();
+
     //comparison
 
     public static Stage<Comparison> ComparisonStage { get; } = new("comparison", l => l.Comparison, null);
@@ -300,8 +438,8 @@ public static class Settings
     public static IReadOnlyList<IStage> Stages { get; } =
     [
         VowelStage, ConsonantStage, SyllableStage, StressStage, ClusterRepairStage, SyllableContactStage, DropoffStage, SoundChangeStage, SyllableChangeStage, WordOrderStage, MorphologyStage, AlignmentStage,
-        RoleRegionStage, CaseStage, ConfigurationRegionStage, ConfigurationPlanStage, NegationStage, QuestionStage, PassiveStage, ModalStage,
-        PossessionStage, GenderStage, ComparisonStage, DegreeStage, SimilativeStage,
+        RoleRegionStage, CaseStage, ConfigurationRegionStage, ConfigurationPlanStage, NounParadigmStage, VerbParadigmStage, PronounStage, PredicationStage, LocationalCopulaStage, AdjectiveAgreementStage,
+        CommandStage, NegationStage, QuestionStage, PassiveStage, ModalStage, PossessionStage, GenderStage, NumeralStage, ArticleStage, ConjunctionStage, SubordinationStage, ComparisonStage, DegreeStage, SimilativeStage,
     ];
 
     /// <summary>Every setting, in the order they're declared.</summary>
@@ -309,8 +447,10 @@ public static class Settings
     [
         .. VowelStage.Settings, .. ConsonantStage.Settings, .. SyllableStage.Settings, .. StressStage.Settings, .. ClusterRepairStage.Settings,
         .. SyllableContactStage.Settings, .. DropoffStage.Settings, .. SoundChangeStage.Settings, .. SyllableChangeStage.Settings, .. WordOrderStage.Settings, .. MorphologyStage.Settings, .. AlignmentStage.Settings, .. RoleRegionStage.Settings,
-        .. CaseStage.Settings, .. ConfigurationRegionStage.Settings, .. ConfigurationPlanStage.Settings, .. NegationStage.Settings,
-        .. QuestionStage.Settings, .. PassiveStage.Settings, .. ModalStage.Settings, .. PossessionStage.Settings, .. GenderStage.Settings, .. ComparisonStage.Settings,
+        .. CaseStage.Settings, .. ConfigurationRegionStage.Settings, .. ConfigurationPlanStage.Settings, .. NounParadigmStage.Settings,
+        .. VerbParadigmStage.Settings, .. PronounStage.Settings, .. PredicationStage.Settings, .. LocationalCopulaStage.Settings, .. AdjectiveAgreementStage.Settings,
+        .. CommandStage.Settings, .. NegationStage.Settings, .. QuestionStage.Settings, .. PassiveStage.Settings, .. ModalStage.Settings, .. PossessionStage.Settings, .. GenderStage.Settings,
+        .. NumeralStage.Settings, .. ArticleStage.Settings, .. ConjunctionStage.Settings, .. SubordinationStage.Settings, .. ComparisonStage.Settings,
         .. DegreeStage.Settings, .. SimilativeStage.Settings,
     ];
 
@@ -337,6 +477,17 @@ public static class Settings
     /// <summary>The setting for how a modality is marked.</summary>
     public static Setting<Modals, ModalKind> ModalOf(Modality modality) => ModalMarkers[ModalityMap.Modalities.ToList().IndexOf(modality) is var i and >= 0
         ? i : throw new ArgumentException($"{modality.Name} isn't a modality on the map.")];
+
+    /// <summary>The setting for an edge of the subordinator map.</summary>
+    public static Setting<Subordination, bool> SubordinatorEdge(Subordinator first, Subordinator second) =>
+        SubordinatorEdges[SubordinatorMap.Edges.Select(e => (e.First, e.Second)).ToList().IndexOf((first, second)) is var i and >= 0
+            ? i : throw new ArgumentException($"The subordinator map has no edge from {first} to {second}.")];
+
+    /// <summary>The setting for where a kind of subordinate clause is marked.</summary>
+    public static Setting<Subordination, ExponentPosition> SubordinatorOf(Subordinator subordinator) => SubordinatorPositions[(int)subordinator];
+
+    /// <summary>The setting for whether a kind of subordinate clause comes first.</summary>
+    public static Setting<Subordination, bool> ClauseFirst(Subordinator subordinator) => SubordinateClauseFirst[(int)subordinator];
 
     /// <summary>The setting for an edge of the modality map.</summary>
     public static Setting<Modals, bool> ModalityEdge(Modality first, Modality second) =>
