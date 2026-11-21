@@ -1,8 +1,10 @@
 namespace LanguageGenerator;
 
-//a gloss line as it's written, before anything in it is understood: what's nested in what, and
-//which role each part is written with, which ClauseFile then builds into a Statement. Each part
-//keeps its text, for errors to quote
+/*
+  a gloss line as it's written, before anything in it is understood: what's nested in what, and
+  which role each part is written with, which ClauseFile then builds into a Statement. Each part
+  keeps its text, for errors to quote
+ */
 
 /// <summary>
 /// One part of a clause or group: a value, written with the role it fills, as in subject:dog, or
@@ -125,6 +127,11 @@ internal static class ClauseSyntax
             return text[start..end];
         }
 
-        private static char Opening(char closing) => closing == ')' ? '(' : '[';
+        private static char Opening(char closing) => closing switch
+        {
+            ')' => '(',
+            ']' => '[',
+            _ => throw new ArgumentOutOfRangeException(nameof(closing), closing, "Only ) and ] close what's open."),
+        };
     }
 }
