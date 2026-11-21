@@ -217,8 +217,12 @@ public static class GlossPrompt
                 "sit down," he says
                   say  subject:3SG.M  quote:[sit.IMP]
 
-              A quotation's sentences after the first, with no verb of saying, are glossed as they
-              are.
+              quote: is only for what a verb of saying in the same sentence says. A sentence in
+              quotation marks with no verb of saying, as in a conversation, is glossed as the
+              sentence it is, with no quote: and no quotation marks: '"Where did you get that?"' is
+
+                where did you get it?
+                  get.PST.PFV  subject:2SG  object:3SG.N  source:where
             - Noun phrases joined by and or or go in parentheses with the conjunction first:
               object:(and (purse.NDF empty) sword.NDF) for 'an empty purse and a sword', or
               object:(or rope.NDF boat.NDF). Adjectives said together go the same way:
