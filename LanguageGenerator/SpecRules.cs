@@ -184,6 +184,18 @@ public static class SpecRules
         .. Settings.SubordinatorPositions.Select(position => SpecRule.Together(Settings.Fusion, position,
             (fusion, at) => fusion != Fusion.Isolating || at != ExponentPosition.Suffix,
             $"{position.Name} can only be a suffix where words take affixes, so fusion can't be Isolating.")),
+        SpecRule.Together(Settings.Fusion, Settings.PropositionComplementizer,
+            (fusion, at) => fusion != Fusion.Isolating || at != ComplementizerPosition.Suffix,
+            "proposition-complementizer can only be a suffix where words take affixes, so fusion can't be Isolating."),
+        SpecRule.Together(Settings.Fusion, Settings.EventComplementizer,
+            (fusion, at) => fusion != Fusion.Isolating || at != ComplementizerPosition.Suffix,
+            "event-complementizer can only be a suffix where words take affixes, so fusion can't be Isolating."),
+        SpecRule.Together(Settings.Fusion, Settings.Desiderative,
+            (fusion, kind) => fusion != Fusion.Isolating || kind != DesiderativeKind.Affix,
+            "'Want' can only be an affix where words take affixes, so fusion can't be Isolating."),
+        SpecRule.Together(Settings.PropositionComplementizer, Settings.Quotative,
+            (position, quotative) => quotative != QuotativeKind.Complementizer || position != ComplementizerPosition.None,
+            "A quotation can only be marked with the complementizer where a proposition has one, so proposition-complementizer can't be None."),
         //subordinators joined by an edge share a marker, and so its position
         .. SubordinatorMap.Edges.Select(e => (e.First, e.Second)).Select(edge => new SpecRule.Narrowing(
             $"Subordinators joined by an edge share a marker, so {edge.First.ToString().ToLowerInvariant()} and {edge.Second.ToString().ToLowerInvariant()} can't be joined when they're marked in different places.",

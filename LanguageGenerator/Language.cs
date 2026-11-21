@@ -39,6 +39,8 @@ public class Language
     public required Passive? Passive { get; init; }
     public required Conjunctions Conjunctions { get; init; }
     public required Subordination Subordination { get; init; }
+    /// <summary>How clauses are marked as objects, and quotations as what was said.</summary>
+    public required Complementation Complementation { get; init; }
     public required Modals Modals { get; init; }
     public required Questions Questions { get; init; }
 

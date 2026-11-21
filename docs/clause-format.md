@@ -148,7 +148,8 @@ Adjectives are written in English order, which already puts the nearest last, so
 | Role | Says |
 | --- | --- |
 | `subject:` | The subject |
-| `object:` | The object |
+| `object:` | The object, which can be a clause in brackets (see [Clauses as objects](#clauses-as-objects)) |
+| `quote:` | What was said, word for word, as a clause in brackets |
 | `noun:`, `adjective:` | What the subject of `be` is |
 | `location:` | Where |
 | `goal:` | To where |
@@ -229,6 +230,32 @@ if you hear the song, cover your ears
 | `purpose` | In order to |
 
 A purpose clause can leave out its subject when it's the main clause's, as in `purpose  cross  object:river.DEF` for 'to cross the river'. A clause under another can't be a command or have an addressee of its own.
+
+## Clauses as objects
+
+A clause can be the object of a verb, written in square brackets in the object's place, the way glossed examples bracket an embedded clause. It starts with what kind of clause it is:
+
+| Starts with | Says | Example |
+| --- | --- | --- |
+| `that` | Something said, known, thought, seen or heard, with a time of its own | `tell.PST.PFV  subject:1SG  recipient:2SG  object:[that  be.PST  subject:2SG  adjective:late]` |
+| `to` | Something wanted, tried, begun or told to be done, whose time the main verb sets | `want  subject:3PL  object:[to  go  goal:home]` |
+
+These follow Noonan's division of complements by time reference, which is what decides how languages mark them more than the verb does. A clause starting with `to` has no tense or aspect, since its time is the main verb's, and leaves out its subject when that's the main clause's subject, as in 'they want to go home'; 'I told you to wait' says it, as `object:[to  wait  subject:2SG]`. A clause starting with `that` always has a subject. A clause in brackets can hold another, as in `say  subject:3SG.F  object:[that  know  subject:1SG  object:[that  come.PST  subject:2SG]]`, and a question can be about one, as in `tell.PST  subject:who  recipient:2SG  object:[that  come.PST  subject:1SG]` for 'who told you that I was coming?'. A question inside one, as in 'did anyone see what happened?', can't be said yet, and neither can a command, or a clause in any role but the object.
+
+What someone said word for word is `quote:[...]`, in place of an object, on the verb that says it. It's as the speaker said it, so its 'I' and 'you' are the speaker's, and it can be anything a clause on its own line can, a command, a question or a clause said to someone:
+
+```
+"you are late," she says
+  say  subject:3SG.F  quote:[be  subject:2SG  adjective:late]
+```
+
+A complement is marked as its language marks its kind: by a complementizer, glossed `COMP`, that's a word at its start, as English *that*, a word at its end, as Japanese *to*, or a suffix on its verb, as Korean *-ko*, or by nothing at all, as Mandarin sets a complement beside its verb. WALS doesn't count complementizers, so the odds are guesses after Dryer, who finds a word at the start in nearly every VO language and all three in OV ones. An event's complementizer is the proposition's in some languages, as Romance *que* is both.
+
+Its verb may be deranked, bare of tense and agreement, as WALS 125A to 127A count for subordinate clauses: always, never, or where the two clauses share a subject, which a deranked clause leaves unsaid. Cristofaro finds the complements of 'say', 'know' and 'think' deranked far less often than those of 'want', so a proposition's mostly isn't. An event's follows WALS 124A, which counts how 'want' says the subject of what's wanted: left implicit, as Turkish *Ankara-ya git-mek ist-iyor-um* 'I want to go to Ankara' does with a deranked verb, in 144 languages, and expressed, as Greek *thélo na páo* 'I want that I go' does with a balanced one, in 72. A deranked complement can be marked like a role in place of its complementizer, with the object's case, as Turkish puts a nominalized clause in the accusative, or for an event with a goal's marker, as English *to go* is.
+
+In the other 53 languages WALS counts, 'want' isn't a verb at all, but an affix on the verb of what's wanted, as Japanese *tabe-ta-i* 'eat-DESID-PRS' is 'wants to eat', in 45, or a word beside it, in 8. Either is glossed `DESID`, which grammars commonly coin, and takes the tense, agreement and negation that 'want' would have had. 'I want you to go' still needs a verb for 'want', since what's wanted isn't the wanter's own doing.
+
+A complement that keeps its verb, and a quotation, go where the object does or last in the clause. In VO languages they nearly always go last, and in OV languages mostly where a word starts them, as Hindi *ki* and Persian *ke* clauses follow the verb while Japanese ones, marked at their end, go before it, as Dryer and Hawkins find. A deranked complement is a noun phrase, and goes where the object does. A quotation is marked with the complementizer, as Japanese *to* and Ewe *bé* mark both, since words for 'say' so often become complementizers, with a word of its own, as Turkish *diye* 'saying', or not at all, as in English; Güldemann finds quotatives all over Africa and Asia, but nobody counts them, so the odds are guesses. A quotative is glossed `QUOT`.
 
 ## Pronouns
 

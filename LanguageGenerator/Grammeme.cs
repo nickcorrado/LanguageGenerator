@@ -78,6 +78,16 @@ public record Modality(string Name, string Gloss) : Grammeme(Name, Gloss)
     public static Modality Advisability { get; } = new("Advisability", "ADVS");
 }
 
+/// <summary>
+/// 'Want' as a marker on the verb of what's wanted, as Japanese -tai, in a language that has no verb
+/// for it.
+/// </summary>
+//the Leipzig rules have no gloss for it; DESID is the one grammars commonly coin. It's apart from
+//Modality, since the clause format writes 'want' as a verb, not as a feature of one
+public record Volition(string Name, string Gloss) : Grammeme(Name, Gloss)
+{
+    public static Volition Desiderative { get; } = new("Desiderative", "DESID");
+}
 public record Voice(string Name, string Gloss) : Grammeme(Name, Gloss)
 {
     public static Voice Active { get; } = new("Active", "ACTV");
@@ -227,6 +237,10 @@ public record Linkage(string Name, string Gloss) : Grammeme(Name, Gloss)
     public static Linkage Terminative { get; } = new("Terminative", "TERM");
     public static Linkage Reason { get; } = new("Reason", "REAS");
     public static Linkage Purposive { get; } = new("Purposive", "PURP");
+    /// <summary>Marks a clause as the object of a verb, as English that does.</summary>
+    public static Linkage Complementizer { get; } = new("Complementizer", "COMP");
+    /// <summary>Marks what someone said, word for word, as Japanese to does.</summary>
+    public static Linkage Quotative { get; } = new("Quotative", "QUOT");
 
     public static Linkage For(Subordinator subordinator) => subordinator switch
     {

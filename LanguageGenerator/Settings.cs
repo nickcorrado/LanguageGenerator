@@ -420,6 +420,37 @@ public static class Settings
 
     private static string Lower(Subordinator subordinator) => subordinator.ToString().ToLowerInvariant();
 
+    public static Stage<Complementation> ComplementationStage { get; } = new("complementation", l => l.Complementation, null);
+    /// <summary>
+    /// Where the complementizer of a clause saying what's said, known or seen goes: nowhere, a word
+    /// at its start or end, or a suffix on its verb.
+    /// </summary>
+    public static Setting<Complementation, ComplementizerPosition> PropositionComplementizer { get; } = ComplementationStage.Declare("proposition-complementizer", Clauses,
+        c => c.Proposition.Position, (c, position) => SettingWrites.WithComplementizer(c, ComplementKind.Proposition, position),
+        Choice<ComplementizerPosition>.Of(Enum.GetValues<ComplementizerPosition>()));
+    /// <summary>Where the complementizer of a clause saying what's wanted, tried or begun goes.</summary>
+    public static Setting<Complementation, ComplementizerPosition> EventComplementizer { get; } = ComplementationStage.Declare("event-complementizer", Clauses,
+        c => c.Event.Position, (c, position) => SettingWrites.WithComplementizer(c, ComplementKind.Event, position),
+        Choice<ComplementizerPosition>.Of(Enum.GetValues<ComplementizerPosition>()));
+    /// <summary>Whether the verb of a clause saying what's said, known or seen keeps its ordinary form.</summary>
+    public static Setting<Complementation, Balance> PropositionBalance { get; } = ComplementationStage.Declare("proposition-balance", Clauses,
+        c => c.Proposition.Balance, (c, balance) => c with { Proposition = c.Proposition with { Balance = balance } }, Choice<Balance>.Of(Enum.GetValues<Balance>()));
+    /// <summary>
+    /// Whether the verb of a clause saying what's wanted, tried or begun keeps its ordinary form, as
+    /// WALS 124A asks of 'want': deranked is its implicit subject, and balanced its overt one.
+    /// </summary>
+    public static Setting<Complementation, Balance> EventBalance { get; } = ComplementationStage.Declare("event-balance", Clauses,
+        c => c.Event.Balance, (c, balance) => c with { Event = c.Event with { Balance = balance } }, Choice<Balance>.Of(Enum.GetValues<Balance>()));
+    /// <summary>How a quotation is marked: not at all, with the complementizer, or with a word of its own.</summary>
+    public static Setting<Complementation, QuotativeKind> Quotative { get; } = ComplementationStage.Declare("quotative", Clauses,
+        c => c.Quotative.Kind, SettingWrites.WithQuotative, Choice<QuotativeKind>.Of(Enum.GetValues<QuotativeKind>()));
+    /// <summary>Whether a complement clause that keeps its verb, or a quotation, goes last in its clause.</summary>
+    public static Setting<Complementation, bool> ComplementsLast { get; } = ComplementationStage.Declare("complements-last", Clauses,
+        c => c.Last, (c, last) => c with { Last = last }, YesNo);
+    /// <summary>How 'want' is said: a verb, or an affix or particle on the verb of what's wanted, as WALS 124A has it.</summary>
+    public static Setting<Complementation, DesiderativeKind> Desiderative { get; } = ComplementationStage.Declare("desiderative", Clauses,
+        c => c.Desiderative.Kind, (c, kind) => c with { Desiderative = c.Desiderative with { Kind = kind } }, Choice<DesiderativeKind>.Of(Enum.GetValues<DesiderativeKind>()));
+
     //comparison
 
     public static Stage<Comparison> ComparisonStage { get; } = new("comparison", l => l.Comparison, null);
@@ -439,7 +470,7 @@ public static class Settings
     [
         VowelStage, ConsonantStage, SyllableStage, StressStage, ClusterRepairStage, SyllableContactStage, DropoffStage, SoundChangeStage, SyllableChangeStage, WordOrderStage, MorphologyStage, AlignmentStage,
         RoleRegionStage, CaseStage, ConfigurationRegionStage, ConfigurationPlanStage, NounParadigmStage, VerbParadigmStage, PronounStage, PredicationStage, LocationalCopulaStage, AdjectiveAgreementStage,
-        CommandStage, NegationStage, QuestionStage, PassiveStage, ModalStage, PossessionStage, GenderStage, NumeralStage, ArticleStage, ConjunctionStage, SubordinationStage, ComparisonStage, DegreeStage, SimilativeStage,
+        CommandStage, NegationStage, QuestionStage, PassiveStage, ModalStage, PossessionStage, GenderStage, NumeralStage, ArticleStage, ConjunctionStage, SubordinationStage, ComplementationStage, ComparisonStage, DegreeStage, SimilativeStage,
     ];
 
     /// <summary>Every setting, in the order they're declared.</summary>
@@ -450,7 +481,7 @@ public static class Settings
         .. CaseStage.Settings, .. ConfigurationRegionStage.Settings, .. ConfigurationPlanStage.Settings, .. NounParadigmStage.Settings,
         .. VerbParadigmStage.Settings, .. PronounStage.Settings, .. PredicationStage.Settings, .. LocationalCopulaStage.Settings, .. AdjectiveAgreementStage.Settings,
         .. CommandStage.Settings, .. NegationStage.Settings, .. QuestionStage.Settings, .. PassiveStage.Settings, .. ModalStage.Settings, .. PossessionStage.Settings, .. GenderStage.Settings,
-        .. NumeralStage.Settings, .. ArticleStage.Settings, .. ConjunctionStage.Settings, .. SubordinationStage.Settings, .. ComparisonStage.Settings,
+        .. NumeralStage.Settings, .. ArticleStage.Settings, .. ConjunctionStage.Settings, .. SubordinationStage.Settings, .. ComplementationStage.Settings, .. ComparisonStage.Settings,
         .. DegreeStage.Settings, .. SimilativeStage.Settings,
     ];
 

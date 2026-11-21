@@ -219,6 +219,33 @@ internal static class SettingWrites
     public static Subordination WithBalance(Subordination drawn, IReadOnlyList<Subordinator> subordinators, Balance balance) =>
         drawn with { Markers = drawn.Markers.ToDictionary(m => m.Key, m => subordinators.Contains(m.Key) ? m.Value with { Balance = balance } : m.Value) };
 
+    //a complementizer keeps its form in its new position. One that goes unsaid can't mark a quotation,
+    //which takes the word of its own instead, coined for this
+    public static Complementation WithComplementizer(Complementation drawn, ComplementKind kind, ComplementizerPosition position)
+    {
+        var marking = drawn.MarkingOf(kind);
+        if (marking.Position == position)
+        {
+            return drawn;
+        }
+        marking = marking with { Marker = Generator.ComplementizerMarker(marking.Marker.Form, position), Position = position };
+        var written = kind == ComplementKind.Proposition ? drawn with { Proposition = marking } : drawn with { Event = marking };
+        return kind == ComplementKind.Proposition && position == ComplementizerPosition.None && drawn.Quotative.Kind == QuotativeKind.Complementizer
+            ? written with { Quotative = written.Quotative with { Kind = QuotativeKind.Word } }
+            : written;
+    }
+
+    //a quotation marked with the complementizer needs one that's said, so a proposition's unsaid one
+    //is said at the clause's start, as most are
+    public static Complementation WithQuotative(Complementation drawn, QuotativeKind kind)
+    {
+        var written = drawn with { Quotative = drawn.Quotative with { Kind = kind } };
+        return kind == QuotativeKind.Complementizer && drawn.Proposition.Position == ComplementizerPosition.None
+            ? WithComplementizer(written, ComplementKind.Proposition, ComplementizerPosition.Initial)
+            : written;
+    }
+
+
     private static InvalidOperationException NoForm(string value) =>
         new($"{value} can't be written in, since what was drawn has no form to reuse, and no draw gave it. A draw gives it at least 2% of the time, so this shouldn't happen.");
 

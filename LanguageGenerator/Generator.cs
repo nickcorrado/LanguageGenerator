@@ -80,6 +80,7 @@ public static partial class Generator
         var passive = stages.Draw(Settings.PassiveStage, rand => GeneratePassive(rand, alignment, morphology, phonology));
         var conjunctions = stages.Draw(Settings.ConjunctionStage, rand => GenerateConjunctions(rand, phonology));
         var subordination = stages.Draw(Settings.SubordinationStage, rand => GenerateSubordination(rand, morphology, wordOrder, phonology));
+        var complementation = stages.Draw(Settings.ComplementationStage, rand => GenerateComplementation(rand, morphology, wordOrder, phonology));
         var modals = stages.Draw(Settings.ModalStage, rand => GenerateModals(rand, morphology, wordOrder, predication, phonology));
         var questions = stages.Draw(Settings.QuestionStage, rand => GenerateQuestions(rand, morphology, wordOrder, phonology));
 
@@ -131,6 +132,7 @@ public static partial class Generator
             Passive = passive,
             Conjunctions = conjunctions,
             Subordination = subordination,
+            Complementation = complementation,
             Modals = modals,
             Questions = questions,
         };

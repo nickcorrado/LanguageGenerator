@@ -163,6 +163,33 @@ public static class LanguageDescription
             return $"{m.Key.ToString().ToLowerInvariant()} {form} ({(m.Value.BeforeMain ? "first" : "after")}{balance}{role})";
         }));
         output.WriteLine($"Subordinate clauses: {subordinators}");
+        var complementation = lang.Complementation;
+        string Complements(ComplementKind kind)
+        {
+            var marking = complementation.MarkingOf(kind);
+            var marker = marking.Marker.Spell(orthography);
+            var form = marking.Position switch
+            {
+                ComplementizerPosition.None => "unmarked",
+                ComplementizerPosition.Suffix => $"-{marker}",
+                ComplementizerPosition.Initial => $"{marker} …",
+                _ => $"… {marker}",
+            };
+            var balance = marking.Balance switch { Balance.Deranked => ", bare verb", Balance.Either => ", bare verb if the subject is shared", _ => "" };
+            var role = marking.MarkedAs is { } r && marking.Balance != Balance.Balanced ? $", marked like the {(r == Role.DirectObject ? "object" : r.ToString().ToLowerInvariant())} when bare" : "";
+            return $"{form}{balance}{role}";
+        }
+        var quotative = complementation.QuotativeMarker is var (quote, at)
+            ? at switch { ExponentPosition.Suffix => $"-{quote.Spell(orthography)}", ExponentPosition.PrecedingParticle => $"{quote.Spell(orthography)} …", _ => $"… {quote.Spell(orthography)}" }
+            : "unmarked";
+        var want = complementation.Desiderative.Marking?.Value switch
+        {
+            ModalAffix a => $"'want' is {Spelled(a.Position, a.Marker)} on the verb",
+            ModalParticle p => $"'want' is {((Morpheme)p.Marker).Spell(orthography)} {(p.BeforeVerb ? "before" : "after")} the verb",
+            _ => "'want' is a verb",
+        };
+        output.WriteLine($"Complement clauses: 'that' {Complements(ComplementKind.Proposition)}; 'to' {Complements(ComplementKind.Event)}; quotations {quotative}; " +
+            $"{(complementation.Last ? "last in the clause" : "where the object goes")}; {want}");
         output.WriteLine("Comparison: " + lang.Comparison switch
         {
             LocationalComparison l => $"the standard is marked like a place, as the {l.Role.ToString().ToLowerInvariant()} is",
@@ -373,6 +400,15 @@ public static class LanguageDescription
                 "where is the cat?"),
             (new Question(new Clause("sleep", Tense.Present, Aspect.Imperfective, Phrase("dog", Number.Singular), Negative: true) { Adverbs = [] }, true), "why doesn't the dog sleep?"),
         ];
+        (Statement Clause, string Translation)[] complements =
+        [
+            (new Clause("say", Tense.Past, Aspect.Perfective, Phrase("person", Number.Singular), new ComplementClause(ComplementKind.Proposition,
+                new Clause("sleep", Tense.Past, Aspect.Imperfective, Phrase("dog", Number.Singular)) { Adverbs = [] }, false)) { Adverbs = [] }, "the person said that the dog was sleeping"),
+            (new Clause("want", Tense.Present, Aspect.Imperfective, Phrase("cat", Number.Singular), new ComplementClause(ComplementKind.Event,
+                new Clause("eat", Tense.Present, Aspect.Imperfective, Phrase("cat", Number.Singular), Phrase("fish", Number.Singular)) { Adverbs = [] }, true)) { Adverbs = [] }, "the cat wants to eat the fish"),
+            (new Clause("say", Tense.Past, Aspect.Perfective, Phrase("bird", Number.Singular), new Quotation(new Command("walk", Number.Singular,
+                Obliques: [new(Role.Goal, Phrase("house", Number.Singular), Configuration.At)]) { Adverbs = [] })) { Adverbs = [] }, "the bird said, \"go to the house\""),
+        ];
         (Statement Clause, string Translation)[] adverbs =
         [
             (new Clause("sleep", Tense.Present, Aspect.Imperfective, Phrase("dog", Number.Singular)) { Adverbs = [new Adverb("now", AdverbKind.When)] }, "the dog is sleeping now"),
@@ -386,7 +422,7 @@ public static class LanguageDescription
         ];
         (Statement Clause, string Translation)[] all =
             [.. examples, .. copular, .. commands, .. copularCommands, .. coordinated, .. subordinated, .. passives, .. comparatives, .. addressed, .. modalized, .. questions,
-                .. adverbs];
+                .. complements, .. adverbs];
         foreach (var (clause, translation) in all)
         {
             output.WriteLine();

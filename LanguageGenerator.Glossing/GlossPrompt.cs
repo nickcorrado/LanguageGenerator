@@ -193,6 +193,32 @@ public static class GlossPrompt
                   need  subject:2SG  object:rope.NDF
                   purpose  cross  object:river.DEF
 
+            - A clause that's the object of a verb goes inside it, in square brackets, starting with
+              that or to. that is for what's said, known, thought, seen or heard, which has a time of
+              its own; write it even where English leaves 'that' out. to is for what's wanted, tried,
+              begun or told to be done, whose time the main verb sets, so its verb has no tense or
+              aspect, and it leaves out its subject when that's the main clause's subject:
+
+                I told you that you were late
+                  tell.PST.PFV  subject:1SG  recipient:2SG  object:[that  be.PST  subject:2SG  adjective:late]
+                who told you that I was coming?
+                  tell.PST.PFV  subject:who  recipient:2SG  object:[that  come.PST  subject:1SG]
+                they want to go home
+                  want  subject:3PL  object:[to  go  goal:home]
+                I told you to wait
+                  tell.PST.PFV  subject:1SG  recipient:2SG  object:[to  wait  subject:2SG]
+
+            - What someone says word for word, in quotation marks, is quote:[...] on the verb of
+              saying, said as the speaker said it, so its 'I' and 'you' are the speaker's, and it can
+              be a command or a question. Its English line keeps the quotation marks:
+
+                "you are late," she says
+                  say  subject:3SG.F  quote:[be  subject:2SG  adjective:late]
+                "sit down," he says
+                  say  subject:3SG.M  quote:[sit.IMP]
+
+              A quotation's sentences after the first, with no verb of saying, are glossed as they
+              are.
             - Noun phrases joined by and or or go in parentheses with the conjunction first:
               object:(and (purse.NDF empty) sword.NDF) for 'an empty purse and a sword', or
               object:(or rope.NDF boat.NDF). Adjectives said together go the same way:
@@ -219,14 +245,14 @@ public static class GlossPrompt
               men', without 'here'.
             - Paraphrase into what the format can say when that keeps the meaning, as with 'went' for
               walk.PST, or 'lives in' for be with location:.
-            - Never drop a modal, like might, maybe or want to, that has no gloss: 'it might rain'
+            - Never drop a modal, like might or maybe, that has no gloss: 'it might rain'
               doesn't say 'it rains'.
             - Never drop or paraphrase away a word that negates, like 'nobody', 'nothing' or 'no':
               'nobody believes him' is subject:nobody, not 'people do not believe him', and 'she
               says no' keeps object:no.
             - When a sentence can't be said even loosely, as with a question asking two things, or
-              when, how, how long, which or whose, or a question inside another clause, a modal other than ABIL,
-              PERM, OBLIG or ADVS (like might, maybe or want to), a relative
+              when, how, how long, which or whose, or a question inside another clause that isn't quoted (like 'did anyone see what happened?'), a modal other than ABIL,
+              PERM, OBLIG or ADVS (like might or maybe), a relative
               clause, a comparison other than an adjective with be (like 'runs faster than',
               'stronger arms than yours' or 'as tall as'), a comparison with a clause (like 'warmer
               than it should be' or 'slower than before'), the most or a superlative (like 'the
