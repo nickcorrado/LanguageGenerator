@@ -47,7 +47,7 @@ A language marks each modal with an affix, a word of its own or a verb, as WALS 
 
 ### Questions
 
-A yes-no question has `Q` on its verb. A question asking who, what, where or why has no `Q`, and its question word goes in the role it asks about. `why` fills no role, so it's written on its own:
+A yes-no question has `Q` on its verb. A question asking who, what, where, when, why or how has no `Q`, and its question word goes in the role it asks about. `why` and `how` fill no role, so they're written on their own:
 
 | Written | Means |
 | --- | --- |
@@ -58,8 +58,10 @@ A yes-no question has `Q` on its verb. A question asking who, what, where or why
 | `be  subject:key.DEF  location:where` | 'where is the key?' |
 | `get.PST  subject:2SG  object:DIST  source:where` | 'where did you get that?' |
 | `come.PST.NEG  subject:2SG  why` | 'why didn't you come?' |
+| `arrive.PST  subject:3PL  time:when` | 'when did they arrive?' |
+| `come.PST  subject:2SG  goal:here  how` | 'how did you get here?' |
 
-`where` asks about a place, so it's `location:where`, `goal:where` for 'where to' or `source:where` for 'where from'. A question asks one thing, and its question word fills a role directly, not inside a noun phrase, as 'whose' would, or a coordination. A question word can't take a configuration, as in 'under what?'. Questions with 'when', 'how' or 'which', `noun:who` for 'who are you?', and a question joined to or under another clause can't be said yet.
+`where` asks about a place, so it's `location:where`, `goal:where` for 'where to' or `source:where` for 'where from', and `when` about a time, so it's `time:when`, taking the time's marker as `where` takes the place's, as Turkish *ne zaman* 'what time' is. `why` and `how` are words of their own, which go first where the language puts question words first, and otherwise where obliques go. A question asks one thing, and its question word fills a role directly, not inside a noun phrase, as 'whose' would, or a coordination. A question word can't take a configuration, as in 'under what?'. Questions with 'how long', 'how often', 'how many' or 'which', `noun:who` for 'who are you?', and a question joined to or under another clause can't be said yet.
 
 How a language marks a yes-no question follows WALS 116A: a particle, which goes first, last or after the first word as WALS 92A counts them for OV and VO languages; an affix on the finite verb, outside everything else on it; the finite verb first, as German does; or intonation alone, which the text doesn't show. A content question puts its question word first, with the rest of its phrase, in the share of languages WALS 93A counts for each word order, as English does, and otherwise leaves it in place, as Mandarin and Japanese do, with `why` where obliques go. The particle and affix are glossed `Q`, as the Leipzig rules gloss a question marker, and the question words by what they ask, `who`, `what`, `where` and `why`. A question word takes its role's case and adposition as a noun would, so 'where from' can be 'where-ABL'.
 
@@ -97,9 +99,9 @@ A clause can say when, how often, how and for how long, with any number of each:
 | `be  subject:1SG  adjective:tired.INTS` | 'I am very tired' |
 | `walk  subject:3SG  manner:slow.INTS` | 'she walks very slowly' |
 
-`when:` is a word of its own saying when, like *now*, *then* or *yesterday*, and `often:` one saying how often or whether something still goes on, like *again*, *always* or *still*; the language coins a root for each. `manner:` says how, as an adjective the language makes into an adverb its own way, so 'carefully' is `manner:careful`, 'suddenly' `manner:sudden` and 'well' `manner:good`. Which role an adverb is in says how near the verb it goes, so nothing has to know English adverbs by name. `time:` and `duration:` take a noun phrase, as other roles do, and `be` takes them too. `INTS` on any adjective says 'very', or 'much' with `CMPR`, as `small.CMPR.INTS` is 'much smaller'.
+`when:` is a word of its own saying when, like *now*, *then* or *yesterday*, and `often:` one saying how often or whether something still goes on, like *again* or *still*; the language coins a root for each. `manner:` says how, as an adjective the language makes into an adverb its own way, so 'carefully' is `manner:careful`, 'suddenly' `manner:sudden` and 'well' `manner:good`. Which role an adverb is in says how near the verb it goes, so nothing has to know English adverbs by name. `time:` and `duration:` take a noun phrase, as other roles do, and `be` takes them too. `INTS` on any adjective says 'very', or 'much' with `CMPR`, as `small.CMPR.INTS` is 'much smaller'.
 
-*Here* and *there* fill a role saying where, as `where` does (see [Demonstratives](#demonstratives)), and so do *somewhere*, *nowhere* and *everywhere* (see [Quantifiers and indefinites](#quantifiers-and-indefinites)). Other words for where, like *inside* and *upstream*, can't be said yet, and neither can *ago* or *later* after a noun, a manner that compares, as in 'more slowly', or a question asking when, how or for how long.
+*Here* and *there* fill a role saying where, as `where` does (see [Demonstratives](#demonstratives)), and so do *somewhere*, *nowhere* and *everywhere* (see [Quantifiers and indefinites](#quantifiers-and-indefinites)). Other words for where, like *inside* and *upstream*, can't be said yet, and neither can *ago* or *later* after a noun or a manner that compares, as in 'more slowly'. *Never*, *always* and *sometime* are times, in `time:` (see [Quantifiers and indefinites](#quantifiers-and-indefinites)).
 
 Adverbs and manners go where obliques go, ordered as described under [Modifier order](#modifier-order). An adverb is its bare root. A manner adverb is the adjective itself, as German *schnell* is 'quick' and 'quickly'; the adjective with an affix, as English *-ly* and Turkish *-ce* make one, glossed `ADV` as the Leipzig rules have it; or the adjective with a word beside it, as Mandarin *de* and Japanese *ni*, glossed `ADV` too. WALS doesn't count these, so the odds are guesses. A time is marked like a place in most languages, sharing the location's case or adposition, and otherwise by an adposition of its own glossed `during`. A duration is marked like the object, as Latin *duos annos* 'for two years' is accusative, like a time, or by an adposition glossed `for`. 'Very' is a word on the side the language puts degree words, the comparative's side where that's a word too, and is glossed `INTS`, as grammars commonly gloss an intensifier.
 
@@ -214,7 +216,7 @@ A definite article is the demonstrative in 69 of the 620 languages WALS 37A coun
 
 ## Quantifiers and indefinites
 
-A quantifier is a word in its noun's parentheses: `all`, `every`, `some`, `many`, `few`, `most` or `no`, with `every` for 'each' too. An indefinite pronoun fills a role as a noun does: `someone`, `something`, `nobody`, `nothing`, `everyone` and `everything`. `somewhere`, `nowhere` and `everywhere` go in `location:`, `goal:` and `source:` instead, as `here` does.
+A quantifier is a word in its noun's parentheses: `all`, `every`, `some`, `many`, `few`, `most` or `no`, with `every` for 'each' too. An indefinite pronoun fills a role as a noun does: `someone`, `something`, `nobody`, `nothing`, `everyone` and `everything`. `somewhere`, `nowhere` and `everywhere` go in `location:`, `goal:` and `source:` instead, as `here` does, and `sometime`, `never` and `always` in `time:`, as `when` does.
 
 | Written | Means |
 | --- | --- |
@@ -226,12 +228,14 @@ A quantifier is a word in its noun's parentheses: `all`, `every`, `some`, `many`
 | `see.PST  subject:1SG  object:something` | 'I saw something' |
 | `return  subject:(nobody relative:[go  subject:_  goal.in:forest.DEF])` | 'nobody who goes into the forest comes back' |
 | `bark  subject:dog.NDF  location:somewhere` | 'a dog barks somewhere' |
+| `want.PST  subject:3SG.N  object:price.NDF  time:always` | 'it has always wanted a price' |
+| `come.PST  subject:2SG  time:never` | 'you never came' |
 
-A quantifier never goes with `NDF`, and `every` and `no` go with neither `DEF` nor a demonstrative. Only `all` goes with a number. An indefinite pronoun takes no glosses, and nothing in parentheses but a relative clause. English *anyone*, *anything* and *anywhere* are `nobody`, `nothing` and `nowhere` in a negated clause, and `someone`, `something` and `somewhere` in a question. A clause with `nobody`, `nothing`, `nowhere` or `no` takes no `NEG`: the language adds negation itself where it needs it.
+A quantifier never goes with `NDF`, and `every` and `no` go with neither `DEF` nor a demonstrative. Only `all` goes with a number. An indefinite pronoun takes no glosses, and nothing in parentheses but a relative clause. English *anyone*, *anything*, *anywhere* and *ever* are `nobody`, `nothing`, `nowhere` and `never` in a negated clause, and `someone`, `something`, `somewhere` and `sometime` in a question. A clause with `nobody`, `nothing`, `nowhere`, `never` or `no` takes no `NEG`: the language adds negation itself where it needs it.
 
 A quantifier is a word, which goes outside the numeral, before or after the noun, and doesn't agree. It goes on the side numerals do in most languages, as Greenberg and Dryer find, but nobody counts it, so the odds are a guess. The word for 'many' is the numerals' word for it, where they have one.
 
-Indefinite pronouns follow WALS 46A. Most languages make them from their question words, as Japanese *dare-ka* 'who-INDF' is 'someone' and *dare-mo* 'who-UNIV' 'everyone', with a marker for each series, glossed `INDF`, `NEG` or `UNIV`, which goes on the question word as a word or an affix inside its case. Many make them from nouns for 'person', 'thing' and 'place' with the quantifier, as English *some-body* and *no-thing* do. A few have words of their own, glossed `someone`, `nothing` and so on. In some, 'someone' is made one way and 'something' the other, as in Semelai and Maori, and a place goes as a thing does. Each inflects as a singular noun in its role's case.
+Indefinite pronouns follow WALS 46A. Most languages make them from their question words, as Japanese *dare-ka* 'who-INDF' is 'someone' and *dare-mo* 'who-UNIV' 'everyone', with a marker for each series, glossed `INDF`, `NEG` or `UNIV`, which goes on the question word as a word or an affix inside its case. Many make them from nouns for 'person', 'thing', 'place' and 'time' with the quantifier, as English *some-body* and *no-thing* do. A few have words of their own, glossed `someone`, `nothing` and so on. In some, 'someone' is made one way and 'something' the other, as in Semelai and Maori, and a place or a time goes as a thing does. Each inflects as a singular noun in its role's case.
 
 Whether *nobody* takes the verb's negation too follows WALS 115A: it does in most languages, as Russian *nikto ne prišël* 'nobody not came' does; it doesn't in a few, as in English; and in some it does only where it follows the verb, as Spanish has *no vino nadie* but *nadie vino*. Where it comes is where its role goes in the language's order. With a modal, it's the modal that's negated, as in Russian *nikto ne možet* 'nobody not can'.
 
