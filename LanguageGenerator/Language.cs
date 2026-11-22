@@ -47,13 +47,14 @@ public class Language
     /// <summary>How relative clauses are made: where they go, how their noun's role is said, and what marks them.</summary>
     public required Relativization Relativization { get; init; }
     public required Modals Modals { get; init; }
-    /// <summary>How the language marks the perfect and the progressive.</summary>
+    /// <summary>How the language marks the perfect, the progressive and the habitual, and beginning and ceasing.</summary>
     public required Aspects Aspects { get; init; }
     public required Questions Questions { get; init; }
 
     /// <summary>
     /// The verb an aspect's auxiliary is: the language's own 'have', 'finish' or 'sit', or its copula,
-    /// which for a progressive is the one that says where, as Spanish estar is.
+    /// which for a progressive is the one that says where, as Spanish estar is, and otherwise the
+    /// one that says what.
     /// </summary>
     //the lexicon's verbs are coined when the language is generated, so that a frozen lexicon has them
     public Lexeme AuxiliaryVerb(AspectAuxiliary auxiliary, Aspect aspect) => auxiliary.Kind switch

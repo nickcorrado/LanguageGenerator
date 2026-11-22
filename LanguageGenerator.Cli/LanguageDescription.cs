@@ -294,16 +294,19 @@ public static class LanguageDescription
             ModalVerb v => $"the verb {SpelledWord(v.Verb)} {(v.BeforeVerb ? "before" : "after")} the bare verb",
         };
         output.WriteLine($"Modals: {string.Join(", ", lang.Modals.Markers.Select(m => $"{m.Key.Gloss} {Modal(m.Value)}"))}");
-        string Aspectual(Aspect aspect, AspectMarking? marking, string without) => marking?.Value switch
+        string Aspectual(Grammeme aspect, AspectMarking? marking, string without) => marking?.Value switch
         {
             null => without,
             AspectAffix a => Spelled(a.Position, a.Marker),
             AspectParticle p => $"{((Morpheme)p.Marker).Spell(orthography)} {(p.BeforeVerb ? "before" : "after")} the verb",
-            AspectAuxiliary x => $"the verb {SpelledWord(lang.AuxiliaryVerb(x, aspect))} {(x.BeforeVerb ? "before" : "after")} the bare verb",
+            AspectAuxiliary x when aspect is Aspect auxiliaryOf => $"the verb {SpelledWord(lang.AuxiliaryVerb(x, auxiliaryOf))} {(x.BeforeVerb ? "before" : "after")} the bare verb",
             _ => throw new InvalidOperationException(),
         };
         output.WriteLine($"Perfect: {Aspectual(Aspect.Perfect, lang.Aspects.Perfect.MarkingOf(Aspect.Perfect), "none, so it's said as a perfective past")}");
         output.WriteLine($"Progressive: {Aspectual(Aspect.Progressive, lang.Aspects.Progressive.MarkingOf(Aspect.Progressive), "none, so it's said as an imperfective")}");
+        output.WriteLine($"Habitual: {Aspectual(Aspect.Habitual, lang.Aspects.Habitual.MarkingOf(Aspect.Habitual), "none, so it's said as an imperfective")}");
+        output.WriteLine($"Inceptive: {Aspectual(Phase.Inceptive, lang.Aspects.MarkingOf(Phase.Inceptive), "none, so it's said with a verb for 'begin'")}");
+        output.WriteLine($"Cessative: {Aspectual(Phase.Cessative, lang.Aspects.MarkingOf(Phase.Cessative), "none, so it's said with a verb for 'stop'")}");
         var questions = lang.Questions;
         var polar = questions.Polar switch
         {
@@ -481,6 +484,13 @@ public static class LanguageDescription
             (new Clause("sleep", Tense.Present, Aspect.Progressive, Phrase("dog", Number.Plural)) { Adverbs = [] }, "the dogs are sleeping"),
             (new Question(new Clause("eat", Tense.Past, Aspect.Progressive, Phrase("cat", Number.Singular), Phrase("fish", Number.Singular)) { Adverbs = [] }, null),
                 "was the cat eating the fish?"),
+            (new Clause("eat", Tense.Past, Aspect.Habitual, Phrase("dog", Number.Plural), new NounPhrase("fish", Number.Singular)) { Adverbs = [] }, "the dogs used to eat fish"),
+            (new Clause("begin", Tense.Past, Aspect.Perfective, Phrase("cat", Number.Singular),
+                new ComplementClause(ComplementKind.Event, new Clause("sleep", Tense.Present, Aspect.Imperfective, Phrase("cat", Number.Singular)) { Adverbs = [] }, SharesSubject: true)) { Adverbs = [] },
+                "the cat began to sleep"),
+            (new Clause("stop", Tense.Present, Aspect.Imperfective, Phrase("dog", Number.Singular),
+                new ComplementClause(ComplementKind.Event, new Clause("eat", Tense.Present, Aspect.Imperfective, Phrase("dog", Number.Singular), Phrase("fish", Number.Singular)) { Adverbs = [] }, SharesSubject: true)) { Adverbs = [] },
+                "the dog stops eating the fish"),
         ];
         (Statement Clause, string Translation)[] questions =
         [

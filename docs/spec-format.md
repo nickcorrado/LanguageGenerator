@@ -41,7 +41,7 @@ Rules keep a value written in from contradicting what was drawn before it: a spa
 - An oblique case needs its role to head its region: a dative can't be fixed along with the edge joining recipients to possessors, since the genitive would mark them both.
 - A configuration marked by case needs nouns that inflect, and a case on the location's region.
 - A configuration said like at needs edges joining it to at, one with a marker of its own can't be joined to at, and configurations joined into one region share its marker.
-- An isolating language has no affixes, so negation and polar questions can't be a prefix or suffix, possession can't be marked on the possessed noun, and a comparative, similative, modal, perfect, progressive, article or demonstrative can't be an affix.
+- An isolating language has no affixes, so negation and polar questions can't be a prefix or suffix, possession can't be marked on the possessed noun, and a comparative, similative, modal, perfect, progressive, habitual, inceptive, cessative, article or demonstrative can't be an affix.
 - An article agreeing in gender needs genders, and an article that can agree: a definite article, or an indefinite one that isn't the word for 'one'.
 - A demonstrative agreeing in gender needs genders, and one that's an affix can't stand alone, so its pronouns need stems of their own.
 - Only a definite article of its own, a word or an affix, can stay beside a demonstrative.
@@ -129,6 +129,9 @@ The symbols are the generator's 53 phonemes, given exactly, so `ʦ` and not `ts`
 | `ability-modal`, `permission-modal`, `obligation-modal`, `advisability-modal` | `Affix`, `Verb` or `Particle`, how 'can', 'may', 'must' and 'should' are marked |
 | `perfect` | `None`, `Affix`, `Particle`, or an auxiliary verb: `Have`, `Be` or `Finish`, how a perfect like 'has gone' is marked |
 | `progressive` | `None`, `Affix`, `Particle`, or an auxiliary verb: `Be`, the copula that says where, or `Sit`, how a progressive like 'is waiting' is marked |
+| `habitual` | `None`, `Affix`, `Particle`, or the auxiliary `Be`, how a habitual like 'used to go' is marked |
+| `inceptive` | `None`, where it's said with a verb for 'begin', `Affix` or `Particle`, how beginning to do something is marked on the verb |
+| `cessative` | `None`, where it's said with a verb for 'stop', `Affix` or `Particle`, how ceasing to do something is marked on the verb |
 | `possession` | `Dependent`, marking the possessor, `Head`, marking the possessed noun, `Double`, marking both, or `None` |
 | `possessive-affixes` | `Prefix` or `Suffix`, the side of the possessed noun its affix goes on, where possession is marked there |
 | `genders` | `None`, `MasculineFeminine`, `MasculineFeminineNeuter`, `AnimateInanimate` |

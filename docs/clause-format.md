@@ -22,6 +22,7 @@ Anything the generator can't express yet, like a superlative, is an error naming
 | `NEG` | Negates the clause | `see.PST.NEG` |
 | `PRF` | A perfect, as in 'has gone', or with `PST` 'had gone' | `repair.PRF  subject:nobody  object:3SG.N` |
 | `PROG` | A progressive, as in 'is waiting', or with `PST` 'was waiting' | `mend.PST.PROG  subject:3SG.F  object:net.NDF` |
+| `HAB` | A habitual, as in 'usually drinks', or with `PST` 'used to drink' | `walk.PST.HAB  subject:3SG.F  goal:there` |
 | `IMP` | A command, with no tense or aspect | `drink.IMP.NEG  object:wine` |
 | `PASS` | Passive, with what's done to as its subject and `agent:` saying who does it | `carry.PASS  subject:light.DEF  agent:(figure.NDF small)` |
 | `ABIL` | Its subject can, as in 'you can swim' | `swim.ABIL  subject:2SG` |
@@ -32,9 +33,15 @@ Anything the generator can't express yet, like a superlative, is an error naming
 
 A command has no subject, unless it's `subject:2PL` for several people.
 
-### Perfect and progressive
+### Perfect, progressive and habitual
 
-`PRF` and `PROG` are aspects, so they take the place of `PFV` and `IPFV`, and go with any tense. A language marks each with an affix, a word of its own, or an auxiliary verb, as WALS 68A counts the perfect: from 'have', as English *has gone* is, from 'finish', as in much of Southeast Asia, or with the copula, as French *est venu* is. A progressive is mostly made with the copula that says where, as Spanish *está esperando* is, or with 'sit', as Dutch *zit te wachten* is. An auxiliary takes the tense, agreement and negation, with the verb bare beside it, as a modal verb does, and is glossed by what it means, `have`, `finish`, `sit`, or the copula's gloss. About half of languages have no perfect, and say it as a perfective, in the past where it's present, as Russian *nikto ne počinil* 'nobody repaired' says 'nobody has repaired'; a language with no progressive says it as an imperfective. A modal can't take either yet, so 'must have gone' can't be said.
+`PRF`, `PROG` and `HAB` are aspects, so they take the place of `PFV` and `IPFV`, and go with any tense. A language marks each with an affix, a word of its own, or an auxiliary verb, as WALS 68A counts the perfect: from 'have', as English *has gone* is, from 'finish', as in much of Southeast Asia, or with the copula, as French *est venu* is. A progressive is mostly made with the copula that says where, as Spanish *está esperando* is, or with 'sit', as Dutch *zit te wachten* is. An auxiliary takes the tense, agreement and negation, with the verb bare beside it, as a modal verb does, and is glossed by what it means, `have`, `finish`, `sit`, or the copula's gloss. About half of languages have no perfect, and say it as a perfective, in the past where it's present, as Russian *nikto ne počinil* 'nobody repaired' says 'nobody has repaired'; a language with no progressive says it as an imperfective. A modal can't take either yet, so 'must have gone' can't be said.
+
+`HAB` is for what's done again and again, as English says with *used to*, a past *would*, or a word like *usually*. WALS has no chapter on it, so its odds are guesses after Bybee, Perkins and Pagliuca and Dahl, who find habituals more often affixes than progressives are, as Turkish *-Ir* is, and some made with the copula, as Hindi *jātā hai* 'goes, habitually' is. Most languages have none, and say a habit as an imperfective, as WALS 65A finds theirs covering habituals.
+
+### Beginning and ceasing
+
+Beginning or ceasing to do something is written with the verbs `begin` and `stop` and a clause starting with `to`, as in `begin.PST.PFV  subject:3SG.N  object:[to  hum]` for 'it began to hum', since that's how most languages say it. A language that marks it on the verb, with an inceptive or a cessative, as Russian *za-pel* 'started singing' does, says that clause as `hum.PST.PFV.INCEP` instead, or `CESS` for one with `stop`: what's begun takes the tense, aspect, negation and modifiers of `begin`, and goes as one clause. Its marker, an affix or a word of its own, goes nearer the verb than an aspect's and further than a passive's. Where what's begun has a subject of its own, is negated itself, is a clause with `be`, or begins, stops or wants something itself, the language says `begin` or `stop` as a verb, as it does `begin` or `stop` with no clause, as in 'the song stops'. `INCEP` and `CESS` can't be written in a clause file. Nobody counts inceptives or cessatives on the verb, so their odds are guesses too, a cessative rarer than an inceptive.
 
 ### Modals
 

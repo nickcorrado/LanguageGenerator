@@ -117,7 +117,7 @@ public static partial class Generator
             lexicon.Noun(Indefinites.NounFor(kind));
         }
         //and so are the verbs an aspect's auxiliary is, as English 'has gone' needs 'have'
-        foreach (var marker in (AspectMarker[])[aspects.Perfect, aspects.Progressive])
+        foreach (var marker in (AspectMarker[])[aspects.Perfect, aspects.Progressive, aspects.Habitual])
         {
             if (Language.AuxiliaryMeaning(marker.Kind) is { } meaning)
             {

@@ -485,6 +485,7 @@ public static class ClauseFile
     {
         Mood m when m == Mood.Prohibitive => new($"Write a command not to do something as {verb}.IMP.NEG, not {verb}.{m.Gloss}.", number),
         Person or Number => new($"'{verb}' can't take {feature.Gloss}: a verb agrees with its subject.", number),
+        Phase p => new($"Write {verb}.{p.Gloss} as {(p == Phase.Inceptive ? "begin" : "stop")} object:[to  {verb}], which a language with {(p == Phase.Inceptive ? "an" : "a")} {p.Name.ToLowerInvariant()} says with {p.Gloss} on its verb.", number),
         _ => new($"'{verb}' can't take {feature.Gloss} ({feature.Name}) yet: verbs have only tense, aspect, polarity, the imperative, Q for a question, the passive and the modals {string.Join(", ", ValuesOf<Modality>().Select(m => m.Gloss))}.", number),
     };
 
