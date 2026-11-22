@@ -43,13 +43,15 @@ public record Modals(IReadOnlyList<(Modality First, Modality Second)> Joined, IR
 /// <summary>
 /// A semantic map of the modalities, after van der Auwera and Plungian's: which share a marker in
 /// languages, as English can is both 'able to' and 'allowed to', and French devoir both 'must' and,
-/// in the conditional, 'should'.
+/// in the conditional, 'should'. An epistemic modal joins the map through the situational one
+/// it grew from, 'might' through 'may' and a sure 'must' through an obliging one.
 /// </summary>
-//WALS counts none of this, so every weight is a guess
+//WALS counts none of the situational edges, so their weights are guesses
 public static class ModalityMap
 {
     /// <summary>The modalities, in no order that matters but the edges'.</summary>
-    public static IReadOnlyList<Modality> Modalities { get; } = [Modality.Ability, Modality.Permission, Modality.Obligation, Modality.Advisability];
+    public static IReadOnlyList<Modality> Modalities { get; } =
+        [Modality.Ability, Modality.Permission, Modality.Obligation, Modality.Advisability, Modality.Dubitative, Modality.Presumptive];
 
     public static IReadOnlyList<(Modality First, Modality Second, double Weight)> Edges { get; } =
     [
@@ -65,6 +67,14 @@ public static class ModalityMap
           should, German sollen or Russian sledovalo by
          */
         (Modality.Obligation, Modality.Advisability, 0.5),
+        /*
+          van der Auwera and Plungian find epistemic possibility growing out of permission and
+          epistemic necessity out of obligation, as English may and must are both. WALS 76A counts
+          the two overlaps together, so Generator.GenerateModals draws them together from its table,
+          and these weights are each one's share alone, where 'either' is split evenly
+         */
+        (Modality.Permission, Modality.Dubitative, 69.0 / 207),
+        (Modality.Obligation, Modality.Presumptive, 69.0 / 207),
     ];
 
     /// <summary>The English verb that glosses a modal verb in this meaning.</summary>
@@ -73,13 +83,16 @@ public static class ModalityMap
         : modality == Modality.Permission ? "may"
         : modality == Modality.Obligation ? "must"
         : modality == Modality.Advisability ? "should"
+        : modality == Modality.Dubitative ? "might"
+        : modality == Modality.Presumptive ? "must"
         : throw new ArgumentOutOfRangeException(nameof(modality), modality, null);
 }
 
 /// <summary>
 /// A statement said to be possible or necessary, as in 'you must find the key'. Negative negates
 /// the modal, as in 'you cannot swim', and the statement's own negation its verb, as in 'you must
-/// not sing'.
+/// not sing'. An epistemic one judges the statement whole, its tense and aspect too, as in 'he
+/// must have left'.
 /// </summary>
 //a clause with a verb, a passive or a copular clause
 public record Modalized(Statement Clause, Modality Modality, bool Negative);

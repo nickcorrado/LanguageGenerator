@@ -287,13 +287,14 @@ public static class LanguageDescription
             MannerAffix a => $"{Spelled(a.Position, a.Marker)} on the adjective",
             MannerWord w => $"{((Morpheme)w.Marker).Spell(orthography)} {(w.BeforeAdjective ? "before" : "after")} the adjective",
         });
-        string Modal(ModalMarking marking) => marking switch
+        string Modal(Modality modality, ModalMarking marking) => marking switch
         {
             ModalAffix a => Spelled(a.Position, a.Marker),
             ModalParticle p => $"{((Morpheme)p.Marker).Spell(orthography)} {(p.BeforeVerb ? "before" : "after")} the verb",
+            ModalVerb v when modality.Epistemic => $"the verb {SpelledWord(v.Verb)} said impersonally, with the clause as its complement",
             ModalVerb v => $"the verb {SpelledWord(v.Verb)} {(v.BeforeVerb ? "before" : "after")} the bare verb",
         };
-        output.WriteLine($"Modals: {string.Join(", ", lang.Modals.Markers.Select(m => $"{m.Key.Gloss} {Modal(m.Value)}"))}");
+        output.WriteLine($"Modals: {string.Join(", ", lang.Modals.Markers.Select(m => $"{m.Key.Gloss} {Modal(m.Key, m.Value)}"))}");
         string Aspectual(Grammeme aspect, AspectMarking? marking, string without) => marking?.Value switch
         {
             null => without,
@@ -476,6 +477,9 @@ public static class LanguageDescription
             (new Modalized(new Clause("sleep", Tense.Present, Aspect.Imperfective, Phrase("cat", Number.Singular)) { Adverbs = [] }, Modality.Permission, false), "the cat may sleep"),
             (new Modalized(new Clause("eat", Tense.Present, Aspect.Imperfective, Phrase("dog", Number.Plural), Phrase("fish", Number.Singular), true) { Adverbs = [] }, Modality.Obligation, false),
                 "the dogs must not eat the fish"),
+            (new Modalized(new Clause("eat", Tense.Present, Aspect.Perfect, Phrase("cat", Number.Singular), Phrase("fish", Number.Singular)) { Adverbs = [] }, Modality.Presumptive, false),
+                "the cat must have eaten the fish"),
+            (new Modalized(new Clause("sleep", Tense.Present, Aspect.Progressive, Phrase("dog", Number.Singular)) { Adverbs = [] }, Modality.Dubitative, false), "the dog might be sleeping"),
         ];
         (Statement Clause, string Translation)[] aspects =
         [

@@ -45,6 +45,20 @@ public static class GlossPrompt
                 you should not follow them
                   follow.NEG.ADVS  subject:2SG  object:3PL
 
+            - A modal can also be the speaker's judgment of whether something is so: DUB for 'may',
+              'might' or 'could' meaning perhaps, and for 'maybe' or 'perhaps', and PRSM for 'must'
+              meaning surely, and for 'surely' or 'probably'. These judge the clause whole, so its
+              tense and aspect stay what they'd be without the modal, and they can take PRF and PROG.
+              'You must find the key' is OBLIG, but 'she must be tired' is PRSM; 'you may go' is PERM,
+              but 'it may rain' is DUB:
+
+                he must have left
+                  leave.PRF.PRSM  subject:3SG.M
+                maybe they are waiting for us
+                  wait.PROG.DUB  subject:3PL  object:1PL
+                she might not come
+                  come.NEG.DUB  subject:3SG.F
+
             - A passive verb has PASS, its subject is what's done to, and agent: is who does it, if the
               sentence says: 'each light is carried by a small figure' is
               carry.PASS  subject:(light every)  agent:(figure.NDF small). Keep a passive passive.
@@ -99,8 +113,8 @@ public static class GlossPrompt
               running' begin.PST.PFV object:[to  run], and 'everyone stops talking' stop
               object:[to  talk]. Begin or stop with no verb after it stays as it is, as in 'the forest
               begins where the fields end' or 'they stop'.
-            - A modal can't take PRF or PROG yet, so 'must have gone' or 'should be waiting' can't be
-              expressed.
+            - Only DUB and PRSM take PRF or PROG, so 'should have gone' or 'should be waiting' can't
+              be expressed.
 
             Pronouns are a person and number instead of a word, as in subject:1SG or object:3PL, then
             optionally .INCL or .EXCL for 'we' (whether it includes the hearer), and a gender for a

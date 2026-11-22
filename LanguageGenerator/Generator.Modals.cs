@@ -12,6 +12,24 @@ public static partial class Generator
         [(ModalKind.Affix, 63), (ModalKind.Verb, 158), (ModalKind.Particle, 13)];
 
     /*
+      WALS 75A: epistemic possibility by a verb in 65 languages, an affix or clitic on the verb in
+      84, and something else in 91, mostly adverbs and particles like English maybe, made a particle
+      here. WALS doesn't count epistemic necessity, so it's drawn the same way. These are for an
+      epistemic modal with a marker of its own; one sharing a situational modal's has that one's kind
+     */
+    private static readonly (ModalKind Value, int Languages)[] EpistemicCounts =
+        [(ModalKind.Affix, 84), (ModalKind.Verb, 65), (ModalKind.Particle, 91)];
+
+    /*
+      WALS 76A: of 207 languages, 36 use their situational markers for both epistemic possibility
+      and necessity, as English may and must do, 66 for one of them, as Hungarian lehet is 'can' and
+      'may be' but its 'must' isn't epistemic, and 105 for neither, as Evenki's epistemic suffixes
+      are its own. WALS doesn't say which of the two the 66 share, so they're split evenly
+     */
+    private static readonly ((bool Possibility, bool Necessity) Value, int Languages)[] EpistemicOverlapCounts =
+        [((true, true), 36), ((true, false), 33), ((false, true), 33), ((false, false), 105)];
+
+    /*
       a marker for each region of the modality map, drawn on its own, since languages often mark
       possibility and necessity differently, as Japanese has the suffix -e- for 'can' and a
       construction for 'must'. A modal verb is short, as frequent verbs are, and kept from sounding
@@ -30,10 +48,20 @@ public static partial class Generator
         }
 
         var markers = new Dictionary<Modality, ModalMarking>();
-        var joined = SemanticMap.Joined(rand, ModalityMap.Edges);
+        //the situational edges each on their own, and the epistemic ones together, as WALS 76A counts them
+        var joined = SemanticMap.Joined(rand, ModalityMap.Edges.Where(e => !e.Second.Epistemic));
+        var (possibility, necessity) = Sampling.Categorical(rand, EpistemicOverlapCounts);
+        if (possibility)
+        {
+            joined.Add((Modality.Permission, Modality.Dubitative));
+        }
+        if (necessity)
+        {
+            joined.Add((Modality.Obligation, Modality.Presumptive));
+        }
         foreach (var region in SemanticMap.Regions(ModalityMap.Modalities, joined))
         {
-            var kind = Sampling.Categorical(rand, ModalCounts);
+            var kind = Sampling.Categorical(rand, region.All(m => m.Epistemic) ? EpistemicCounts : ModalCounts);
             if (kind == ModalKind.Affix && morphology.Fusion == Fusion.Isolating)
             {
                 kind = ModalKind.Particle;

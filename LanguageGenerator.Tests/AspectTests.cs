@@ -184,8 +184,8 @@ public class AspectTests
         Assert.Equal(aspect is null ? Aspect.Imperfective : ClauseFile.ValuesOf<Aspect>().Single(a => a.Name == aspect), Assert.IsType<Clause>(Parsed(gloss).Value).Aspect);
 
     [Theory]
-    [InlineData("go.PRF.OBLIG  subject:3SG.M", "A modal can't take PRF")]
-    [InlineData("wait.PROG.ADVS  subject:2SG", "A modal can't take PROG")]
+    [InlineData("go.PRF.OBLIG  subject:3SG.M", "OBLIG can't take PRF")]
+    [InlineData("wait.PROG.ADVS  subject:2SG", "ADVS can't take PROG")]
     [InlineData("go.IMP.PRF", "a command has no tense or aspect")]
     [InlineData("go.PFV.PRF  subject:2SG", "more than one aspect")]
     public void Parse_BadAspects_SayWhy(string gloss, string message) =>

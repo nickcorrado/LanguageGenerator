@@ -54,9 +54,23 @@ Beginning or ceasing to do something is written with the verbs `begin` and `stop
 | `go.OBLIG.NEG  subject:2SG` | 'you don't have to go' |
 | `follow.NEG.ADVS  subject:2SG  object:3PL` | 'you shouldn't follow them' |
 
-'Could' is `ABIL.PST`. A modal works with `be` and `PASS` too, as in `be.OBLIG  subject:2SG  adjective:careful`, but not with a command or a comparison. Other modals, like 'might' and 'maybe', can't be said yet.
+'Could' is `ABIL.PST`. A modal works with `be` and `PASS` too, as in `be.OBLIG  subject:2SG  adjective:careful`, but not with a command or a comparison.
 
 A language marks each modal with an affix, a word of its own or a verb, as WALS 74A counts them. A modal verb takes the tense and agreement, with the verb bare beside it, and is glossed by what it means, `can`, `may`, `must` or `should`, while an affix or a word of its own is glossed `ABIL`, `PERM`, `OBLIG` or `ADVS`. The Leipzig rules have none of these; the first three are what grammars commonly use, and `ADVS`, for advisability, is coined here, since grammars have no common gloss for 'should'.
+
+#### Epistemic modals
+
+`DUB`, the dubitative, says the speaker thinks something may be so, as 'might', 'may', 'could', 'maybe' and 'perhaps' do, and `PRSM`, the presumptive, that it surely is, as 'must' and 'probably' do. They're the speaker's judgment of the whole clause rather than something about its subject, so the clause keeps the tense and aspect it would have without them, and they can take `PRF` and `PROG`, which the other modals can't yet:
+
+| Written | Means |
+| --- | --- |
+| `leave.PRF.PRSM  subject:3SG.M` | 'he must have left' |
+| `wait.PROG.DUB  subject:3PL  object:1PL` | 'maybe they're waiting for us' |
+| `come.NEG.DUB  subject:3SG.F` | 'she might not come' |
+
+WALS 75A counts how 240 languages say epistemic possibility: with an affix on the verb in 84, a verb in 65, and something else in 91, mostly adverbs and particles like English *maybe*, which are a particle here. Epistemic necessity isn't counted, so it's drawn the same way. An affix or particle goes on the verb as any modal's does, which leaves the verb its tense. A verb is said impersonally, with the clause as its complement, marked as the language marks what's said or known, as Greek *borí na éfige* 'it-may that he-left' and Hungarian *lehet, hogy elment* 'it may be that he left' are. It's glossed `might` or `must`, is present, since the judgment is the speaker's now, and takes 'it' as its subject, which a language that drops its pronouns leaves unsaid. A language that deranks such complements loses the clause's tense there, as it does under 'know'.
+
+Per WALS 76A, 36 of 207 languages use their situational modals epistemically for both possibility and necessity, as English *may* and *must* are both, 66 for one of the two, and 105 for neither. Van der Auwera and Plungian find epistemic possibility growing out of permission and necessity out of obligation, so `DUB` shares a marker with `PERM` and `PRSM` with `OBLIG` where they overlap; which of the two the 66 share isn't counted, so it's even. A shared verb is personal for its situational use and impersonal for its epistemic one, as Greek *boró* 'I can' and *borí* 'it may' are.
 
 ### Questions
 

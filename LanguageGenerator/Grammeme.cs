@@ -97,6 +97,16 @@ public record Modality(string Name, string Gloss) : Grammeme(Name, Gloss)
     public static Modality Obligation { get; } = new("Obligation", "OBLIG");
     /// <summary>Weakly obliged to, advised to, as in 'you should go' or 'you ought to go'.</summary>
     public static Modality Advisability { get; } = new("Advisability", "ADVS");
+    /// <summary>
+    /// Possibly so, as the speaker judges it, as in 'he might have left' or 'maybe it's here': an
+    /// epistemic modal, which judges the clause, its tense and all, rather than taking the tense.
+    /// </summary>
+    public static Modality Dubitative { get; } = new("Dubitative", "DUB");
+    /// <summary>Surely so, as the speaker judges it, as in 'he must have left' or 'she must be tired'.</summary>
+    public static Modality Presumptive { get; } = new("Presumptive", "PRSM");
+
+    /// <summary>Whether a modality is the speaker's judgment of the clause rather than about its subject.</summary>
+    public bool Epistemic => this == Dubitative || this == Presumptive;
 }
 
 /// <summary>
