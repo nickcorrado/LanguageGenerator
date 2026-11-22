@@ -260,7 +260,9 @@ public static class GlossPrompt
               adjective:(and warm crowded) for 'warm and crowded'.
             - Words for where besides 'here' and 'there', like 'inside', 'upstream' and 'somewhere',
               words like 'only' and 'even', and other conjunctions have no gloss: leave them out of
-              the gloss line when the meaning mostly survives.
+              the gloss line when the meaning mostly survives. Never put here or there in place of
+              one, since 'upstream' isn't 'there': where such a word is the point of the sentence,
+              as in 'there is a fallen tree upstream', the sentence can't be expressed.
             - A phrase with 'ago' or 'later' after its noun, as in 'three winters ago' or 'a month
               later', has no gloss either: leave out the whole phrase, not just 'ago' or 'later',
               since time:(winter.PL 3) alone would say 'during three winters'.
