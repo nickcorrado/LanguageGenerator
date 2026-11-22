@@ -113,6 +113,7 @@ north THING
 nothing THING
 object THING
 one THING
+other THING
 path THING
 person HUM
 place THING

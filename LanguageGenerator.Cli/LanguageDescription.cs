@@ -294,6 +294,16 @@ public static class LanguageDescription
             ModalVerb v => $"the verb {SpelledWord(v.Verb)} {(v.BeforeVerb ? "before" : "after")} the bare verb",
         };
         output.WriteLine($"Modals: {string.Join(", ", lang.Modals.Markers.Select(m => $"{m.Key.Gloss} {Modal(m.Value)}"))}");
+        string Aspectual(Aspect aspect, AspectMarking? marking, string without) => marking?.Value switch
+        {
+            null => without,
+            AspectAffix a => Spelled(a.Position, a.Marker),
+            AspectParticle p => $"{((Morpheme)p.Marker).Spell(orthography)} {(p.BeforeVerb ? "before" : "after")} the verb",
+            AspectAuxiliary x => $"the verb {SpelledWord(lang.AuxiliaryVerb(x, aspect))} {(x.BeforeVerb ? "before" : "after")} the bare verb",
+            _ => throw new InvalidOperationException(),
+        };
+        output.WriteLine($"Perfect: {Aspectual(Aspect.Perfect, lang.Aspects.Perfect.MarkingOf(Aspect.Perfect), "none, so it's said as a perfective past")}");
+        output.WriteLine($"Progressive: {Aspectual(Aspect.Progressive, lang.Aspects.Progressive.MarkingOf(Aspect.Progressive), "none, so it's said as an imperfective")}");
         var questions = lang.Questions;
         var polar = questions.Polar switch
         {
@@ -464,6 +474,14 @@ public static class LanguageDescription
             (new Modalized(new Clause("eat", Tense.Present, Aspect.Imperfective, Phrase("dog", Number.Plural), Phrase("fish", Number.Singular), true) { Adverbs = [] }, Modality.Obligation, false),
                 "the dogs must not eat the fish"),
         ];
+        (Statement Clause, string Translation)[] aspects =
+        [
+            (new Clause("eat", Tense.Present, Aspect.Perfect, Phrase("cat", Number.Singular), Phrase("fish", Number.Singular)) { Adverbs = [] }, "the cat has eaten the fish"),
+            (new Clause("see", Tense.Past, Aspect.Perfect, Phrase("dog", Number.Singular), Phrase("bird", Number.Plural), Negative: true) { Adverbs = [] }, "the dog hadn't seen the birds"),
+            (new Clause("sleep", Tense.Present, Aspect.Progressive, Phrase("dog", Number.Plural)) { Adverbs = [] }, "the dogs are sleeping"),
+            (new Question(new Clause("eat", Tense.Past, Aspect.Progressive, Phrase("cat", Number.Singular), Phrase("fish", Number.Singular)) { Adverbs = [] }, null),
+                "was the cat eating the fish?"),
+        ];
         (Statement Clause, string Translation)[] questions =
         [
             (new Question(new Clause("see", Tense.Past, Aspect.Perfective, Phrase("dog", Number.Singular), Phrase("cat", Number.Plural)) { Adverbs = [] }, null), "did the dog see the cats?"),
@@ -528,7 +546,7 @@ public static class LanguageDescription
                 { Adverbs = [] }, "the bird slept for three years"),
         ];
         (Statement Clause, string Translation)[] all =
-            [.. examples, .. copular, .. commands, .. copularCommands, .. coordinated, .. subordinated, .. passives, .. comparatives, .. addressed, .. modalized, .. questions,
+            [.. examples, .. copular, .. commands, .. copularCommands, .. coordinated, .. subordinated, .. passives, .. comparatives, .. addressed, .. modalized, .. aspects, .. questions,
                 .. complements, .. relatives, .. demonstrated, .. quantified, .. adverbs];
         foreach (var (clause, translation) in all)
         {

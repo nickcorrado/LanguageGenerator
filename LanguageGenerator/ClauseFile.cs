@@ -303,6 +303,11 @@ public static class ClauseFile
                 ? $"A command can't take {modality.Gloss}: it already says what to do."
                 : $"A comparison can't take {modality.Gloss} yet.", number);
         }
+        //'must have gone' is mostly epistemic, sure of a past, which the modals here aren't
+        if (features.Modality is not null && features.Aspect is { } aspect && (aspect == Aspect.Perfect || aspect == Aspect.Progressive))
+        {
+            throw new ClauseFormatException($"A modal can't take {aspect.Gloss} yet, as in 'must have gone' or 'should be waiting'.", number);
+        }
         var asked = CheckQuestion(features, roles, adverb, number);
 
         Statement statement;
@@ -1363,7 +1368,7 @@ public static class ClauseFile
         .Select(p => (Grammeme)p.GetValue(null)!)
         .ToDictionary(t => t.Gloss);
 
-    //a guess at the gloss meant, from its name: PAST or past for PST, PERF for PFV
+    //a guess at the gloss meant, from its name: PAST or past for PST, PERFECTIVE for PFV
     private static string Suggestion(string gloss)
     {
         var meant = Glosses.Values.FirstOrDefault(t => t.Name.StartsWith(gloss, StringComparison.OrdinalIgnoreCase))

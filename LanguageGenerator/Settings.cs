@@ -332,6 +332,14 @@ public static class Settings
             Choice<ModalKind>.Of(Enum.GetValues<ModalKind>()))),
     ];
 
+    public static Stage<Aspects> AspectStage { get; } = new("aspects", l => l.Aspects, null);
+    /// <summary>How the perfect is marked: not at all, by an affix, a particle, or an auxiliary 'have', 'be' or 'finish'.</summary>
+    public static Setting<Aspects, AspectKind> Perfect { get; } = AspectStage.Declare("perfect", Clauses,
+        a => a.Perfect.Kind, (a, kind) => a with { Perfect = a.Perfect with { Kind = kind } }, Choice<AspectKind>.Of([.. LanguageGenerator.Aspects.PerfectKinds]));
+    /// <summary>How the progressive is marked: not at all, by an affix, a particle, or an auxiliary 'be' or 'sit'.</summary>
+    public static Setting<Aspects, AspectKind> Progressive { get; } = AspectStage.Declare("progressive", Clauses,
+        a => a.Progressive.Kind, (a, kind) => a with { Progressive = a.Progressive with { Kind = kind } }, Choice<AspectKind>.Of([.. LanguageGenerator.Aspects.ProgressiveKinds]));
+
     //noun phrases
 
     public static Stage<Possession> PossessionStage { get; } = new("possession", l => l.Possession, null);
@@ -521,7 +529,7 @@ public static class Settings
     [
         VowelStage, ConsonantStage, SyllableStage, StressStage, ClusterRepairStage, SyllableContactStage, DropoffStage, SoundChangeStage, SyllableChangeStage, WordOrderStage, MorphologyStage, AlignmentStage,
         RoleRegionStage, CaseStage, ConfigurationRegionStage, ConfigurationPlanStage, NounParadigmStage, VerbParadigmStage, PronounStage, PredicationStage, LocationalCopulaStage, AdjectiveAgreementStage,
-        CommandStage, NegationStage, QuestionStage, PassiveStage, ModalStage, PossessionStage, GenderStage, NumeralStage, DemonstrativeStage, ArticleStage, IndefiniteStage, ConjunctionStage, SubordinationStage, ComplementationStage, RelativizationStage, ComparisonStage, DegreeStage, SimilativeStage,
+        CommandStage, NegationStage, QuestionStage, PassiveStage, ModalStage, AspectStage, PossessionStage, GenderStage, NumeralStage, DemonstrativeStage, ArticleStage, IndefiniteStage, ConjunctionStage, SubordinationStage, ComplementationStage, RelativizationStage, ComparisonStage, DegreeStage, SimilativeStage,
     ];
 
     /// <summary>Every setting, in the order they're declared.</summary>
@@ -531,7 +539,7 @@ public static class Settings
         .. SyllableContactStage.Settings, .. DropoffStage.Settings, .. SoundChangeStage.Settings, .. SyllableChangeStage.Settings, .. WordOrderStage.Settings, .. MorphologyStage.Settings, .. AlignmentStage.Settings, .. RoleRegionStage.Settings,
         .. CaseStage.Settings, .. ConfigurationRegionStage.Settings, .. ConfigurationPlanStage.Settings, .. NounParadigmStage.Settings,
         .. VerbParadigmStage.Settings, .. PronounStage.Settings, .. PredicationStage.Settings, .. LocationalCopulaStage.Settings, .. AdjectiveAgreementStage.Settings,
-        .. CommandStage.Settings, .. NegationStage.Settings, .. QuestionStage.Settings, .. PassiveStage.Settings, .. ModalStage.Settings, .. PossessionStage.Settings, .. GenderStage.Settings,
+        .. CommandStage.Settings, .. NegationStage.Settings, .. QuestionStage.Settings, .. PassiveStage.Settings, .. ModalStage.Settings, .. AspectStage.Settings, .. PossessionStage.Settings, .. GenderStage.Settings,
         .. NumeralStage.Settings, .. DemonstrativeStage.Settings, .. ArticleStage.Settings, .. IndefiniteStage.Settings, .. ConjunctionStage.Settings, .. SubordinationStage.Settings, .. ComplementationStage.Settings, .. RelativizationStage.Settings, .. ComparisonStage.Settings,
         .. DegreeStage.Settings, .. SimilativeStage.Settings,
     ];

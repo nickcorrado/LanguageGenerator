@@ -47,7 +47,32 @@ public class Language
     /// <summary>How relative clauses are made: where they go, how their noun's role is said, and what marks them.</summary>
     public required Relativization Relativization { get; init; }
     public required Modals Modals { get; init; }
+    /// <summary>How the language marks the perfect and the progressive.</summary>
+    public required Aspects Aspects { get; init; }
     public required Questions Questions { get; init; }
+
+    /// <summary>
+    /// The verb an aspect's auxiliary is: the language's own 'have', 'finish' or 'sit', or its copula,
+    /// which for a progressive is the one that says where, as Spanish estar is.
+    /// </summary>
+    //the lexicon's verbs are coined when the language is generated, so that a frozen lexicon has them
+    public Lexeme AuxiliaryVerb(AspectAuxiliary auxiliary, Aspect aspect) => auxiliary.Kind switch
+    {
+        AspectKind.Have or AspectKind.Finish or AspectKind.Sit => Lexicon.Verb(AuxiliaryMeaning(auxiliary.Kind)!),
+        AspectKind.Be => Predication.CopulaFor(locational: aspect == Aspect.Progressive),
+        AspectKind.None or AspectKind.Affix or AspectKind.Particle => throw new ArgumentException($"{auxiliary.Kind} isn't an auxiliary.", nameof(auxiliary)),
+        _ => throw new ArgumentOutOfRangeException(nameof(auxiliary), auxiliary.Kind, null),
+    };
+
+    /// <summary>The meaning of the lexicon's verb an auxiliary is, or null for one that's the copula or no verb.</summary>
+    public static string? AuxiliaryMeaning(AspectKind kind) => kind switch
+    {
+        AspectKind.Have => "have",
+        AspectKind.Finish => "finish",
+        AspectKind.Sit => "sit",
+        AspectKind.None or AspectKind.Affix or AspectKind.Particle or AspectKind.Be => null,
+        _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
+    };
 
     public Gender? GenderOf(Lexeme noun) => Genders.Of(noun, Lexicon.ClassOf(noun.Root.Meaning));
 
