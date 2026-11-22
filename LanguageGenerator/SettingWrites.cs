@@ -514,4 +514,18 @@ internal static class SettingWrites
         return WithRegion(result, edge.First, KindOf(kept), FormOf(kept),
             kept.Value is ModalAffix affix ? affix.Position : ExponentPosition.Suffix, BeforeVerbOf(kept) ?? false);
     }
+
+    /*
+      indefinite pronouns move between kinds keeping their forms, all of which are made whatever is
+      drawn. A mixed one that wasn't drawn mixed makes persons from nouns and things from question
+      words, as Semelai does
+     */
+    public static Indefinites WithIndefinitePronouns(Indefinites drawn, IndefinitePronouns type) => type switch
+    {
+        _ when type == drawn.Type => drawn,
+        IndefinitePronouns.InterrogativeBased => drawn with { PersonBase = IndefiniteBase.Interrogative, ThingBase = IndefiniteBase.Interrogative },
+        IndefinitePronouns.GenericNounBased => drawn with { PersonBase = IndefiniteBase.GenericNoun, ThingBase = IndefiniteBase.GenericNoun },
+        IndefinitePronouns.Special => drawn with { PersonBase = IndefiniteBase.Special, ThingBase = IndefiniteBase.Special },
+        _ => drawn with { PersonBase = IndefiniteBase.GenericNoun, ThingBase = IndefiniteBase.Interrogative },
+    };
 }

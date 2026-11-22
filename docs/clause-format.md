@@ -99,7 +99,7 @@ A clause can say when, how often, how and for how long, with any number of each:
 
 `when:` is a word of its own saying when, like *now*, *then* or *yesterday*, and `often:` one saying how often or whether something still goes on, like *again*, *always* or *still*; the language coins a root for each. `manner:` says how, as an adjective the language makes into an adverb its own way, so 'carefully' is `manner:careful`, 'suddenly' `manner:sudden` and 'well' `manner:good`. Which role an adverb is in says how near the verb it goes, so nothing has to know English adverbs by name. `time:` and `duration:` take a noun phrase, as other roles do, and `be` takes them too. `INTS` on any adjective says 'very', or 'much' with `CMPR`, as `small.CMPR.INTS` is 'much smaller'.
 
-*Here* and *there* fill a role saying where, as `where` does (see [Demonstratives](#demonstratives)). Other words for where, like *inside* and *somewhere*, can't be said yet, and neither can *ago* or *later* after a noun, a manner that compares, as in 'more slowly', or a question asking when, how or for how long.
+*Here* and *there* fill a role saying where, as `where` does (see [Demonstratives](#demonstratives)), and so do *somewhere*, *nowhere* and *everywhere* (see [Quantifiers and indefinites](#quantifiers-and-indefinites)). Other words for where, like *inside* and *upstream*, can't be said yet, and neither can *ago* or *later* after a noun, a manner that compares, as in 'more slowly', or a question asking when, how or for how long.
 
 Adverbs and manners go where obliques go, ordered as described under [Modifier order](#modifier-order). An adverb is its bare root. A manner adverb is the adjective itself, as German *schnell* is 'quick' and 'quickly'; the adjective with an affix, as English *-ly* and Turkish *-ce* make one, glossed `ADV` as the Leipzig rules have it; or the adjective with a word beside it, as Mandarin *de* and Japanese *ni*, glossed `ADV` too. WALS doesn't count these, so the odds are guesses. A time is marked like a place in most languages, sharing the location's case or adposition, and otherwise by an adposition of its own glossed `during`. A duration is marked like the object, as Latin *duos annos* 'for two years' is accusative, like a time, or by an adposition glossed `for`. 'Very' is a word on the side the language puts degree words, the comparative's side where that's a word too, and is glossed `INTS`, as grammars commonly gloss an intensifier.
 
@@ -185,6 +185,7 @@ Anything else that goes with a noun goes in parentheses, noun first:
 | A pronoun as possessor | `object:(dog.PL possessor:3SG.F)` | 'her dogs' |
 | A possessor with its own | `subject:(son possessor:(sister possessor:1SG))` | 'my sister's son' |
 | A relative clause | `object:(net.DEF relative:[mend.PST  subject:3SG.F  object:_])` | 'the net she was mending' (see [Relative clauses](#relative-clauses)) |
+| A quantifier | `subject:(traveler.PL few)` | 'few travelers' (see [Quantifiers and indefinites](#quantifiers-and-indefinites)) |
 
 A number makes the noun dual for two and paucal for a few, unless it says otherwise.
 
@@ -210,6 +211,29 @@ How many distances a language tells apart follows WALS 41A: two in most language
 Standing alone, a demonstrative is a noun, taking its role's case, and is the same word that goes beside a noun in most languages, as English *this* is, and a stem of its own in the rest, as WALS 42A counts them. *Here* and *there* are those demonstratives in the role's case, as Japanese *koko-ni* and Turkish *bura-da* are 'this place' in the locative, in most languages, as Diessel finds demonstrative adverbs mostly built on demonstrative stems, and words of their own, glossed `here`, `there` and, for a far one beside a middle one, `yonder`, in the rest.
 
 A definite article is the demonstrative in 69 of the 620 languages WALS 37A counts, with the far demonstrative's forms and place, glossed `DEF`. A definite article of its own stays beside a demonstrative in some languages, as Greek *aftó to spíti* 'this the house' and Hungarian *ez a ház* keep it, and English drops it. Nobody counts this, so the odds are a guess.
+
+## Quantifiers and indefinites
+
+A quantifier is a word in its noun's parentheses: `all`, `every`, `some`, `many`, `few`, `most` or `no`, with `every` for 'each' too. An indefinite pronoun fills a role as a noun does: `someone`, `something`, `nobody`, `nothing`, `everyone` and `everything`. `somewhere`, `nowhere` and `everywhere` go in `location:`, `goal:` and `source:` instead, as `here` does.
+
+| Written | Means |
+| --- | --- |
+| `come  subject:(traveler.PL few)` | 'few travelers come' |
+| `carry.PASS  subject:(light every)` | 'each light is carried' |
+| `be  subject:3SG.F  adjective:tall.CMPR  standard:(man.PL.DEF most)` | 'she is taller than most of the men' |
+| `sleep  subject:(dog.PL.DEF all 3)` | 'all three dogs sleep' |
+| `come.PST  subject:(traveler no)` | 'no traveler came' |
+| `see.PST  subject:1SG  object:something` | 'I saw something' |
+| `return  subject:(nobody relative:[go  subject:_  goal.in:forest.DEF])` | 'nobody who goes into the forest comes back' |
+| `bark  subject:dog.NDF  location:somewhere` | 'a dog barks somewhere' |
+
+A quantifier never goes with `NDF`, and `every` and `no` go with neither `DEF` nor a demonstrative. Only `all` goes with a number. An indefinite pronoun takes no glosses, and nothing in parentheses but a relative clause. English *anyone*, *anything* and *anywhere* are `nobody`, `nothing` and `nowhere` in a negated clause, and `someone`, `something` and `somewhere` in a question. A clause with `nobody`, `nothing`, `nowhere` or `no` takes no `NEG`: the language adds negation itself where it needs it.
+
+A quantifier is a word, which goes outside the numeral, before or after the noun, and doesn't agree. It goes on the side numerals do in most languages, as Greenberg and Dryer find, but nobody counts it, so the odds are a guess. The word for 'many' is the numerals' word for it, where they have one.
+
+Indefinite pronouns follow WALS 46A. Most languages make them from their question words, as Japanese *dare-ka* 'who-INDF' is 'someone' and *dare-mo* 'who-UNIV' 'everyone', with a marker for each series, glossed `INDF`, `NEG` or `UNIV`, which goes on the question word as a word or an affix inside its case. Many make them from nouns for 'person', 'thing' and 'place' with the quantifier, as English *some-body* and *no-thing* do. A few have words of their own, glossed `someone`, `nothing` and so on. In some, 'someone' is made one way and 'something' the other, as in Semelai and Maori, and a place goes as a thing does. Each inflects as a singular noun in its role's case.
+
+Whether *nobody* takes the verb's negation too follows WALS 115A: it does in most languages, as Russian *nikto ne prišël* 'nobody not came' does; it doesn't in a few, as in English; and in some it does only where it follows the verb, as Spanish has *no vino nadie* but *nadie vino*. Where it comes is where its role goes in the language's order. With a modal, it's the modal that's negated, as in Russian *nikto ne možet* 'nobody not can'.
 
 ## Coordination
 

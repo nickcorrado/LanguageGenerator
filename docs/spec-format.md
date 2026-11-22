@@ -150,6 +150,9 @@ The symbols are the generator's 53 phonemes, given exactly, so `ʦ` and not `ts`
 | `indefinite-article` | `None`, `Word`, `One`, the word for 'one', or `Affix` |
 | `article-gender-agreement` | `true` if an article agrees with its noun's gender |
 | `article-with-demonstrative` | `true` if the definite article stays beside a demonstrative, as Greek *aftó to spíti* 'this the house' keeps it |
+| `indefinite-pronouns` | `InterrogativeBased`, `GenericNounBased`, `Special` or `Mixed`, what 'someone' and the rest are made from, as WALS 46A has it. `Mixed` makes 'someone' from a noun and 'something' from a question word, where it wasn't drawn the other way around |
+| `negative-indefinite-negation` | `Always`, `Never` or `AfterVerb`, whether 'nobody' takes the verb's negation too, as WALS 115A has it |
+| `quantifiers-before-noun` | `true` if a quantifier like 'all' goes before its noun |
 | `and-is-with` | `true` if 'and' between nouns is the word for 'with', as in 'the dog with the cat slept' |
 | `clause-and` | `SameAsNouns`, `OwnWord`, or `Juxtaposition`, setting clauses side by side, as nouns are then too unless 'and' is 'with' |
 | `subordinators-when-if`, `subordinators-when-after`, `subordinators-after-because`, `subordinators-purpose-because`, `subordinators-before-until`, `subordinators-when-because` | `true` if the edge of the subordinator map joins its two subordinators, so they share a marker, as German wenn is both 'if' and 'when' |

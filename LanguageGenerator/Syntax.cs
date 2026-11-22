@@ -9,12 +9,19 @@
 /// A noun with any adjectives modifying it, in English order, how many of it there are if a numeral
 /// says, as in 'three wolves', whose it is, as in 'the king's house', which one it is, as in 'the
 /// third', whether it's definite, as 'the dog' is and 'a dog' isn't, a relative clause saying more
-/// of it, as in 'the net she was mending', and a demonstrative pointing it out, as in 'this dog'.
+/// of it, as in 'the net she was mending', a demonstrative pointing it out, as in 'this dog', and a
+/// quantifier, as in 'every dog'. A pronominal one is an indefinite pronoun, its noun a person, a
+/// thing or a place and its quantifier its series, so 'nobody' is (person no), said as the
+/// language says its indefinite pronouns.
 /// </summary>
-//no definiteness is a bare noun, as English has for 'dogs', 'water' or 'my dog'. A demonstrative
-//makes a noun definite, so a phrase with one has no definiteness of its own
+/*
+  no definiteness is a bare noun, as English has for 'dogs', 'water' or 'my dog'. A demonstrative
+  makes a noun definite, so a phrase with one has no definiteness of its own. An indefinite pronoun
+  is a noun phrase so that it takes a relative clause as one does, as 'nobody who goes into the
+  forest' does
+ */
 public record NounPhrase(string Noun, Number Number, ValueList<Adjective> Adjectives = default, int? Count = null, Argument? Possessor = null, int? Ordinal = null,
-    Definiteness? Definiteness = null, Statement? Relative = null, Distance? Demonstrative = null);
+    Definiteness? Definiteness = null, Statement? Relative = null, Distance? Demonstrative = null, Quantifier? Quantifier = null, bool Pronominal = false);
 /// <summary>
 /// What fills a role: a noun phrase, a pronoun, a demonstrative standing alone, several of them
 /// joined by 'and' or 'or', a question word asking what fills it, 'here' or 'there' saying a
@@ -276,7 +283,7 @@ public static class Syntax
         }
         var words = language.Questions.Words;
         return role is Role.Location or Role.Goal or Role.Source ? words[Interrogative.Where]
-            : language.Lexicon.ClassOf(head.Noun) is SemanticClass.Male or SemanticClass.Female or SemanticClass.Human ? words[Interrogative.Who]
+            : head is { Pronominal: true, Noun: Indefinites.Person } || language.Lexicon.ClassOf(head.Noun) is SemanticClass.Male or SemanticClass.Female or SemanticClass.Human ? words[Interrogative.Who]
             : words[Interrogative.What];
     }
 
@@ -416,14 +423,14 @@ public static class Syntax
         {
             case Clause c:
             {
-                var verb = Verb(language.Lexicon.Verb(c.Verb), c.Negative);
+                var verb = Verb(language.Lexicon.Verb(c.Verb), Concord(language, c.Negative, null, c.Subject, c.Object, ObliqueArguments(c.Obliques)).Negative);
                 var subject = dropSubject ? [] : Subject(language, c.Subject, c.Object is null ? Role.IntransitiveSubject : Role.TransitiveSubject);
                 var (@object, last) = Object(language, c.Object, c.Subject);
                 return Adpositioned([.. Flat(Order(language.WordOrder, subject, verb, @object, WhereObliquesGo(language, Adverbials(language, c.Adverbs, c.Obliques)))), .. last]);
             }
             case PassiveClause c when language.Passive is { } passive:
             {
-                var verb = passive.Apply(Verb(language.Lexicon.Verb(c.Verb), c.Negative));
+                var verb = passive.Apply(Verb(language.Lexicon.Verb(c.Verb), Concord(language, c.Negative, null, c.Patient, null, [.. Given(c.Agent), .. ObliqueArguments(c.Obliques)]).Negative));
                 var subject = dropSubject ? [] : Subject(language, c.Patient, Role.IntransitiveSubject);
                 IReadOnlyList<Word> agent = c.Agent.HasValue ? Marked(language, c.Agent.GetValueOrDefault(), Role.Agent) : [];
                 return Adpositioned(Flat(Order(language.WordOrder, subject, verb, null,
@@ -506,7 +513,8 @@ public static class Syntax
 
     private static IReadOnlyList<Word> Words(Language language, Command command)
     {
-        var words = CommandVerb(language, language.Lexicon.Verb(command.Verb), command.Number, command.Negative);
+        var negative = Concord(language, command.Negative, null, null, command.Object, ObliqueArguments(command.Obliques)).Negative;
+        var words = CommandVerb(language, language.Lexicon.Verb(command.Verb), command.Number, negative);
         var (@object, last) = Object(language, command.Object, new Pronoun(Person.Second, command.Number));
         return [.. Flat(Order(language.WordOrder, [], words, @object, WhereObliquesGo(language, Adverbials(language, command.Adverbs, command.Obliques)))), .. last];
     }
@@ -565,7 +573,8 @@ public static class Syntax
         var subjectRole = clause.Object is null ? Role.IntransitiveSubject : Role.TransitiveSubject;
         var subject = Subject(language, clause.Subject, subjectRole);
         var (@object, last) = Object(language, clause.Object, clause.Subject);
-        var verb = Predicate(language, language.Lexicon.Verb(clause.Verb), clause.Tense, clause.Aspect, clause.Subject, clause.Negative, modal, null);
+        (var negative, modal) = Concord(language, clause.Negative, modal, clause.Subject, clause.Object, ObliqueArguments(clause.Obliques));
+        var verb = Predicate(language, language.Lexicon.Verb(clause.Verb), clause.Tense, clause.Aspect, clause.Subject, negative, modal, null);
         return [.. Flat(Order(language.WordOrder, subject, verb, @object, WhereObliquesGo(language, [(Closeness.Reason, adverbs), .. Adverbials(language, clause.Adverbs, clause.Obliques)]))), .. last];
     }
 
@@ -584,7 +593,8 @@ public static class Syntax
             return Words(language, Active(clause), modal, adverbs);
         }
         var subject = Subject(language, clause.Patient, Role.IntransitiveSubject);
-        var verb = Predicate(language, language.Lexicon.Verb(clause.Verb), clause.Tense, clause.Aspect, clause.Patient, clause.Negative, modal, passive);
+        (var negative, modal) = Concord(language, clause.Negative, modal, clause.Patient, null, [.. Given(clause.Agent), .. ObliqueArguments(clause.Obliques)]);
+        var verb = Predicate(language, language.Lexicon.Verb(clause.Verb), clause.Tense, clause.Aspect, clause.Patient, negative, modal, passive);
         IReadOnlyList<Word> agent = clause.Agent.HasValue ? Marked(language, clause.Agent.GetValueOrDefault(), Role.Agent) : [];
         return Flat(Order(language.WordOrder, subject, verb, null,
             WhereObliquesGo(language, [(Closeness.Reason, adverbs), (Closeness.Complement, agent), .. Adverbials(language, clause.Adverbs, clause.Obliques)])));
@@ -747,6 +757,8 @@ public static class Syntax
         IReadOnlyList<Word> adverbs)
     {
         var predication = language.Predication;
+        IEnumerable<Argument> placed = clause.Complement.Value is Oblique at ? [at.Argument] : [];
+        (var negative, modal) = Concord(language, clause.Negative, modal, clause.Subject, null, [.. placed, .. ObliqueArguments(clause.Obliques)]);
         var subject = Subject(language, clause.Subject, Role.IntransitiveSubject);
         var beforeAdjective = StandardBeforeAdjective(language);
         IReadOnlyList<(Closeness Rank, IReadOnlyList<Word> Words)> modifiers =
@@ -758,7 +770,7 @@ public static class Syntax
             var predicate = Join(adjectives.Select(a =>
             {
                 var lexeme = language.Lexicon.Adjective(a.Meaning);
-                var verb = Predicate(language, lexeme with { PartOfSpeech = PartOfSpeech.Verb }, clause.Tense, clause.Aspect, clause.Subject, clause.Negative, modal, null);
+                var verb = Predicate(language, lexeme with { PartOfSpeech = PartOfSpeech.Verb }, clause.Tense, clause.Aspect, clause.Subject, negative, modal, null);
                 return Graded(Intensified(language, verb, lexeme.Root, a), lexeme.Root, degree);
             }), between);
             return Flat(Order(language.WordOrder, subject, Standing(predicate), null, WhereObliquesGo(language, modifiers)));
@@ -775,9 +787,9 @@ public static class Syntax
             {
                 throw new ArgumentException("Only an adjective can be compared.", nameof(clause));
             }
-            var be = modal is null && predication.Drops(clause.Tense, clause.Negative, locational: true)
+            var be = modal is null && predication.Drops(clause.Tense, negative, locational: true)
                 ? []
-                : Predicate(language, predication.CopulaFor(locational: true), clause.Tense, clause.Aspect, clause.Subject, clause.Negative, modal, null);
+                : Predicate(language, predication.CopulaFor(locational: true), clause.Tense, clause.Aspect, clause.Subject, negative, modal, null);
             return Flat(Order(language.WordOrder, subject, be, null, WhereObliquesGo(language, [(Closeness.Place, Oblique(language, location)), .. modifiers])));
         }
 
@@ -789,9 +801,9 @@ public static class Syntax
         var complement = clause.Complement.Value is Adjective adjective
             ? Standing(Graded(PredicateComplement(language, adjective, clause.Subject), language.Lexicon.Adjective(adjective.Meaning).Root, degree))
             : PredicateComplement(language, clause.Complement, clause.Subject);
-        var copula = modal is null && predication.Drops(clause.Tense, clause.Negative)
+        var copula = modal is null && predication.Drops(clause.Tense, negative)
             ? []
-            : Predicate(language, predication.Copula, clause.Tense, clause.Aspect, clause.Subject, clause.Negative, modal, null);
+            : Predicate(language, predication.Copula, clause.Tense, clause.Aspect, clause.Subject, negative, modal, null);
         return Flat(Order(language.WordOrder, subject, copula, complement, WhereObliquesGo(language, modifiers)));
     }
 
@@ -1182,6 +1194,7 @@ public static class Syntax
         var pronouns = language.Pronouns.Paradigm;
         return argument switch
         {
+            NounPhrase { Pronominal: true } phrase => Relativized(language, phrase, Indefinite(language, phrase, @case, localization)),
             NounPhrase phrase => Relativized(language, phrase, Possessed(language, phrase, Determined(language, phrase, Modified(language, phrase, Features(nouns, [NumberOf(language, phrase), @case, localization]))))),
             Pronoun pronoun => pronouns.Inflect(language.Pronouns.For(pronoun), Features(pronouns, [@case, localization])),
             //a demonstrative standing alone, or 'here' or 'there', inflects as a noun does
@@ -1194,6 +1207,30 @@ public static class Syntax
             Gap => [],
             RelativeWord word => nouns.Inflect(word.Word, Features(nouns, [NumberOf(language, word.Head), @case, localization])),
         };
+    }
+
+    /*
+      an indefinite pronoun, as the language makes one of its kind: a word of its own; the question
+      word for its kind with its series' marker, which goes on it as a demonstrative goes on a noun,
+      inside its case, as in Japanese dare-ka-ni 'who-INDF-DAT'; or the noun for its kind with its
+      series' quantifier, as 'some person'. Each inflects as a singular noun
+     */
+    private static IReadOnlyList<Word> Indefinite(Language language, NounPhrase phrase, Case @case, Localization localization)
+    {
+        var indefinites = language.Indefinites;
+        var nouns = language.Paradigms.Nouns;
+        var series = phrase.Quantifier ?? throw new ArgumentException("An indefinite pronoun needs its series.", nameof(phrase));
+        var features = Features(nouns, [Number.Singular, @case, localization]);
+        switch (indefinites.BaseOf(phrase.Noun))
+        {
+            case IndefiniteBase.Special:
+                return nouns.Inflect(indefinites.Own[(series, phrase.Noun)], features);
+            case IndefiniteBase.Interrogative:
+                var word = language.Questions.Words[Indefinites.QuestionWordFor(phrase.Noun)];
+                return Articles.Mark(nouns.Inflect(word, features), word.Root, indefinites.Markers[series], indefinites.MarkerPosition);
+            default:
+                return Modified(language, phrase with { Pronominal = false }, features);
+        }
     }
 
     /*
@@ -1270,13 +1307,15 @@ public static class Syntax
       A numeral goes outside them, before or after, as the language puts numerals, so that 'three big
       wolves' is either three big wolf or wolf big three. An ordinal goes like the outermost
       adjective, inside the numeral, as in 'the first three big wolves', but never agrees, even where
-      adjectives do. The noun's particles stay outside it all
+      adjectives do. A quantifier goes outside the numeral, before or after as the language puts
+      quantifiers, as in 'all three wolves', and doesn't agree either. The noun's particles stay
+      outside it all
      */
     private static IReadOnlyList<Word> Modified(Language language, NounPhrase phrase, IReadOnlyList<Grammeme> features)
     {
         var nounLexeme = language.Lexicon.Noun(phrase.Noun);
         var noun = language.Paradigms.Nouns.Inflect(nounLexeme, features);
-        if (phrase.Adjectives.Count == 0 && phrase.Count is null && phrase.Ordinal is null)
+        if (phrase.Adjectives.Count == 0 && phrase.Count is null && phrase.Ordinal is null && phrase.Quantifier is null)
         {
             return noun;
         }
@@ -1305,6 +1344,13 @@ public static class Syntax
             List<Word> numeral = [.. numerals.Say(count).Select(n => new Word([n.Root]))];
             words = numerals.BeforeNoun ? [.. numeral, .. words] : [.. words, .. numeral];
             at += numerals.BeforeNoun ? numeral.Count : 0;
+        }
+        if (phrase.Quantifier is { } quantifier)
+        {
+            var indefinites = language.Indefinites;
+            var word = new Word([indefinites.Quantifiers[quantifier].Root]);
+            words = indefinites.QuantifiersBeforeNoun ? [word, .. words] : [.. words, word];
+            at += indefinites.QuantifiersBeforeNoun ? 1 : 0;
         }
         if (agreement == AdjectiveAgreement.Phrasal)
         {
@@ -1370,10 +1416,19 @@ public static class Syntax
 
     //the order's own letters say where each constituent goes; an intransitive clause just has no O.
     //Obliques go together, as X, before or after the verb and object, or just before the verb
-    private static IEnumerable<IReadOnlyList<Word>> Order(WordOrder order, IReadOnlyList<Word> subject, IReadOnlyList<Word> verb, IReadOnlyList<Word>? @object, IReadOnlyList<Word> obliques)
+    private static IEnumerable<IReadOnlyList<Word>> Order(WordOrder order, IReadOnlyList<Word> subject, IReadOnlyList<Word> verb, IReadOnlyList<Word>? @object, IReadOnlyList<Word> obliques) =>
+        Letters(order, @object is not null, obliques.Count > 0).Select(letter => letter switch
+        {
+            'S' => subject,
+            'V' => verb,
+            'X' => obliques,
+            _ => @object!,
+        });
+
+    private static List<char> Letters(WordOrder order, bool hasObject, bool hasObliques)
     {
-        var letters = order.ConstituentWordOrder.ToString().Where(letter => letter != 'O' || @object is not null).ToList();
-        if (obliques.Count > 0)
+        var letters = order.ConstituentWordOrder.ToString().Where(letter => letter != 'O' || hasObject).ToList();
+        if (hasObliques)
         {
             var verbAndObject = letters.Select((letter, i) => (letter, i)).Where(p => p.letter != 'S').Select(p => p.i).ToList();
             letters.Insert(order.ObliquePosition switch
@@ -1383,14 +1438,39 @@ public static class Syntax
                 _ => verbAndObject.Max() + 1,
             }, 'X');
         }
-        return letters.Select(letter => letter switch
-        {
-            'S' => subject,
-            'V' => verb,
-            'X' => obliques,
-            _ => @object!,
-        });
+        return letters;
     }
+
+    /*
+      a clause's negation and modal as its verb says them. A negative indefinite in it, as in 'nobody
+      came', negates the verb too where the language has it do so: always, never, or only where the
+      indefinite comes after the verb, as Spanish has no vino nadie but nadie vino. Where it comes is
+      where its role goes in the clause's order; a question word or relative pronoun put first doesn't
+      move it. With a modal, it's the modal that's negated, as in Russian nikto ne možet 'nobody not
+      can'
+     */
+    private static (bool Negative, Modal? Modal) Concord(Language language, bool negative, Modal? modal, Argument? subject, Argument? @object, IReadOnlyList<Argument> obliques)
+    {
+        if (negative || modal is { Negative: true })
+        {
+            return (negative, modal);
+        }
+        var letters = Letters(language.WordOrder, @object is not null, obliques.Count > 0);
+        bool After(char letter) => letters.IndexOf(letter) > letters.IndexOf('V');
+        IEnumerable<(Argument Argument, char Letter)> roles =
+            [.. Given(subject).Select(a => (a, 'S')), .. Given(@object).Select(a => (a, 'O')), .. obliques.Select(a => (a, 'X'))];
+        var negated = language.Indefinites.Negation switch
+        {
+            NegativeIndefiniteNegation.Always => roles.Any(r => Indefinites.IsNegative(r.Argument)),
+            NegativeIndefiniteNegation.AfterVerb => roles.Any(r => Indefinites.IsNegative(r.Argument) && After(r.Letter)),
+            _ => false,
+        };
+        return !negated ? (false, modal) : modal is null ? (true, null) : (false, modal with { Negative = true });
+    }
+
+    private static IEnumerable<Argument> Given(Argument? argument) => argument.HasValue ? [argument.GetValueOrDefault()] : [];
+
+    private static IReadOnlyList<Argument> ObliqueArguments(ValueList<Oblique> obliques) => [.. obliques.Select(o => o.Argument)];
 }
 
 public record Sentence(IReadOnlyList<SurfaceForm> Words, string Translation, Orthography Orthography)

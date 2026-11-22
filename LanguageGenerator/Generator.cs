@@ -77,6 +77,7 @@ public static partial class Generator
         var numerals = stages.Draw(Settings.NumeralStage, rand => GenerateNumerals(rand, morphology, phonology));
         var demonstratives = stages.Draw(Settings.DemonstrativeStage, rand => GenerateDemonstratives(rand, morphology, genders, phonology));
         var articles = stages.Draw(Settings.ArticleStage, rand => GenerateArticles(rand, morphology, genders, numerals, demonstratives, phonology));
+        var indefinites = stages.Draw(Settings.IndefiniteStage, rand => GenerateIndefinites(rand, morphology, numerals, phonology));
         var possession = stages.Draw(Settings.PossessionStage, rand => GeneratePossession(rand, morphology, wordOrder, phonology));
         var commands = stages.Draw(Settings.CommandStage, rand => GenerateCommands(rand, morphology, wordOrder, phonology));
         var comparison = stages.Draw(Settings.ComparisonStage, rand => GenerateComparison(rand, wordOrder, phonology));
@@ -97,8 +98,8 @@ public static partial class Generator
         var extraSyllables = SelectExtraSyllables(SelectRootLengthNoise(stages.For("root length noise")), lexiconSeed, phonology);
         var lexicon = GenerateLexicon(lexiconSeed, extraSyllables, phonology, new Dictionary<PartOfSpeech, IEnumerable<Lexeme>>
         {
-            [PartOfSpeech.Noun] = [.. pronouns.Forms.Values, .. questions.Words.Values, questions.Why],
-            [PartOfSpeech.Adjective] = [.. numerals.Words.Values, .. new[] { numerals.Many, numerals.Ordinals.First, numerals.Ordinals.Second }.OfType<Lexeme>()],
+            [PartOfSpeech.Noun] = [.. pronouns.Forms.Values, .. questions.Words.Values, questions.Why, .. indefinites.Own.Values],
+            [PartOfSpeech.Adjective] = [.. numerals.Words.Values, .. indefinites.Quantifiers.Values, .. new[] { numerals.Many, numerals.Ordinals.First, numerals.Ordinals.Second }.OfType<Lexeme>()],
             [PartOfSpeech.Verb] = [predication.Copula, .. predication.LocationalCopula is { } locational ? [locational] : Array.Empty<Lexeme>(),
                 .. modals.Markers.Values.Select(m => m.Value).OfType<ModalVerb>().Select(m => m.Verb),
                 .. comparison.Value is ExceedComparison exceed ? [exceed.Exceed] : Array.Empty<Lexeme>()],
@@ -108,6 +109,11 @@ public static partial class Generator
         foreach (var noun in configurations.Markers.Values.Select(m => m.Value).OfType<RelationalNoun>())
         {
             lexicon.Noun(noun.Meaning);
+        }
+        //so are the nouns indefinite pronouns can be made from, as 'some person' is 'someone'
+        foreach (var kind in Indefinites.Kinds)
+        {
+            lexicon.Noun(kind);
         }
 
         return new Language
@@ -120,6 +126,7 @@ public static partial class Generator
             WordOrder = wordOrder,
             Articles = articles,
             Demonstratives = demonstratives,
+            Indefinites = indefinites,
             MorphosyntacticAlignment = alignment,
             RoleRegions = roleRegions,
             Cases = cases,

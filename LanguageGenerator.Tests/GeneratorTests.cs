@@ -201,9 +201,11 @@ public class GeneratorTests
     {
         Assert.All(GeneratedLanguages.Sample, l =>
         {
-            //with a noun for each configuration marked by one
-            var relational = l.Configurations.Markers.Values.Select(m => m.Value).OfType<RelationalNoun>().Distinct().Count();
-            Assert.Equal(11 + relational, l.Lexicon.Count(x => x.PartOfSpeech == PartOfSpeech.Noun));
+            //with a noun for each configuration marked by one, and 'thing' and 'place' for indefinites
+            //made from nouns, 'person' being among the 11 already
+            var relational = l.Configurations.Markers.Values.Select(m => m.Value).OfType<RelationalNoun>().Select(n => n.Meaning).Distinct().ToList();
+            var kinds = Indefinites.Kinds.Except([Indefinites.Person]).Except(relational).Count();
+            Assert.Equal(11 + relational.Count + kinds, l.Lexicon.Count(x => x.PartOfSpeech == PartOfSpeech.Noun));
             Assert.Equal(8, l.Lexicon.Count(x => x.PartOfSpeech == PartOfSpeech.Verb));
             //every role but the similative, which has a marker of its own
             Assert.Equal(Enum.GetValues<Role>().Length - 1, l.RoleMarkers.Count);
