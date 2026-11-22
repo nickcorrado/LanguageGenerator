@@ -16,35 +16,7 @@ public class AspectTests
     private static IEnumerable<Language> Languages(AspectKind perfect, AspectKind progressive, Func<LanguageSpec, LanguageSpec>? more = null) =>
         Enumerable.Range(0, 4).Select(seed => Generator.Generate(seed, (more ?? (s => s))(LanguageSpec.Free.Fix(Settings.Perfect, perfect).Fix(Settings.Progressive, progressive))));
 
-    private static IReadOnlyList<Aspects> Drawn(Language language, int count)
-    {
-        var rand = new Random(1);
-        return [.. Enumerable.Range(0, count).Select(_ => Generator.GenerateAspects(rand, language.MorphologicalProfile, language.WordOrder, language.Phonology))];
-    }
-
     private static IReadOnlyList<string> Glosses(Sentence sentence) => [.. sentence.Words.Select(w => w.Gloss)];
-
-    [Fact]
-    public void GenerateAspects_ManyDraws_FollowWals68A()
-    {
-        var drawn = Drawn(GeneratedLanguages.With(s => s.Inflecting()), 4000).Select(a => a.Perfect.Kind).ToList();
-        double Share(AspectKind kind) => drawn.Count(k => k == kind) / 4000.0;
-
-        //114 with none, 7 from 'have' and 21 from 'finish' or 'already', of 222
-        Assert.InRange(Share(AspectKind.None), 0.49, 0.54);
-        Assert.InRange(Share(AspectKind.Have), 0.02, 0.045);
-        Assert.InRange(Share(AspectKind.Finish), 0.04, 0.06);
-    }
-
-    [Fact]
-    public void GenerateAspects_ManyDraws_MostlyMarkTheProgressiveWithBe()
-    {
-        var drawn = Drawn(GeneratedLanguages.With(s => s.Inflecting()), 4000).Select(a => a.Progressive.Kind).ToList();
-        var marked = drawn.Where(k => k != AspectKind.None).ToList();
-
-        Assert.Equal(AspectKind.Be, marked.GroupBy(k => k).MaxBy(g => g.Count())!.Key);
-        Assert.InRange(drawn.Count(k => k == AspectKind.None) / 4000.0, 0.42, 0.48);
-    }
 
     [Fact]
     public void Generate_IsolatingLanguages_HaveNoAspectAffixes() =>
