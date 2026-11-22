@@ -308,6 +308,12 @@ public static class GlossPrompt
               and not 'Eat only the bread.', since nothing in the gloss says 'only'.
             - Paraphrase into what the format can say when that keeps the meaning, as with 'went' for
               walk.PST, or 'lives in' for be with location:.
+            - Gloss what a fixed expression means, not its words, since another language has idioms of
+              its own and English's would be nonsense in it: 'a sword that has seen better days' is a
+              sword that is old or worn, 'the road washed out' is that it collapsed, and 'he kept his
+              word' is that he did what he promised. Keep a figure of speech only where anyone could
+              follow its picture, as in 'the forest began to take what it was owed' or 'the crows
+              tell me everything'.
             - Never drop a modal, like might or maybe, that has no gloss: 'it might rain'
               doesn't say 'it rains'.
             - Never drop or paraphrase away a word that negates, like 'nobody', 'nothing', 'never' or 'no':
