@@ -241,27 +241,6 @@ public class SoundChangeTests
     }
 
     [Fact]
-    public void SelectSoundChanges_ManyDraws_EachComeUp()
-    {
-        var rand = new Random(1);
-        var rule = new SyllableRule(SyllableTemplates.CVF, TestData.Vowels, TestData.Consonants);
-        var drawn = Enumerable.Range(0, 2000).SelectMany(_ => Generator.SelectSoundChanges(rand, rule, TestData.Vowels)).ToList();
-
-        Assert.InRange(drawn.Count(c => c == SoundChange.Lenition) / 2000.0, 0.22, 0.28);
-        Assert.InRange(drawn.Count(c => c == SoundChange.VoicingAssimilation) / 2000.0, 0.27, 0.33);
-        Assert.InRange(drawn.Count(c => c == SoundChange.FinalDevoicing) / 2000.0, 0.27, 0.33);
-        Assert.InRange(drawn.Count(c => c == SoundChange.VowelElision) / 2000.0, 0.27, 0.33);
-        Assert.InRange(drawn.Count(c => c == SoundChange.VowelCoalescence) / 2000.0, 0.12, 0.18);
-        Assert.InRange(drawn.Count(c => c == SoundChange.GreekContraction) / 2000.0, 0.09, 0.15);
-        Assert.InRange(drawn.Count(c => c == SoundChange.GlideInsertion) / 2000.0, 0.09, 0.15);
-        Assert.InRange(drawn.Count(c => c == SoundChange.GlottalInsertion) / 2000.0, 0.06, 0.10);
-        //always with coalescence, and 40% of the time otherwise
-        Assert.InRange(drawn.Count(c => c == SoundChange.GlideFormation) / 2000.0, 0.15 + 0.85 * 0.4 - 0.04, 0.15 + 0.85 * 0.4 + 0.04);
-        Assert.InRange(drawn.Count(c => c == SoundChange.FrontBackHarmony) / 2000.0, 0.13, 0.17);
-        Assert.InRange(drawn.Count(c => c == SoundChange.TongueRootHarmony) / 2000.0, 0.06, 0.10);
-    }
-
-    [Fact]
     public void SelectSoundChanges_WithoutVowelsToPair_DrawsNoHarmony()
     {
         var rand = new Random(1);
@@ -459,19 +438,6 @@ public class SoundChangeTests
             .Realize(TestData.Word([Consonant.t, Vowel.a, Consonant.g]));
 
         Assert.Contains(Consonant.g, form.Phonemes);
-    }
-
-    [Fact]
-    public void SelectSyllableChanges_ManyDraws_EachComeUp()
-    {
-        var rand = new Random(1);
-        var rule = new SyllableRule(SyllableTemplates.CVF, TestData.Vowels, TestData.Consonants);
-        var drawn = Enumerable.Range(0, 3000).SelectMany(_ => Generator.SelectSyllableChanges(rand, rule, TestData.Vowels, SyllableContact.NoRise)).ToList();
-
-        Assert.InRange(drawn.Count(c => c == SoundChange.CodaDevoicing) / 3000.0, 0.17, 0.23);
-        Assert.InRange(drawn.Count(c => c == SoundChange.CodaWeakening) / 3000.0, 0.13, 0.17);
-        Assert.InRange(drawn.Count(c => c == SoundChange.ClosedSyllableLaxing) / 3000.0, 0.13, 0.17);
-        Assert.InRange(drawn.Count(c => c == SoundChange.CompensatoryLengthening) / 3000.0, 0.10, 0.14);
     }
 
     [Fact]

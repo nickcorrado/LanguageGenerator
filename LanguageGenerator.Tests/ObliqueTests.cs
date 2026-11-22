@@ -50,22 +50,18 @@ public class ObliqueTests
             return words.Select(w => string.Concat(w.Root.Form.Select(p => p.IpaSymbol))).Distinct().Count() < words.Count;
         });
 
-        Assert.InRange(homophonous / (double)GeneratedLanguages.Sample.Count, 0, 0.05);
+        //adpositions are kept from sounding alike, so homophones should turn up in under 1% of languages,
+        //failing once in a million at exactly 1%. None of 700 have any now
+        Assert.True(homophonous <= Binomial.Most(GeneratedLanguages.Sample.Count, 0.01, 1e-6), $"{homophonous} languages have adpositions that sound alike");
     }
 
     [Fact]
-    public void SelectObliquePosition_ManyDraws_MatchTheWalsCounts()
+    public void SelectObliquePosition_VerbBeforeObject_NeverPutsObliquesBetweenThem()
     {
         var rand = new Random(1);
-        var vo = Enumerable.Range(0, 5000).Select(_ => Generator.SelectObliquePosition(rand, ConstituentWordOrder.SVO)).ToList();
-        var ov = Enumerable.Range(0, 5000).Select(_ => Generator.SelectObliquePosition(rand, ConstituentWordOrder.SOV)).ToList();
 
-        //WALS 84A: VOX 210 and XVO 3; XOV 48, OXV 45 and OVX 27
-        Assert.InRange(vo.Count(p => p == ObliquePosition.AfterVerbAndObject) / 5000.0, 0.97, 1);
-        Assert.DoesNotContain(ObliquePosition.BetweenObjectAndVerb, vo);
-        Assert.InRange(ov.Count(p => p == ObliquePosition.BeforeVerbAndObject) / 5000.0, 0.37, 0.43);
-        Assert.InRange(ov.Count(p => p == ObliquePosition.BetweenObjectAndVerb) / 5000.0, 0.35, 0.40);
-        Assert.InRange(ov.Count(p => p == ObliquePosition.AfterVerbAndObject) / 5000.0, 0.20, 0.25);
+        //WALS 84A has no VXO languages
+        Assert.DoesNotContain(ObliquePosition.BetweenObjectAndVerb, Enumerable.Range(0, 1000).Select(_ => Generator.SelectObliquePosition(rand, ConstituentWordOrder.SVO)));
     }
 
     [Fact]

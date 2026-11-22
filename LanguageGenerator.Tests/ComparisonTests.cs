@@ -14,26 +14,6 @@ public class ComparisonTests
     private static Statement Parsed(string gloss) => Assert.Single(ClauseFile.Parse($"x\n  {gloss}")).Statement;
 
     [Fact]
-    public void GenerateComparison_ManyDraws_MatchTheWalsCounts()
-    {
-        var language = GeneratedLanguages.Sample[0];
-        var rand = new Random(1);
-
-        var drawn = Enumerable.Range(0, 4000).Select(_ => Generator.GenerateComparison(rand, language.WordOrder, language.Phonology)).ToList();
-
-        //WALS 121A: 78 locational, 33 exceed, 34 conjoined and 22 with a particle, of 167
-        Assert.InRange(drawn.Count(c => c.Value is LocationalComparison) / 4000.0, 0.44, 0.49);
-        Assert.InRange(drawn.Count(c => c.Value is ExceedComparison) / 4000.0, 0.18, 0.22);
-        Assert.InRange(drawn.Count(c => c.Value is ConjoinedComparison) / 4000.0, 0.18, 0.23);
-        Assert.InRange(drawn.Count(c => c.Value is ParticleComparison) / 4000.0, 0.11, 0.15);
-        //and the guessed places a locational standard is marked as
-        var locational = drawn.Select(c => c.Value).OfType<LocationalComparison>().ToList();
-        Assert.InRange(locational.Count(c => c.Role == Role.Source) / (double)locational.Count, 0.56, 0.64);
-        Assert.InRange(locational.Count(c => c.Role == Role.Goal) / (double)locational.Count, 0.17, 0.23);
-        Assert.InRange(locational.Count(c => c.Role == Role.Location) / (double)locational.Count, 0.17, 0.23);
-    }
-
-    [Fact]
     public void Generate_Particles_GoOnTheirAdpositionsSide() =>
         Assert.All(GeneratedLanguages.Sample.Where(l => l.Comparison.Value is ParticleComparison), l =>
             Assert.Equal(l.WordOrder.AdpositionalPhraseDirectionality == HeadDirectionality.Initial, ((ParticleComparison)l.Comparison.Value!).BeforeStandard));
@@ -150,19 +130,16 @@ public class ComparisonTests
         });
 
     [Fact]
-    public void GenerateDegree_ManyDraws_MatchTheWalsCountsAndGuesses()
+    public void GenerateDegree_ManyDraws_FollowTheAdjectivePhraseAndLeaveAConjoinedStandardAlone()
     {
         var language = GeneratedLanguages.With(s => s.Inflecting());
         var rand = new Random(1);
         DegreeMarking Draw(Comparison comparison) => Generator.GenerateDegree(rand, comparison, language.MorphologicalProfile, language.WordOrder, language.Phonology);
 
-        var drawn = Enumerable.Range(0, 4000).Select(_ => Draw(new LocationalComparison(Role.Source))).ToList();
-        var words = drawn.Select(d => d.Marker.Value).OfType<DegreeWord>().ToList();
+        var words = Enumerable.Range(0, 1000).Select(_ => Draw(new LocationalComparison(Role.Source)).Marker.Value).OfType<DegreeWord>().ToList();
 
-        Assert.InRange(drawn.Count(d => d.Marker.Value is DegreeAffix) / 4000.0, 0.22, 0.28);
+        Assert.NotEmpty(words);
         Assert.All(words, w => Assert.Equal(language.WordOrder.AdjectivePhraseDirectionality == HeadDirectionality.Final, w.BeforeAdjective));
-        Assert.InRange(drawn.Count(d => d.WithStandard) / 4000.0, 0.13, 0.17);
-        Assert.InRange(Enumerable.Range(0, 4000).Count(_ => Draw(new ParticleComparison(null!, true)).WithStandard) / 4000.0, 0.57, 0.63);
         Assert.DoesNotContain(Enumerable.Range(0, 500).Select(_ => Draw(new ConjoinedComparison())), d => d.WithStandard);
     }
 

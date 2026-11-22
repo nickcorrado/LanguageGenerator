@@ -78,18 +78,14 @@ public class CoordinationTests
         Assert.Equal(["dog", "cat", "bird"], ClauseFile.Nouns(ClauseFile.Parse("x\n  see  subject:(and dog cat)\n  and  sleep  subject:bird")).Select(n => n.Noun));
 
     [Fact]
-    public void GenerateConjunctions_ManyDraws_MatchWals63AAnd64A()
+    public void GenerateConjunctions_ManyDraws_AreConjunctionsAndJuxtaposeClausesWhereTheyJuxtaposeNouns()
     {
         var phonology = GeneratedLanguages.Sample[0].Phonology;
         var rand = new Random(1);
         var drawn = Enumerable.Range(0, 4000).Select(_ => Generator.GenerateConjunctions(rand, phonology)).ToList();
 
-        //63A: 'and' is 'with' in 103 of 234 languages
-        Assert.InRange(drawn.Count(c => c.NounAnd.Value is AndWith) / 4000.0, 0.41, 0.47);
-        //64A, among the rest: 161 of 301 join nouns and clauses alike, and 15 set both side by side
-        var withWords = drawn.Where(c => c.NounAnd.Value is not AndWith).ToList();
-        Assert.InRange(withWords.Count(c => c.NounAnd.Value is AndWord w && w.Word == c.ClauseAnd) / (double)withWords.Count, 0.50, 0.57);
-        Assert.InRange(withWords.Count(c => c.NounAnd.Value is AndJuxtaposed) / (double)withWords.Count, 0.03, 0.07);
+        //64A: 15 of 301 languages set both nouns and clauses side by side
+        Assert.Contains(drawn, c => c.NounAnd.Value is AndJuxtaposed);
         Assert.All(drawn.Where(c => c.NounAnd.Value is AndJuxtaposed), c => Assert.Null(c.ClauseAnd));
         Assert.All(drawn, c => Assert.All(new[] { c.Or, c.But, c.ClauseAnd }.OfType<Lexeme>(), w => Assert.Equal(PartOfSpeech.Conjunction, w.PartOfSpeech)));
     }

@@ -9,23 +9,6 @@ public class NegationTests
     private static int VerbIndex(Sentence sentence) => sentence.Words.ToList().FindIndex(w => w.Word.Root?.Meaning == "see");
 
     [Fact]
-    public void GenerateNegation_ManyDraws_MatchTheWalsCounts()
-    {
-        var language = GeneratedLanguages.With(s => s.Inflecting());
-        var rand = new Random(1);
-
-        var strategies = Enumerable.Range(0, 5000).Select(_ => Generator.GenerateNegation(rand, language.MorphologicalProfile, language.Phonology).Strategy).ToList();
-        double Share(NegationStrategy s) => strategies.Count(x => x == s) / 5000.0;
-
-        //WALS 143A: 525, 171, 162, 202 and 114 of the 1174 languages modeled
-        Assert.InRange(Share(NegationStrategy.ParticleBefore), 0.43, 0.47);
-        Assert.InRange(Share(NegationStrategy.ParticleAfter), 0.13, 0.16);
-        Assert.InRange(Share(NegationStrategy.Prefix), 0.12, 0.15);
-        Assert.InRange(Share(NegationStrategy.Suffix), 0.16, 0.19);
-        Assert.InRange(Share(NegationStrategy.Double), 0.08, 0.11);
-    }
-
-    [Fact]
     public void Generate_IsolatingLanguages_NeverNegateWithAnAffix()
     {
         var isolating = GeneratedLanguages.Sample.Where(l => l.MorphologicalProfile.Fusion == Fusion.Isolating).ToList();

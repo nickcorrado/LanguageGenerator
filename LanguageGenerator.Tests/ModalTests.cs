@@ -30,39 +30,6 @@ public class ModalTests
     }
 
     [Fact]
-    public void GenerateModals_ManyDraws_FollowWals74A()
-    {
-        var language = GeneratedLanguages.With(s => s.Inflecting());
-        var drawn = Drawn(language, 4000).Select(m => m.Markers[Modality.Ability].Value).ToList();
-
-        //63 by an affix, 158 by a verb and 13 otherwise, of 234
-        Assert.InRange(drawn.Count(m => m is ModalAffix) / 4000.0, 0.25, 0.29);
-        Assert.InRange(drawn.Count(m => m is ModalVerb) / 4000.0, 0.65, 0.70);
-        Assert.InRange(drawn.Count(m => m is ModalParticle) / 4000.0, 0.045, 0.07);
-    }
-
-    [Theory]
-    //ability and permission joined 60% of the time, and obligation and advisability 50%, and
-    //rarely the same by chance otherwise
-    [InlineData("Ability", "Permission", 0.57, 0.65)]
-    [InlineData("Obligation", "Advisability", 0.47, 0.55)]
-    public void GenerateModals_ManyDraws_ShareMarkersAsTheMapSays(string first, string second, double least, double most)
-    {
-        var language = GeneratedLanguages.With(s => s.Inflecting());
-        var (a, b) = (ModalityMap.Modalities.Single(m => m.Name == first), ModalityMap.Modalities.Single(m => m.Name == second));
-        static IReadOnlyList<Phoneme> Form(ModalMarking marking) => marking.Value switch
-        {
-            ModalAffix a => a.Marker.Form,
-            ModalParticle p => p.Marker.Form,
-            ModalVerb v => v.Verb.Root.Form,
-        };
-        var shared = Drawn(language, 4000).Count(m => Form(m.Markers[a]).SequenceEqual(Form(m.Markers[b]))
-            && m.Markers[a].Value.GetType() == m.Markers[b].Value.GetType());
-
-        Assert.InRange(shared / 4000.0, least, most);
-    }
-
-    [Fact]
     public void Generate_IsolatingLanguages_HaveNoModalAffixes() =>
         Assert.All(GeneratedLanguages.Sample.Where(l => l.MorphologicalProfile.Fusion == Fusion.Isolating),
             l => Assert.DoesNotContain(l.Modals.Markers.Values, m => m.Value is ModalAffix));

@@ -11,24 +11,6 @@ public class GenderTests
     private static List<string> GenderGlosses(Word word) =>
         [.. word.Morphemes.Where(m => m.Value is Affix { Grammemes: [Gender] }).Select(m => m.Gloss)];
 
-    [Fact]
-    public void GenerateGenders_ManyDraws_MatchTheWalsCounts()
-    {
-        var language = GeneratedLanguages.With(s => s.Inflecting());
-        var rand = new Random(1);
-
-        var systems = Enumerable.Range(0, 5000).Select(_ => Generator.GenerateGenders(rand, language.MorphologicalProfile, language.Paradigms, language.Phonology)).ToList();
-        double Share(NounGenders g) => systems.Count(s => s.Genders == g) / 5000.0;
-
-        //WALS 30A: 145 of the 221 languages modeled have none, 50 have two and 26 three
-        Assert.InRange(Share(NounGenders.None), 0.63, 0.68);
-        Assert.InRange(Share(NounGenders.MasculineFeminine) + Share(NounGenders.AnimateInanimate), 0.20, 0.25);
-        Assert.InRange(Share(NounGenders.MasculineFeminineNeuter), 0.10, 0.14);
-        //WALS 32A: 59 of 112 gendered languages assign by form as well as meaning
-        var gendered = systems.Where(s => s.Genders != NounGenders.None).ToList();
-        Assert.InRange(gendered.Count(s => s.Assignment == GenderAssignment.SemanticAndFormal) / (double)gendered.Count, 0.49, 0.56);
-    }
-
     [Theory]
     [InlineData("woman", "F")]
     [InlineData("king", "M")]

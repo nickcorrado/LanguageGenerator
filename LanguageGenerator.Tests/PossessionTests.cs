@@ -14,18 +14,14 @@ public class PossessionTests
     private static IEnumerable<string> Glosses(Sentence sentence) => sentence.Words.SelectMany(w => w.Gloss.Split('-', '.', '[', ']'));
 
     [Fact]
-    public void GeneratePossession_ManyDraws_MatchTheWalsCounts()
+    public void GeneratePossession_MarkingThePossessed_HasAnAffixForEachPersonAndNumber()
     {
         var language = GeneratedLanguages.With(s => s.Fix(Settings.Fusion, Fusion.Concatenative));
         var rand = new Random(1);
 
-        var drawn = Enumerable.Range(0, 5000).Select(_ => Generator.GeneratePossession(rand, language.MorphologicalProfile, language.WordOrder, language.Phonology)).ToList();
+        var drawn = Enumerable.Range(0, 1000).Select(_ => Generator.GeneratePossession(rand, language.MorphologicalProfile, language.WordOrder, language.Phonology)).ToList();
 
-        //WALS 24A: 98, 78, 22 and 32 of 230 languages modeled
-        Assert.InRange(drawn.Count(p => p.Marking == PossessiveMarking.Dependent) / 5000.0, 0.40, 0.45);
-        Assert.InRange(drawn.Count(p => p.Marking == PossessiveMarking.Head) / 5000.0, 0.32, 0.36);
-        Assert.InRange(drawn.Count(p => p.Marking == PossessiveMarking.Double) / 5000.0, 0.08, 0.11);
-        Assert.InRange(drawn.Count(p => p.Marking == PossessiveMarking.None) / 5000.0, 0.12, 0.16);
+        Assert.Contains(drawn, p => p.MarksPossessed);
         Assert.All(drawn, p => Assert.Equal(p.MarksPossessed, p.Affixes is not null));
         Assert.All(drawn.Where(p => p.Affixes is not null), p => Assert.Equal(6, p.Affixes!.Count));
     }

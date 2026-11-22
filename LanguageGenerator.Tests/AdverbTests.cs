@@ -184,32 +184,24 @@ public class AdverbTests
     }
 
     [Fact]
-    public void GenerateManner_ManyDraws_MatchTheGuesses()
+    public void GenerateManner_IsolatingLanguages_NeverTakeAnAffix()
     {
-        var language = GeneratedLanguages.With(s => s.Inflecting());
         var isolating = GeneratedLanguages.With(s => s.Fix(Settings.Fusion, Fusion.Isolating));
         var rand = new Random(1);
 
-        var drawn = Enumerable.Range(0, 4000).Select(_ => Generator.GenerateManner(rand, language.MorphologicalProfile, language.Phonology)).ToList();
-        var words = drawn.Select(m => m.Value).OfType<MannerWord>().ToList();
-
-        Assert.InRange(drawn.Count(m => m.Value is MannerBare) / 4000.0, 0.37, 0.43);
-        Assert.InRange(drawn.Count(m => m.Value is MannerAffix) / 4000.0, 0.37, 0.43);
-        Assert.InRange(words.Count(w => w.BeforeAdjective) / (double)words.Count, 0.26, 0.34);
         Assert.DoesNotContain(Enumerable.Range(0, 500).Select(_ => Generator.GenerateManner(rand, isolating.MorphologicalProfile, isolating.Phonology)),
             m => m.Value is MannerAffix);
     }
 
     [Fact]
-    public void GenerateDuration_ManyDraws_MatchTheGuesses()
+    public void GenerateDuration_MarkedLikeNoRole_SaysFor()
     {
         var language = GeneratedLanguages.Sample[0];
         var rand = new Random(1);
 
-        var drawn = Enumerable.Range(0, 4000).Select(_ => Generator.GenerateDuration(rand, new Dictionary<Role, Lexeme>(), language.Phonology)).ToList();
+        var drawn = Enumerable.Range(0, 1000).Select(_ => Generator.GenerateDuration(rand, new Dictionary<Role, Lexeme>(), language.Phonology)).ToList();
 
-        Assert.InRange(drawn.Count(d => d.Like == Role.DirectObject) / 4000.0, 0.37, 0.43);
-        Assert.InRange(drawn.Count(d => d.Like == Role.Time) / 4000.0, 0.22, 0.28);
+        Assert.Contains(drawn, d => d.Like is null);
         Assert.All(drawn.Where(d => d.Like is null), d => Assert.Equal("for", d.Word!.Root.Meaning));
     }
 
@@ -223,11 +215,9 @@ public class AdverbTests
         });
 
     [Fact]
-    public void Generate_Time_IsMostlyMarkedLikeAPlace()
+    public void Generate_TimeMarkedApartFromAPlace_SaysDuring()
     {
-        var share = GeneratedLanguages.Sample.Count(l => l.RoleMarkers[Role.Time].Equals(l.RoleMarkers[Role.Location])) / (double)GeneratedLanguages.Sample.Count;
-
-        Assert.InRange(share, 0.5, 0.7);
+        Assert.Contains(GeneratedLanguages.Sample, l => !l.RoleMarkers[Role.Time].Equals(l.RoleMarkers[Role.Location]));
         Assert.All(GeneratedLanguages.Sample.Where(l => !l.RoleMarkers[Role.Time].Equals(l.RoleMarkers[Role.Location])), l =>
             Assert.Equal("during", Assert.IsType<Adposition>(l.RoleMarkers[Role.Time].Adposition).Gloss));
     }

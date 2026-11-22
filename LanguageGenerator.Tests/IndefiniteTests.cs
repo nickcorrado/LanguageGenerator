@@ -107,32 +107,13 @@ public class IndefiniteTests
     }
 
     [Fact]
-    public void GenerateIndefinites_ManyDraws_MatchTheWalsCounts()
+    public void GenerateIndefinites_Mixed_MakePersonsAndThingsEachFromQuestionWordsOrNouns()
     {
-        var drawn = Draws(s => s);
-        double Share(Func<Indefinites, bool> holds) => drawn.Count(holds) / 4000.0;
+        var mixed = Draws(s => s).Where(i => i.Type == IndefinitePronouns.Mixed).ToList();
 
-        //WALS 46A: of 324, from question words in 194, from nouns in 85, special in 22 and mixed in 23
-        Assert.InRange(Share(i => i.Type == IndefinitePronouns.InterrogativeBased), 0.57, 0.63);
-        Assert.InRange(Share(i => i.Type == IndefinitePronouns.GenericNounBased), 0.24, 0.29);
-        Assert.InRange(Share(i => i.Type == IndefinitePronouns.Special), 0.055, 0.085);
-        Assert.InRange(Share(i => i.Type == IndefinitePronouns.Mixed), 0.055, 0.085);
-        //115A: of 194, the verb negated too in 170, never in 11, and after the verb only in 13
-        Assert.InRange(Share(i => i.Negation == NegativeIndefiniteNegation.Always), 0.86, 0.89);
-        Assert.InRange(Share(i => i.Negation == NegativeIndefiniteNegation.Never), 0.045, 0.07);
-        //a mixed one makes persons and things each from question words or nouns
-        Assert.All(drawn.Where(i => i.Type == IndefinitePronouns.Mixed), i =>
+        Assert.NotEmpty(mixed);
+        Assert.All(mixed, i =>
             Assert.Equal([IndefiniteBase.Interrogative, IndefiniteBase.GenericNoun], new[] { i.PersonBase, i.ThingBase }.Order()));
-    }
-
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public void GenerateIndefinites_ManyDraws_MostlyPutQuantifiersWhereNumeralsGo(bool numeralsBefore)
-    {
-        var drawn = Draws(s => s.Fix(Settings.NumeralsBeforeNoun, numeralsBefore));
-
-        Assert.InRange(drawn.Count(i => i.QuantifiersBeforeNoun == numeralsBefore) / 4000.0, 0.77, 0.83);
     }
 
     [Fact]

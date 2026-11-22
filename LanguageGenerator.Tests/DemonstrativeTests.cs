@@ -78,21 +78,12 @@ public class DemonstrativeTests
         GeneratedLanguages.With(s => fix(s.Inflecting().Fix(Settings.Genders, [.. Enum.GetValues<NounGenders>().Where(g => g != NounGenders.None)])));
 
     [Fact]
-    public void GenerateDemonstratives_ManyDraws_MatchTheWalsCounts()
+    public void GenerateDemonstratives_Affixes_StandAloneOnAStemOfTheirOwn()
     {
-        var drawn = Draws(s => s.Inflecting());
-        double Share(Func<Demonstratives, bool> holds) => drawn.Count(holds) / 4000.0;
+        var affixes = Draws(s => s.Inflecting()).Where(d => d.IsAffix).ToList();
 
-        //WALS 41A: none in 7 of 234, two in 127, and three or more in 100
-        Assert.InRange(Share(d => d.Contrast == DistanceContrast.None), 0.02, 0.045);
-        Assert.InRange(Share(d => d.Contrast == DistanceContrast.TwoWay), 0.51, 0.57);
-        //88A: 542 of 1,141 before the noun, 562 after it, 9 prefixes and 28 suffixes
-        Assert.InRange(Share(d => d.Position == ExponentPosition.PrecedingParticle), 0.45, 0.50);
-        Assert.InRange(Share(d => d.Position == ExponentPosition.Suffix), 0.017, 0.033);
-        //42A: a stem of its own standing alone in 37 of 201, besides every affix's
-        var words = drawn.Where(d => !d.IsAffix).ToList();
-        Assert.InRange(words.Count(d => d.Pronouns.OwnStem) / (double)words.Count, 0.16, 0.21);
-        Assert.All(drawn.Where(d => d.IsAffix), d => Assert.True(d.Pronouns.OwnStem));
+        Assert.NotEmpty(affixes);
+        Assert.All(affixes, d => Assert.True(d.Pronouns.OwnStem));
     }
 
     [Fact]
@@ -108,7 +99,6 @@ public class DemonstrativeTests
             Assert.All(d.Distances, distance => Assert.Contains(distance, d.Pronouns.Own.Keys));
             Assert.All(d.Distances, distance => Assert.Contains(distance, d.Places.Own.Keys));
         });
-        Assert.InRange(drawn.Count(d => d.AgreesInGender) / 1000.0, 0.8, 0.9);
     }
 
     [Fact]

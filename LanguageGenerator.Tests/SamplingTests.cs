@@ -8,9 +8,10 @@ public class SamplingTests
         var rand = new Random(1);
         (string Value, int Weight)[] weights = [("a", 3), ("b", 1)];
 
-        var share = Enumerable.Range(0, 20000).Count(_ => Sampling.Categorical(rand, weights) == "a") / 20000.0;
+        var drawn = Enumerable.Range(0, 20000).Count(_ => Sampling.Categorical(rand, weights) == "a");
 
-        Assert.InRange(share, 0.735, 0.765);
+        var (least, most) = Binomial.Range(20000, 0.75, 1e-6);
+        Assert.InRange(drawn, least, most);
     }
 
     [Fact]
@@ -34,7 +35,11 @@ public class SamplingTests
 
         //each index is 0.8 times as likely as the one before, normalized over the three: 1, 0.8, 0.64
         double[] expected = [1 / 2.44, 0.8 / 2.44, 0.64 / 2.44];
-        Assert.All(Enumerable.Range(0, 3), i => Assert.InRange(counts[i] / 30000.0, expected[i] - 0.015, expected[i] + 0.015));
+        Assert.All(Enumerable.Range(0, 3), i =>
+        {
+            var (least, most) = Binomial.Range(30000, expected[i], 1e-6);
+            Assert.InRange(counts[i], least, most);
+        });
     }
 
     [Fact]
@@ -55,10 +60,13 @@ public class SamplingTests
             counts[Sampling.DisplacedPoisson(rand, 1, 20)]++;
         }
 
-        //with a mean of 1, P(0) = P(1) = 1/e and P(2) = 1/2e
-        Assert.InRange(counts[1] / 30000.0, 0.353, 0.383);
-        Assert.InRange(counts[2] / 30000.0, 0.353, 0.383);
-        Assert.InRange(counts[3] / 30000.0, 0.169, 0.199);
+        //with a mean of 1, P(0) = P(1) = 1/e and P(2) = 1/2e; cutting it off at 20 changes nothing a double holds
+        double[] expected = [0, 1 / Math.E, 1 / Math.E, 1 / (2 * Math.E)];
+        Assert.All(Enumerable.Range(1, 3), i =>
+        {
+            var (least, most) = Binomial.Range(30000, expected[i], 1e-6);
+            Assert.InRange(counts[i], least, most);
+        });
     }
 
     [Fact]

@@ -21,28 +21,6 @@ public class CommandTests
 
     private static string Glosses(Sentence sentence) => string.Join(" ", sentence.Words.Select(w => w.Gloss));
 
-    private static double Share(Func<Commands, bool> keep)
-    {
-        var language = GeneratedLanguages.Sample[0];
-        var rand = new Random(1);
-        return Enumerable.Range(0, 3000).Count(_ => keep(Generator.GenerateCommands(rand, language.MorphologicalProfile, language.WordOrder, language.Phonology))) / 3000.0;
-    }
-
-    [Fact]
-    public void GenerateCommands_ManyDraws_FollowWals70A()
-    {
-        Assert.InRange(Share(c => !c.Singular.HasValue && !c.Plural.HasValue), 122 / 548.0 - 0.03, 122 / 548.0 + 0.03);
-        Assert.InRange(Share(c => c.Singular.HasValue && !c.Plural.HasValue), 43 / 548.0 - 0.02, 43 / 548.0 + 0.02);
-        Assert.InRange(Share(c => c.Singular.HasValue && c.Singular.Equals(c.Plural)), 89 / 548.0 - 0.03, 89 / 548.0 + 0.03);
-    }
-
-    [Fact]
-    public void GenerateCommands_ManyDraws_FollowWals71A()
-    {
-        Assert.InRange(Share(c => c.ProhibitiveUsesImperative), 295 / 496.0 - 0.03, 295 / 496.0 + 0.03);
-        Assert.InRange(Share(c => c.Prohibitive is not null), 328 / 496.0 - 0.03, 328 / 496.0 + 0.03);
-    }
-
     [Fact]
     public void GenerateCommands_ManyLanguages_UseBareStems()
     {

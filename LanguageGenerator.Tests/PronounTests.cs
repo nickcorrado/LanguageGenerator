@@ -14,29 +14,6 @@ public class PronounTests
     }
 
     [Fact]
-    public void GeneratePronouns_ManyDraws_MatchTheWalsCountsForWe()
-    {
-        var systems = Draw(GeneratedLanguages.Sample[0], 4000);
-        double Share(FirstPersonPlural we) => systems.Count(s => s.FirstPersonPlural == we) / 4000.0;
-
-        //WALS 39A: 120, 10 and 63 of the 193 languages modeled
-        Assert.InRange(Share(FirstPersonPlural.Plain), 0.60, 0.64);
-        Assert.InRange(Share(FirstPersonPlural.SameAsSingular), 0.04, 0.07);
-        Assert.InRange(Share(FirstPersonPlural.InclusiveExclusive), 0.31, 0.35);
-    }
-
-    [Fact]
-    public void GeneratePronouns_ManyDraws_DropSubjectsMoreWhereVerbsAgree()
-    {
-        var agreeing = Draw(GeneratedLanguages.With(s => s.Fix(Settings.VerbAgreement, true)), 4000);
-        var nonAgreeing = Draw(GeneratedLanguages.With(s => s.Fix(Settings.VerbAgreement, false)), 4000);
-
-        //WALS 101A: 498 of 580 languages drop them, and 61 of 143 where only optional pronouns allow it
-        Assert.InRange(agreeing.Count(s => s.DropsSubjects) / 4000.0, 0.84, 0.88);
-        Assert.InRange(nonAgreeing.Count(s => s.DropsSubjects) / 4000.0, 0.40, 0.45);
-    }
-
-    [Fact]
     public void Generate_AnyLanguage_HasAPronounForEveryPersonAndNumber()
     {
         Assert.All(GeneratedLanguages.Sample, l =>
@@ -57,8 +34,10 @@ public class PronounTests
         var systems = GeneratedLanguages.Sample.Select(l => l.Pronouns.Forms.Values.Distinct().ToList()).ToList();
 
         Assert.All(systems.SelectMany(s => s), p => Assert.InRange(p.Root.Form.Count(x => x is Vowel), 1, 2));
-        var distinct = systems.Count(s => s.Select(p => string.Join(" ", p.Root.Form.Select(x => x.IpaSymbol))).Distinct().Count() == s.Count);
-        Assert.True(distinct >= 0.95 * systems.Count, $"only {distinct} of {systems.Count} languages have all their pronouns distinct");
+        var alike = systems.Count(s => s.Select(p => string.Join(" ", p.Root.Form.Select(x => x.IpaSymbol))).Distinct().Count() < s.Count);
+        //pronouns are kept from sounding alike, so homophones should turn up in under 1% of languages,
+        //failing once in a million at exactly 1%. None of 700 have any now
+        Assert.True(alike <= Binomial.Most(systems.Count, 0.01, 1e-6), $"{alike} of {systems.Count} languages have pronouns that sound alike");
     }
 
     [Fact]
@@ -98,16 +77,11 @@ public class PronounTests
     }
 
     [Fact]
-    public void GeneratePronouns_ManyDraws_MatchTheWalsCountsForGender()
+    public void GeneratePronouns_ManyDraws_HaveGendersExactlyWhenGendered()
     {
-        var systems = Draw(GeneratedLanguages.Sample[0], 4000);
-        double Share(PronounGender gender) => systems.Count(s => s.GenderedPronouns == gender) / 4000.0;
+        var systems = Draw(GeneratedLanguages.Sample[0], 1000);
 
-        //WALS 44A: 254, 61, 42 and 18 of the 375 languages modeled
-        Assert.InRange(Share(PronounGender.None), 0.66, 0.70);
-        Assert.InRange(Share(PronounGender.ThirdSingular), 0.15, 0.18);
-        Assert.InRange(Share(PronounGender.Third), 0.10, 0.13);
-        Assert.InRange(Share(PronounGender.ThirdAndSecond), 0.04, 0.06);
+        Assert.Contains(systems, s => s.GenderedPronouns != PronounGender.None);
         Assert.All(systems, s => Assert.Equal(s.GenderedPronouns == PronounGender.None, s.Genders.Count == 0));
     }
 

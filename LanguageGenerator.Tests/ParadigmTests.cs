@@ -264,14 +264,19 @@ public class ParadigmTests
     public void GenerateParadigm_GeneratedLanguages_KeepExponentsAlmostAlwaysDistinctWithinASlot()
     {
         //zero exponents are all alike on purpose, so only overt ones count
-        var slots = GeneratedLanguages.Sample.SelectMany(l => l.Paradigms.All.SelectMany(p => p.Slots))
-            .Select(s => s.Exponents.Where(e => e.Exponent.Form.Count > 0).ToList()).ToList();
+        static bool Repeats(ExponentSlot slot)
+        {
+            var overt = slot.Exponents.Where(e => e.Exponent.Form.Count > 0).ToList();
+            return overt.Select(e => string.Join(" ", e.Exponent.Form.Select(p => p.IpaSymbol))).Distinct().Count() < overt.Count;
+        }
+        var repeating = GeneratedLanguages.Sample.Count(l => l.Paradigms.All.SelectMany(p => p.Slots).Any(Repeats));
 
-        //syncretism is allowed when the phonology runs out of distinct forms, which happens in big
-        //fused slots whose affixes are bare consonants, but it should stay rare
-        var exponents = slots.Sum(s => s.Count);
-        var repeats = slots.Sum(s => s.Count - s.Select(e => string.Join(" ", e.Exponent.Form.Select(p => p.IpaSymbol))).Distinct().Count());
-        Assert.True(repeats < exponents / 100.0, $"{repeats} of {exponents} exponents repeat a form in their slot");
+        /*
+          syncretism is allowed when the phonology runs out of distinct forms, which happens in big
+          fused slots whose affixes are bare consonants, but it should stay in under 1% of languages,
+          failing once in a million at exactly 1%. Two of 700 have any now
+         */
+        Assert.True(repeating <= Binomial.Most(GeneratedLanguages.Sample.Count, 0.01, 1e-6), $"{repeating} languages repeat a form within a slot");
     }
 
     [Fact]

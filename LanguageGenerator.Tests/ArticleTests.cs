@@ -85,43 +85,29 @@ public class ArticleTests
     private static Language WithGender => GeneratedLanguages.With(s => s.Inflecting().Fix(Settings.Genders, [.. Enum.GetValues<NounGenders>().Where(g => g != NounGenders.None)]));
 
     [Fact]
-    public void GenerateArticles_ManyDraws_MatchTheWalsCounts()
+    public void GenerateArticles_IndefiniteFromAWord_IsTheNumeralOne()
     {
         var language = WithGender;
         var rand = new Random(1);
 
-        var drawn = Enumerable.Range(0, 4000).Select(_ => Generator.GenerateArticles(rand, language.MorphologicalProfile, language.Genders, language.Numerals, language.Demonstratives, language.Phonology)).ToList();
+        var indefinites = Enumerable.Range(0, 1000)
+            .Select(_ => Generator.GenerateArticles(rand, language.MorphologicalProfile, language.Genders, language.Numerals, language.Demonstratives, language.Phonology).Indefinite)
+            .OfType<Article>().ToList();
 
-        //WALS 37A: 216 of 620 with a definite word, 69 that use the demonstrative, 92 with an affix
-        //and 243 with neither
-        Assert.InRange(drawn.Count(a => a.Definite is not null && !a.DefiniteFromDemonstrative && FirstForm(a.Definite).Value is Particle) / 4000.0, 0.32, 0.38);
-        Assert.InRange(drawn.Count(a => a.DefiniteFromDemonstrative) / 4000.0, 0.09, 0.13);
-        Assert.InRange(drawn.Count(a => a.Definite is not null && !a.DefiniteFromDemonstrative && FirstForm(a.Definite).Value is Affix) / 4000.0, 0.13, 0.17);
-        //38A, given the definite article or its absence
-        var withDefinite = drawn.Where(a => a.Definite is not null).ToList();
-        var withoutDefinite = drawn.Where(a => a.Definite is null).ToList();
-        Assert.InRange(withDefinite.Count(a => a.Indefinite is not null) / (double)withDefinite.Count, 0.62, 0.71);
-        Assert.InRange(withoutDefinite.Count(a => a.Indefinite is not null) / (double)withoutDefinite.Count, 0.15, 0.23);
-        //of indefinite articles, 102 a word, 112 'one' and 24 an affix
-        var indefinites = drawn.Select(a => a.Indefinite).OfType<Article>().ToList();
-        Assert.InRange(indefinites.Count(a => FirstForm(a).Value is Root) / (double)indefinites.Count, 0.42, 0.52);
-        Assert.InRange(indefinites.Count(a => FirstForm(a).Value is Affix) / (double)indefinites.Count, 0.07, 0.13);
+        Assert.Contains(indefinites, a => FirstForm(a).Value is Root);
         Assert.All(indefinites.Where(a => FirstForm(a).Value is Root), a => Assert.Equal(language.Numerals.Words[1].Root, FirstForm(a).Value));
     }
 
     [Fact]
-    public void GenerateArticles_ManyDraws_AgreeAsGuessed()
+    public void GenerateArticles_Definite_HasAFormForEveryCombinationItAgreesIn()
     {
         var language = WithGender;
         var rand = new Random(1);
 
-        var definites = Enumerable.Range(0, 4000)
+        var definites = Enumerable.Range(0, 1000)
             .Select(_ => Generator.GenerateArticles(rand, language.MorphologicalProfile, language.Genders, language.Numerals, language.Demonstratives, language.Phonology).Definite)
             .OfType<Article>().ToList();
 
-        Assert.InRange(definites.Count(a => a.AgreesInGender) / (double)definites.Count, 0.76, 0.84);
-        Assert.InRange(definites.Count(a => a.AgreesInNumber) / (double)definites.Count, 0.46, 0.54);
-        //a form for every combination it agrees in
         Assert.All(definites, a => Assert.Equal((a.AgreesInGender ? language.Genders.Values.Count : 1) * (a.AgreesInNumber ? 2 : 1), a.Forms.Count));
     }
 

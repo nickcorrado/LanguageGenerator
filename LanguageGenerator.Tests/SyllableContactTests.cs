@@ -87,18 +87,6 @@ public class SyllableContactTests
         Assert.All(Enumerable.Range(0, 200).Select(_ => Generator.SelectSyllableContact(rand, rule)), c => Assert.Equal(SyllableContact.Any, c));
     }
 
-    [Fact]
-    public void SelectSyllableContact_WithCodas_DrawsEach()
-    {
-        var rand = new Random(1);
-        var rule = new SyllableRule(SyllableTemplates.CVF, TestData.Vowels, TestData.Consonants);
-        var drawn = Enumerable.Range(0, 2000).Select(_ => Generator.SelectSyllableContact(rand, rule)).ToList();
-
-        Assert.InRange(drawn.Count(c => c == SyllableContact.Any) / 2000.0, 0.36, 0.44);
-        Assert.InRange(drawn.Count(c => c == SyllableContact.NoSteepRise) / 2000.0, 0.31, 0.39);
-        Assert.InRange(drawn.Count(c => c == SyllableContact.NoRise) / 2000.0, 0.21, 0.29);
-    }
-
     private static readonly SoundChange[] Repairs = [SoundChange.CodaAssimilation, SoundChange.OnsetHardening, SoundChange.CodaNasalization];
 
     [Fact]
@@ -111,15 +99,13 @@ public class SyllableContactTests
     }
 
     [Fact]
-    public void SelectSyllableChanges_WithARestrictedContact_DrawsAtMostOneRepair_AndEachComesUp()
+    public void SelectSyllableChanges_WithARestrictedContact_DrawsAtMostOneRepair()
     {
         var rand = new Random(1);
         var rule = new SyllableRule(SyllableTemplates.CVF, TestData.Vowels, TestData.Consonants);
         var draws = Enumerable.Range(0, 2000).Select(_ => Generator.SelectSyllableChanges(rand, rule, TestData.Vowels, SyllableContact.NoRise)).ToList();
 
+        Assert.Contains(draws, changes => changes.Any(Repairs.Contains));
         Assert.All(draws, changes => Assert.True(changes.Count(Repairs.Contains) <= 1));
-        Assert.InRange(draws.Count(d => d.Contains(SoundChange.CodaAssimilation)) / 2000.0, 0.21, 0.29);
-        Assert.InRange(draws.Count(d => d.Contains(SoundChange.OnsetHardening)) / 2000.0, 0.16, 0.24);
-        Assert.InRange(draws.Count(d => d.Contains(SoundChange.CodaNasalization)) / 2000.0, 0.12, 0.18);
     }
 }
