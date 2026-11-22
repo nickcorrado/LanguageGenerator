@@ -20,6 +20,8 @@ Anything the generator can't express yet, like a superlative, is an error naming
 | Gloss | Meaning | Example |
 | --- | --- | --- |
 | `NEG` | Negates the clause | `see.PST.NEG` |
+| `PRF` | A perfect, as in 'has gone', or with `PST` 'had gone' | `repair.PRF  subject:nobody  object:3SG.N` |
+| `PROG` | A progressive, as in 'is waiting', or with `PST` 'was waiting' | `mend.PST.PROG  subject:3SG.F  object:net.NDF` |
 | `IMP` | A command, with no tense or aspect | `drink.IMP.NEG  object:wine` |
 | `PASS` | Passive, with what's done to as its subject and `agent:` saying who does it | `carry.PASS  subject:light.DEF  agent:(figure.NDF small)` |
 | `ABIL` | Its subject can, as in 'you can swim' | `swim.ABIL  subject:2SG` |
@@ -29,6 +31,10 @@ Anything the generator can't express yet, like a superlative, is an error naming
 | `Q` | A yes-no question | `see.PST.Q  subject:2SG  object:3PL` |
 
 A command has no subject, unless it's `subject:2PL` for several people.
+
+### Perfect and progressive
+
+`PRF` and `PROG` are aspects, so they take the place of `PFV` and `IPFV`, and go with any tense. A language marks each with an affix, a word of its own, or an auxiliary verb, as WALS 68A counts the perfect: from 'have', as English *has gone* is, from 'finish', as in much of Southeast Asia, or with the copula, as French *est venu* is. A progressive is mostly made with the copula that says where, as Spanish *está esperando* is, or with 'sit', as Dutch *zit te wachten* is. An auxiliary takes the tense, agreement and negation, with the verb bare beside it, as a modal verb does, and is glossed by what it means, `have`, `finish`, `sit`, or the copula's gloss. About half of languages have no perfect, and say it as a perfective, in the past where it's present, as Russian *nikto ne počinil* 'nobody repaired' says 'nobody has repaired'; a language with no progressive says it as an imperfective. A modal can't take either yet, so 'must have gone' can't be said.
 
 ### Modals
 

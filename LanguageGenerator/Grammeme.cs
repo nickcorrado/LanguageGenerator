@@ -48,6 +48,10 @@ public record Aspect(string Name, string Gloss) : Grammeme(Name, Gloss)
     public static Aspect Imperfective { get; } = new("Imperfective", "IPFV");
     public static Aspect Perfective { get; } = new("Perfective", "PFV");
     public static Aspect Aorist { get; } = new("Aorist", "AOR");
+    /// <summary>What's done with a result that holds at the time of the clause, as in 'nobody has repaired it'.</summary>
+    public static Aspect Perfect { get; } = new("Perfect", "PRF");
+    /// <summary>What's going on at the time of the clause, as in 'a woman is waiting'.</summary>
+    public static Aspect Progressive { get; } = new("Progressive", "PROG");
 }
 
 public record Mood(string Name, string Gloss) : Grammeme(Name, Gloss)

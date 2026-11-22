@@ -206,7 +206,11 @@ public class GeneratorTests
             var relational = l.Configurations.Markers.Values.Select(m => m.Value).OfType<RelationalNoun>().Select(n => n.Meaning).Distinct().ToList();
             var kinds = Indefinites.Kinds.Select(Indefinites.NounFor).Except(["person"]).Except(relational).Count();
             Assert.Equal(11 + relational.Count + kinds, l.Lexicon.Count(x => x.PartOfSpeech == PartOfSpeech.Noun));
-            Assert.Equal(8, l.Lexicon.Count(x => x.PartOfSpeech == PartOfSpeech.Verb));
+            //with the verb an aspect's auxiliary is, where it's 'have', 'finish' or 'sit'
+            var basic = l.Lexicon.Where(x => x.PartOfSpeech == PartOfSpeech.Verb).Select(x => x.Root.Meaning).ToList();
+            var auxiliaries = ((AspectKind[])[l.Aspects.Perfect.Kind, l.Aspects.Progressive.Kind]).Select(Language.AuxiliaryMeaning).OfType<string>().Distinct().ToList();
+            Assert.Equal(8 + auxiliaries.Count, basic.Count);
+            Assert.All(auxiliaries, a => Assert.Contains(a, basic));
             //every role but the similative, which has a marker of its own
             Assert.Equal(Enum.GetValues<Role>().Length - 1, l.RoleMarkers.Count);
         });

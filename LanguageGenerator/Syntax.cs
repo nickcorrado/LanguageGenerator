@@ -386,13 +386,17 @@ public static class Syntax
         return timed is { } statement ? (statement, new Modal(marking, clause.Negative)) : null;
     }
 
-    //the root of a statement's verb, where it has one: its own verb, a verbal adjective, or its copula
+    /*
+      the root of a statement's finite verb, where it has one: its own verb, a verbal adjective, or its
+      copula, or the auxiliary of its perfect or progressive, which takes the tense in their place
+     */
     private static Root? VerbRoot(Language language, Statement statement) => statement.Value switch
     {
         Clause c when Desired(language, c) is var (wanted, _) => VerbRoot(language, wanted),
-        Clause c => language.Lexicon.Verb(c.Verb).Root,
-        PassiveClause c => language.Lexicon.Verb(c.Verb).Root,
+        Clause c => AuxiliaryRoot(language, c.Tense, c.Aspect) ?? language.Lexicon.Verb(c.Verb).Root,
+        PassiveClause c => AuxiliaryRoot(language, c.Tense, c.Aspect) ?? language.Lexicon.Verb(c.Verb).Root,
         Comparative c => VerbRoot(language, c.Clause),
+        CopularClause c when AuxiliaryRoot(language, c.Tense, c.Aspect) is { } auxiliary => auxiliary,
         CopularClause { Complement.Value: LanguageGenerator.Oblique } => language.Predication.CopulaFor(locational: true).Root,
         CopularClause c when language.Predication.Adjectives == PredicativeAdjectives.Verbal && PredicateAdjectives(language, c.Complement) is var (adjectives, _) =>
             language.Lexicon.Adjective(adjectives[^1].Meaning).Root,
@@ -402,6 +406,18 @@ public static class Syntax
         Question q => VerbRoot(language, q.Statement),
         _ => null,
     };
+
+    //the root of the auxiliary that takes a clause's tense, where its perfect or progressive is one
+    private static Root? AuxiliaryRoot(Language language, Tense tense, Aspect aspect) =>
+        language.Aspects.Said(tense, aspect).Marking?.Value is AspectAuxiliary auxiliary ? language.AuxiliaryVerb(auxiliary, aspect).Root : null;
+
+    //whether a clause's copula can be dropped: not with a modal or an aspect's marker, which go with
+    //it, and only in the tense its verb is said in, as a perfect the language lacks is a past
+    private static bool DropsCopula(Language language, CopularClause clause, bool negative, Modal? modal, bool locational)
+    {
+        var (tense, _, marking) = language.Aspects.Said(clause.Tense, clause.Aspect);
+        return modal is null && marking is null && language.Predication.Drops(tense, negative, locational);
+    }
 
     /*
       a verb's clause with its verb bare of tense and agreement, keeping negation and the passive,
@@ -751,7 +767,8 @@ public static class Syntax
       clause has one, goes as Standing says, and a comparative's marker, if it has one, goes on the
       adjective, whether it's verbal or not. A copula with a modal is never dropped, since the modal
       goes with it, as Russian has no copula in ty ostorožen 'you are careful' but has one in ty
-      dolžen byt' ostorožen 'you must be careful'
+      dolžen byt' ostorožen 'you must be careful', and neither is one with a perfect's or a
+      progressive's marker
      */
     private static IReadOnlyList<Word> Copular(Language language, CopularClause clause, IReadOnlyList<Word> standard, DegreeMarker? degree, Modal? modal,
         IReadOnlyList<Word> adverbs)
@@ -787,7 +804,7 @@ public static class Syntax
             {
                 throw new ArgumentException("Only an adjective can be compared.", nameof(clause));
             }
-            var be = modal is null && predication.Drops(clause.Tense, negative, locational: true)
+            var be = DropsCopula(language, clause, negative, modal, locational: true)
                 ? []
                 : Predicate(language, predication.CopulaFor(locational: true), clause.Tense, clause.Aspect, clause.Subject, negative, modal, null);
             return Flat(Order(language.WordOrder, subject, be, null, WhereObliquesGo(language, [(Closeness.Place, Oblique(language, location)), .. modifiers])));
@@ -801,7 +818,7 @@ public static class Syntax
         var complement = clause.Complement.Value is Adjective adjective
             ? Standing(Graded(PredicateComplement(language, adjective, clause.Subject), language.Lexicon.Adjective(adjective.Meaning).Root, degree))
             : PredicateComplement(language, clause.Complement, clause.Subject);
-        var copula = modal is null && predication.Drops(clause.Tense, negative)
+        var copula = DropsCopula(language, clause, negative, modal, locational: false)
             ? []
             : Predicate(language, predication.Copula, clause.Tense, clause.Aspect, clause.Subject, negative, modal, null);
         return Flat(Order(language.WordOrder, subject, copula, complement, WhereObliquesGo(language, modifiers)));
@@ -1056,12 +1073,44 @@ public static class Syntax
       next to the root, outside only the passive, as in Turkish gör-ül-ebil-ir 'can be seen', and a
       modal particle beside the verb. With either of those, a negation goes where it always does,
       whichever it negates
+      A perfect or progressive auxiliary is a verb like a modal verb: it takes the tense, the
+      agreement, the negation and any modal, as English 'hasn't gone' and 'must have gone' do, and
+      the verb goes bare beside it with its passive. Its affix goes next to the root, outside only
+      the passive and inside a modal, as aspect goes nearer the root than mood, and its particle
+      beside the verb
       TODO a language whose negation is an affix could show its scope by its order, as Turkish
       git-me-meli 'must not go' puts its negation inside the modal and gid-eme-z 'cannot go' outside
      */
     private static IReadOnlyList<Word> Predicate(Language language, Lexeme verb, Tense tense, Aspect aspect, Argument subject, bool negative, Modal? modal, Passive? passive)
     {
-        IReadOnlyList<Word> Voiced(IReadOnlyList<Word> words) => passive is null ? words : passive.Apply(words);
+        var (said, inflected, marking) = language.Aspects.Said(tense, aspect);
+        switch (marking?.Value)
+        {
+            case null:
+                return Predicate(language, verb, said, inflected, subject, negative, modal, passive, null);
+            case AspectAuxiliary auxiliary:
+            {
+                //an auxiliary says a state, having done or being at it, so it's imperfective
+                var finite = Predicate(language, language.AuxiliaryVerb(auxiliary, aspect), said, Aspect.Imperfective, subject, negative, modal, null, null);
+                IReadOnlyList<Word> bare = passive is null ? [new Word([verb.Root])] : passive.Apply([new Word([verb.Root])]);
+                return auxiliary.BeforeVerb ? [.. finite, .. bare] : [.. bare, .. finite];
+            }
+            case AspectAffix or AspectParticle:
+                return Predicate(language, verb, said, inflected, subject, negative, modal, passive, marking);
+            default:
+                throw new InvalidOperationException();
+        }
+    }
+
+    //a verb with its passive, its modal and its negation, and an aspect's affix or particle, if it has one
+    private static IReadOnlyList<Word> Predicate(Language language, Lexeme verb, Tense tense, Aspect aspect, Argument subject, bool negative, Modal? modal, Passive? passive,
+        AspectMarking? marking)
+    {
+        IReadOnlyList<Word> Voiced(IReadOnlyList<Word> words)
+        {
+            var aspectual = marking is { } m ? Aspectual(words, m) : words;
+            return passive is null ? aspectual : passive.Apply(aspectual);
+        }
         IReadOnlyList<Word> Negated(IReadOnlyList<Word> words, bool negated) => negated ? language.Negation.Apply(words) : words;
         if (modal is null)
         {
@@ -1090,6 +1139,31 @@ public static class Syntax
                 var words = Voiced(Verb(language, verb, tense, aspect, subject, negative: false));
                 return Negated(m.BeforeVerb ? [new Word([m.Marker]), .. words] : [.. words, new Word([m.Marker])], negative || modal.Negative);
             }
+            default:
+                throw new InvalidOperationException();
+        }
+    }
+
+    //a verb's words with an aspect's affix next to its root, or its particle beside it
+    private static IReadOnlyList<Word> Aspectual(IReadOnlyList<Word> verb, AspectMarking marking)
+    {
+        List<Word> words = [.. verb];
+        var at = words.FindIndex(w => w.Root is not null);
+        switch (marking.Value)
+        {
+            case AspectAffix affix:
+            {
+                var morphemes = words[at].Morphemes.ToList();
+                var root = morphemes.FindIndex(m => m.Value is Root);
+                morphemes.Insert(affix.Position == ExponentPosition.Prefix ? root : root + 1, affix.Marker);
+                words[at] = words[at] with { Morphemes = morphemes };
+                return words;
+            }
+            case AspectParticle particle:
+                words.Insert(particle.BeforeVerb ? at : at + 1, new Word([particle.Marker]));
+                return words;
+            case AspectAuxiliary:
+                throw new ArgumentException("An auxiliary isn't marked on the verb.", nameof(marking));
             default:
                 throw new InvalidOperationException();
         }

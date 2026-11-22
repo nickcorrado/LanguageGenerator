@@ -82,9 +82,15 @@ public static class GlossPrompt
                 I didn't see anyone
                   see.PST.PFV  subject:1SG  object:nobody
             - Unmarked defaults: present, imperfective, affirmative, singular. Leave defaults out.
-            - There's no perfect, so 'has fallen' or 'have watched' is a past, PST, with PFV when it's
-              done and over, and its English line says it in the past: 'I have watched them for years'
-              is watch.PST and 'I watched them for years'. A present with PFV is never right for it.
+            - 'Has' or 'have' with a past participle is PRF, a perfect, and 'had' with one is PST.PRF:
+              'nobody has repaired it' is repair.PRF, 'I have watched them for years' watch.PRF, 'he has
+              been dead' be.PRF, and 'they had gone' go.PST.PRF. A simple past, done and over, is
+              PST.PFV, and 'have' meaning to own something stays the verb have.
+            - 'Be' with an -ing verb is PROG, a progressive: 'a woman is waiting' is wait.PROG and 'she
+              was mending a net' mend.PST.PROG. A present that isn't going on right now, as in 'smoke
+              rises from the chimneys' or 'the crows tell me everything', has neither.
+            - A modal can't take PRF or PROG yet, so 'must have gone' or 'should be waiting' can't be
+              expressed.
 
             Pronouns are a person and number instead of a word, as in subject:1SG or object:3PL, then
             optionally .INCL or .EXCL for 'we' (whether it includes the hearer), and a gender for a

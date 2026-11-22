@@ -91,6 +91,7 @@ public static partial class Generator
         var complementation = stages.Draw(Settings.ComplementationStage, rand => GenerateComplementation(rand, morphology, wordOrder, phonology));
         var relativization = stages.Draw(Settings.RelativizationStage, rand => GenerateRelativization(rand, morphology, wordOrder, phonology));
         var modals = stages.Draw(Settings.ModalStage, rand => GenerateModals(rand, morphology, wordOrder, predication, phonology));
+        var aspects = stages.Draw(Settings.AspectStage, rand => GenerateAspects(rand, morphology, wordOrder, phonology));
         var questions = stages.Draw(Settings.QuestionStage, rand => GenerateQuestions(rand, morphology, wordOrder, phonology));
 
         //the lexicon comes last, once there are closed classes for it to avoid
@@ -114,6 +115,14 @@ public static partial class Generator
         foreach (var kind in Indefinites.Kinds)
         {
             lexicon.Noun(Indefinites.NounFor(kind));
+        }
+        //and so are the verbs an aspect's auxiliary is, as English 'has gone' needs 'have'
+        foreach (var marker in (AspectMarker[])[aspects.Perfect, aspects.Progressive])
+        {
+            if (Language.AuxiliaryMeaning(marker.Kind) is { } meaning)
+            {
+                lexicon.Verb(meaning);
+            }
         }
 
         return new Language
@@ -151,6 +160,7 @@ public static partial class Generator
             Complementation = complementation,
             Relativization = relativization,
             Modals = modals,
+            Aspects = aspects,
             Questions = questions,
         };
     }
