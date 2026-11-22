@@ -113,7 +113,7 @@ public static partial class Generator
         //so are the nouns indefinite pronouns can be made from, as 'some person' is 'someone'
         foreach (var kind in Indefinites.Kinds)
         {
-            lexicon.Noun(kind);
+            lexicon.Noun(Indefinites.NounFor(kind));
         }
 
         return new Language

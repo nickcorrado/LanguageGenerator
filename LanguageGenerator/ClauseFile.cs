@@ -161,7 +161,7 @@ public static class ClauseFile
     private static IEnumerable<string> NounsIn(Argument argument) => argument switch
     {
         //an indefinite pronoun's noun is the language's to say, and no noun of the text's
-        NounPhrase { Pronominal: true } n => n.Relative is { } relative ? ArgumentsOf(relative).SelectMany(NounsIn) : [],
+        NounPhrase { Indefinite: not null } n => n.Relative is { } relative ? ArgumentsOf(relative).SelectMany(NounsIn) : [],
         NounPhrase n => [n.Noun, .. Given(n.Possessor).SelectMany(NounsIn), .. n.Relative is { } relative ? ArgumentsOf(relative).SelectMany(NounsIn) : []],
         Pronoun => [],
         QuestionWord or DemonstrativePronoun or DemonstrativePlace => [],
@@ -787,7 +787,7 @@ public static class ClauseFile
         }
         var noun = ParseArgument(items[0].Value, number).Value as NounPhrase
             ?? throw new ClauseFormatException($"{head} can't take adjectives, a number or a possessor yet.", number);
-        if (noun.Pronominal && items.Skip(1).FirstOrDefault(i => i.Role != "relative") is { } extra)
+        if (noun.Indefinite is not null && items.Skip(1).FirstOrDefault(i => i.Role != "relative") is { } extra)
         {
             throw new ClauseFormatException($"{head} takes only a relative clause, not '{extra.Text}'.", number);
         }
@@ -1019,17 +1019,17 @@ public static class ClauseFile
     private static readonly string PlaceRoles = "location:here, goal:here for 'to here' or source:here for 'from here'";
 
     //the indefinite pronouns, each its series and kind
-    private static readonly Dictionary<string, (Quantifier Series, string Kind)> IndefiniteWords = new()
+    private static readonly Dictionary<string, (Quantifier Series, Ontology Kind)> IndefiniteWords = new()
     {
-        ["someone"] = (Quantifier.Some, Indefinites.Person),
-        ["something"] = (Quantifier.Some, Indefinites.Thing),
-        ["somewhere"] = (Quantifier.Some, Indefinites.Place),
-        ["nobody"] = (Quantifier.No, Indefinites.Person),
-        ["nothing"] = (Quantifier.No, Indefinites.Thing),
-        ["nowhere"] = (Quantifier.No, Indefinites.Place),
-        ["everyone"] = (Quantifier.Every, Indefinites.Person),
-        ["everything"] = (Quantifier.Every, Indefinites.Thing),
-        ["everywhere"] = (Quantifier.Every, Indefinites.Place),
+        ["someone"] = (Quantifier.Some, Ontology.Person),
+        ["something"] = (Quantifier.Some, Ontology.Thing),
+        ["somewhere"] = (Quantifier.Some, Ontology.Place),
+        ["nobody"] = (Quantifier.No, Ontology.Person),
+        ["nothing"] = (Quantifier.No, Ontology.Thing),
+        ["nowhere"] = (Quantifier.No, Ontology.Place),
+        ["everyone"] = (Quantifier.Every, Ontology.Person),
+        ["everything"] = (Quantifier.Every, Ontology.Thing),
+        ["everywhere"] = (Quantifier.Every, Ontology.Place),
     };
 
     //other English words for them, and what to write instead
@@ -1058,7 +1058,7 @@ public static class ClauseFile
         {
             return null;
         }
-        return features.Count == 0 ? new NounPhrase(indefinite.Kind, Number.Singular, Quantifier: indefinite.Series, Pronominal: true)
+        return features.Count == 0 ? Indefinites.Pronoun(indefinite.Series, indefinite.Kind)
             : throw new ClauseFormatException($"{meaning} can't take {features[0].Gloss}: an indefinite pronoun takes no glosses.", number);
     }
 
@@ -1074,7 +1074,7 @@ public static class ClauseFile
             return ParseArgument(value, number);
         }
         var (meaning, features) = ParseWord(token, number);
-        var place = IndefiniteWords.TryGetValue(meaning, out var indefinite) && indefinite.Kind == Indefinites.Place;
+        var place = IndefiniteWords.TryGetValue(meaning, out var indefinite) && indefinite.Kind == Ontology.Place;
         if (!PlaceDemonstratives.TryGetValue(meaning, out var distance) && !place)
         {
             return ParseArgument(value, number);
@@ -1159,7 +1159,7 @@ public static class ClauseFile
         }
         if (IndefiniteWords.TryGetValue(meaning, out var indefinite))
         {
-            throw new ClauseFormatException(indefinite.Kind == Indefinites.Place
+            throw new ClauseFormatException(indefinite.Kind == Ontology.Place
                 ? $"{meaning} says a place, so it's {PlaceRoles.Replace("here", meaning)}, not {role}:{meaning}."
                 : $"{meaning} isn't an adverb: it fills a role, as in subject:{meaning}.", number);
         }
@@ -1223,7 +1223,7 @@ public static class ClauseFile
         }
         if (ParseIndefinite(noun, features, number) is { } indefinite)
         {
-            return indefinite.Noun != Indefinites.Place ? indefinite
+            return indefinite.Indefinite != Ontology.Place ? indefinite
                 : throw new ClauseFormatException($"{noun} says a place, so it's {PlaceRoles.Replace("here", noun)}, on its own.", number);
         }
         if (QuestionWords.TryGetValue(noun, out var asked))

@@ -18,6 +18,18 @@ public enum Quantifier
     No,
 }
 
+/// <summary>
+/// What an indefinite pronoun stands for, as Haspelmath's ontological categories have it: a person,
+/// as 'someone', a thing, as 'something', or a place, as 'somewhere'. These are the categories the
+/// question words who, what and where ask about.
+/// </summary>
+public enum Ontology
+{
+    Person,
+    Thing,
+    Place,
+}
+
 /// <summary>How a language makes its indefinite pronouns, like 'someone' and 'nothing', as WALS 46A counts them.</summary>
 public enum IndefinitePronouns
 {
@@ -70,17 +82,28 @@ public enum NegativeIndefiniteNegation
   its series
  */
 public record Indefinites(IndefiniteBase PersonBase, IndefiniteBase ThingBase, ExponentPosition MarkerPosition, IReadOnlyDictionary<Quantifier, Morpheme> Markers,
-    IReadOnlyDictionary<(Quantifier Series, string Kind), Lexeme> Own, IReadOnlyDictionary<Quantifier, Lexeme> Quantifiers, bool QuantifiersBeforeNoun,
+    IReadOnlyDictionary<(Quantifier Series, Ontology Kind), Lexeme> Own, IReadOnlyDictionary<Quantifier, Lexeme> Quantifiers, bool QuantifiersBeforeNoun,
     NegativeIndefiniteNegation Negation)
 {
     /// <summary>The quantifiers that make indefinite pronouns, as 'someone', 'nobody' and 'everyone'.</summary>
     public static IReadOnlyList<Quantifier> Series { get; } = [Quantifier.Some, Quantifier.No, Quantifier.Every];
 
-    //what an indefinite pronoun is, as the noun of a NounPhrase that's Pronominal
-    public const string Person = "person";
-    public const string Thing = "thing";
-    public const string Place = "place";
-    public static IReadOnlyList<string> Kinds { get; } = [Person, Thing, Place];
+    public static IReadOnlyList<Ontology> Kinds { get; } = Enum.GetValues<Ontology>();
+
+    /// <summary>
+    /// An indefinite pronoun, as a noun phrase of its kind's noun with its series, so that 'nobody' is
+    /// 'no person', said as the language says its indefinite pronouns.
+    /// </summary>
+    public static NounPhrase Pronoun(Quantifier series, Ontology kind) => new(NounFor(kind), Number.Singular, Quantifier: series, Indefinite: kind);
+
+    /// <summary>The noun an indefinite of this kind is made from, where it's made from one, as 'some-body' is from a noun for a person.</summary>
+    public static string NounFor(Ontology kind) => kind switch
+    {
+        Ontology.Person => "person",
+        Ontology.Thing => "thing",
+        Ontology.Place => "place",
+        _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
+    };
 
     public IndefinitePronouns Type => (PersonBase, ThingBase) switch
     {
@@ -93,14 +116,14 @@ public record Indefinites(IndefiniteBase PersonBase, IndefiniteBase ThingBase, E
     public bool MarkersAreAffixes => MarkerPosition is ExponentPosition.Prefix or ExponentPosition.Suffix;
 
     /// <summary>What a person's, a thing's or a place's indefinite pronouns are made from.</summary>
-    public IndefiniteBase BaseOf(string kind) => kind == Person ? PersonBase : ThingBase;
+    public IndefiniteBase BaseOf(Ontology kind) => kind == Ontology.Person ? PersonBase : ThingBase;
 
     /// <summary>The question word an indefinite of this kind is made from, where it's made from one.</summary>
-    public static Interrogative QuestionWordFor(string kind) => kind switch
+    public static Interrogative QuestionWordFor(Ontology kind) => kind switch
     {
-        Person => Interrogative.Who,
-        Thing => Interrogative.What,
-        Place => Interrogative.Where,
+        Ontology.Person => Interrogative.Who,
+        Ontology.Thing => Interrogative.What,
+        Ontology.Place => Interrogative.Where,
         _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
     };
 

@@ -10,18 +10,18 @@
 /// says, as in 'three wolves', whose it is, as in 'the king's house', which one it is, as in 'the
 /// third', whether it's definite, as 'the dog' is and 'a dog' isn't, a relative clause saying more
 /// of it, as in 'the net she was mending', a demonstrative pointing it out, as in 'this dog', and a
-/// quantifier, as in 'every dog'. A pronominal one is an indefinite pronoun, its noun a person, a
-/// thing or a place and its quantifier its series, so 'nobody' is (person no), said as the
+/// quantifier, as in 'every dog'. One that's indefinite is an indefinite pronoun of that kind, its
+/// noun the kind's and its quantifier its series, so 'nobody' is 'no person', said as the
 /// language says its indefinite pronouns.
 /// </summary>
 /*
   no definiteness is a bare noun, as English has for 'dogs', 'water' or 'my dog'. A demonstrative
   makes a noun definite, so a phrase with one has no definiteness of its own. An indefinite pronoun
   is a noun phrase so that it takes a relative clause as one does, as 'nobody who goes into the
-  forest' does
+  forest' does. Indefinites.Pronoun makes one, so its noun is always its kind's
  */
 public record NounPhrase(string Noun, Number Number, ValueList<Adjective> Adjectives = default, int? Count = null, Argument? Possessor = null, int? Ordinal = null,
-    Definiteness? Definiteness = null, Statement? Relative = null, Distance? Demonstrative = null, Quantifier? Quantifier = null, bool Pronominal = false);
+    Definiteness? Definiteness = null, Statement? Relative = null, Distance? Demonstrative = null, Quantifier? Quantifier = null, Ontology? Indefinite = null);
 /// <summary>
 /// What fills a role: a noun phrase, a pronoun, a demonstrative standing alone, several of them
 /// joined by 'and' or 'or', a question word asking what fills it, 'here' or 'there' saying a
@@ -283,7 +283,7 @@ public static class Syntax
         }
         var words = language.Questions.Words;
         return role is Role.Location or Role.Goal or Role.Source ? words[Interrogative.Where]
-            : head is { Pronominal: true, Noun: Indefinites.Person } || language.Lexicon.ClassOf(head.Noun) is SemanticClass.Male or SemanticClass.Female or SemanticClass.Human ? words[Interrogative.Who]
+            : head.Indefinite == Ontology.Person || language.Lexicon.ClassOf(head.Noun) is SemanticClass.Male or SemanticClass.Female or SemanticClass.Human ? words[Interrogative.Who]
             : words[Interrogative.What];
     }
 
@@ -1194,7 +1194,7 @@ public static class Syntax
         var pronouns = language.Pronouns.Paradigm;
         return argument switch
         {
-            NounPhrase { Pronominal: true } phrase => Relativized(language, phrase, Indefinite(language, phrase, @case, localization)),
+            NounPhrase { Indefinite: { } kind } phrase => Relativized(language, phrase, Indefinite(language, phrase, kind, @case, localization)),
             NounPhrase phrase => Relativized(language, phrase, Possessed(language, phrase, Determined(language, phrase, Modified(language, phrase, Features(nouns, [NumberOf(language, phrase), @case, localization]))))),
             Pronoun pronoun => pronouns.Inflect(language.Pronouns.For(pronoun), Features(pronouns, [@case, localization])),
             //a demonstrative standing alone, or 'here' or 'there', inflects as a noun does
@@ -1215,21 +1215,21 @@ public static class Syntax
       inside its case, as in Japanese dare-ka-ni 'who-INDF-DAT'; or the noun for its kind with its
       series' quantifier, as 'some person'. Each inflects as a singular noun
      */
-    private static IReadOnlyList<Word> Indefinite(Language language, NounPhrase phrase, Case @case, Localization localization)
+    private static IReadOnlyList<Word> Indefinite(Language language, NounPhrase phrase, Ontology kind, Case @case, Localization localization)
     {
         var indefinites = language.Indefinites;
         var nouns = language.Paradigms.Nouns;
         var series = phrase.Quantifier ?? throw new ArgumentException("An indefinite pronoun needs its series.", nameof(phrase));
         var features = Features(nouns, [Number.Singular, @case, localization]);
-        switch (indefinites.BaseOf(phrase.Noun))
+        switch (indefinites.BaseOf(kind))
         {
             case IndefiniteBase.Special:
-                return nouns.Inflect(indefinites.Own[(series, phrase.Noun)], features);
+                return nouns.Inflect(indefinites.Own[(series, kind)], features);
             case IndefiniteBase.Interrogative:
-                var word = language.Questions.Words[Indefinites.QuestionWordFor(phrase.Noun)];
+                var word = language.Questions.Words[Indefinites.QuestionWordFor(kind)];
                 return Articles.Mark(nouns.Inflect(word, features), word.Root, indefinites.Markers[series], indefinites.MarkerPosition);
             default:
-                return Modified(language, phrase with { Pronominal = false }, features);
+                return Modified(language, phrase with { Indefinite = null }, features);
         }
     }
 

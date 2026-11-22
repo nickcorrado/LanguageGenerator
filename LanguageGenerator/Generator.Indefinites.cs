@@ -35,16 +35,16 @@ public static partial class Generator
     private const double IndefiniteWordAfterChance = 0.7;
 
     //what each indefinite pronoun of its own is glossed, by its series and kind
-    private static string IndefiniteGloss(Quantifier series, string kind) => (series, kind) switch
+    private static string IndefiniteGloss(Quantifier series, Ontology kind) => (series, kind) switch
     {
-        (Quantifier.Some, Indefinites.Person) => "someone",
-        (Quantifier.Some, Indefinites.Thing) => "something",
+        (Quantifier.Some, Ontology.Person) => "someone",
+        (Quantifier.Some, Ontology.Thing) => "something",
         (Quantifier.Some, _) => "somewhere",
-        (Quantifier.No, Indefinites.Person) => "nobody",
-        (Quantifier.No, Indefinites.Thing) => "nothing",
+        (Quantifier.No, Ontology.Person) => "nobody",
+        (Quantifier.No, Ontology.Thing) => "nothing",
         (Quantifier.No, _) => "nowhere",
-        (_, Indefinites.Person) => "everyone",
-        (_, Indefinites.Thing) => "everything",
+        (_, Ontology.Person) => "everyone",
+        (_, Ontology.Thing) => "everything",
         _ => "everywhere",
     };
 
@@ -86,7 +86,7 @@ public static partial class Generator
             };
             return isAffix ? (Morpheme)new Affix(form, [meaning]) : new Particle(form, [meaning]);
         });
-        var own = new Dictionary<(Quantifier, string), Lexeme>();
+        var own = new Dictionary<(Quantifier, Ontology), Lexeme>();
         foreach (var series in Indefinites.Series)
         {
             foreach (var kind in Indefinites.Kinds)

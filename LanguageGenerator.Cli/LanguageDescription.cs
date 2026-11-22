@@ -95,10 +95,10 @@ public static class LanguageDescription
         output.WriteLine($"Demonstratives: {demonstratives.Contrast}, {adnominal}, {where}; {standing}; 'here' and 'there' {places}");
 
         var indefinites = lang.Indefinites;
-        string Kind(string kind) => indefinites.BaseOf(kind) switch
+        string Kind(Ontology kind) => indefinites.BaseOf(kind) switch
         {
             IndefiniteBase.Interrogative => "question words",
-            IndefiniteBase.GenericNoun => $"'{kind}'",
+            IndefiniteBase.GenericNoun => $"'{Indefinites.NounFor(kind)}'",
             _ => "words of their own",
         };
         var markers = string.Join(", ", indefinites.Markers.Select(m =>
@@ -113,8 +113,8 @@ public static class LanguageDescription
             ExponentPosition.FollowingParticle => " after them",
             _ => "",
         };
-        var made = indefinites.PersonBase == indefinites.ThingBase ? $"made from {Kind(Indefinites.Person)}"
-            : $"'someone' made from {Kind(Indefinites.Person)} and 'something' from {Kind(Indefinites.Thing)}";
+        var made = indefinites.PersonBase == indefinites.ThingBase ? $"made from {Kind(Ontology.Person)}"
+            : $"'someone' made from {Kind(Ontology.Person)} and 'something' from {Kind(Ontology.Thing)}";
         var indefiniteMarking = indefinites.Type is IndefinitePronouns.GenericNounBased or IndefinitePronouns.Special ? "" : $", marked {markers}{markerWhere}";
         var negated = indefinites.Negation switch
         {
@@ -503,11 +503,10 @@ public static class LanguageDescription
             (new Clause("sleep", Tense.Present, Aspect.Imperfective, Phrase("cat", Number.Plural), Obliques: [new(Role.Location, new DemonstrativePlace(Distance.Proximal), Configuration.At)]) { Adverbs = [] },
                 "the cats sleep here"),
         ];
-        NounPhrase Indefinite(Quantifier series, string kind) => new(kind, Number.Singular, Quantifier: series, Pronominal: true);
         (Statement Clause, string Translation)[] quantified =
         [
-            (new Clause("see", Tense.Present, Aspect.Imperfective, Indefinite(Quantifier.Some, Indefinites.Person), Phrase("dog", Number.Singular)) { Adverbs = [] }, "someone sees the dog"),
-            (new Clause("eat", Tense.Past, Aspect.Perfective, Phrase("cat", Number.Singular), Indefinite(Quantifier.No, Indefinites.Thing)) { Adverbs = [] }, "the cat ate nothing"),
+            (new Clause("see", Tense.Present, Aspect.Imperfective, Indefinites.Pronoun(Quantifier.Some, Ontology.Person), Phrase("dog", Number.Singular)) { Adverbs = [] }, "someone sees the dog"),
+            (new Clause("eat", Tense.Past, Aspect.Perfective, Phrase("cat", Number.Singular), Indefinites.Pronoun(Quantifier.No, Ontology.Thing)) { Adverbs = [] }, "the cat ate nothing"),
             (new Clause("sleep", Tense.Present, Aspect.Imperfective, Phrase("dog", Number.Plural) with { Quantifier = Quantifier.All }) { Adverbs = [] }, "all the dogs sleep"),
             (new Clause("see", Tense.Past, Aspect.Perfective, new NounPhrase("bird", Number.Plural, Quantifier: Quantifier.Few), Phrase("fish", Number.Singular)) { Adverbs = [] },
                 "few birds saw the fish"),

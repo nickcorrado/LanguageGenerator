@@ -204,7 +204,7 @@ public class GeneratorTests
             //with a noun for each configuration marked by one, and 'thing' and 'place' for indefinites
             //made from nouns, 'person' being among the 11 already
             var relational = l.Configurations.Markers.Values.Select(m => m.Value).OfType<RelationalNoun>().Select(n => n.Meaning).Distinct().ToList();
-            var kinds = Indefinites.Kinds.Except([Indefinites.Person]).Except(relational).Count();
+            var kinds = Indefinites.Kinds.Select(Indefinites.NounFor).Except(["person"]).Except(relational).Count();
             Assert.Equal(11 + relational.Count + kinds, l.Lexicon.Count(x => x.PartOfSpeech == PartOfSpeech.Noun));
             Assert.Equal(8, l.Lexicon.Count(x => x.PartOfSpeech == PartOfSpeech.Verb));
             //every role but the similative, which has a marker of its own
