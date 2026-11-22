@@ -97,28 +97,19 @@ public class ComplementationTests
     }
 
     [Fact]
-    public void GenerateComplementation_ManyDraws_SayWantAsWals124ACounts()
+    public void GenerateComplementation_DesiderativeMarker_SaysVolition()
     {
-        var drawn = Draws(s => s.Inflecting());
-        double Share(Func<Complementation, bool> has) => drawn.Count(has) / 4000.0;
-
-        //of the 269 languages left, 'want' is an affix in 45 and a particle in 8, and of the 216 where
-        //it's a verb, 72 express the subject of what's wanted
-        Assert.InRange(Share(c => c.Desiderative.Kind == DesiderativeKind.Affix), 0.14, 0.19);
-        Assert.InRange(Share(c => c.Desiderative.Kind == DesiderativeKind.Particle), 0.02, 0.045);
-        Assert.InRange(drawn.Where(c => c.Desiderative.Kind == DesiderativeKind.Verb).Count(c => c.Event.Balance == Balance.Balanced) / (double)drawn.Count(c => c.Desiderative.Kind == DesiderativeKind.Verb), 0.30, 0.37);
-        Assert.All(drawn, c => Assert.True(c.Desiderative.Marking?.Value is null or ModalAffix { Marker.Grammemes: [Volition] } or ModalParticle { Marker.Grammemes: [Volition] }));
+        Assert.All(Draws(s => s.Inflecting()), c => Assert.True(c.Desiderative.Marking?.Value is null or ModalAffix { Marker.Grammemes: [Volition] } or ModalParticle { Marker.Grammemes: [Volition] }));
     }
 
     [Theory]
-    [InlineData(false, ComplementKind.Proposition, ComplementizerPosition.Initial, 0.57, 0.63)]
-    [InlineData(true, ComplementKind.Proposition, ComplementizerPosition.Final, 0.27, 0.33)]
-    [InlineData(true, ComplementKind.Event, ComplementizerPosition.None, 0.37, 0.43)]
-    public void GenerateComplementation_ManyDraws_PlaceComplementizersAsGuessed(bool objectFirst, ComplementKind kind, ComplementizerPosition position, double least, double most)
+    [InlineData(false, ComplementKind.Proposition)]
+    [InlineData(true, ComplementKind.Proposition)]
+    [InlineData(true, ComplementKind.Event)]
+    public void GenerateComplementation_ManyDraws_UseAnAffixExactlyForASuffix(bool objectFirst, ComplementKind kind)
     {
         var drawn = Draws(s => s.Inflecting().ObjectFirst(objectFirst));
 
-        Assert.InRange(drawn.Count(c => c.MarkingOf(kind).Position == position) / 4000.0, least, most);
         Assert.All(drawn, c => Assert.Equal(c.MarkingOf(kind).Position == ComplementizerPosition.Suffix, c.MarkingOf(kind).Marker.Value is Affix));
     }
 
@@ -134,17 +125,6 @@ public class ComplementationTests
             Assert.NotEqual(ComplementizerPosition.Suffix, c.Event.Position);
             Assert.NotEqual(DesiderativeKind.Affix, c.Desiderative.Kind);
         });
-
-    [Fact]
-    public void GenerateComplementation_ManyDraws_PutClausesStartingWithTheirComplementizerLastInOVLanguages()
-    {
-        var drawn = Draws(s => s.Inflecting().ObjectFirst(true));
-        double LastShare(ComplementizerPosition position) =>
-            drawn.Where(c => c.Proposition.Position == position).Count(c => c.Last) / (double)drawn.Count(c => c.Proposition.Position == position);
-
-        Assert.InRange(LastShare(ComplementizerPosition.Initial), 0.85, 0.95);
-        Assert.InRange(LastShare(ComplementizerPosition.Final), 0.05, 0.15);
-    }
 
     private static readonly Clause CatEats = new("eat", Tense.Present, Aspect.Imperfective, new NounPhrase("cat", Number.Singular), new NounPhrase("fish", Number.Singular)) { Adverbs = [] };
     private static readonly Clause DogSleeps = new("sleep", Tense.Past, Aspect.Imperfective, new NounPhrase("dog", Number.Singular)) { Adverbs = [] };

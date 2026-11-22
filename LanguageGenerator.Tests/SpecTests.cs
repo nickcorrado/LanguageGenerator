@@ -42,7 +42,8 @@ public class SpecTests
         var spec = LanguageSpec.Free.Fix(Settings.ConstituentOrder, ConstituentWordOrder.SOV);
         var postpositional = Enumerable.Range(0, 100).Count(seed => Generator.Generate(seed, spec).WordOrder.AdpositionalPhraseDirectionality == HeadDirectionality.Final);
 
-        Assert.InRange(postpositional, 90, 100);
+        //472 of 486 OV languages are postpositional, so this fails about once in ten thousand
+        Assert.True(postpositional >= Binomial.Least(100, 472 / 486.0, 1e-4));
     }
 
     [Fact]

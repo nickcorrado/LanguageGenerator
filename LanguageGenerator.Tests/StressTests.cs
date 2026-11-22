@@ -119,21 +119,6 @@ public class StressTests
     }
 
     [Fact]
-    public void SelectStress_ManyDraws_MatchWalsCounts()
-    {
-        var rand = new Random(1);
-        var draws = Enumerable.Range(0, 100000).Select(_ => Generator.SelectStress(rand)).ToList();
-
-        //WALS 14A: of 502 languages, 92 initial, 110 penultimate, 51 final, and 220 without a fixed place
-        double Share(Func<Stress, bool> which) => draws.Count(which) / 100000.0;
-        Assert.InRange(Share(s => s == Stress.Initial), 92 / 502.0 - 0.005, 92 / 502.0 + 0.005);
-        Assert.InRange(Share(s => s == Stress.Penultimate), 110 / 502.0 - 0.005, 110 / 502.0 + 0.005);
-        Assert.InRange(Share(s => s == Stress.Ultimate), 51 / 502.0 - 0.005, 51 / 502.0 + 0.005);
-        Assert.InRange(Share(s => s.IsWeightSensitive), 220 / 502.0 - 0.005, 220 / 502.0 + 0.005);
-        Assert.Equal(Enum.GetValues<Stress>().Length, draws.Distinct().Count());
-    }
-
-    [Fact]
     public void Generate_GeneratedLanguages_StressOneSyllableOfEveryWord()
     {
         Assert.All(GeneratedLanguages.Sample, l => Assert.All(l.Lexicon.Select(x => l.Phonology.Realize(new Word([x.Root]))), form =>

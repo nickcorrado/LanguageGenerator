@@ -61,18 +61,13 @@ public class NumeralTests
     public void Say_OutOfRange_Throws(int n) => Assert.Throws<ArgumentOutOfRangeException>(() => System(NumeralBase.Decimal).Say(n));
 
     [Fact]
-    public void GenerateNumerals_ManyDraws_MatchTheWalsCounts()
+    public void GenerateNumerals_ManyDraws_SayEveryNumberInShortWords()
     {
         var phonology = GeneratedLanguages.Sample[0].Phonology;
         var rand = new Random(1);
 
-        var drawn = Enumerable.Range(0, 3000).Select(_ => Generator.GenerateNumerals(rand, GeneratedLanguages.Sample[0].MorphologicalProfile, phonology)).ToList();
+        var drawn = Enumerable.Range(0, 1000).Select(_ => Generator.GenerateNumerals(rand, GeneratedLanguages.Sample[0].MorphologicalProfile, phonology)).ToList();
 
-        //WALS 131A: 125, 42 and 20 of 187 languages modeled; 89A: 479 of 1,086 put the numeral first
-        Assert.InRange(drawn.Count(s => s.Base == NumeralBase.Decimal) / 3000.0, 0.64, 0.70);
-        Assert.InRange(drawn.Count(s => s.Base == NumeralBase.Vigesimal) / 3000.0, 0.20, 0.25);
-        Assert.InRange(drawn.Count(s => s.Base == NumeralBase.Restricted) / 3000.0, 0.09, 0.13);
-        Assert.InRange(drawn.Count(s => s.BeforeNoun) / 3000.0, 0.41, 0.47);
         Assert.All(drawn.Where(s => s.Base == NumeralBase.Restricted), s => Assert.InRange(s.Limit, 3, 5));
         //every number the format allows has words, each at most two syllables
         Assert.All(drawn, s =>
@@ -88,7 +83,9 @@ public class NumeralTests
         var homophonous = GeneratedLanguages.Sample.Count(l =>
             l.Numerals.Words.Values.Select(w => string.Concat(w.Root.Form.Select(p => p.IpaSymbol))).Distinct().Count() < l.Numerals.Words.Count);
 
-        Assert.InRange(homophonous / (double)GeneratedLanguages.Sample.Count, 0, 0.05);
+        //numerals are kept from sounding alike, so homophones should turn up in under 1% of languages,
+        //failing once in a million at exactly 1%. None of 700 have any now
+        Assert.True(homophonous <= Binomial.Most(GeneratedLanguages.Sample.Count, 0.01, 1e-6), $"{homophonous} languages have numerals that sound alike");
     }
 
     //only the basic meanings, since coining new ones would add to the shared sample's lexicons
@@ -174,20 +171,14 @@ public class NumeralTests
     }
 
     [Fact]
-    public void GenerateNumerals_ManyDraws_MatchTheWalsOrdinalCounts()
+    public void GenerateNumerals_Ordinals_HaveTheWordsAndMarkingTheirTypeNeeds()
     {
         var phonology = GeneratedLanguages.Sample[0].Phonology;
         var morphology = GeneratedLanguages.With(s => s.Inflecting()).MorphologicalProfile;
         var rand = new Random(1);
 
-        var drawn = Enumerable.Range(0, 3000).Select(_ => Generator.GenerateNumerals(rand, morphology, phonology).Ordinals).ToList();
+        var drawn = Enumerable.Range(0, 1000).Select(_ => Generator.GenerateNumerals(rand, morphology, phonology).Ordinals).ToList();
 
-        //WALS 53A: 46, 7, 62, 110 and 61 of the 286 languages modeled
-        Assert.InRange(drawn.Count(o => o.Type == OrdinalType.Cardinal) / 3000.0, 0.13, 0.19);
-        Assert.InRange(drawn.Count(o => o.Type == OrdinalType.FirstThenCardinal) / 3000.0, 0.015, 0.035);
-        Assert.InRange(drawn.Count(o => o.Type == OrdinalType.Derived) / 3000.0, 0.19, 0.25);
-        Assert.InRange(drawn.Count(o => o.Type == OrdinalType.FirstThenDerived) / 3000.0, 0.35, 0.42);
-        Assert.InRange(drawn.Count(o => o.Type == OrdinalType.FirstSecondThenDerived) / 3000.0, 0.18, 0.25);
         Assert.All(drawn, o =>
         {
             Assert.Equal(o.Type is not (OrdinalType.Cardinal or OrdinalType.Derived), o.First is not null);

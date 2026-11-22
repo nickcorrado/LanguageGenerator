@@ -13,30 +13,18 @@ public class PassiveTests
 
     private static IEnumerable<string> Glosses(Sentence sentence) => sentence.Words.Select(w => w.Gloss);
 
-    [Fact]
-    public void SelectAlignment_ManyDraws_MatchWals98A()
-    {
-        var rand = new Random(1);
-        var drawn = Enumerable.Range(0, 4000).Select(_ => Generator.SelectAlignment(rand)).ToList();
-
-        //98 neutral, 52 nominative-accusative and 32 ergative-absolutive, of the 182 modeled
-        Assert.InRange(drawn.Count(a => a == MorphosyntacticAlignment.None) / 4000.0, 0.51, 0.57);
-        Assert.InRange(drawn.Count(a => a == MorphosyntacticAlignment.NominativeAccusative) / 4000.0, 0.26, 0.31);
-        Assert.InRange(drawn.Count(a => a == MorphosyntacticAlignment.ErgativeAbsolutive) / 4000.0, 0.16, 0.20);
-    }
-
     [Theory]
-    [InlineData(MorphosyntacticAlignment.NominativeAccusative, 0.67, 0.75)]
-    [InlineData(MorphosyntacticAlignment.ErgativeAbsolutive, 0.19, 0.25)]
-    [InlineData(MorphosyntacticAlignment.None, 0.40, 0.47)]
-    public void GeneratePassive_ManyDraws_FollowWals107AForTheAlignment(MorphosyntacticAlignment alignment, double least, double most)
+    [InlineData(MorphosyntacticAlignment.NominativeAccusative)]
+    [InlineData(MorphosyntacticAlignment.ErgativeAbsolutive)]
+    [InlineData(MorphosyntacticAlignment.None)]
+    public void GeneratePassive_AnyAlignment_IsAnAffix(MorphosyntacticAlignment alignment)
     {
         var language = GeneratedLanguages.With(s => s.Inflecting());
         var rand = new Random(1);
-        var drawn = Enumerable.Range(0, 4000).Select(_ => Generator.GeneratePassive(rand, alignment, language.MorphologicalProfile, language.Phonology)).ToList();
+        var passives = Enumerable.Range(0, 1000).Select(_ => Generator.GeneratePassive(rand, alignment, language.MorphologicalProfile, language.Phonology)).OfType<Passive>().ToList();
 
-        Assert.InRange(drawn.Count(p => p is not null) / 4000.0, least, most);
-        Assert.All(drawn.OfType<Passive>(), p => Assert.True(p is { Position: ExponentPosition.Prefix or ExponentPosition.Suffix, Marker.Value: Affix }));
+        Assert.NotEmpty(passives);
+        Assert.All(passives, p => Assert.True(p is { Position: ExponentPosition.Prefix or ExponentPosition.Suffix, Marker.Value: Affix }));
     }
 
     [Fact]

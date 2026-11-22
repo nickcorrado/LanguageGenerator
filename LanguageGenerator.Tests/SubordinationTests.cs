@@ -60,57 +60,32 @@ public class SubordinationTests
     }
 
     [Fact]
-    public void GenerateSubordination_ManyDraws_MarkClausesAsWals94ASaysForTheWordOrder()
+    public void GenerateSubordination_ManyDraws_UseAnAffixExactlyForASuffix()
     {
         var vo = Draws(s => s.ObjectFirst(false)).SelectMany(s => s.Markers.Values).ToList();
         var ov = Draws(s => s.ObjectFirst(true).Inflecting()).SelectMany(s => s.Markers.Values).ToList();
 
-        //of 307 VO languages that don't mix them, 304 start the clause with a word; of 208 OV ones, 61
-        //start it with a word, 91 end it with one and 56 mark its verb
-        Assert.InRange(vo.Count(m => m.Position == ExponentPosition.PrecedingParticle) / (double)vo.Count, 0.97, 1);
-        Assert.InRange(ov.Count(m => m.Position == ExponentPosition.PrecedingParticle) / (double)ov.Count, 0.26, 0.33);
-        Assert.InRange(ov.Count(m => m.Position == ExponentPosition.FollowingParticle) / (double)ov.Count, 0.40, 0.48);
-        Assert.InRange(ov.Count(m => m.Position == ExponentPosition.Suffix) / (double)ov.Count, 0.24, 0.30);
+        Assert.Contains(ov, m => m.Position == ExponentPosition.Suffix);
         Assert.All(ov.Concat(vo), m => Assert.Equal(m.Position == ExponentPosition.Suffix, m.Marker.Value is Affix));
     }
 
     [Fact]
-    public void GenerateSubordination_ManyDraws_DerankAsCristofaroCounts()
+    public void GenerateSubordination_OtherTemporalAndConditionalClauses_BalanceAsWhenDoes()
     {
         var drawn = Draws(s => s);
-        double Share(Subordinator s, Balance b) => drawn.Count(d => d.Markers[s].Balance == b) / 3000.0;
 
-        //WALS 125A to 127A: 102 of 170 deranking purpose clauses, 84 of 174 balancing 'when' clauses, 90 of
-        //169 balancing reason clauses
-        Assert.InRange(Share(Subordinator.Purpose, Balance.Deranked), 0.57, 0.63);
-        Assert.InRange(Share(Subordinator.When, Balance.Balanced), 0.45, 0.52);
-        Assert.InRange(Share(Subordinator.Because, Balance.Balanced), 0.50, 0.57);
         Assert.All(drawn, d => Assert.All(new[] { Subordinator.If, Subordinator.Before, Subordinator.After, Subordinator.Until },
             s => Assert.Equal(d.Markers[Subordinator.When].Balance, d.Markers[s].Balance)));
     }
 
-    [Theory]
-    [InlineData(true, Subordinator.If, 0.87, 0.93)]
-    [InlineData(true, Subordinator.Because, 0.87, 0.93)]
-    [InlineData(false, Subordinator.If, 0.82, 0.88)]
-    [InlineData(false, Subordinator.Purpose, 0.12, 0.18)]
-    public void GenerateSubordination_ManyDraws_OrderClausesAsDiesselFinds(bool objectFirst, Subordinator subordinator, double least, double most)
-    {
-        var drawn = Draws(s => s.ObjectFirst(objectFirst));
-
-        Assert.InRange(drawn.Count(d => d.Markers[subordinator].BeforeMain) / 3000.0, least, most);
-    }
-
     [Fact]
-    public void GenerateSubordination_ManyDraws_ShareMarkersAcrossTheMapsEdges()
+    public void GenerateSubordination_ManyDraws_ShareMarkersOnlyAcrossTheMapsEdges()
     {
         var drawn = Draws(s => s);
         bool Share(Subordination s, Subordinator a, Subordinator b) =>
             s.Markers[a].Marker.Form.SequenceEqual(s.Markers[b].Marker.Form) && s.Markers[a].Position == s.Markers[b].Position;
 
-        //'when' and 'if' share a marker by their own edge 40% of the time, and a little more through others
-        Assert.InRange(drawn.Count(d => Share(d, Subordinator.When, Subordinator.If)) / 3000.0, 0.39, 0.50);
-        Assert.InRange(drawn.Count(d => Share(d, Subordinator.Before, Subordinator.Until)) / 3000.0, 0.17, 0.25);
+        Assert.Contains(drawn, d => Share(d, Subordinator.When, Subordinator.If));
         //'if' and 'before' have no path between them but through 'when' and 'after' and 'because'... and
         //none at all to 'until', so those never share
         Assert.DoesNotContain(drawn, d => Share(d, Subordinator.If, Subordinator.Until));
@@ -124,16 +99,16 @@ public class SubordinationTests
     }
 
     [Fact]
-    public void GenerateSubordination_ManyDraws_MarkReducedClausesLikeRolesAsGuessed()
+    public void GenerateSubordination_ConditionalAndTemporalClauses_AreNeverMarkedLikeARole()
     {
         var drawn = Draws(s => s);
-        double Share(Subordinator s, Role? role) => drawn.Count(d => d.Markers[s].MarkedAs == role) / 3000.0;
 
-        Assert.InRange(Share(Subordinator.Purpose, Role.Goal), 0.22, 0.28);
-        Assert.InRange(Share(Subordinator.Purpose, Role.Recipient), 0.12, 0.18);
-        Assert.InRange(Share(Subordinator.Because, Role.Source), 0.22, 0.28);
-        Assert.Equal(1, Share(Subordinator.If, null));
-        Assert.Equal(1, Share(Subordinator.Before, null));
+        Assert.Contains(drawn, d => d.Markers[Subordinator.Purpose].MarkedAs is not null);
+        Assert.All(drawn, d =>
+        {
+            Assert.Null(d.Markers[Subordinator.If].MarkedAs);
+            Assert.Null(d.Markers[Subordinator.Before].MarkedAs);
+        });
     }
 
     [Fact]

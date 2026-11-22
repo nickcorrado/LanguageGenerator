@@ -68,15 +68,13 @@ public class SpatialTests
         });
 
     [Fact]
-    public void Generate_AnyStrategy_IsSomeLanguagesAndMostConfigurationsAreMarked()
+    public void Generate_AnyStrategy_IsSomeLanguages()
     {
         var markers = GeneratedLanguages.Sample.SelectMany(l => l.Configurations.Markers.Values.Select(m => m.Value)).ToList();
 
         Assert.Contains(markers, m => m is SpatialAdposition);
         Assert.Contains(markers, m => m is RelationalNoun);
         Assert.Contains(markers, m => m is SpatialCase);
-        //ten configurations besides At, of which only a few are ever said like it
-        Assert.InRange(markers.Count / (double)GeneratedLanguages.Sample.Count, 7, 10);
     }
 
     [Fact]

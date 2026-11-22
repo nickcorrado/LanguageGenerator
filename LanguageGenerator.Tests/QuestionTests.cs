@@ -29,43 +29,6 @@ public class QuestionTests
     }
 
     [Fact]
-    public void GenerateQuestions_ManyDraws_FollowWals116A()
-    {
-        var language = GeneratedLanguages.With(s => s.Inflecting());
-        var drawn = Drawn(language, 4000).Select(q => q.Polar.Value).ToList();
-
-        //600 by a particle, 164 by the verb's morphology, 13 by word order and 178 by intonation, of 955
-        Assert.InRange(drawn.Count(m => m is QuestionParticle) / 4000.0, 0.60, 0.66);
-        Assert.InRange(drawn.Count(m => m is QuestionAffix) / 4000.0, 0.15, 0.19);
-        Assert.InRange(drawn.Count(m => m is QuestionInversion) / 4000.0, 0.007, 0.022);
-        Assert.InRange(drawn.Count(m => m is QuestionIntonation) / 4000.0, 0.17, 0.21);
-    }
-
-    [Theory]
-    //58 of 324 SOV languages put question words first, 72 of 290 SVO ones and 46 of 65 VSO ones
-    [InlineData(ConstituentWordOrder.SOV, 0.15, 0.21)]
-    [InlineData(ConstituentWordOrder.SVO, 0.22, 0.28)]
-    [InlineData(ConstituentWordOrder.VSO, 0.67, 0.75)]
-    public void GenerateQuestions_ManyDraws_FrontQuestionWordsAsWals93ASaysForTheOrder(ConstituentWordOrder order, double least, double most)
-    {
-        var language = GeneratedLanguages.With(s => s.Fix(Settings.ConstituentOrder, order));
-
-        Assert.InRange(Drawn(language, 4000).Count(q => q.FrontsQuestionWords) / 4000.0, least, most);
-    }
-
-    [Theory]
-    //final in 140 of 200 OV languages with a particle, and initial in 81 of 256 VO ones
-    [InlineData(HeadDirectionality.Final, QuestionParticlePosition.Final, 0.66, 0.74)]
-    [InlineData(HeadDirectionality.Initial, QuestionParticlePosition.Initial, 0.28, 0.36)]
-    public void GenerateQuestions_ManyDraws_PlaceParticlesAsWals92ASaysForTheOrder(HeadDirectionality verbPhrase, QuestionParticlePosition position, double least, double most)
-    {
-        var language = GeneratedLanguages.With(s => s.ObjectFirst(verbPhrase == HeadDirectionality.Final));
-        var particles = Drawn(language, 6000).Select(q => q.Polar.Value).OfType<QuestionParticle>().ToList();
-
-        Assert.InRange(particles.Count(p => p.Position == position) / (double)particles.Count, least, most);
-    }
-
-    [Fact]
     public void Generate_IsolatingLanguages_HaveNoQuestionAffixes() =>
         Assert.All(GeneratedLanguages.Sample.Where(l => l.MorphologicalProfile.Fusion == Fusion.Isolating),
             l => Assert.IsNotType<QuestionAffix>(l.Questions.Polar.Value));

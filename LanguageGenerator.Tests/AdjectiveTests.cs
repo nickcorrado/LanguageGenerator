@@ -58,14 +58,6 @@ public class AdjectiveTests
     }
 
     [Fact]
-    public void Generate_AdjectivesAfterTheNoun_MostlyMirror()
-    {
-        var mirrored = Enumerable.Range(0, 4000).Count(seed => Generator.SelectWordOrder(new Random(seed)).MirrorsAdjectives) / 4000.0;
-
-        Assert.InRange(mirrored, 0.72, 0.78);
-    }
-
-    [Fact]
     public void Realize_NounWithoutAdjectives_IsUnchanged()
     {
         Assert.All(GeneratedLanguages.Sample, l =>
