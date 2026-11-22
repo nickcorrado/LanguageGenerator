@@ -125,11 +125,17 @@ public record Indefinites(IndefiniteBase PersonBase, IndefiniteBase ThingBase, E
     {
         Ontology.Place => [Role.Location, Role.Goal, Role.Source],
         Ontology.Time => [Role.Time],
-        _ => null,
+        Ontology.Person or Ontology.Thing => null,
+        _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
     };
 
     /// <summary>What the indefinite pronouns of a kind are made from, places and times going as things do.</summary>
-    public IndefiniteBase BaseOf(Ontology kind) => kind == Ontology.Person ? PersonBase : ThingBase;
+    public IndefiniteBase BaseOf(Ontology kind) => kind switch
+    {
+        Ontology.Person => PersonBase,
+        Ontology.Thing or Ontology.Place or Ontology.Time => ThingBase,
+        _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
+    };
 
     /// <summary>The question word an indefinite of this kind is made from, where it's made from one.</summary>
     public static Interrogative QuestionWordFor(Ontology kind) => kind switch

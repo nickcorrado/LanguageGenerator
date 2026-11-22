@@ -40,15 +40,16 @@ public static partial class Generator
         (Quantifier.Some, Ontology.Person) => "someone",
         (Quantifier.Some, Ontology.Thing) => "something",
         (Quantifier.Some, Ontology.Place) => "somewhere",
-        (Quantifier.Some, _) => "sometime",
+        (Quantifier.Some, Ontology.Time) => "sometime",
         (Quantifier.No, Ontology.Person) => "nobody",
         (Quantifier.No, Ontology.Thing) => "nothing",
         (Quantifier.No, Ontology.Place) => "nowhere",
-        (Quantifier.No, _) => "never",
-        (_, Ontology.Person) => "everyone",
-        (_, Ontology.Thing) => "everything",
-        (_, Ontology.Place) => "everywhere",
-        _ => "always",
+        (Quantifier.No, Ontology.Time) => "never",
+        (Quantifier.Every, Ontology.Person) => "everyone",
+        (Quantifier.Every, Ontology.Thing) => "everything",
+        (Quantifier.Every, Ontology.Place) => "everywhere",
+        (Quantifier.Every, Ontology.Time) => "always",
+        _ => throw new ArgumentOutOfRangeException(nameof(series), (series, kind), "No indefinite pronoun has this series and kind."),
     };
 
     /*
