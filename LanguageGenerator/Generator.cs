@@ -75,7 +75,8 @@ public static partial class Generator
         var duration = GenerateDuration(stages.For("duration"), adpositions, phonology);
         var roleMarkers = SelectRoleMarkers(stages.For("adposition government"), alignment, cases, regions, wordOrder, adpositions, duration);
         var numerals = stages.Draw(Settings.NumeralStage, rand => GenerateNumerals(rand, morphology, phonology));
-        var articles = stages.Draw(Settings.ArticleStage, rand => GenerateArticles(rand, morphology, genders, numerals, phonology));
+        var demonstratives = stages.Draw(Settings.DemonstrativeStage, rand => GenerateDemonstratives(rand, morphology, genders, phonology));
+        var articles = stages.Draw(Settings.ArticleStage, rand => GenerateArticles(rand, morphology, genders, numerals, demonstratives, phonology));
         var possession = stages.Draw(Settings.PossessionStage, rand => GeneratePossession(rand, morphology, wordOrder, phonology));
         var commands = stages.Draw(Settings.CommandStage, rand => GenerateCommands(rand, morphology, wordOrder, phonology));
         var comparison = stages.Draw(Settings.ComparisonStage, rand => GenerateComparison(rand, wordOrder, phonology));
@@ -118,6 +119,7 @@ public static partial class Generator
             MorphologicalProfile = morphology,
             WordOrder = wordOrder,
             Articles = articles,
+            Demonstratives = demonstratives,
             MorphosyntacticAlignment = alignment,
             RoleRegions = roleRegions,
             Cases = cases,

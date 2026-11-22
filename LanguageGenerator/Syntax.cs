@@ -8,19 +8,21 @@
 /// <summary>
 /// A noun with any adjectives modifying it, in English order, how many of it there are if a numeral
 /// says, as in 'three wolves', whose it is, as in 'the king's house', which one it is, as in 'the
-/// third', whether it's definite, as 'the dog' is and 'a dog' isn't, and a relative clause saying
-/// more of it, as in 'the net she was mending'.
+/// third', whether it's definite, as 'the dog' is and 'a dog' isn't, a relative clause saying more
+/// of it, as in 'the net she was mending', and a demonstrative pointing it out, as in 'this dog'.
 /// </summary>
-//no definiteness is a bare noun, as English has for 'dogs', 'water' or 'my dog'
+//no definiteness is a bare noun, as English has for 'dogs', 'water' or 'my dog'. A demonstrative
+//makes a noun definite, so a phrase with one has no definiteness of its own
 public record NounPhrase(string Noun, Number Number, ValueList<Adjective> Adjectives = default, int? Count = null, Argument? Possessor = null, int? Ordinal = null,
-    Definiteness? Definiteness = null, Statement? Relative = null);
+    Definiteness? Definiteness = null, Statement? Relative = null, Distance? Demonstrative = null);
 /// <summary>
-/// What fills a role: a noun phrase, a pronoun, several of them joined by 'and' or 'or', a
-/// question word asking what fills it, or, as an object, a clause or a quotation. In a relative
-/// clause, a gap is the role its noun fills, and a relative word what Syntax says in its place.
+/// What fills a role: a noun phrase, a pronoun, a demonstrative standing alone, several of them
+/// joined by 'and' or 'or', a question word asking what fills it, 'here' or 'there' saying a
+/// place, or, as an object, a clause or a quotation. In a relative clause, a gap is the role its
+/// noun fills, and a relative word what Syntax says in its place.
 /// </summary>
 //what agrees with one depends on the language, so that's Syntax.AgreementOf's to say
-public union Argument(NounPhrase, Pronoun, Coordination, QuestionWord, ComplementClause, Quotation, Gap, RelativeWord);
+public union Argument(NounPhrase, Pronoun, DemonstrativePronoun, Coordination, QuestionWord, DemonstrativePlace, ComplementClause, Quotation, Gap, RelativeWord);
 /// <summary>
 /// A phrase saying where, to where, from where, which way, to whom, with whom or with what something
 /// happened, what it was like, when it happened or for how long. A spatial one says where relative
@@ -1113,7 +1115,8 @@ public static class Syntax
     {
         NounPhrase n => (Person.Third, NumberOf(language, n)),
         Pronoun p => (p.Person, p.Number),
-        QuestionWord => (Person.Third, Number.Singular),
+        DemonstrativePronoun d => (Person.Third, d.Number),
+        QuestionWord or DemonstrativePlace => (Person.Third, Number.Singular),
         //a gap or relative pronoun agrees as its noun does, as in 'the dogs that sleep'
         Gap { Head: { } head } => AgreementOf(language, head),
         Gap => (Person.Third, Number.Singular),
@@ -1179,9 +1182,11 @@ public static class Syntax
         var pronouns = language.Pronouns.Paradigm;
         return argument switch
         {
-            NounPhrase phrase => Relativized(language, phrase, Possessed(language, phrase, language.Articles.Apply(Modified(language, phrase, Features(nouns, [NumberOf(language, phrase), @case, localization])),
-                language.Lexicon.Noun(phrase.Noun).Root, phrase.Definiteness, phrase.Number, language.GenderOf(language.Lexicon.Noun(phrase.Noun))))),
+            NounPhrase phrase => Relativized(language, phrase, Possessed(language, phrase, Determined(language, phrase, Modified(language, phrase, Features(nouns, [NumberOf(language, phrase), @case, localization]))))),
             Pronoun pronoun => pronouns.Inflect(language.Pronouns.For(pronoun), Features(pronouns, [@case, localization])),
+            //a demonstrative standing alone, or 'here' or 'there', inflects as a noun does
+            DemonstrativePronoun demonstrative => nouns.Inflect(language.Demonstratives.Pronoun(demonstrative.Distance), Features(nouns, [demonstrative.Number, @case, localization])),
+            DemonstrativePlace place => nouns.Inflect(language.Demonstratives.Place(place.Distance), Features(nouns, [Number.Singular, @case, localization])),
             Coordination coordination => Joined(language, coordination, @case, localization),
             QuestionWord question => nouns.Inflect(language.Questions.Words[question.Word], Features(nouns, [Number.Singular, @case, localization])),
             ComplementClause or Quotation => throw new ArgumentException("A clause or a quotation can only be an object, which Object says.", nameof(argument)),
@@ -1189,6 +1194,23 @@ public static class Syntax
             Gap => [],
             RelativeWord word => nouns.Inflect(word.Word, Features(nouns, [NumberOf(language, word.Head), @case, localization])),
         };
+    }
+
+    /*
+      a noun phrase's words with its article and demonstrative, agreeing with the noun's gender and
+      with how many things there are. A demonstrative makes the phrase definite, so it takes the
+      definite article only where the language keeps one beside a demonstrative, outside the article
+     */
+    private static IReadOnlyList<Word> Determined(Language language, NounPhrase phrase, IReadOnlyList<Word> words)
+    {
+        var noun = language.Lexicon.Noun(phrase.Noun);
+        var gender = language.GenderOf(noun);
+        if (phrase.Demonstrative is not { } distance)
+        {
+            return language.Articles.Apply(words, noun.Root, phrase.Definiteness, phrase.Number, gender);
+        }
+        var definite = language.Articles.WithDemonstrative ? Definiteness.Definite : null;
+        return language.Demonstratives.Apply(language.Articles.Apply(words, noun.Root, definite, phrase.Number, gender), noun.Root, distance, phrase.Number, gender);
     }
 
     /*
@@ -1326,7 +1348,10 @@ public static class Syntax
     /*
       what a value turns into in a language that doesn't distinguish it, nearest first: a dual or a
       paucal is still more than one, a language without a future speaks of it in the present, as
-      English often does, and an aorist is a perfective
+      English often does, and an aorist is a perfective. A middle distance is far in a language with
+      only near and far, as English 'that' points near the hearer too, a demonstrative that says no
+      distance is the far one, as English uses 'that', and any distance is the one demonstrative of
+      a language that tells none apart
      */
     private static readonly Dictionary<Grammeme, Grammeme[]> Fallbacks = new()
     {
@@ -1337,6 +1362,10 @@ public static class Syntax
         [Aspect.Aorist] = [Aspect.Perfective],
         [Mood.Subjunctive] = [Mood.Indicative],
         [Mood.Imperative] = [Mood.Subjunctive, Mood.Indicative],
+        [Distance.Proximal] = [Distance.Neutral],
+        [Distance.Medial] = [Distance.Distal, Distance.Neutral],
+        [Distance.Distal] = [Distance.Neutral],
+        [Distance.Neutral] = [Distance.Distal],
     };
 
     //the order's own letters say where each constituent goes; an intransitive clause just has no O.

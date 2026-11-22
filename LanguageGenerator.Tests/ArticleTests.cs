@@ -31,25 +31,25 @@ public class ArticleTests
 
     [Fact]
     public void Apply_Suffix_GoesOutsideNumberInsideCase() =>
-        Assert.Equal("dog-PL-DEF-ACC", Glossed(new Articles(Plain(DefiniteAffix, ExponentPosition.Suffix), null)
+        Assert.Equal("dog-PL-DEF-ACC", Glossed(new Articles(Plain(DefiniteAffix, ExponentPosition.Suffix), null, false, false)
             .Apply(DogsAccusative, Dog, Definiteness.Definite, Number.Plural, null)));
 
     [Fact]
     public void Apply_Prefix_GoesBeforeTheRoot() =>
-        Assert.Equal("DEF-dog-PL-ACC", Glossed(new Articles(Plain(DefiniteAffix, ExponentPosition.Prefix), null)
+        Assert.Equal("DEF-dog-PL-ACC", Glossed(new Articles(Plain(DefiniteAffix, ExponentPosition.Prefix), null, false, false)
             .Apply(DogsAccusative, Dog, Definiteness.Definite, Number.Plural, null)));
 
     [Theory]
     [InlineData(ExponentPosition.PrecedingParticle, "DEF dog-PL-ACC")]
     [InlineData(ExponentPosition.FollowingParticle, "dog-PL-ACC DEF")]
     public void Apply_Word_GoesAtTheEdgeOfThePhrase(ExponentPosition position, string expected) =>
-        Assert.Equal(expected, Glossed(new Articles(Plain(DefiniteWord, position), null)
+        Assert.Equal(expected, Glossed(new Articles(Plain(DefiniteWord, position), null, false, false)
             .Apply(DogsAccusative, Dog, Definiteness.Definite, Number.Plural, null)));
 
     [Fact]
     public void Apply_Indefinite_OnlyMarksOneThing()
     {
-        var articles = new Articles(null, Plain(IndefiniteWord, ExponentPosition.PrecedingParticle));
+        var articles = new Articles(null, Plain(IndefiniteWord, ExponentPosition.PrecedingParticle), false, false);
         IReadOnlyList<Word> dog = [new Word([Dog])];
 
         Assert.Equal("NDF dog", Glossed(articles.Apply(dog, Dog, Definiteness.Indefinite, Number.Singular, null)));
@@ -59,7 +59,7 @@ public class ArticleTests
     [Fact]
     public void Apply_BareOrMissingArticle_LeavesThePhrase()
     {
-        var definiteOnly = new Articles(Plain(DefiniteWord, ExponentPosition.PrecedingParticle), null);
+        var definiteOnly = new Articles(Plain(DefiniteWord, ExponentPosition.PrecedingParticle), null, false, false);
 
         Assert.Same(DogsAccusative, definiteOnly.Apply(DogsAccusative, Dog, null, Number.Plural, null));
         Assert.Same(DogsAccusative, definiteOnly.Apply(DogsAccusative, Dog, Definiteness.Indefinite, Number.Singular, null));
@@ -75,7 +75,7 @@ public class ArticleTests
         var g = ClauseFile.ValuesOf<Gender>().Single(v => v.Name == gender);
         var n = ClauseFile.ValuesOf<Number>().Single(v => v.Name == number);
 
-        Assert.Equal(expected, Glossed(new Articles(Agreeing, null).Apply([new Word([Dog])], Dog, Definiteness.Definite, n, g)));
+        Assert.Equal(expected, Glossed(new Articles(Agreeing, null, false, false).Apply([new Word([Dog])], Dog, Definiteness.Definite, n, g)));
     }
 
     [Fact]
@@ -90,11 +90,13 @@ public class ArticleTests
         var language = WithGender;
         var rand = new Random(1);
 
-        var drawn = Enumerable.Range(0, 4000).Select(_ => Generator.GenerateArticles(rand, language.MorphologicalProfile, language.Genders, language.Numerals, language.Phonology)).ToList();
+        var drawn = Enumerable.Range(0, 4000).Select(_ => Generator.GenerateArticles(rand, language.MorphologicalProfile, language.Genders, language.Numerals, language.Demonstratives, language.Phonology)).ToList();
 
-        //WALS 37A: 285 of 620 with a definite word, 92 with an affix and 243 with neither
-        Assert.InRange(drawn.Count(a => a.Definite is { } d && FirstForm(d).Value is Particle) / 4000.0, 0.43, 0.49);
-        Assert.InRange(drawn.Count(a => a.Definite is { } d && FirstForm(d).Value is Affix) / 4000.0, 0.13, 0.17);
+        //WALS 37A: 216 of 620 with a definite word, 69 that use the demonstrative, 92 with an affix
+        //and 243 with neither
+        Assert.InRange(drawn.Count(a => a.Definite is not null && !a.DefiniteFromDemonstrative && FirstForm(a.Definite).Value is Particle) / 4000.0, 0.32, 0.38);
+        Assert.InRange(drawn.Count(a => a.DefiniteFromDemonstrative) / 4000.0, 0.09, 0.13);
+        Assert.InRange(drawn.Count(a => a.Definite is not null && !a.DefiniteFromDemonstrative && FirstForm(a.Definite).Value is Affix) / 4000.0, 0.13, 0.17);
         //38A, given the definite article or its absence
         var withDefinite = drawn.Where(a => a.Definite is not null).ToList();
         var withoutDefinite = drawn.Where(a => a.Definite is null).ToList();
@@ -114,7 +116,7 @@ public class ArticleTests
         var rand = new Random(1);
 
         var definites = Enumerable.Range(0, 4000)
-            .Select(_ => Generator.GenerateArticles(rand, language.MorphologicalProfile, language.Genders, language.Numerals, language.Phonology).Definite)
+            .Select(_ => Generator.GenerateArticles(rand, language.MorphologicalProfile, language.Genders, language.Numerals, language.Demonstratives, language.Phonology).Definite)
             .OfType<Article>().ToList();
 
         Assert.InRange(definites.Count(a => a.AgreesInGender) / (double)definites.Count, 0.76, 0.84);
@@ -146,10 +148,11 @@ public class ArticleTests
         Assert.All(GeneratedLanguages.Sample.Where(l => l.MorphologicalProfile.Fusion == Fusion.Isolating),
             l => Assert.DoesNotContain(new[] { l.Articles.Definite, l.Articles.Indefinite }.OfType<Article>(), a => FirstForm(a).Value is Affix));
 
+    //an article that's the demonstrative goes where the demonstrative does
     [Fact]
     public void Generate_ArticleWords_GoOnOneSide()
     {
-        Assert.All(GeneratedLanguages.Sample.Where(l => l.Articles is { Definite: { } d, Indefinite: { } i } && FirstForm(d).Value is Particle && FirstForm(i).Value is Particle),
+        Assert.All(GeneratedLanguages.Sample.Where(l => l.Articles is { Definite: { } d, Indefinite: { } i, DefiniteFromDemonstrative: false } && FirstForm(d).Value is Particle && FirstForm(i).Value is Particle),
             l => Assert.Equal(l.Articles.Definite!.Position, l.Articles.Indefinite!.Position));
     }
 

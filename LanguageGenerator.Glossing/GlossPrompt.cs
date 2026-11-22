@@ -48,10 +48,22 @@ public static class GlossPrompt
             - A passive verb has PASS, its subject is what's done to, and agent: is who does it, if the
               sentence says: 'each light is carried by a small figure' is
               carry.PASS  subject:(light each)  agent:(figure.NDF small). Keep a passive passive.
-            - Noun features: {Values<Number>()}; {Values<Definiteness>()}.
+            - Noun features: {Values<Number>()}; {Values<Definiteness>()}; {Values<Distance>(d => d != Distance.Neutral)}.
             - A noun with 'the' is DEF, and with 'a' or 'an' NDF. A noun with neither is bare, as 'wolves',
               'water' or 'his dogs' are, and so is a possessed noun: 'the king's house' is
               (house possessor:king.DEF), since 'the' goes with 'king'.
+            - A noun with 'this' or 'these' is PROX, and with 'that' or 'those' DIST, in place of DEF:
+              'this village' is village.PROX, 'those trees' tree.PL.DIST, and 'this small key'
+              (key.PROX small). MED is a 'that' near the person spoken to, as in 'that cup in your
+              hand', or neither near nor far. Standing alone, 'this' and 'that' are PROX and DIST in
+              place of a noun, with PL for 'these' and 'those': 'that is the bargain' is
+              be  subject:DIST  noun:bargain.DEF, and 'the old woman gave you this' has object:PROX.
+              Keep them: 'this' and 'that' aren't 'the' or 'it'.
+            - 'Here' and 'there' fill a role saying where, as where does: location:here and
+              location:there, goal:here for 'to here', as in 'come here', and source:there for 'from
+              there', with there.MED for a place near the person spoken to. 'The men here' says a
+              place inside a noun phrase, which is a relative clause:
+              (man.PL.DEF relative:[be  subject:_  location:here]).
             - Unmarked defaults: present, imperfective, affirmative, singular. Leave defaults out.
             - There's no perfect, so 'has fallen' or 'have watched' is a past, PST, with PFV when it's
               done and over, and its English line says it in the past: 'I have watched them for years'
@@ -156,7 +168,7 @@ public static class GlossPrompt
               what do they want?
                 want  subject:3PL  object:what
               where did you get that?
-                get.PST.PFV  subject:2SG  object:3SG.N  source:where
+                get.PST.PFV  subject:2SG  object:DIST  source:where
               why didn't you come?
                 come.PST.PFV.NEG  subject:2SG  why
 
@@ -223,8 +235,8 @@ public static class GlossPrompt
               quotation marks with no verb of saying, as in a conversation, is glossed as the
               sentence it is, with no quote: and no quotation marks: '"Where did you get that?"' is
 
-                where did you get it?
-                  get.PST.PFV  subject:2SG  object:3SG.N  source:where
+                where did you get that?
+                  get.PST.PFV  subject:2SG  object:DIST  source:where
             - A relative clause goes in its noun's parentheses as relative:[...], a clause of its own
               with _ in the role its noun fills in it, whether English says who, which, that, where
               or nothing. A clause that English shortens, as in 'a bow made of yew', is still a
@@ -246,9 +258,9 @@ public static class GlossPrompt
               object:(and (purse.NDF empty) sword.NDF) for 'an empty purse and a sword', or
               object:(or rope.NDF boat.NDF). Adjectives said together go the same way:
               adjective:(and warm crowded) for 'warm and crowded'.
-            - Demonstratives, words for where like 'here', 'there' and 'inside', words like 'only'
-              and 'even', and other conjunctions have no gloss: leave them out of the gloss line when
-              the meaning mostly survives, and gloss 'this' or 'that' with a noun as DEF.
+            - Words for where besides 'here' and 'there', like 'inside', 'upstream' and 'somewhere',
+              words like 'only' and 'even', and other conjunctions have no gloss: leave them out of
+              the gloss line when the meaning mostly survives.
             - A phrase with 'ago' or 'later' after its noun, as in 'three winters ago' or 'a month
               later', has no gloss either: leave out the whole phrase, not just 'ago' or 'later',
               since time:(winter.PL 3) alone would say 'during three winters'.
@@ -256,16 +268,16 @@ public static class GlossPrompt
               translation of what the gloss became, and everything the gloss says, every joined or
               subordinate clause included. Write it fresh from the gloss: lowercase but for
               names, with no final period, though a question keeps its question mark. Keep 'the' and
-              'a', and leave out whatever the gloss left out, like 'only', 'this', 'so' or 'here'.
+              'a', and leave out whatever the gloss left out, like 'only', 'so' or 'inside'.
               Never copy the sentence you were given when the gloss says less. For 'Eat only the
               bread.' write:
 
                 eat the bread
                   eat.IMP  object:bread.DEF
 
-              and not 'Eat only the bread.', since nothing in the gloss says 'only'. For 'She is
-              taller than most of the men here.', the English line is 'she is taller than most of the
-              men', without 'here'.
+              and not 'Eat only the bread.', since nothing in the gloss says 'only'. For 'A dog
+              barks somewhere behind the mill.', the English line is 'a dog barks behind the mill',
+              without 'somewhere'.
             - Paraphrase into what the format can say when that keeps the meaning, as with 'went' for
               walk.PST, or 'lives in' for be with location:.
             - Never drop a modal, like might or maybe, that has no gloss: 'it might rain'

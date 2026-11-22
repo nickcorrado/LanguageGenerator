@@ -7,6 +7,9 @@ public enum DefiniteArticle
     None,
     //a word of its own, like English the
     Word,
+    //the distal demonstrative, or the only one, used as an article too, as in 69 of the languages
+    //WALS counts, so its forms are the demonstrative's
+    Demonstrative,
     //an affix on the noun, like Swedish hus-et 'the house'
     Affix,
 }
@@ -48,10 +51,14 @@ public record Article(ExponentPosition Position, IReadOnlyDictionary<(Gender? Ge
         AgreesInNumber ? (Number)(Syntax.Nearest(number, Numbers) ?? Number.Plural) : null)];
 }
 
-/// <summary>A language's definite and indefinite articles, either or both of which it may lack.</summary>
+/// <summary>
+/// A language's definite and indefinite articles, either or both of which it may lack, whether its
+/// definite article is its demonstrative, and whether its definite article stays beside a
+/// demonstrative, as Greek aftó to spíti 'this the house' keeps it and English drops it.
+/// </summary>
 //an indefinite article is only for one thing, as the word for 'one' it most often comes from is, so
 //'dogs' takes none even where 'a dog' does
-public record Articles(Article? Definite, Article? Indefinite)
+public record Articles(Article? Definite, Article? Indefinite, bool DefiniteFromDemonstrative, bool WithDemonstrative)
 {
     public Article? For(Definiteness definiteness) => definiteness == Definiteness.Definite ? Definite : Indefinite;
 
@@ -68,8 +75,17 @@ public record Articles(Article? Definite, Article? Indefinite)
         {
             return phrase;
         }
-        var marker = article.For(gender, number);
-        switch (article.Position)
+        return Mark(phrase, noun, article.For(gender, number), article.Position);
+    }
+
+    /*
+      a noun phrase's words with a marker of the whole phrase: a word outside everything else in it,
+      or an affix on the noun, outside its number and an article's affix but inside its case, so a
+      demonstrative's affix goes outside an article's
+     */
+    public static IReadOnlyList<Word> Mark(IReadOnlyList<Word> phrase, Root noun, Morpheme marker, ExponentPosition position)
+    {
+        switch (position)
         {
             case ExponentPosition.PrecedingParticle:
                 return [new Word([marker]), .. phrase];
@@ -80,11 +96,11 @@ public record Articles(Article? Definite, Article? Indefinite)
         List<Word> words = [.. phrase];
         var at = words.FindIndex(w => w.Root == noun);
         var morphemes = words[at].Morphemes.ToList();
-        static bool IsNumber(Morpheme m) => m.Value is Affix { Grammemes: [Number] };
+        static bool IsInner(Morpheme m) => m.Value is Affix { Grammemes: [Number] } or Affix { Grammemes: [Definiteness, ..] };
         var slot = morphemes.FindIndex(m => m.Value is Root);
-        if (article.Position == ExponentPosition.Prefix)
+        if (position == ExponentPosition.Prefix)
         {
-            while (slot > 0 && IsNumber(morphemes[slot - 1]))
+            while (slot > 0 && IsInner(morphemes[slot - 1]))
             {
                 slot--;
             }
@@ -92,7 +108,7 @@ public record Articles(Article? Definite, Article? Indefinite)
         else
         {
             slot++;
-            while (slot < morphemes.Count && IsNumber(morphemes[slot]))
+            while (slot < morphemes.Count && IsInner(morphemes[slot]))
             {
                 slot++;
             }

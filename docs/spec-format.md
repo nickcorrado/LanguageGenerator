@@ -41,8 +41,10 @@ Rules keep a value written in from contradicting what was drawn before it: a spa
 - An oblique case needs its role to head its region: a dative can't be fixed along with the edge joining recipients to possessors, since the genitive would mark them both.
 - A configuration marked by case needs nouns that inflect, and a case on the location's region.
 - A configuration said like at needs edges joining it to at, one with a marker of its own can't be joined to at, and configurations joined into one region share its marker.
-- An isolating language has no affixes, so negation and polar questions can't be a prefix or suffix, possession can't be marked on the possessed noun, and a comparative, similative, modal or article can't be an affix.
+- An isolating language has no affixes, so negation and polar questions can't be a prefix or suffix, possession can't be marked on the possessed noun, and a comparative, similative, modal, article or demonstrative can't be an affix.
 - An article agreeing in gender needs genders, and an article that can agree: a definite article, or an indefinite one that isn't the word for 'one'.
+- A demonstrative agreeing in gender needs genders, and one that's an affix can't stand alone, so its pronouns need stems of their own.
+- Only a definite article of its own, a word or an affix, can stay beside a demonstrative.
 - Modalities joined by an edge share a marker, so two marked differently can't be joined, and the same goes for subordinators marked in different places.
 - An isolating language can't mark a subordinate clause or a complement with a suffix, or say 'want' or mark a relative clause with an affix.
 - A quotation can only be marked with the complementizer where a proposition has one.
@@ -139,9 +141,15 @@ The symbols are the generator's 53 phonemes, given exactly, so `ʦ` and not `ts`
 | `numeral-base` | `Decimal`, `Vigesimal`, or `Restricted`, with words for only the first few numbers |
 | `numerals-before-noun` | `true` if a numeral goes before its noun |
 | `ordinals` | `Cardinal`, `FirstThenCardinal`, `Derived`, `FirstThenDerived`, `FirstSecondThenDerived`, how 'first', 'second' and the rest are said |
-| `definite-article` | `None`, `Word` or `Affix` |
+| `distance-contrast` | `None`, `TwoWay` or `ThreeWay`, how many distances demonstratives tell apart, as WALS 41A has it |
+| `demonstrative-position` | `Before` or `After` the noun, or `Prefix` or `Suffix` on it, as WALS 88A has it |
+| `demonstrative-gender-agreement` | `true` if a demonstrative agrees with its noun's gender |
+| `demonstrative-pronouns-own-stem` | `true` if a demonstrative standing alone has a stem of its own, rather than being the word beside a noun, as WALS 42A has it |
+| `here-from-demonstratives` | `true` if 'here' and 'there' are the demonstratives standing alone, marked as a place is, rather than words of their own |
+| `definite-article` | `None`, `Word`, `Demonstrative`, the far demonstrative used as an article, or `Affix` |
 | `indefinite-article` | `None`, `Word`, `One`, the word for 'one', or `Affix` |
 | `article-gender-agreement` | `true` if an article agrees with its noun's gender |
+| `article-with-demonstrative` | `true` if the definite article stays beside a demonstrative, as Greek *aftó to spíti* 'this the house' keeps it |
 | `and-is-with` | `true` if 'and' between nouns is the word for 'with', as in 'the dog with the cat slept' |
 | `clause-and` | `SameAsNouns`, `OwnWord`, or `Juxtaposition`, setting clauses side by side, as nouns are then too unless 'and' is 'with' |
 | `subordinators-when-if`, `subordinators-when-after`, `subordinators-after-because`, `subordinators-purpose-because`, `subordinators-before-until`, `subordinators-when-because` | `true` if the edge of the subordinator map joins its two subordinators, so they share a marker, as German wenn is both 'if' and 'when' |

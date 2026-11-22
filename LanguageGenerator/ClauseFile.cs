@@ -162,7 +162,7 @@ public static class ClauseFile
     {
         NounPhrase n => [n.Noun, .. Given(n.Possessor).SelectMany(NounsIn), .. n.Relative is { } relative ? ArgumentsOf(relative).SelectMany(NounsIn) : []],
         Pronoun => [],
-        QuestionWord => [],
+        QuestionWord or DemonstrativePronoun or DemonstrativePlace => [],
         Coordination c => c.Items.SelectMany(NounsIn),
         ComplementClause c => ArgumentsOf(c.Clause).SelectMany(NounsIn),
         Quotation q => ArgumentsOf(q.Statement).SelectMany(NounsIn),
@@ -184,7 +184,7 @@ public static class ClauseFile
         ComplementClause { SharesSubject: true } c => Gaps(c.Clause) - (Syntax.SubjectOf(c.Clause).Value is Gap ? 1 : 0),
         ComplementClause c => Gaps(c.Clause),
         Quotation q => Gaps(q.Statement),
-        Pronoun or QuestionWord or RelativeWord => 0,
+        Pronoun or DemonstrativePronoun or QuestionWord or DemonstrativePlace or RelativeWord => 0,
     };
 
     //a clause that isn't relative has no gap, which marks only where a relative clause's noun goes
@@ -412,6 +412,7 @@ public static class ClauseFile
     private static NounPhrase ToAddressee(Argument argument, int number) => argument.Value switch
     {
         NounPhrase { Definiteness: { } } noun => throw new ClauseFormatException($"An addressee takes no article: write addressee:{noun.Noun}, not {noun.Definiteness.Gloss}.", number),
+        NounPhrase { Demonstrative: { } } noun => throw new ClauseFormatException($"An addressee takes no demonstrative yet: write addressee:{noun.Noun}, not {noun.Demonstrative.Gloss}.", number),
         NounPhrase noun => noun,
         _ => throw new ClauseFormatException("An addressee is a noun, as in addressee:marta. A clause said to 'you' needs none.", number),
     };
@@ -558,7 +559,7 @@ public static class ClauseFile
                     {
                         throw new ClauseFormatException($"Only a role saying where can say in, on or under, as location., goal., source. and route. do, not {role}.", number);
                     }
-                    obliques.Add((role, new Oblique(oblique, ParseArgument(value, number), configuration)));
+                    obliques.Add((role, new Oblique(oblique, ParseObliqueArgument(value, oblique, configuration, number), configuration)));
                     break;
                 case var _ when configuration != Configuration.At:
                     throw new ClauseFormatException($"Only a role saying where can say in, on or under, as location., goal., source. and route. do, not {role}.", number);
@@ -768,6 +769,10 @@ public static class ClauseFile
         {
             throw new ClauseFormatException($"{head} can't take adjectives: pronouns don't, here.", number);
         }
+        if (ParseDemonstrativePronoun(head, number) is { } demonstrative)
+        {
+            throw new ClauseFormatException($"{head} can't take adjectives: a demonstrative goes on its noun, as in (key.{demonstrative.Distance.Gloss} small).", number);
+        }
         foreach (var item in items.Skip(1).Where(i => i.Role is not (null or "possessor" or "relative")))
         {
             throw new ClauseFormatException($"Noun phrases can't have {A(item.Role!)} yet, only adjectives, a number, an ordinal, a possessor and a relative clause.", number);
@@ -954,9 +959,78 @@ public static class ClauseFile
         return new Manner(ParseAdjective(token, number));
     }
 
-    //words for where wait on demonstratives and spatial adpositions, which most languages make them from
+    //words for where besides here and there wait on spatial adpositions and indefinites, which most
+    //languages make them from
     private static readonly HashSet<string> PlaceAdverbs =
-        ["here", "there", "inside", "outside", "above", "below", "upstairs", "downstairs", "everywhere", "somewhere", "nowhere", "away", "upstream", "downstream"];
+        ["inside", "outside", "above", "below", "upstairs", "downstairs", "everywhere", "somewhere", "nowhere", "away", "upstream", "downstream"];
+
+    //'here' and 'there', which say a place by how far it is, as demonstratives do
+    private static readonly Dictionary<string, Distance> PlaceDemonstratives = new()
+    {
+        ["here"] = Distance.Proximal,
+        ["there"] = Distance.Distal,
+    };
+
+    private static readonly string PlaceRoles = "location:here, goal:here for 'to here' or source:here for 'from here'";
+
+    /*
+      what a role saying where, to where or from where holds: 'here' or 'there', which can't take a
+      configuration, as a question's where can't, with MED on 'there' for one near the hearer or
+      neither near nor far, or anything else a role holds
+     */
+    private static Argument ParseObliqueArgument(SyntaxValue value, Role role, Configuration configuration, int number)
+    {
+        if (value.Value is not SyntaxWord { Text: var token })
+        {
+            return ParseArgument(value, number);
+        }
+        var (meaning, features) = ParseWord(token, number);
+        if (!PlaceDemonstratives.TryGetValue(meaning, out var distance))
+        {
+            return ParseArgument(value, number);
+        }
+        if (role is not (Role.Location or Role.Goal or Role.Source))
+        {
+            throw new ClauseFormatException($"{meaning} says a place, so it's {PlaceRoles}, not {role.ToString().ToLowerInvariant()}:{meaning}.", number);
+        }
+        if (configuration != Configuration.At)
+        {
+            throw new ClauseFormatException($"{meaning} can't take a configuration, as in 'under here'.", number);
+        }
+        return features switch
+        {
+            [] => new DemonstrativePlace(distance),
+            [var medial] when medial == Distance.Medial && meaning == "there" => new DemonstrativePlace(Distance.Medial),
+            [var other, ..] => throw new ClauseFormatException($"{meaning} can't take {other.Gloss}: only there takes a gloss, MED, for a place near the hearer or neither near nor far.", number),
+        };
+    }
+
+    /*
+      a demonstrative standing alone, as in PROX for 'this' or DIST.PL for 'those', with a number and
+      nothing else, or null if the token doesn't start with a distance
+     */
+    private static DemonstrativePronoun? ParseDemonstrativePronoun(string token, int number)
+    {
+        var parts = token.Split('.');
+        if (!Glosses.TryGetValue(parts[0], out var first) || first is not Distance distance)
+        {
+            return null;
+        }
+        Number? count = null;
+        foreach (var gloss in parts.Skip(1))
+        {
+            var feature = Glosses.TryGetValue(gloss, out var grammeme) ? grammeme
+                : throw new ClauseFormatException($"'{gloss}' isn't a gloss.{Suggestion(gloss)}", number);
+            count = feature switch
+            {
+                Number n when count is null => n,
+                Number => throw new ClauseFormatException($"{parts[0]} has more than one number.", number),
+                Case => throw new ClauseFormatException($"{parts[0]} can't take {feature.Gloss}: a demonstrative's case comes from its role.", number),
+                _ => throw new ClauseFormatException($"{parts[0]} can't take {feature.Gloss} ({feature.Name}): a demonstrative standing alone has only a distance and a number.", number),
+            };
+        }
+        return new DemonstrativePronoun(distance, count ?? Number.Singular);
+    }
 
     //a word of its own saying when or how often, with no glosses
     private static Adverb ParseAdverb(SyntaxValue value, AdverbKind kind, int number)
@@ -985,9 +1059,13 @@ public static class ClauseFile
         {
             throw new ClauseFormatException("not is NEG on the verb, as in see.NEG.", number);
         }
+        if (PlaceDemonstratives.ContainsKey(meaning))
+        {
+            throw new ClauseFormatException($"{meaning} says a place, so it's {PlaceRoles}, not {role}:{meaning}.", number);
+        }
         if (PlaceAdverbs.Contains(meaning))
         {
-            throw new ClauseFormatException($"'{meaning}' can't be said yet: words for where, like here and there, wait on demonstratives and spatial adpositions.", number);
+            throw new ClauseFormatException($"'{meaning}' can't be said yet: words for where besides here and there, like inside and somewhere, wait on spatial adpositions and indefinites.", number);
         }
         if (features.Count > 0)
         {
@@ -1030,10 +1108,18 @@ public static class ClauseFile
         {
             return pronoun;
         }
+        if (ParseDemonstrativePronoun(token, number) is { } demonstrative)
+        {
+            return demonstrative;
+        }
         var (noun, features) = ParseWord(token, number);
         if (noun == "why")
         {
             throw new ClauseFormatException("why fills no role, so it's written on its own, as in leave.PST subject:3SG why.", number);
+        }
+        if (PlaceDemonstratives.ContainsKey(noun))
+        {
+            throw new ClauseFormatException($"{noun} says a place, so it's {PlaceRoles}, on its own.", number);
         }
         if (QuestionWords.TryGetValue(noun, out var asked))
         {
@@ -1042,10 +1128,19 @@ public static class ClauseFile
         }
         Number? count = null;
         Definiteness? definiteness = null;
+        Distance? distance = null;
         foreach (var feature in features)
         {
             switch (feature)
             {
+                case Distance when distance is not null:
+                    throw new ClauseFormatException($"'{noun}' has more than one demonstrative.", number);
+                case Distance when definiteness is not null:
+                case Definiteness when distance is not null:
+                    throw new ClauseFormatException($"'{noun}' takes a demonstrative or {(definiteness ?? feature).Gloss}, not both: a demonstrative already makes it definite.", number);
+                case Distance d:
+                    distance = d;
+                    break;
                 case Number n when count is null:
                     count = n;
                     break;
@@ -1061,10 +1156,10 @@ public static class ClauseFile
                 case Polarity:
                     throw new ClauseFormatException($"'{noun}' can't take {feature.Gloss}: it's the verb that's negated.", number);
                 default:
-                    throw new ClauseFormatException($"'{noun}' can't take {feature.Gloss} ({feature.Name}) yet: nouns have only number and definiteness.", number);
+                    throw new ClauseFormatException($"'{noun}' can't take {feature.Gloss} ({feature.Name}) yet: nouns have only number, definiteness and a demonstrative.", number);
             }
         }
-        return new NounPhrase(noun, count ?? Number.Singular, Definiteness: definiteness);
+        return new NounPhrase(noun, count ?? Number.Singular, Definiteness: definiteness, Demonstrative: distance);
     }
 
     //a person and number, as in 3PL, and maybe a clusivity after them. Null if it isn't a pronoun

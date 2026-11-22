@@ -56,7 +56,7 @@ A yes-no question has `Q` on its verb. A question asking who, what, where or why
 | `tell.PST  subject:who  object:2SG` | 'who told you?' |
 | `want  subject:3PL  object:what` | 'what do they want?' |
 | `be  subject:key.DEF  location:where` | 'where is the key?' |
-| `get.PST  subject:2SG  object:3SG.N  source:where` | 'where did you get that?' |
+| `get.PST  subject:2SG  object:DIST  source:where` | 'where did you get that?' |
 | `come.PST.NEG  subject:2SG  why` | 'why didn't you come?' |
 
 `where` asks about a place, so it's `location:where`, `goal:where` for 'where to' or `source:where` for 'where from'. A question asks one thing, and its question word fills a role directly, not inside a noun phrase, as 'whose' would, or a coordination. A question word can't take a configuration, as in 'under what?'. Questions with 'when', 'how' or 'which', `noun:who` for 'who are you?', and a question joined to or under another clause can't be said yet.
@@ -99,7 +99,7 @@ A clause can say when, how often, how and for how long, with any number of each:
 
 `when:` is a word of its own saying when, like *now*, *then* or *yesterday*, and `often:` one saying how often or whether something still goes on, like *again*, *always* or *still*; the language coins a root for each. `manner:` says how, as an adjective the language makes into an adverb its own way, so 'carefully' is `manner:careful`, 'suddenly' `manner:sudden` and 'well' `manner:good`. Which role an adverb is in says how near the verb it goes, so nothing has to know English adverbs by name. `time:` and `duration:` take a noun phrase, as other roles do, and `be` takes them too. `INTS` on any adjective says 'very', or 'much' with `CMPR`, as `small.CMPR.INTS` is 'much smaller'.
 
-Words for where, like *here*, *there* and *inside*, can't be said yet, and neither can *ago* or *later* after a noun, a manner that compares, as in 'more slowly', or a question asking when, how or for how long.
+*Here* and *there* fill a role saying where, as `where` does (see [Demonstratives](#demonstratives)). Other words for where, like *inside* and *somewhere*, can't be said yet, and neither can *ago* or *later* after a noun, a manner that compares, as in 'more slowly', or a question asking when, how or for how long.
 
 Adverbs and manners go where obliques go, ordered as described under [Modifier order](#modifier-order). An adverb is its bare root. A manner adverb is the adjective itself, as German *schnell* is 'quick' and 'quickly'; the adjective with an affix, as English *-ly* and Turkish *-ce* make one, glossed `ADV` as the Leipzig rules have it; or the adjective with a word beside it, as Mandarin *de* and Japanese *ni*, glossed `ADV` too. WALS doesn't count these, so the odds are guesses. A time is marked like a place in most languages, sharing the location's case or adposition, and otherwise by an adposition of its own glossed `during`. A duration is marked like the object, as Latin *duos annos* 'for two years' is accusative, like a time, or by an adposition glossed `for`. 'Very' is a word on the side the language puts degree words, the comparative's side where that's a word too, and is glossed `INTS`, as grammars commonly gloss an intensifier.
 
@@ -172,7 +172,7 @@ Any clause can be said to someone, with `addressee:marta` or `addressee:(man old
 
 ## Noun phrases
 
-A noun is definite with `DEF`, as in `subject:dog.DEF` for 'the dog', and indefinite with `NDF` for 'a dog'. With neither it's bare, as 'dogs', 'water' and 'my dog' are.
+A noun is definite with `DEF`, as in `subject:dog.DEF` for 'the dog', and indefinite with `NDF` for 'a dog'. With neither it's bare, as 'dogs', 'water' and 'my dog' are. With `PROX` or `DIST` it's 'this dog' or 'that dog' (see [Demonstratives](#demonstratives)).
 
 Anything else that goes with a noun goes in parentheses, noun first:
 
@@ -187,6 +187,29 @@ Anything else that goes with a noun goes in parentheses, noun first:
 | A relative clause | `object:(net.DEF relative:[mend.PST  subject:3SG.F  object:_])` | 'the net she was mending' (see [Relative clauses](#relative-clauses)) |
 
 A number makes the noun dual for two and paucal for a few, unless it says otherwise.
+
+## Demonstratives
+
+`PROX` on a noun is 'this' and `DIST` is 'that', in place of `DEF`, since a demonstrative already makes its noun definite. On their own, in place of a noun, they're 'this' and 'that' standing alone, and `here` and `there` fill a role saying where, as `where` does:
+
+| Written | Means |
+| --- | --- |
+| `subject:village.PROX` | 'this village' |
+| `object:(tree.PL.DIST old)` | 'those old trees' |
+| `be  subject:DIST  noun:bargain.DEF` | 'that is the bargain' |
+| `give.PST  subject:woman.DEF  recipient:2SG  object:PROX` | 'the woman gave you this' |
+| `object:DIST.PL` | 'those' |
+| `stand  subject:1SG  location:here` | 'I stand here' |
+| `come.PST  subject:2SG  goal:here` | 'you came here' |
+| `walk  subject:3PL  source:there` | 'they walk from there' |
+
+`MED` is a middle distance: near the person spoken to, as in 'that cup in your hand', or neither near nor far, which Spanish *ese* and Japanese *so-* both cover, and `there.MED` is such a place. `DEM` is a demonstrative that says no distance. A distance the language doesn't tell apart falls back on the nearest one it does: a middle one is far in a language with only near and far, as English *that* points near the hearer too, and every one is the same in a language with no distances. `here` and `there` take no configuration, as in 'under here', and go only in `location:`, `goal:` and `source:`. An addressee takes no demonstrative yet.
+
+How many distances a language tells apart follows WALS 41A: two in most languages, as English does, three in many, and none in a few, as French *ce* is both 'this' and 'that'. The 12 of 234 languages with four or more have three here. A demonstrative is a word before or after its noun, as WALS 88A counts them, outside its adjectives, numeral and article word, as Greenberg's Universal 20 has it, or, in a few languages, an affix on the noun, outside its number and an article's affix but inside its case. It agrees with its noun's gender in most languages that have gender, and in its number in many, as English *this* and *these* do. A demonstrative is glossed by its distance, as the Leipzig rules gloss `PROX` and `DIST`, with what it agrees in.
+
+Standing alone, a demonstrative is a noun, taking its role's case, and is the same word that goes beside a noun in most languages, as English *this* is, and a stem of its own in the rest, as WALS 42A counts them. *Here* and *there* are those demonstratives in the role's case, as Japanese *koko-ni* and Turkish *bura-da* are 'this place' in the locative, in most languages, as Diessel finds demonstrative adverbs mostly built on demonstrative stems, and words of their own, glossed `here`, `there` and, for a far one beside a middle one, `yonder`, in the rest.
+
+A definite article is the demonstrative in 69 of the 620 languages WALS 37A counts, with the far demonstrative's forms and place, glossed `DEF`. A definite article of its own stays beside a demonstrative in some languages, as Greek *aftó to spíti* 'this the house' and Hungarian *ez a ház* keep it, and English drops it. Nobody counts this, so the odds are a guess.
 
 ## Coordination
 

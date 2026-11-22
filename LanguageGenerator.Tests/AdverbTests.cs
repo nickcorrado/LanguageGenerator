@@ -315,7 +315,7 @@ public class AdverbTests
 
     [Theory]
     [InlineData("walk  subject:dog  adverb:now", "Say what an adverb says: when:now")]
-    [InlineData("walk  subject:dog  when:here", "words for where")]
+    [InlineData("walk  subject:dog  when:inside", "words for where")]
     [InlineData("walk  subject:dog  often:very", "very goes on an adjective as INTS")]
     [InlineData("walk  subject:dog  often:not", "NEG on the verb")]
     [InlineData("walk  subject:dog  when:now.PL", "an adverb takes no glosses")]

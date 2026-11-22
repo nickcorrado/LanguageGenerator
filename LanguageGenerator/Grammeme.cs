@@ -277,6 +277,19 @@ public record Definiteness(string Name, string Gloss) : Grammeme(Name, Gloss)
     public static Definiteness Indefinite { get; } = new("Indefinite", "NDF");
 }
 
+/// <summary>
+/// How far from the speaker a demonstrative points, as 'this' and 'that' tell apart. Medial is near
+/// the hearer, or neither near nor far, as Spanish ese and Japanese so- are.
+/// </summary>
+public record Distance(string Name, string Gloss) : Grammeme(Name, Gloss)
+{
+    public static Distance Proximal { get; } = new("Proximal", "PROX");
+    public static Distance Medial { get; } = new("Medial", "MED");
+    public static Distance Distal { get; } = new("Distal", "DIST");
+    /// <summary>A demonstrative that says no distance, as French ce doesn't.</summary>
+    public static Distance Neutral { get; } = new("Neutral", "DEM");
+}
+
 /// <summary>How much of a property an adjective says: more of it, as English -er does.</summary>
 //the plain degree is never marked, so it has no value here
 public record Degree(string Name, string Gloss) : Grammeme(Name, Gloss)
