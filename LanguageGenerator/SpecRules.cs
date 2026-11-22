@@ -195,6 +195,9 @@ public static class SpecRules
         SpecRule.Together(Settings.Fusion, Settings.Desiderative,
             (fusion, kind) => fusion != Fusion.Isolating || kind != DesiderativeKind.Affix,
             "'Want' can only be an affix where words take affixes, so fusion can't be Isolating."),
+        SpecRule.Together(Settings.Fusion, Settings.Relativizer,
+            (fusion, kind) => fusion != Fusion.Isolating || kind != RelativizerKind.Affix,
+            "A relativizer can only be an affix where words take affixes, so fusion can't be Isolating."),
         SpecRule.Together(Settings.PropositionComplementizer, Settings.Quotative,
             (position, quotative) => quotative != QuotativeKind.Complementizer || position != ComplementizerPosition.None,
             "A quotation can only be marked with the complementizer where a proposition has one, so proposition-complementizer can't be None."),
@@ -202,6 +205,16 @@ public static class SpecRules
         .. SubordinatorMap.Edges.Select(e => (e.First, e.Second)).Select(edge => new SpecRule.Narrowing(
             $"Subordinators joined by an edge share a marker, so {edge.First.ToString().ToLowerInvariant()} and {edge.Second.ToString().ToLowerInvariant()} can't be joined when they're marked in different places.",
             spec => SharedMarker(spec, Settings.SubordinatorOf(edge.First), Settings.SubordinatorOf(edge.Second), Settings.SubordinatorEdge(edge.First, edge.Second)))),
+        /*
+          and where an edge is left free, a draw that joins subordinators the spec allows different
+          positions has to give their region one they all allow, or writing each position in turn
+          would move the whole region to the last one written
+         */
+        SpecRule.On(Settings.SubordinationStage, spec => SubordinatorMap.Subordinators.Any(s => spec.Allowed(Settings.SubordinatorOf(s)) is not null)
+            ? [new Condition<Subordination>(Settings.SubordinationStage, "Subordinators that share a marker need a position the spec allows each of them.",
+                (subordination, _) => SubordinatorMap.Subordinators.All(s => spec.Allowed(Settings.SubordinatorOf(s)) is not { } allowed || allowed.Contains(subordination.Markers[s].Position)),
+                subordination => WithSharedPositions(spec, subordination))]
+            : []),
         //modalities joined by an edge share a marker, so an edge fixed joined narrows them to the
         //kinds they can share, and two that can't share one can't be joined
         .. ModalityMap.Edges.Select(e => (e.First, e.Second)).Select(edge => new SpecRule.Narrowing(
@@ -278,6 +291,34 @@ public static class SpecRules
         List<ICondition> conditions = [.. All.OfType<SpecRule.Conditions>().SelectMany(r => r.Implied(narrowed))];
         problems.AddRange(conditions.GroupBy(c => c.Stage).Select(g => g.Key.Unmet(narrowed, [.. g])).OfType<string>());
         return new Implications(narrowed, conditions, problems);
+    }
+
+    /*
+      each region of joined subordinators moved to the first position the spec allows all of them,
+      where its own isn't one. A region with no such position is parted along the edges the spec
+      leaves free, which its rules make sure leaves regions that have one, and the parts keep the
+      region's form, homophones as languages have them
+     */
+    private static Subordination WithSharedPositions(LanguageSpec spec, Subordination subordination)
+    {
+        foreach (var region in SemanticMap.Regions(SubordinatorMap.Subordinators, subordination.Joined))
+        {
+            var setting = Settings.SubordinatorOf(region[0]);
+            var allowed = region.Select(s => spec.Allowed(Settings.SubordinatorOf(s))).OfType<IReadOnlyList<object>>()
+                .Aggregate((IEnumerable<object>)setting.AllValues!, (all, some) => all.Intersect(some)).ToList();
+            if (allowed.Count == 0)
+            {
+                bool Kept((Subordinator First, Subordinator Second) edge) =>
+                    !region.Contains(edge.First) || spec.Allowed(Settings.SubordinatorEdge(edge.First, edge.Second)) is [true];
+                var parted = subordination with { Joined = [.. subordination.Joined.Where(Kept)] };
+                return parted.Joined.Count < subordination.Joined.Count ? WithSharedPositions(spec, parted) : subordination;
+            }
+            if (!allowed.Contains(subordination.Markers[region[0]].Position))
+            {
+                subordination = setting.Write(subordination, [allowed[0]]);
+            }
+        }
+        return subordination;
     }
 
     //two nodes of a semantic map joined by an edge share a marker, so an edge fixed joined narrows

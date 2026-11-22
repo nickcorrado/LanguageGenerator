@@ -249,6 +249,8 @@ public record Linkage(string Name, string Gloss) : Grammeme(Name, Gloss)
     public static Linkage Complementizer { get; } = new("Complementizer", "COMP");
     /// <summary>Marks what someone said, word for word, as Japanese to does.</summary>
     public static Linkage Quotative { get; } = new("Quotative", "QUOT");
+    /// <summary>Marks a relative clause, as English that or Mandarin de does.</summary>
+    public static Linkage Relative { get; } = new("Relative", "REL");
 
     public static Linkage For(Subordinator subordinator) => subordinator switch
     {

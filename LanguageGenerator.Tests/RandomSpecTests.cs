@@ -4,7 +4,11 @@ namespace LanguageGenerator.Tests;
 //and xUnit runs a class's tests one after another
 public class RandomSpecTests
 {
-    //any spec is either refused, or met: a spec that's neither is missing a rule
+    /*
+      any spec is either refused, or met: a spec that's neither is missing a rule, or a value is
+      written in wrongly. One that isn't met is reported as JSON with its seed, to reproduce with
+      the command line
+     */
     [Fact]
     public void Generate_RandomSpecs_AreEachRefusedOrMet()
     {
@@ -18,15 +22,43 @@ public class RandomSpecTests
                 refused++;
                 continue;
             }
-            var language = Generator.Generate(rand.Next(), spec);
-            SpecTests.AssertMeets(language, spec);
-            RelatedStageTests.AssertKeepsTheRules(language);
+            var seed = rand.Next();
+            try
+            {
+                var language = Generator.Generate(seed, spec);
+                SpecTests.AssertMeets(language, spec);
+                RelatedStageTests.AssertKeepsTheRules(language);
+            }
+            catch (Exception e)
+            {
+                Assert.Fail($"""
+                    Random spec {i} wasn't met by the language from seed {seed}. To reproduce it, save the spec below as a file and run
+                      dotnet run --project LanguageGenerator.Cli -- {seed} --spec <file>
+
+                    {SpecFile.Format(spec)}
+
+                    {e.Message}
+                    """);
+            }
             met++;
         }
 
         //sound changes fixed beside a random inventory too small for them are refused often
         Assert.InRange(refused, 1, 130);
         Assert.InRange(met, 170, 299);
+    }
+
+    //a random spec written as JSON reads back as the same spec, so a failing one can be reproduced
+    //from what the test above reports
+    [Fact]
+    public void Format_RandomSpecs_ParseBackToTheSameSpec()
+    {
+        var rand = new Random(2026);
+        Assert.All(Enumerable.Range(0, 300).Select(_ => RandomSpec(rand)), spec =>
+        {
+            var json = SpecFile.Format(spec);
+            Assert.Equal(json, SpecFile.Format(SpecFile.Parse(json)));
+        });
     }
 
     //a few settings, each fixed to one value or two, an inventory to a random handful of its sounds in
@@ -36,7 +68,7 @@ public class RandomSpecTests
         var spec = LanguageSpec.Free;
         //an inventory is one setting here, given half the time exactly and half the time as a few
         //sounds it requires or forbids, so its sounds don't swamp the rest
-        foreach (var setting in Settings.All.Where(s => Settings.InventoryOf(s) is null && rand.NextDouble() < 0.25))
+        foreach (var setting in Settings.All.Where(s => Settings.InventoryOf(s) is null && rand.NextDouble() < 0.2))
         {
             if (Settings.SoundsOf(setting) is [_, ..] sounds && rand.NextDouble() < 0.5)
             {

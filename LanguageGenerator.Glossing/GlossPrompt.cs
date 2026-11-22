@@ -225,6 +225,23 @@ public static class GlossPrompt
 
                 where did you get it?
                   get.PST.PFV  subject:2SG  object:3SG.N  source:where
+            - A relative clause goes in its noun's parentheses as relative:[...], a clause of its own
+              with _ in the role its noun fills in it, whether English says who, which, that, where
+              or nothing. A clause that English shortens, as in 'a bow made of yew', is still a
+              whole one. With no noun to go on, as in 'what it was owed' or 'where the fields end',
+              write a general one, thing, person or place:
+
+                nobody who goes into the forest at night comes back
+                  return  subject:(nobody relative:[go  subject:_  goal.in:forest.DEF  time:night])
+                she lifts the net she was mending
+                  lift  subject:3SG.F  object:(net.DEF relative:[mend.PST  subject:3SG.F  object:_])
+                it stands in a clearing where nothing grows
+                  stand  subject:3SG.N  location.in:(clearing.NDF relative:[grow  subject:nothing  location:_])
+                the forest begins where the fields end
+                  begin  subject:forest.DEF  location:(place.DEF relative:[end  subject:field.PL.DEF  location:_])
+
+              A relative clause has one _, in its own subject, object or an oblique, and not inside
+              a noun phrase or clause in it.
             - Noun phrases joined by and or or go in parentheses with the conjunction first:
               object:(and (purse.NDF empty) sword.NDF) for 'an empty purse and a sword', or
               object:(or rope.NDF boat.NDF). Adjectives said together go the same way:
@@ -258,8 +275,8 @@ public static class GlossPrompt
               says no' keeps object:no.
             - When a sentence can't be said even loosely, as with a question asking two things, or
               when, how, how long, which or whose, or a question inside another clause that isn't quoted (like 'did anyone see what happened?'), a modal other than ABIL,
-              PERM, OBLIG or ADVS (like might or maybe), a relative
-              clause, a comparison other than an adjective with be (like 'runs faster than',
+              PERM, OBLIG or ADVS (like might or maybe), a relative clause with 'whose' or on a
+              pronoun (like 'he who hesitates'), a comparison other than an adjective with be (like 'runs faster than',
               'stronger arms than yours' or 'as tall as'), a comparison with a clause (like 'warmer
               than it should be' or 'slower than before'), the most or a superlative (like 'the
               tallest'), or a command to anyone but 'you', like 'let's go', write instead one line: {CantExpress} (what's missing): the sentence.

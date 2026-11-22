@@ -451,6 +451,23 @@ public static class Settings
     public static Setting<Complementation, DesiderativeKind> Desiderative { get; } = ComplementationStage.Declare("desiderative", Clauses,
         c => c.Desiderative.Kind, (c, kind) => c with { Desiderative = c.Desiderative with { Kind = kind } }, Choice<DesiderativeKind>.Of(Enum.GetValues<DesiderativeKind>()));
 
+    public static Stage<Relativization> RelativizationStage { get; } = new("relativization", l => l.Relativization, null);
+    /// <summary>Whether a relative clause goes before its noun.</summary>
+    public static Setting<Relativization, bool> RelativeClausesFirst { get; } = RelativizationStage.Declare("relative-clauses-before-noun", Clauses,
+        r => r.BeforeNoun, (r, before) => r with { BeforeNoun = before }, YesNo);
+    /// <summary>How a relative clause says its noun as its subject, as WALS 122A has it.</summary>
+    public static Setting<Relativization, RelativeStrategy> SubjectRelativization { get; } = RelativizationStage.Declare("subject-relativization", Clauses,
+        r => r.Subject, (r, strategy) => r with { Subject = strategy }, Choice<RelativeStrategy>.Of(Enum.GetValues<RelativeStrategy>()));
+    /// <summary>How a relative clause says its noun as its object.</summary>
+    public static Setting<Relativization, RelativeStrategy> ObjectRelativization { get; } = RelativizationStage.Declare("object-relativization", Clauses,
+        r => r.Object, (r, strategy) => r with { Object = strategy }, Choice<RelativeStrategy>.Of(Enum.GetValues<RelativeStrategy>()));
+    /// <summary>How a relative clause says its noun in any other role, as WALS 123A has it.</summary>
+    public static Setting<Relativization, RelativeStrategy> ObliqueRelativization { get; } = RelativizationStage.Declare("oblique-relativization", Clauses,
+        r => r.Oblique, (r, strategy) => r with { Oblique = strategy }, Choice<RelativeStrategy>.Of(Enum.GetValues<RelativeStrategy>()));
+    /// <summary>What marks a relative clause: nothing, a word at its edge beside its noun, or an affix on its verb.</summary>
+    public static Setting<Relativization, RelativizerKind> Relativizer { get; } = RelativizationStage.Declare("relativizer", Clauses,
+        r => r.Relativizer.Kind, (r, kind) => r with { Relativizer = r.Relativizer with { Kind = kind } }, Choice<RelativizerKind>.Of(Enum.GetValues<RelativizerKind>()));
+
     //comparison
 
     public static Stage<Comparison> ComparisonStage { get; } = new("comparison", l => l.Comparison, null);
@@ -470,7 +487,7 @@ public static class Settings
     [
         VowelStage, ConsonantStage, SyllableStage, StressStage, ClusterRepairStage, SyllableContactStage, DropoffStage, SoundChangeStage, SyllableChangeStage, WordOrderStage, MorphologyStage, AlignmentStage,
         RoleRegionStage, CaseStage, ConfigurationRegionStage, ConfigurationPlanStage, NounParadigmStage, VerbParadigmStage, PronounStage, PredicationStage, LocationalCopulaStage, AdjectiveAgreementStage,
-        CommandStage, NegationStage, QuestionStage, PassiveStage, ModalStage, PossessionStage, GenderStage, NumeralStage, ArticleStage, ConjunctionStage, SubordinationStage, ComplementationStage, ComparisonStage, DegreeStage, SimilativeStage,
+        CommandStage, NegationStage, QuestionStage, PassiveStage, ModalStage, PossessionStage, GenderStage, NumeralStage, ArticleStage, ConjunctionStage, SubordinationStage, ComplementationStage, RelativizationStage, ComparisonStage, DegreeStage, SimilativeStage,
     ];
 
     /// <summary>Every setting, in the order they're declared.</summary>
@@ -481,7 +498,7 @@ public static class Settings
         .. CaseStage.Settings, .. ConfigurationRegionStage.Settings, .. ConfigurationPlanStage.Settings, .. NounParadigmStage.Settings,
         .. VerbParadigmStage.Settings, .. PronounStage.Settings, .. PredicationStage.Settings, .. LocationalCopulaStage.Settings, .. AdjectiveAgreementStage.Settings,
         .. CommandStage.Settings, .. NegationStage.Settings, .. QuestionStage.Settings, .. PassiveStage.Settings, .. ModalStage.Settings, .. PossessionStage.Settings, .. GenderStage.Settings,
-        .. NumeralStage.Settings, .. ArticleStage.Settings, .. ConjunctionStage.Settings, .. SubordinationStage.Settings, .. ComplementationStage.Settings, .. ComparisonStage.Settings,
+        .. NumeralStage.Settings, .. ArticleStage.Settings, .. ConjunctionStage.Settings, .. SubordinationStage.Settings, .. ComplementationStage.Settings, .. RelativizationStage.Settings, .. ComparisonStage.Settings,
         .. DegreeStage.Settings, .. SimilativeStage.Settings,
     ];
 

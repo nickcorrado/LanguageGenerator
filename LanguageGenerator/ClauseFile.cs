@@ -60,13 +60,13 @@ public static class ClauseFile
                 entries[^1] = previous with
                 {
                     Statement = ConjunctionOf(line) is { } conjunction
-                        ? ToCoordinated(conjunction, previous.Statement, ParseClause(ClauseSyntax.Read(rest, number), number, null), number)
+                        ? ToCoordinated(conjunction, previous.Statement, Ungapped(ParseClause(ClauseSyntax.Read(rest, number), number, null), number), number)
                         : ToSubordinated(previous.Statement, SubordinatorOf(line).GetValueOrDefault(), ClauseSyntax.Read(rest, number), number),
                 };
             }
             else if (translation is { } english)
             {
-                entries.Add(new Entry(english.Text, ParseClause(ClauseSyntax.Read(line, number), number, null), number));
+                entries.Add(new Entry(english.Text, Ungapped(ParseClause(ClauseSyntax.Read(line, number), number, null), number), number));
                 translation = null;
                 continuing = true;
             }
@@ -108,7 +108,7 @@ public static class ClauseFile
     private static Subordinated ToSubordinated(Statement main, Subordinator subordinator, SyntaxClause line, int number)
     {
         var shares = subordinator == Subordinator.Purpose && !line.Items.Any(i => i.Role == "subject");
-        var clause = ParseClause(line, number, shares ? Syntax.SubjectOf(main) : (Argument?)null);
+        var clause = Ungapped(ParseClause(line, number, shares ? Syntax.SubjectOf(main) : (Argument?)null), number);
         return clause.Value switch
         {
             Command or CopularCommand => throw new ClauseFormatException($"A clause under another can't be a command: {subordinator.ToString().ToLowerInvariant()} takes a clause with a subject.", number),
@@ -160,13 +160,82 @@ public static class ClauseFile
 
     private static IEnumerable<string> NounsIn(Argument argument) => argument switch
     {
-        NounPhrase n => [n.Noun, .. Given(n.Possessor).SelectMany(NounsIn)],
+        NounPhrase n => [n.Noun, .. Given(n.Possessor).SelectMany(NounsIn), .. n.Relative is { } relative ? ArgumentsOf(relative).SelectMany(NounsIn) : []],
         Pronoun => [],
         QuestionWord => [],
         Coordination c => c.Items.SelectMany(NounsIn),
         ComplementClause c => ArgumentsOf(c.Clause).SelectMany(NounsIn),
         Quotation q => ArgumentsOf(q.Statement).SelectMany(NounsIn),
+        Gap or RelativeWord => [],
     };
+
+    /*
+      the gaps in a statement outside its relative clauses, wherever they are: in its roles, in noun
+      phrases, joined to others, or in clauses inside it. A complement's subject that's the main
+      clause's is no gap of its own, even where the main clause's is one
+     */
+    private static int Gaps(Statement statement) => ArgumentsOf(statement).Sum(Gaps);
+
+    private static int Gaps(Argument argument) => argument switch
+    {
+        Gap => 1,
+        NounPhrase n => n.Possessor is { } possessor ? Gaps(possessor) : 0,
+        Coordination c => c.Items.Sum(Gaps),
+        ComplementClause { SharesSubject: true } c => Gaps(c.Clause) - (Syntax.SubjectOf(c.Clause).Value is Gap ? 1 : 0),
+        ComplementClause c => Gaps(c.Clause),
+        Quotation q => Gaps(q.Statement),
+        Pronoun or QuestionWord or RelativeWord => 0,
+    };
+
+    //a clause that isn't relative has no gap, which marks only where a relative clause's noun goes
+    private static Statement Ungapped(Statement statement, int number) => Gaps(statement) == 0 ? statement
+        : throw new ClauseFormatException("_ marks the role a relative clause's noun fills in it, so it goes only inside relative:[...], as in object:(net.DEF relative:[mend.PST  subject:3SG.F  object:_]).", number);
+
+    /*
+      the roles of a relative clause's own that its gap is in. It can be its subject, its object, the
+      agent of a passive or an oblique, but not what it compares something with
+     */
+    private static IEnumerable<string> GapRoles(Statement statement)
+    {
+        static bool IsGap(Argument? argument) => argument?.Value is Gap;
+        IEnumerable<string> Where(params (string Role, Argument? Argument)[] roles) => roles.Where(r => IsGap(r.Argument)).Select(r => r.Role);
+        IEnumerable<string> Obliques(ValueList<Oblique> obliques) => obliques.Where(o => IsGap(o.Argument)).Select(o => o.Role.ToString().ToLowerInvariant());
+        return statement.Value switch
+        {
+            Clause c => [.. Where(("subject", c.Subject), ("object", c.Object)), .. Obliques(c.Obliques)],
+            PassiveClause c => [.. Where(("subject", c.Patient), ("agent", c.Agent)), .. Obliques(c.Obliques)],
+            CopularClause c => [.. Where(("subject", c.Subject), ("location", c.Complement.Value is Oblique location ? location.Argument : (Argument?)null)), .. Obliques(c.Obliques)],
+            Comparative c => [.. GapRoles(c.Clause), .. Where(("standard", c.Standard))],
+            Modalized m => GapRoles(m.Clause),
+            _ => [],
+        };
+    }
+
+    /*
+      a relative clause: a clause of its own with one gap, in one of its own roles rather than in a
+      noun phrase or a clause inside it, where its noun goes. It says something of its noun, so it
+      can't be a command, a question or said to someone
+     */
+    private static Statement ParseRelative(SyntaxValue value, int number)
+    {
+        const string Example = "relative:[mend.PST  subject:3SG.F  object:_]";
+        if (value.Value is not SyntaxClause written || written.Items.Count == 0)
+        {
+            throw new ClauseFormatException($"relative: is a clause in brackets with _ where its noun goes, as in (net.DEF {Example}), not '{value.Text}'.", number);
+        }
+        var clause = ParseClause(written, number, null);
+        var roles = GapRoles(clause).ToList();
+        return clause.Value switch
+        {
+            Command or CopularCommand => throw new ClauseFormatException("A relative clause can't be a command: it says something of its noun.", number),
+            Question => throw new ClauseFormatException("A relative clause can't be a question.", number),
+            Addressed => throw new ClauseFormatException("A relative clause can't be said to someone: say who's addressed in the main clause.", number),
+            _ when roles.Count == 0 && Gaps(clause) == 0 => throw new ClauseFormatException($"A relative clause needs _ in the role its noun fills in it, as in {Example}.", number),
+            _ when roles.Count != 1 || Gaps(clause) != 1 => throw new ClauseFormatException("A relative clause has one _, in a role of its own, not inside a noun phrase or another clause in it.", number),
+            _ when roles[0] == "standard" => throw new ClauseFormatException("A relative clause's noun can't be what it compares something with yet.", number),
+            _ => clause,
+        };
+    }
 
     /*
       the roles a clause can have. An oblique role is written as its name in lowercase, but for the
@@ -678,7 +747,7 @@ public static class ClauseFile
     private static NounPhrase ParseModifiedNounPhrase(SyntaxGroup group, int number)
     {
         var items = group.Items;
-        if (items.FirstOrDefault(i => i.Value.Value is SyntaxClause) is { } clause)
+        if (items.FirstOrDefault(i => i.Value.Value is SyntaxClause && i.Role != "relative") is { } clause)
         {
             throw Misplaced($"'{clause.Text}' in a noun phrase", number);
         }
@@ -699,9 +768,9 @@ public static class ClauseFile
         {
             throw new ClauseFormatException($"{head} can't take adjectives: pronouns don't, here.", number);
         }
-        foreach (var item in items.Skip(1).Where(i => i.Role is not (null or "possessor")))
+        foreach (var item in items.Skip(1).Where(i => i.Role is not (null or "possessor" or "relative")))
         {
-            throw new ClauseFormatException($"Noun phrases can't have {A(item.Role!)} yet, only adjectives, a number, an ordinal and a possessor.", number);
+            throw new ClauseFormatException($"Noun phrases can't have {A(item.Role!)} yet, only adjectives, a number, an ordinal, a possessor and a relative clause.", number);
         }
         var noun = ParseArgument(items[0].Value, number).Value as NounPhrase
             ?? throw new ClauseFormatException($"{head} can't take adjectives, a number or a possessor yet.", number);
@@ -709,11 +778,17 @@ public static class ClauseFile
         int? count = null;
         int? ordinal = null;
         Argument? possessor = null;
+        Statement? relative = null;
         var adjectives = new List<Adjective>();
         foreach (var item in items.Skip(1))
         {
             var word = item.Value.Text;
-            if (item.Role == "possessor")
+            if (item.Role == "relative")
+            {
+                relative = relative is null ? ParseRelative(item.Value, number)
+                    : throw new ClauseFormatException($"'{head}' has more than one relative clause.", number);
+            }
+            else if (item.Role == "possessor")
             {
                 if (possessor.HasValue)
                 {
@@ -774,6 +849,7 @@ public static class ClauseFile
             Count = count,
             Ordinal = ordinal,
             Possessor = possessor,
+            Relative = relative,
             Number = given || count is not { } n ? noun.Number : NumberFor(n),
         };
     }
@@ -946,6 +1022,10 @@ public static class ClauseFile
             return ParseModifiedNounPhrase(phrase, number);
         }
         var token = value.Text;
+        if (token == "_")
+        {
+            return new Gap(null);
+        }
         if (ParsePronoun(token, number) is { } pronoun)
         {
             return pronoun;

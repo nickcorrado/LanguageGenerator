@@ -8,17 +8,19 @@
 /// <summary>
 /// A noun with any adjectives modifying it, in English order, how many of it there are if a numeral
 /// says, as in 'three wolves', whose it is, as in 'the king's house', which one it is, as in 'the
-/// third', and whether it's definite, as 'the dog' is and 'a dog' isn't.
+/// third', whether it's definite, as 'the dog' is and 'a dog' isn't, and a relative clause saying
+/// more of it, as in 'the net she was mending'.
 /// </summary>
 //no definiteness is a bare noun, as English has for 'dogs', 'water' or 'my dog'
 public record NounPhrase(string Noun, Number Number, ValueList<Adjective> Adjectives = default, int? Count = null, Argument? Possessor = null, int? Ordinal = null,
-    Definiteness? Definiteness = null);
+    Definiteness? Definiteness = null, Statement? Relative = null);
 /// <summary>
 /// What fills a role: a noun phrase, a pronoun, several of them joined by 'and' or 'or', a
-/// question word asking what fills it, or, as an object, a clause or a quotation.
+/// question word asking what fills it, or, as an object, a clause or a quotation. In a relative
+/// clause, a gap is the role its noun fills, and a relative word what Syntax says in its place.
 /// </summary>
 //what agrees with one depends on the language, so that's Syntax.AgreementOf's to say
-public union Argument(NounPhrase, Pronoun, Coordination, QuestionWord, ComplementClause, Quotation);
+public union Argument(NounPhrase, Pronoun, Coordination, QuestionWord, ComplementClause, Quotation, Gap, RelativeWord);
 /// <summary>
 /// A phrase saying where, to where, from where, which way, to whom, with whom or with what something
 /// happened, what it was like, when it happened or for how long. A spatial one says where relative
@@ -163,8 +165,133 @@ public static class Syntax
         List<Word> words = [.. clause];
         var at = words.FindLastIndex(w => w.Root is { } r && r == verb);
         at = at < 0 ? words.Count - 1 : at;
-        words[at] = words[at] with { Morphemes = [.. words[at].Morphemes, marker] };
+        words[at] = words[at] with { Morphemes = position == ExponentPosition.Prefix ? [marker, .. words[at].Morphemes] : [.. words[at].Morphemes, marker] };
         return words;
+    }
+
+    //a noun phrase with its relative clause, if it has one, before or after it all
+    private static IReadOnlyList<Word> Relativized(Language language, NounPhrase phrase, IReadOnlyList<Word> words)
+    {
+        if (phrase.Relative is not { } clause)
+        {
+            return words;
+        }
+        var relative = RelativeClause(language, clause, phrase with { Relative = null });
+        return language.Relativization.BeforeNoun ? [.. relative, .. words] : [.. words, .. relative];
+    }
+
+    /*
+      a relative clause, with its noun said in the gap as the language says the gap's role: not at
+      all, as an ordinary pronoun, or as a relative pronoun, which goes first in the clause with the
+      rest of its phrase, as German den in der Mann, den ich sah. A relativizer that's an affix goes
+      on the clause's verb, which it leaves bare of tense and agreement, as a participle is, and one
+      that's a word goes at the clause's edge beside its noun
+     */
+    private static IReadOnlyList<Word> RelativeClause(Language language, Statement clause, NounPhrase head)
+    {
+        var relativization = language.Relativization;
+        var (role, oblique) = GapSlot(language, clause);
+        Argument filler = relativization.StrategyFor(role) switch
+        {
+            RelativeStrategy.Gap => new Gap(head),
+            RelativeStrategy.Resumptive => Pronominal(language, head),
+            RelativeStrategy.Pronoun => new RelativeWord(RelativePronounFor(language, head, role), head),
+            var strategy => throw new ArgumentOutOfRangeException(nameof(clause), strategy, null),
+        };
+        var filled = Filled(clause, filler);
+        var relativizer = relativization.Relativizer;
+        var words = relativizer.Kind == RelativizerKind.Affix
+            ? Subordinate(Deranked(language, filled, dropSubject: false, markedAs: null) ?? Words(language, filled), relativizer.Marker, relativizer.AffixPosition, VerbRoot(language, filled))
+            : Words(language, filled);
+        if (filler.Value is RelativeWord word)
+        {
+            var phrase = oblique is { } o ? Oblique(language, o with { Argument = filler })
+                : role == Role.Agent ? Marked(language, filler, role)
+                : Inflect(language, filler, role);
+            words = TakePhrase(words, word.Word.Root, phrase) is var (taken, rest) ? [.. taken, .. rest] : words;
+        }
+        return relativizer.Kind != RelativizerKind.Particle ? words
+            : relativization.BeforeNoun ? [.. words, new Word([relativizer.Marker])]
+            : [new Word([relativizer.Marker]), .. words];
+    }
+
+    //the role a relative clause's gap is in, as the language says the clause, and the oblique it's
+    //in, if it's one. A passive in a language without one is said as the active
+    private static (Role Role, Oblique? Oblique) GapSlot(Language language, Statement clause)
+    {
+        static bool IsGap(Argument? argument) => argument?.Value is Gap;
+        (Role, Oblique?)? InObliques(ValueList<Oblique> obliques) => obliques.FirstOrDefault(o => IsGap(o.Argument)) is { } o ? (o.Role, o) : null;
+        return clause.Value switch
+        {
+            Clause c when IsGap(c.Subject) => (c.Object is null ? Role.IntransitiveSubject : Role.TransitiveSubject, null),
+            Clause c when IsGap(c.Object) => (Role.DirectObject, null),
+            Clause c => InObliques(c.Obliques) ?? throw NoGap(),
+            PassiveClause c when language.Passive is null => GapSlot(language, Active(c)),
+            PassiveClause c when IsGap(c.Patient) => (Role.IntransitiveSubject, null),
+            PassiveClause c when IsGap(c.Agent) => (Role.Agent, null),
+            PassiveClause c => InObliques(c.Obliques) ?? throw NoGap(),
+            CopularClause c when IsGap(c.Subject) => (Role.IntransitiveSubject, null),
+            CopularClause { Complement.Value: Oblique location } when IsGap(location.Argument) => (location.Role, location),
+            CopularClause c => InObliques(c.Obliques) ?? throw NoGap(),
+            Comparative c => GapSlot(language, c.Clause),
+            Modalized m => GapSlot(language, m.Clause),
+            _ => throw NoGap(),
+        };
+
+        static ArgumentException NoGap() => new("A relative clause needs a gap in one of its roles.", nameof(clause));
+    }
+
+    //a relative clause with this in its gap's place
+    private static Statement Filled(Statement clause, Argument filler)
+    {
+        Argument Fill(Argument argument) => argument.Value is Gap ? filler : argument;
+        Argument? FillGiven(Argument? argument) => argument.HasValue ? Fill(argument.GetValueOrDefault()) : (Argument?)null;
+        ValueList<Oblique> FillObliques(ValueList<Oblique> obliques) => [.. obliques.Select(o => o with { Argument = Fill(o.Argument) })];
+        return clause.Value switch
+        {
+            Clause c => c with { Subject = Fill(c.Subject), Object = FillGiven(c.Object), Obliques = FillObliques(c.Obliques) },
+            PassiveClause c => c with { Patient = Fill(c.Patient), Agent = FillGiven(c.Agent), Obliques = FillObliques(c.Obliques) },
+            CopularClause c => c with
+            {
+                Subject = Fill(c.Subject),
+                Complement = c.Complement.Value is Oblique location ? location with { Argument = Fill(location.Argument) } : c.Complement,
+                Obliques = FillObliques(c.Obliques),
+            },
+            Comparative c => c with { Clause = (CopularClause)Filled(c.Clause, filler).Value!, Standard = FillGiven(c.Standard) },
+            Modalized m => m with { Clause = Filled(m.Clause, filler) },
+            _ => clause,
+        };
+    }
+
+    //a relative pronoun: the question word for 'where' in a role saying where, and otherwise for
+    //'who' or 'what', as its noun names a person or not, or the language's word of its own
+    private static Lexeme RelativePronounFor(Language language, NounPhrase head, Role role)
+    {
+        var pronoun = language.Relativization.Pronoun;
+        if (!pronoun.FromQuestionWords)
+        {
+            return pronoun.Own;
+        }
+        var words = language.Questions.Words;
+        return role is Role.Location or Role.Goal or Role.Source ? words[Interrogative.Where]
+            : language.Lexicon.ClassOf(head.Noun) is SemanticClass.Male or SemanticClass.Female or SemanticClass.Human ? words[Interrogative.Who]
+            : words[Interrogative.What];
+    }
+
+    //a phrase taken out of a clause's words, found by its root, and the words left, or null where
+    //the clause doesn't say it, for a question word or relative pronoun to go first
+    private static (IReadOnlyList<Word> Taken, List<Word> Left)? TakePhrase(IReadOnlyList<Word> words, Root root, IReadOnlyList<Word> phrase)
+    {
+        var rest = words.ToList();
+        var found = rest.FindIndex(w => w.Root == root);
+        if (found < 0)
+        {
+            return null;
+        }
+        var at = found - phrase.ToList().FindIndex(w => w.Root == root);
+        var taken = rest.GetRange(at, phrase.Count);
+        rest.RemoveRange(at, phrase.Count);
+        return (taken, rest);
     }
 
     //an object as its clause says it: in the object's place, or last in the clause, where it's a
@@ -508,10 +635,18 @@ public static class Syntax
         }
     }
 
-    //an oblique takes its role's case, and its adposition, if the role has one, before or after it,
-    //and its configuration's marker, if it has one the language tells apart from At
+    /*
+      an oblique takes its role's case, and its adposition, if the role has one, before or after it,
+      and its configuration's marker, if it has one the language tells apart from At. A gap leaves
+      nothing of its role behind, adposition and all, since stranding one, as English 'the house I
+      live in' does, is rare outside Germanic
+     */
     private static IReadOnlyList<Word> Oblique(Language language, Oblique oblique)
     {
+        if (oblique.Argument.Value is Gap)
+        {
+            return [];
+        }
         if (!LanguageGenerator.Oblique.Roles.Contains(oblique.Role))
         {
             throw new ArgumentException($"{oblique.Role} isn't an oblique role.", nameof(oblique));
@@ -559,6 +694,10 @@ public static class Syntax
     //a phrase marked for a role: its case, and its adposition, if the role has one, before or after it
     private static IReadOnlyList<Word> Marked(Language language, Argument argument, Role role)
     {
+        if (argument.Value is Gap)
+        {
+            return [];
+        }
         if (role == Role.Similative)
         {
             return Likened(language, argument);
@@ -802,11 +941,10 @@ public static class Syntax
         }
         var words = Words(language, question.Statement).ToList();
         List<Word> fronted = [.. why];
-        if (asked is var (root, phrase))
+        if (asked is var (root, phrase) && TakePhrase(words, root, phrase) is var (taken, rest))
         {
-            var at = words.FindIndex(w => w.Root == root) - phrase.ToList().FindIndex(w => w.Root == root);
-            fronted.AddRange(words.GetRange(at, phrase.Count));
-            words.RemoveRange(at, phrase.Count);
+            fronted.AddRange(taken);
+            words = rest;
         }
         return [.. fronted, .. questions.Polar.Value is QuestionInversion ? Inverted(words, finite) : words];
     }
@@ -976,6 +1114,10 @@ public static class Syntax
         NounPhrase n => (Person.Third, NumberOf(language, n)),
         Pronoun p => (p.Person, p.Number),
         QuestionWord => (Person.Third, Number.Singular),
+        //a gap or relative pronoun agrees as its noun does, as in 'the dogs that sleep'
+        Gap { Head: { } head } => AgreementOf(language, head),
+        Gap => (Person.Third, Number.Singular),
+        RelativeWord word => AgreementOf(language, word.Head),
         //a clause is agreed with as a third person singular, as English 'that he came is strange' is
         ComplementClause or Quotation => (Person.Third, Number.Singular),
         Coordination { Conjunction: Conjunction.Or } c => AgreementOf(language, c.Items[^1]),
@@ -993,6 +1135,8 @@ public static class Syntax
     {
         NounPhrase n => language.GenderOf(language.Lexicon.Noun(n.Noun)),
         Pronoun { Gender: { } g } when language.Genders.Values.Contains(g) => g,
+        Gap { Head: { } head } => GenderOf(language, head),
+        RelativeWord word => GenderOf(language, word.Head),
         Coordination { Conjunction: Conjunction.Or } c => GenderOf(language, c.Items[^1]),
         Coordination c => Resolved([.. c.Items.Select(i => GenderOf(language, i))]),
         _ => null,
@@ -1035,12 +1179,15 @@ public static class Syntax
         var pronouns = language.Pronouns.Paradigm;
         return argument switch
         {
-            NounPhrase phrase => Possessed(language, phrase, language.Articles.Apply(Modified(language, phrase, Features(nouns, [NumberOf(language, phrase), @case, localization])),
-                language.Lexicon.Noun(phrase.Noun).Root, phrase.Definiteness, phrase.Number, language.GenderOf(language.Lexicon.Noun(phrase.Noun)))),
+            NounPhrase phrase => Relativized(language, phrase, Possessed(language, phrase, language.Articles.Apply(Modified(language, phrase, Features(nouns, [NumberOf(language, phrase), @case, localization])),
+                language.Lexicon.Noun(phrase.Noun).Root, phrase.Definiteness, phrase.Number, language.GenderOf(language.Lexicon.Noun(phrase.Noun))))),
             Pronoun pronoun => pronouns.Inflect(language.Pronouns.For(pronoun), Features(pronouns, [@case, localization])),
             Coordination coordination => Joined(language, coordination, @case, localization),
             QuestionWord question => nouns.Inflect(language.Questions.Words[question.Word], Features(nouns, [Number.Singular, @case, localization])),
             ComplementClause or Quotation => throw new ArgumentException("A clause or a quotation can only be an object, which Object says.", nameof(argument)),
+            //a gap says nothing; a relative pronoun inflects as a noun does, in its noun's number
+            Gap => [],
+            RelativeWord word => nouns.Inflect(word.Word, Features(nouns, [NumberOf(language, word.Head), @case, localization])),
         };
     }
 

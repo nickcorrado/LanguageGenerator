@@ -13,7 +13,7 @@ Words are English meanings, whatever their case, which the language coins roots 
 
 Features left out take their unmarked values: present, imperfective, singular, and exclusive for 'we'. A value the language doesn't distinguish falls back on the nearest one it does, so a dual becomes a plural in a language without one.
 
-Anything the generator can't express yet, like a relative clause, is an error naming the line, never silently dropped.
+Anything the generator can't express yet, like a superlative, is an error naming the line, never silently dropped.
 
 ## Verbs
 
@@ -184,6 +184,7 @@ Anything else that goes with a noun goes in parentheses, noun first:
 | A possessor | `object:(house possessor:king)` | 'the king's house' |
 | A pronoun as possessor | `object:(dog.PL possessor:3SG.F)` | 'her dogs' |
 | A possessor with its own | `subject:(son possessor:(sister possessor:1SG))` | 'my sister's son' |
+| A relative clause | `object:(net.DEF relative:[mend.PST  subject:3SG.F  object:_])` | 'the net she was mending' (see [Relative clauses](#relative-clauses)) |
 
 A number makes the noun dual for two and paucal for a few, unless it says otherwise.
 
@@ -256,6 +257,29 @@ Its verb may be deranked, bare of tense and agreement, as WALS 125A to 127A coun
 In the other 53 languages WALS counts, 'want' isn't a verb at all, but an affix on the verb of what's wanted, as Japanese *tabe-ta-i* 'eat-DESID-PRS' is 'wants to eat', in 45, or a word beside it, in 8. Either is glossed `DESID`, which grammars commonly coin, and takes the tense, agreement and negation that 'want' would have had. 'I want you to go' still needs a verb for 'want', since what's wanted isn't the wanter's own doing.
 
 A complement that keeps its verb, and a quotation, go where the object does or last in the clause. In VO languages they nearly always go last, and in OV languages mostly where a word starts them, as Hindi *ki* and Persian *ke* clauses follow the verb while Japanese ones, marked at their end, go before it, as Dryer and Hawkins find. A deranked complement is a noun phrase, and goes where the object does. A quotation is marked with the complementizer, as Japanese *to* and Ewe *bé* mark both, since words for 'say' so often become complementizers, with a word of its own, as Turkish *diye* 'saying', or not at all, as in English; Güldemann finds quotatives all over Africa and Asia, but nobody counts them, so the odds are guesses. A quotative is glossed `QUOT`.
+
+## Relative clauses
+
+A relative clause goes in its noun's parentheses as `relative:[...]`, a clause of its own with `_` in the role its noun fills in it, as glossed examples mark a gap:
+
+| Written | Means |
+| --- | --- |
+| `subject:(nobody relative:[go  subject:_  goal.in:forest.DEF])` | 'nobody who goes into the forest' |
+| `object:(net.DEF relative:[mend.PST  subject:3SG.F  object:_])` | 'the net she was mending' |
+| `location.in:(clearing.NDF relative:[grow  subject:nothing  location:_])` | 'in a clearing where nothing grows' |
+| `location:(place.DEF relative:[end  subject:field.PL.DEF  location:_])` | 'where the fields end' |
+
+A relative clause has one `_`, in its subject, its object, a passive's agent or an oblique, and not inside a noun phrase or a clause in it; a clause starting with `to` in it can share a `_` subject, as in 'the man who wants to go'. One with no noun of its own, as 'what it was owed', takes a general one, `thing`, `person` or `place`, as many languages do. It can't be a command, a question or said to someone, and one with 'whose' or on a pronoun, as in 'he who hesitates', can't be said yet.
+
+Where a relative clause goes follows WALS 96A: after its noun in all but 5 of 421 VO languages, and before it in 132 of 245 OV ones. It goes at the edge of the noun phrase, outside the article and the possessor. How it says its noun follows WALS 122A for subjects and 123A for obliques, and each of the subject, the object and the obliques has a setting:
+
+- **A gap,** saying nothing at all, as Turkish *kitab-ı al-an öğrenci* 'the student who bought the book' leaves out its subject, in 125 of 142 languages for subjects and 55 of 88 for obliques. A gap leaves nothing of an oblique behind either, adposition and all, since stranding one, as English *the house I live in* does, is rare outside Germanic.
+- **A relative pronoun,** first in the clause with its role's case and adposition, as German *den* in *der Mann, den ich sah* 'the man whom I saw', in 12 and 13, nearly all in Europe. It's the language's question words for 'who', 'what' and 'where' in most languages, as question words so often become relative pronouns, and a word of its own, glossed `REL`, in the rest.
+- **A resumptive pronoun,** an ordinary pronoun in the gap's place, as Persian resumes an oblique, in 5 and 20.
+
+WALS doesn't cross the two, so obliques are drawn given subjects, keeping its totals and the Accessibility Hierarchy, which Keenan and Comrie find has languages resume the roles low on it before the high ones: a language that resumes its subjects resumes its obliques too. WALS counts no direct objects, which are drawn like the subject, or more rarely like obliques. The 24 languages that keep the whole noun inside the relative clause, as internally headed and correlative ones do, aren't made here.
+
+A relative clause is marked by a word at its edge beside its noun, as English *that* and Mandarin *de* are, by an affix on its verb, which leaves the verb a participle without tense or agreement, as Turkish *-an* and Korean *-n* do, or by nothing, as English *the net she was mending* is; either marker is glossed `REL`. Nobody counts these, so the odds are guesses after Lehmann and Keenan: a relative clause before its noun is mostly a participle, one after it mostly marked by a word, and one with a relative pronoun mostly by nothing else.
 
 ## Pronouns
 

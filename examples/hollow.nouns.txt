@@ -115,6 +115,7 @@ object THING
 one THING
 path THING
 person HUM
+place THING
 pole THING
 price THING
 purse THING
@@ -126,6 +127,7 @@ road THING
 room THING
 root THING
 rope THING
+secret THING
 shoe THING
 side THING
 sister F

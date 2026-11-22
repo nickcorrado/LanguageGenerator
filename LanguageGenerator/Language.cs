@@ -41,6 +41,8 @@ public class Language
     public required Subordination Subordination { get; init; }
     /// <summary>How clauses are marked as objects, and quotations as what was said.</summary>
     public required Complementation Complementation { get; init; }
+    /// <summary>How relative clauses are made: where they go, how their noun's role is said, and what marks them.</summary>
+    public required Relativization Relativization { get; init; }
     public required Modals Modals { get; init; }
     public required Questions Questions { get; init; }
 
