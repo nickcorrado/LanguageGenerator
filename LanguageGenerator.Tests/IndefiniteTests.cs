@@ -26,12 +26,15 @@ public class IndefiniteTests
     [InlineData("location:somewhere", "Location", "Some")]
     [InlineData("goal:nowhere", "Goal", "No")]
     [InlineData("source:everywhere", "Source", "Every")]
-    public void Parse_IndefinitePlace_IsAPlaceInItsRole(string written, string role, string series)
+    [InlineData("time:sometime", "Time", "Some")]
+    [InlineData("time:never", "Time", "No")]
+    [InlineData("time:always", "Time", "Every")]
+    public void Parse_IndefinitePlaceOrTime_IsInItsRole(string written, string role, string series)
     {
         var oblique = Assert.Single(ClauseOf($"walk  subject:3PL  {written}").Obliques);
 
         Assert.Equal(Enum.Parse<Role>(role), oblique.Role);
-        Assert.Equal(Indefinite(Enum.Parse<Quantifier>(series), Ontology.Place), oblique.Argument.Value);
+        Assert.Equal(Indefinite(Enum.Parse<Quantifier>(series), oblique.Role == Role.Time ? Ontology.Time : Ontology.Place), oblique.Argument.Value);
     }
 
     [Fact]
@@ -71,6 +74,12 @@ public class IndefiniteTests
     [InlineData("walk  subject:1SG  when:somewhere", "says a place")]
     [InlineData("walk  subject:1SG  when:nobody", "isn't an adverb")]
     [InlineData("sleep  subject:anyone", "Write nobody in a negated clause")]
+    [InlineData("sleep  subject:3SG  time:ever", "Write never in a negated clause")]
+    [InlineData("sleep  subject:always", "says a time")]
+    [InlineData("walk  subject:1SG  location:never", "never says a time, so it's time:never")]
+    [InlineData("walk  subject:1SG  often:never", "so it's time:never")]
+    [InlineData("walk  subject:1SG  when:always", "so it's time:always")]
+    [InlineData("sleep.NEG  subject:3SG  time:never", "takes no NEG")]
     [InlineData("sleep  subject:somebody", "Write someone")]
     [InlineData("sleep.NEG  subject:nobody", "takes no NEG")]
     [InlineData("see.NEG  subject:1SG  object:(dog no)", "takes no NEG")]
@@ -132,7 +141,7 @@ public class IndefiniteTests
         Assert.All(Draws(s => s).Take(500), i =>
         {
             Assert.Equal(Indefinites.Series.Order(), i.Markers.Keys.Order());
-            Assert.Equal(9, i.Own.Count);
+            Assert.Equal(12, i.Own.Count);
             Assert.Equal(Enum.GetValues<Quantifier>(), i.Quantifiers.Keys.Order());
             var forms = i.Markers.Values.Select(m => m.Form).Concat(i.Own.Values.Concat(i.Quantifiers.Values).Select(l => l.Root.Form)).Select(f => string.Concat(f.Select(p => p.IpaSymbol))).ToList();
             Assert.Equal(forms.Count, forms.Distinct().Count());
@@ -228,6 +237,31 @@ public class IndefiniteTests
         Assert.Equal((beforeVerb, afterVerb), (Negated(language, Sees(nobody, dog)), Negated(language, Sees(dog, nobody))));
         Assert.Equal(afterVerb, Negated(language, Sees(dog, new NounPhrase("cat", Number.Singular, Quantifier: Quantifier.No))));
         Assert.False(Negated(language, Sees(Indefinite(Quantifier.Some, Ontology.Person), dog)));
+    }
+
+    [Theory]
+    [InlineData("Always", true)]
+    [InlineData("Never", false)]
+    public void Realize_Never_NegatesTheVerbAsNobodyDoes(string negation, bool negated)
+    {
+        var language = Concording(Enum.Parse<NegativeIndefiniteNegation>(negation));
+        var sleeps = new Clause("sleep", Tense.Present, Aspect.Imperfective, new NounPhrase("dog", Number.Singular),
+            Obliques: [new(Role.Time, Indefinite(Quantifier.No, Ontology.Time), Configuration.At)]) { Adverbs = [] };
+
+        Assert.Equal(negated, Negated(language, sleeps));
+        Assert.True(IndexOf(Syntax.Realize(language, sleeps, "x"), language.Indefinites.Own[(Quantifier.No, Ontology.Time)].Root) >= 0);
+    }
+
+    [Fact]
+    public void Realize_InterrogativeBasedTime_IsWhenWithItsSeriesMarker()
+    {
+        var language = With(IndefinitePronouns.InterrogativeBased);
+        var sleeps = new Clause("sleep", Tense.Present, Aspect.Imperfective, new NounPhrase("dog", Number.Singular),
+            Obliques: [new(Role.Time, Indefinite(Quantifier.Every, Ontology.Time), Configuration.At)]) { Adverbs = [] };
+        var morphemes = Syntax.Realize(language, sleeps, "x").Words.SelectMany(w => w.Word.Morphemes).ToList();
+
+        Assert.Contains(language.Questions.Words[Interrogative.When].Root, morphemes);
+        Assert.Contains(language.Indefinites.Markers[Quantifier.Every], morphemes);
     }
 
     [Fact]

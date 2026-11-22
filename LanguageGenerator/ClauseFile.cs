@@ -264,15 +264,15 @@ public static class ClauseFile
         }
         var (verb, glosses) = ParseWord(head.Text, number);
         var features = ParseVerbFeatures(verb, glosses, number);
-        //why fills no role, so it's written on its own
-        static bool IsWhy(SyntaxItem item) => item is { Role: null, Value.Value: SyntaxWord { Text: "why" } };
-        var why = written.Items.Skip(1).Count(IsWhy) switch
+        //why and how fill no role, so they're written on their own
+        static bool IsAdverb(SyntaxItem item) => item is { Role: null, Value.Value: SyntaxWord { Text: var text } } && QuestionAdverbs.ContainsKey(text);
+        var adverb = written.Items.Skip(1).Where(IsAdverb).ToList() switch
         {
-            0 => false,
-            1 => true,
-            _ => throw new ClauseFormatException("The clause has more than one why.", number),
+            [] => (QuestionAdverb?)null,
+            [var one] => QuestionAdverbs[one.Text],
+            _ => throw new ClauseFormatException("A question can only ask one thing yet: one why or how.", number),
         };
-        var roles = ParseRoles(verb, written.Items.Skip(1).Where(i => !IsWhy(i)), features.Imperative, impliedSubject, number);
+        var roles = ParseRoles(verb, written.Items.Skip(1).Where(i => !IsAdverb(i)), features.Imperative, impliedSubject, number);
         var addressee = roles.Arguments.TryGetValue("addressee", out var called) ? ToAddressee(called, number) : null;
         Argument? standard = roles.Arguments.TryGetValue("standard", out var than) ? than : (Argument?)null;
         if (roles.Arguments.ContainsKey("agent") && !features.Passive)
@@ -303,7 +303,7 @@ public static class ClauseFile
                 ? $"A command can't take {modality.Gloss}: it already says what to do."
                 : $"A comparison can't take {modality.Gloss} yet.", number);
         }
-        var asked = CheckQuestion(features, roles, why, number);
+        var asked = CheckQuestion(features, roles, adverb, number);
 
         Statement statement;
         if (features.Imperative)
@@ -339,7 +339,7 @@ public static class ClauseFile
         }
         if (asked)
         {
-            statement = new Question(statement, why);
+            statement = new Question(statement, adverb);
         }
         return addressee is null ? statement : new Addressed(statement, addressee);
     }
@@ -347,16 +347,23 @@ public static class ClauseFile
     //the question words, in the roles they ask about
     private static readonly Dictionary<string, Interrogative> QuestionWords = Enum.GetValues<Interrogative>().ToDictionary(w => w.ToString().ToLowerInvariant());
 
+    //the question words that fill no role, written on their own
+    private static readonly Dictionary<string, QuestionAdverb> QuestionAdverbs = Enum.GetValues<QuestionAdverb>().ToDictionary(w => w.ToString().ToLowerInvariant());
+
+    //what to write for a question word that fills no role, written where it can't go
+    private static string OnItsOwn(string word) => $"{word} fills no role, so it's written on its own, as in leave.PST subject:3SG {word}.";
+
     /*
       whether the clause is a question: a yes-no question with Q, or a content question with one
-      question word in a role or why. Where asks about a place, so it's only where, to where or from
-      where, and a question word can't be a standard yet
+      question word in a role, or why or how. Where asks about a place, so it's only where, to where
+      or from where, when asks about a time, so it's only in time:, and a question word can't be a
+      standard yet
      */
-    private static bool CheckQuestion(VerbFeatures features, ClauseRoles roles, bool why, int number)
+    private static bool CheckQuestion(VerbFeatures features, ClauseRoles roles, QuestionAdverb? adverb, int number)
     {
         var questioned = roles.Arguments.Select(a => (a.Key, a.Value)).Concat(roles.Obliques.Select(o => (Key: o.Role, o.Oblique.Argument)))
             .Where(a => a.Item2.Value is QuestionWord).ToList();
-        if (!features.Question && !why && questioned.Count == 0)
+        if (!features.Question && adverb is null && questioned.Count == 0)
         {
             return false;
         }
@@ -364,13 +371,13 @@ public static class ClauseFile
         {
             throw new ClauseFormatException("A command can't be a question.", number);
         }
-        if (questioned.Count + (why ? 1 : 0) > 1)
+        if (questioned.Count + (adverb is null ? 0 : 1) > 1)
         {
-            throw new ClauseFormatException("A question can only ask one thing yet: one who, what, where or why.", number);
+            throw new ClauseFormatException("A question can only ask one thing yet: one who, what, where, when, why or how.", number);
         }
-        if (features.Question && (why || questioned.Count > 0))
+        if (features.Question && (adverb is not null || questioned.Count > 0))
         {
-            throw new ClauseFormatException($"A question with {(why ? "why" : WordOf(questioned[0].Item2))} needs no Q: Q is only for a yes-no question.", number);
+            throw new ClauseFormatException($"A question with {(adverb is { } a ? a.ToString().ToLowerInvariant() : WordOf(questioned[0].Item2))} needs no Q: Q is only for a yes-no question.", number);
         }
         if (questioned is [var (role, argument)])
         {
@@ -383,13 +390,19 @@ public static class ClauseFile
             {
                 throw new ClauseFormatException($"A question can't ask what something is like yet, as in like:{WordOf(argument)}.", number);
             }
-            if (role is "time" or "duration")
+            if (role == "duration")
             {
-                throw new ClauseFormatException($"A question can't ask when or for how long yet, as in {role}:{WordOf(argument)}.", number);
+                throw new ClauseFormatException($"A question can't ask for how long yet, as in duration:{WordOf(argument)}.", number);
             }
             if (word == Interrogative.Where && role is not ("location" or "goal" or "source"))
             {
                 throw new ClauseFormatException($"where asks about a place, so it's location:where, goal:where for 'where to' or source:where for 'where from', not {role}:where.", number);
+            }
+            if ((word == Interrogative.When) != (role == "time"))
+            {
+                throw new ClauseFormatException(word == Interrogative.When
+                    ? $"when asks about a time, so it's time:when, not {role}:when."
+                    : $"A question asking when is time:when, not time:{WordOf(argument)}.", number);
             }
             if (roles.Obliques.Any(o => o.Oblique.Argument.Value is QuestionWord && o.Oblique.Configuration != Configuration.At))
             {
@@ -966,7 +979,7 @@ public static class ClauseFile
     private static Adjective ParseAdjective(string token, int number)
     {
         var (meaning, features) = ParseWord(token, number);
-        if (QuestionWords.ContainsKey(meaning) || meaning == "why")
+        if (QuestionWords.ContainsKey(meaning) || QuestionAdverbs.ContainsKey(meaning))
         {
             throw new ClauseFormatException($"{meaning} isn't an adjective: a question word goes in the role it asks about, as in subject:who.", number);
         }
@@ -1030,6 +1043,19 @@ public static class ClauseFile
         ["everyone"] = (Quantifier.Every, Ontology.Person),
         ["everything"] = (Quantifier.Every, Ontology.Thing),
         ["everywhere"] = (Quantifier.Every, Ontology.Place),
+        ["sometime"] = (Quantifier.Some, Ontology.Time),
+        ["never"] = (Quantifier.No, Ontology.Time),
+        ["always"] = (Quantifier.Every, Ontology.Time),
+    };
+
+    //what an indefinite that only some roles take says, and the roles it goes in, for an error to suggest
+    private static string Placed(string word, Ontology kind) =>
+        $"{word} says {(kind == Ontology.Place ? "a place" : "a time")}, so it's {Joined(Indefinites.RolesOf(kind)!.Select(r => $"{r.ToString().ToLowerInvariant()}:{word}"), "or")}";
+
+    private static string Joined(IEnumerable<string> items, string conjunction) => items.ToList() switch
+    {
+        [var one] => one,
+        var many => $"{string.Join(", ", many[..^1])} {conjunction} {many[^1]}",
     };
 
     //other English words for them, and what to write instead
@@ -1042,6 +1068,7 @@ public static class ClauseFile
         ["anybody"] = "nobody in a negated clause, or someone in a question",
         ["anything"] = "nothing in a negated clause, or something in a question",
         ["anywhere"] = "nowhere in a negated clause, or somewhere in a question",
+        ["ever"] = "never in a negated clause, or sometime in a question",
     };
 
     private static readonly Dictionary<string, Quantifier> QuantifierWords = Enum.GetValues<Quantifier>().ToDictionary(q => q.ToString().ToLowerInvariant());
@@ -1074,20 +1101,21 @@ public static class ClauseFile
             return ParseArgument(value, number);
         }
         var (meaning, features) = ParseWord(token, number);
-        var place = IndefiniteWords.TryGetValue(meaning, out var indefinite) && indefinite.Kind == Ontology.Place;
-        if (!PlaceDemonstratives.TryGetValue(meaning, out var distance) && !place)
+        var restricted = IndefiniteWords.TryGetValue(meaning, out var indefinite) && Indefinites.RolesOf(indefinite.Kind) is not null;
+        if (!PlaceDemonstratives.TryGetValue(meaning, out var distance) && !restricted)
         {
             return ParseArgument(value, number);
         }
-        if (role is not (Role.Location or Role.Goal or Role.Source))
+        if (restricted ? !Indefinites.RolesOf(indefinite.Kind)!.Contains(role) : role is not (Role.Location or Role.Goal or Role.Source))
         {
-            throw new ClauseFormatException($"{meaning} says a place, so it's {PlaceRoles.Replace("here", meaning)}, not {role.ToString().ToLowerInvariant()}:{meaning}.", number);
+            var says = restricted ? Placed(meaning, indefinite.Kind) : $"{meaning} says a place, so it's {PlaceRoles.Replace("here", meaning)}";
+            throw new ClauseFormatException($"{says}, not {role.ToString().ToLowerInvariant()}:{meaning}.", number);
         }
         if (configuration != Configuration.At)
         {
             throw new ClauseFormatException($"{meaning} can't take a configuration, as in 'under {meaning}'.", number);
         }
-        if (place)
+        if (restricted)
         {
             return ParseIndefinite(meaning, features, number)!;
         }
@@ -1135,15 +1163,15 @@ public static class ClauseFile
             throw new ClauseFormatException($"An adverb is one word, as in {role}:{(kind == AdverbKind.When ? "now" : "again")}, not '{value.Text}'. Write {role}: again for another.", number);
         }
         var (meaning, features) = ParseWord(token, number);
-        if (meaning == "why" || QuestionWords.ContainsKey(meaning))
+        if (QuestionAdverbs.ContainsKey(meaning))
         {
-            throw new ClauseFormatException(meaning == "why"
-                ? "why fills no role, so it's written on its own, as in leave.PST subject:3SG why."
-                : $"{meaning} isn't an adverb: a question word goes in the role it asks about, as in subject:who.", number);
+            throw new ClauseFormatException(OnItsOwn(meaning), number);
         }
-        if (meaning is "when" or "how")
+        if (QuestionWords.TryGetValue(meaning, out var asked))
         {
-            throw new ClauseFormatException($"A question can't ask {meaning} yet.", number);
+            throw new ClauseFormatException(asked == Interrogative.When
+                ? $"when asks about a time, so it's time:when, not {role}:when."
+                : $"{meaning} isn't an adverb: a question word goes in the role it asks about, as in subject:who.", number);
         }
         if (meaning is "very" or "much")
         {
@@ -1159,8 +1187,8 @@ public static class ClauseFile
         }
         if (IndefiniteWords.TryGetValue(meaning, out var indefinite))
         {
-            throw new ClauseFormatException(indefinite.Kind == Ontology.Place
-                ? $"{meaning} says a place, so it's {PlaceRoles.Replace("here", meaning)}, not {role}:{meaning}."
+            throw new ClauseFormatException(Indefinites.RolesOf(indefinite.Kind) is not null
+                ? $"{Placed(meaning, indefinite.Kind)}, not {role}:{meaning}."
                 : $"{meaning} isn't an adverb: it fills a role, as in subject:{meaning}.", number);
         }
         if (PlaceAdverbs.Contains(meaning))
@@ -1213,9 +1241,9 @@ public static class ClauseFile
             return demonstrative;
         }
         var (noun, features) = ParseWord(token, number);
-        if (noun == "why")
+        if (QuestionAdverbs.ContainsKey(noun))
         {
-            throw new ClauseFormatException("why fills no role, so it's written on its own, as in leave.PST subject:3SG why.", number);
+            throw new ClauseFormatException(OnItsOwn(noun), number);
         }
         if (PlaceDemonstratives.ContainsKey(noun))
         {
@@ -1223,8 +1251,8 @@ public static class ClauseFile
         }
         if (ParseIndefinite(noun, features, number) is { } indefinite)
         {
-            return indefinite.Indefinite != Ontology.Place ? indefinite
-                : throw new ClauseFormatException($"{noun} says a place, so it's {PlaceRoles.Replace("here", noun)}, on its own.", number);
+            return indefinite.Indefinite is not { } kind || Indefinites.RolesOf(kind) is null ? indefinite
+                : throw new ClauseFormatException($"{Placed(noun, kind)}, on its own.", number);
         }
         if (QuestionWords.TryGetValue(noun, out var asked))
         {

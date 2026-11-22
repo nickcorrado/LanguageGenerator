@@ -74,8 +74,8 @@ public class QuestionTests
     public void Generate_QuestionWords_AreGlossedByWhatTheyAsk() =>
         Assert.All(GeneratedLanguages.Sample, l =>
         {
-            Assert.Equal(["who", "what", "where"], l.Questions.Words.Values.Select(w => w.Root.Meaning));
-            Assert.Equal("why", l.Questions.Why.Root.Meaning);
+            Assert.Equal(["who", "what", "where", "when"], l.Questions.Words.Values.Select(w => w.Root.Meaning));
+            Assert.Equal(["why", "how"], l.Questions.Adverbs.Values.Select(w => w.Root.Meaning));
         });
 
     [Fact]
@@ -83,7 +83,7 @@ public class QuestionTests
         Assert.All(GeneratedLanguages.Sample, l =>
         {
             var statement = Realized(l, DogEatsFish);
-            var question = Realized(l, new Question(DogEatsFish, false));
+            var question = Realized(l, new Question(DogEatsFish, null));
             var eat = l.Lexicon.Verb("eat").Root;
             switch (l.Questions.Polar.Value)
             {
@@ -115,7 +115,7 @@ public class QuestionTests
         Assert.NotEmpty(languages);
         Assert.All(languages, l =>
         {
-            var sentence = Realized(l, new Question(new Modalized(DogEatsFish, Modality.Ability, false), false));
+            var sentence = Realized(l, new Question(new Modalized(DogEatsFish, Modality.Ability, false), null));
             var affix = (QuestionAffix)l.Questions.Polar.Value!;
             var morphemes = sentence.Words[MarkerAt(sentence)].Word.Morphemes;
 
@@ -129,7 +129,7 @@ public class QuestionTests
         Assert.All(GeneratedLanguages.Sample, l =>
         {
             var what = l.Questions.Words[Interrogative.What].Root;
-            var question = Realized(l, new Question(DogEats(new QuestionWord(Interrogative.What)), false));
+            var question = Realized(l, new Question(DogEats(new QuestionWord(Interrogative.What)), null));
             var statement = Realized(l, DogEatsFish);
 
             Assert.Equal(-1, MarkerAt(question));
@@ -152,7 +152,7 @@ public class QuestionTests
         Assert.All(languages, l =>
         {
             var clause = DogEatsFish with { Obliques = [new Oblique(Role.Source, new QuestionWord(Interrogative.Where), Configuration.At)] };
-            var sentence = Realized(l, new Question(clause, false));
+            var sentence = Realized(l, new Question(clause, null));
             var adposition = l.RoleMarkers[Role.Source].Adposition!;
             var where = IndexOf(sentence, l.Questions.Words[Interrogative.Where].Root);
             var from = IndexOf(sentence, adposition.Lexeme.Root);
@@ -164,10 +164,32 @@ public class QuestionTests
         });
     }
 
-    [Fact]
-    public void Realize_Why_GoesFirstWhereQuestionWordsDo() =>
+    [Theory]
+    [InlineData(QuestionAdverb.Why)]
+    [InlineData(QuestionAdverb.How)]
+    public void Realize_WhyOrHow_GoesFirstWhereQuestionWordsDo(QuestionAdverb adverb) =>
         Assert.All(GeneratedLanguages.Sample.Where(l => l.Questions.FrontsQuestionWords), l =>
-            Assert.Equal(0, IndexOf(Realized(l, new Question(DogEatsFish, true)), l.Questions.Why.Root)));
+            Assert.Equal(0, IndexOf(Realized(l, new Question(DogEatsFish, adverb)), l.Questions.Adverbs[adverb].Root)));
+
+    [Fact]
+    public void Realize_When_IsMarkedAsATimeIs()
+    {
+        Assert.All(GeneratedLanguages.Sample.Take(100), l =>
+        {
+            Clause At(Argument time) => DogEatsFish with { Obliques = [new Oblique(Role.Time, time, Configuration.At)] };
+            var night = Realized(l, At(new NounPhrase("sun", Number.Singular)));
+            var when = Realized(l, new Question(At(new QuestionWord(Interrogative.When)), null));
+            var word = l.Questions.Words[Interrogative.When].Root;
+
+            //'when' takes the time's case or adposition as any noun there would, so it says as many words
+            Assert.Equal(night.Words.Count, when.Words.Count);
+            Assert.Equal(night.Words[IndexOf(night, "sun")].Gloss.Replace("sun", "X"), when.Words[IndexOf(when, word)].Gloss.Replace("when", "X"));
+            if (l.Questions.FrontsQuestionWords)
+            {
+                Assert.InRange(IndexOf(when, word), 0, 2);
+            }
+        });
+    }
 
     [Fact]
     public void Realize_WhyInPlace_GoesWhereObliquesGo()
@@ -178,11 +200,11 @@ public class QuestionTests
         {
             var house = new NounPhrase("house", Number.Singular);
             var withOblique = Realized(l, DogEatsFish with { Obliques = [new Oblique(Role.Location, house, Configuration.At)] });
-            var why = Realized(l, new Question(DogEatsFish, true));
+            var why = Realized(l, new Question(DogEatsFish, QuestionAdverb.Why));
 
             //where the oblique's phrase starts, before any adposition, case particle or article
             var oblique = IndexOf(withOblique, l.Lexicon.Noun("house").Root);
-            Assert.InRange(IndexOf(why, l.Questions.Why.Root), oblique - 3, oblique);
+            Assert.InRange(IndexOf(why, l.Questions.Adverbs[QuestionAdverb.Why].Root), oblique - 3, oblique);
         });
     }
 
@@ -195,7 +217,7 @@ public class QuestionTests
         var l = Generator.Generate(seed, LanguageSpec.Free);
         Assert.True(l.Questions is { Polar.Value: QuestionInversion, FrontsQuestionWords: true });
 
-        var sentence = Realized(l, new Question(DogEats(new QuestionWord(Interrogative.What)), false));
+        var sentence = Realized(l, new Question(DogEats(new QuestionWord(Interrogative.What)), null));
         var what = IndexOf(sentence, l.Questions.Words[Interrogative.What].Root);
 
         Assert.Equal(what + 1, IndexOf(sentence, l.Lexicon.Verb("eat").Root));
@@ -208,17 +230,17 @@ public class QuestionTests
         var house = new NounPhrase("house", Number.Singular);
         var clauses = new Statement[]
         {
-            new Question(DogEatsFish, false),
-            new Question(new Clause("eat", Tense.Past, Aspect.Perfective, who, Fish) { Adverbs = [] }, false),
-            new Question(new PassiveClause("eat", Tense.Past, Aspect.Perfective, Fish, who, false, []) { Adverbs = [] }, false),
-            new Question(new PassiveClause("eat", Tense.Past, Aspect.Perfective, Fish, null, false, []) { Adverbs = [] }, true),
-            new Question(new CopularClause(new Adjective("big", false), Tense.Present, Aspect.Imperfective, Dog) { Obliques = [], Adverbs = [] }, false),
-            new Question(new CopularClause(new Oblique(Role.Location, new QuestionWord(Interrogative.Where), Configuration.At), Tense.Present, Aspect.Imperfective, Dog) { Obliques = [], Adverbs = [] }, false),
-            new Question(new CopularClause(new Oblique(Role.Location, house, Configuration.At), Tense.Present, Aspect.Imperfective, who) { Obliques = [], Adverbs = [] }, false),
-            new Question(new Comparative(new CopularClause(new Adjective("big", false), Tense.Present, Aspect.Imperfective, Dog) { Obliques = [], Adverbs = [] }, Fish), false),
-            new Question(new Comparative(new CopularClause(new Adjective("big", false), Tense.Present, Aspect.Imperfective, Dog) { Obliques = [], Adverbs = [] }, Fish), true),
-            new Question(new Modalized(DogEatsFish, Modality.Obligation, true), true),
-            new Addressed(new Question(DogEatsFish, false), Dog),
+            new Question(DogEatsFish, null),
+            new Question(new Clause("eat", Tense.Past, Aspect.Perfective, who, Fish) { Adverbs = [] }, null),
+            new Question(new PassiveClause("eat", Tense.Past, Aspect.Perfective, Fish, who, false, []) { Adverbs = [] }, null),
+            new Question(new PassiveClause("eat", Tense.Past, Aspect.Perfective, Fish, null, false, []) { Adverbs = [] }, QuestionAdverb.Why),
+            new Question(new CopularClause(new Adjective("big", false), Tense.Present, Aspect.Imperfective, Dog) { Obliques = [], Adverbs = [] }, null),
+            new Question(new CopularClause(new Oblique(Role.Location, new QuestionWord(Interrogative.Where), Configuration.At), Tense.Present, Aspect.Imperfective, Dog) { Obliques = [], Adverbs = [] }, null),
+            new Question(new CopularClause(new Oblique(Role.Location, house, Configuration.At), Tense.Present, Aspect.Imperfective, who) { Obliques = [], Adverbs = [] }, null),
+            new Question(new Comparative(new CopularClause(new Adjective("big", false), Tense.Present, Aspect.Imperfective, Dog) { Obliques = [], Adverbs = [] }, Fish), null),
+            new Question(new Comparative(new CopularClause(new Adjective("big", false), Tense.Present, Aspect.Imperfective, Dog) { Obliques = [], Adverbs = [] }, Fish), QuestionAdverb.Why),
+            new Question(new Modalized(DogEatsFish, Modality.Obligation, true), QuestionAdverb.Why),
+            new Addressed(new Question(DogEatsFish, null), Dog),
         };
         Assert.All(GeneratedLanguages.Sample, l =>
         {
@@ -230,18 +252,20 @@ public class QuestionTests
     }
 
     [Theory]
-    [InlineData("see.PST.Q  subject:2SG  object:3PL", null, false)]
-    [InlineData("want  subject:3PL  object:what", Interrogative.What, false)]
-    [InlineData("tell.PST  subject:who  object:2SG", Interrogative.Who, false)]
-    [InlineData("get.PST  subject:2SG  object:3SG.N  source:where", Interrogative.Where, false)]
-    [InlineData("send.PST.NEG  subject:2SG  why  object:(soldier.PL.DEF)", null, true)]
-    public void Parse_Question_AsksWhatItsWordsSay(string gloss, Interrogative? word, bool why)
+    [InlineData("see.PST.Q  subject:2SG  object:3PL", null, null)]
+    [InlineData("want  subject:3PL  object:what", Interrogative.What, null)]
+    [InlineData("tell.PST  subject:who  object:2SG", Interrogative.Who, null)]
+    [InlineData("get.PST  subject:2SG  object:3SG.N  source:where", Interrogative.Where, null)]
+    [InlineData("arrive.PST  subject:3PL  time:when", Interrogative.When, null)]
+    [InlineData("send.PST.NEG  subject:2SG  why  object:(soldier.PL.DEF)", null, QuestionAdverb.Why)]
+    [InlineData("fix.PST  subject:2SG  object:3SG.N  how", null, QuestionAdverb.How)]
+    public void Parse_Question_AsksWhatItsWordsSay(string gloss, Interrogative? word, QuestionAdverb? adverb)
     {
         var question = Assert.IsType<Question>(Parsed(gloss).Value);
         var clause = Assert.IsType<Clause>(question.Statement.Value);
         Argument[] arguments = [clause.Subject, .. clause.Object.HasValue ? [clause.Object.GetValueOrDefault()] : Array.Empty<Argument>(), .. clause.Obliques.Select(o => o.Argument)];
 
-        Assert.Equal(why, question.Why);
+        Assert.Equal(adverb, question.Adverb);
         Assert.Equal(word, arguments.Select(a => a.Value).OfType<QuestionWord>().SingleOrDefault()?.Word);
     }
 
@@ -262,6 +286,13 @@ public class QuestionTests
     [InlineData("eat.IMP  object:what", "A command can't be a question")]
     [InlineData("leave.PST  subject:3SG  reason:why", "'reason' isn't a role")]
     [InlineData("leave.PST  subject:why", "written on its own")]
+    [InlineData("leave.PST  subject:how", "written on its own")]
+    [InlineData("leave.PST  subject:3SG  when:how", "written on its own")]
+    [InlineData("leave.PST  subject:3SG  why  how", "only ask one thing")]
+    [InlineData("see.PST  subject:when", "when asks about a time")]
+    [InlineData("leave.PST  subject:3SG  when:when", "time:when")]
+    [InlineData("leave.PST  subject:3SG  time:what", "is time:when")]
+    [InlineData("leave.PST  subject:3SG  duration:what", "for how long")]
     [InlineData("leave.PST  subject:who.PL", "a question word takes no glosses")]
     [InlineData("see.PST  subject:2SG  object:(house possessor:who)", "whose")]
     [InlineData("see.PST  subject:(and who 2SG)", "can't be joined")]

@@ -72,11 +72,12 @@ public static class GlossPrompt
               gloss yet: leave it out.
             - someone, something, nobody, nothing, everyone and everything fill a role as a noun
               does, and can take a relative clause; somewhere, nowhere and everywhere go in location:,
-              goal: or source:, as here does. 'Somebody' is someone, 'everybody' everyone and 'no
-              one' nobody. 'Anyone', 'anything' and 'anywhere' are nobody, nothing and nowhere in a
-              negated clause, and someone, something and somewhere in a question. A clause with
-              nobody, nothing, nowhere or no never takes NEG, which the language adds itself where it
-              needs it:
+              goal: or source:, as here does, and sometime, never and always go in time:, as in
+              time:never. 'Somebody' is someone, 'everybody' everyone and 'no one' nobody.
+              'Anyone', 'anything', 'anywhere' and 'ever' are nobody, nothing, nowhere and never in
+              a negated clause, and someone, something, somewhere and sometime in a question. A
+              clause with nobody, nothing, nowhere, never or no never takes NEG, which the language
+              adds itself where it needs it:
 
                 I didn't see anyone
                   see.PST.PFV  subject:1SG  object:nobody
@@ -151,7 +152,7 @@ public static class GlossPrompt
             - when: is a word of its own saying when, in its plain English form: when:now,
               when:yesterday, when:then, when:later, when:first.
             - often: is a word of its own saying how often, or whether something still goes on:
-              often:again, often:always, often:never, often:still.
+              often:again, often:still. 'Never' and 'always' are times, time:never and time:always.
             - manner: is how, written as an adjective even where English has a word of its own:
               manner:careful for 'carefully', manner:sudden for 'suddenly', manner:good for 'well'.
             - time: is when, as a noun phrase: time:night for 'at night', time:(night last) for 'last
@@ -171,9 +172,10 @@ public static class GlossPrompt
                 be  subject:1SG  adjective:tired.INTS
 
             A yes-no question has Q on its verb, glossed otherwise as the statement would be, with
-            'do' left out. A question asking who, what, where or why has no Q: who or what goes in
-            the role it asks about, where is location:where, goal:where for 'where to' or
-            source:where for 'where from', and why is written on its own. A question asks one thing:
+            'do' left out. A question asking who, what, where, when, why or how has no Q: who or
+            what goes in the role it asks about, where is location:where, goal:where for 'where to'
+            or source:where for 'where from', when is time:when, and why and how are written on
+            their own. A question asks one thing:
 
               did you see them?
                 see.PST.PFV.Q  subject:2SG  object:3PL
@@ -187,6 +189,10 @@ public static class GlossPrompt
                 get.PST.PFV  subject:2SG  object:DIST  source:where
               why didn't you come?
                 come.PST.PFV.NEG  subject:2SG  why
+              when did they arrive?
+                arrive.PST.PFV  subject:3PL  time:when
+              how did you get here?
+                come.PST.PFV  subject:2SG  goal:here  how
 
             A command to 'you' has IMP on its verb, with no tense or aspect, NEG for 'don't', and no
             subject, unless it's to several people, which is subject:2PL:
@@ -298,11 +304,11 @@ public static class GlossPrompt
               walk.PST, or 'lives in' for be with location:.
             - Never drop a modal, like might or maybe, that has no gloss: 'it might rain'
               doesn't say 'it rains'.
-            - Never drop or paraphrase away a word that negates, like 'nobody', 'nothing' or 'no':
+            - Never drop or paraphrase away a word that negates, like 'nobody', 'nothing', 'never' or 'no':
               'nobody believes him' is subject:nobody, not 'people do not believe him', and 'she
               says no' keeps object:no.
             - When a sentence can't be said even loosely, as with a question asking two things, or
-              when, how, how long, which or whose, or a question inside another clause that isn't quoted (like 'did anyone see what happened?'), a modal other than ABIL,
+              how long, how often, how many, which or whose, or a question inside another clause that isn't quoted (like 'did anyone see what happened?'), a modal other than ABIL,
               PERM, OBLIG or ADVS (like might or maybe), a relative clause with 'whose' or on a
               pronoun (like 'he who hesitates'), a comparison other than an adjective with be (like 'runs faster than',
               'stronger arms than yours' or 'as tall as'), a comparison with a clause (like 'warmer

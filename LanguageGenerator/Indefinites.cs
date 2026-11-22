@@ -20,14 +20,15 @@ public enum Quantifier
 
 /// <summary>
 /// What an indefinite pronoun stands for, as Haspelmath's ontological categories have it: a person,
-/// as 'someone', a thing, as 'something', or a place, as 'somewhere'. These are the categories the
-/// question words who, what and where ask about.
+/// as 'someone', a thing, as 'something', a place, as 'somewhere', or a time, as 'sometime' and
+/// 'never'. These are the categories the question words who, what, where and when ask about.
 /// </summary>
 public enum Ontology
 {
     Person,
     Thing,
     Place,
+    Time,
 }
 
 /// <summary>How a language makes its indefinite pronouns, like 'someone' and 'nothing', as WALS 46A counts them.</summary>
@@ -102,6 +103,7 @@ public record Indefinites(IndefiniteBase PersonBase, IndefiniteBase ThingBase, E
         Ontology.Person => "person",
         Ontology.Thing => "thing",
         Ontology.Place => "place",
+        Ontology.Time => "time",
         _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
     };
 
@@ -115,7 +117,18 @@ public record Indefinites(IndefiniteBase PersonBase, IndefiniteBase ThingBase, E
 
     public bool MarkersAreAffixes => MarkerPosition is ExponentPosition.Prefix or ExponentPosition.Suffix;
 
-    /// <summary>What a person's, a thing's or a place's indefinite pronouns are made from.</summary>
+    /// <summary>
+    /// The roles an indefinite of this kind can fill, or null for any a noun can: a place says where,
+    /// to where or from where, as 'somewhere' does, and a time when, as 'never' does.
+    /// </summary>
+    public static IReadOnlyList<Role>? RolesOf(Ontology kind) => kind switch
+    {
+        Ontology.Place => [Role.Location, Role.Goal, Role.Source],
+        Ontology.Time => [Role.Time],
+        _ => null,
+    };
+
+    /// <summary>What the indefinite pronouns of a kind are made from, places and times going as things do.</summary>
     public IndefiniteBase BaseOf(Ontology kind) => kind == Ontology.Person ? PersonBase : ThingBase;
 
     /// <summary>The question word an indefinite of this kind is made from, where it's made from one.</summary>
@@ -124,6 +137,7 @@ public record Indefinites(IndefiniteBase PersonBase, IndefiniteBase ThingBase, E
         Ontology.Person => Interrogative.Who,
         Ontology.Thing => Interrogative.What,
         Ontology.Place => Interrogative.Where,
+        Ontology.Time => Interrogative.When,
         _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
     };
 

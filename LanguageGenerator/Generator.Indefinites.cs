@@ -39,13 +39,16 @@ public static partial class Generator
     {
         (Quantifier.Some, Ontology.Person) => "someone",
         (Quantifier.Some, Ontology.Thing) => "something",
-        (Quantifier.Some, _) => "somewhere",
+        (Quantifier.Some, Ontology.Place) => "somewhere",
+        (Quantifier.Some, _) => "sometime",
         (Quantifier.No, Ontology.Person) => "nobody",
         (Quantifier.No, Ontology.Thing) => "nothing",
-        (Quantifier.No, _) => "nowhere",
+        (Quantifier.No, Ontology.Place) => "nowhere",
+        (Quantifier.No, _) => "never",
         (_, Ontology.Person) => "everyone",
         (_, Ontology.Thing) => "everything",
-        _ => "everywhere",
+        (_, Ontology.Place) => "everywhere",
+        _ => "always",
     };
 
     /*
@@ -87,17 +90,24 @@ public static partial class Generator
             return isAffix ? (Morpheme)new Affix(form, [meaning]) : new Particle(form, [meaning]);
         });
         var own = new Dictionary<(Quantifier, Ontology), Lexeme>();
+        void Own(Quantifier series, Ontology kind) =>
+            own[(series, kind)] = new Lexeme(new Root(forms.Draw(() => GenerateForm(rand, phonology, 0, maxSyllables: 2)), IndefiniteGloss(series, kind)), PartOfSpeech.Noun);
         foreach (var series in Indefinites.Series)
         {
-            foreach (var kind in Indefinites.Kinds)
+            foreach (var kind in new[] { Ontology.Person, Ontology.Thing, Ontology.Place })
             {
-                own[(series, kind)] = new Lexeme(new Root(forms.Draw(() => GenerateForm(rand, phonology, 0, maxSyllables: 2)), IndefiniteGloss(series, kind)), PartOfSpeech.Noun);
+                Own(series, kind);
             }
         }
         var quantifiers = Enum.GetValues<Quantifier>().ToDictionary(q => q, q => q == Quantifier.Many && numerals.Many is { } many ? many
             : new Lexeme(new Root(forms.Draw(() => GenerateForm(rand, phonology, 0, maxSyllables: 2)), q.ToString().ToLowerInvariant()), PartOfSpeech.Adjective));
         var beforeNoun = rand.NextDouble() < QuantifierWithNumeralChance ? numerals.BeforeNoun : !numerals.BeforeNoun;
         var negation = Sampling.Categorical(rand, NegativeIndefiniteCounts);
+        //times were added later, so they're drawn last, leaving what was drawn before as it was
+        foreach (var series in Indefinites.Series)
+        {
+            Own(series, Ontology.Time);
+        }
         return new Indefinites(personBase, thingBase, position, markers, own, quantifiers, beforeNoun, negation);
     }
 }

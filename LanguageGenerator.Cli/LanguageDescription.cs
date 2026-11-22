@@ -307,7 +307,7 @@ public static class LanguageDescription
             QuestionInversion => "the verb first",
             QuestionIntonation => "intonation alone",
         };
-        var asking = string.Join(", ", [.. questions.Words.Select(w => $"{w.Value.Root.Meaning} {SpelledWord(w.Value)}"), $"why {SpelledWord(questions.Why)}"]);
+        var asking = string.Join(", ", [.. questions.Words.Select(w => $"{w.Value.Root.Meaning} {SpelledWord(w.Value)}"), .. questions.Adverbs.Select(a => $"{a.Value.Root.Meaning} {SpelledWord(a.Value)}")]);
         output.WriteLine($"Questions: yes-no by {polar}; question words {(questions.FrontsQuestionWords ? "first" : "in place")}: {asking}");
         var numerals = lang.Numerals;
         string Say(int n) => string.Join(" ", numerals.Say(n).Select(w => phonology.Realize(new Word([w.Root])).Spell(orthography)));
@@ -466,12 +466,15 @@ public static class LanguageDescription
         ];
         (Statement Clause, string Translation)[] questions =
         [
-            (new Question(new Clause("see", Tense.Past, Aspect.Perfective, Phrase("dog", Number.Singular), Phrase("cat", Number.Plural)) { Adverbs = [] }, false), "did the dog see the cats?"),
-            (new Question(new Clause("eat", Tense.Present, Aspect.Imperfective, new QuestionWord(Interrogative.Who), Phrase("fish", Number.Singular)) { Adverbs = [] }, false), "who eats the fish?"),
-            (new Question(new Clause("eat", Tense.Past, Aspect.Perfective, Phrase("dog", Number.Singular), new QuestionWord(Interrogative.What)) { Adverbs = [] }, false), "what did the dog eat?"),
-            (new Question(new CopularClause(new Oblique(Role.Location, new QuestionWord(Interrogative.Where), Configuration.At), Tense.Present, Aspect.Imperfective, Phrase("cat", Number.Singular)) { Obliques = [], Adverbs = [] }, false),
+            (new Question(new Clause("see", Tense.Past, Aspect.Perfective, Phrase("dog", Number.Singular), Phrase("cat", Number.Plural)) { Adverbs = [] }, null), "did the dog see the cats?"),
+            (new Question(new Clause("eat", Tense.Present, Aspect.Imperfective, new QuestionWord(Interrogative.Who), Phrase("fish", Number.Singular)) { Adverbs = [] }, null), "who eats the fish?"),
+            (new Question(new Clause("eat", Tense.Past, Aspect.Perfective, Phrase("dog", Number.Singular), new QuestionWord(Interrogative.What)) { Adverbs = [] }, null), "what did the dog eat?"),
+            (new Question(new CopularClause(new Oblique(Role.Location, new QuestionWord(Interrogative.Where), Configuration.At), Tense.Present, Aspect.Imperfective, Phrase("cat", Number.Singular)) { Obliques = [], Adverbs = [] }, null),
                 "where is the cat?"),
-            (new Question(new Clause("sleep", Tense.Present, Aspect.Imperfective, Phrase("dog", Number.Singular), Negative: true) { Adverbs = [] }, true), "why doesn't the dog sleep?"),
+            (new Question(new Clause("sleep", Tense.Present, Aspect.Imperfective, Phrase("dog", Number.Singular), Negative: true) { Adverbs = [] }, QuestionAdverb.Why), "why doesn't the dog sleep?"),
+            (new Question(new Clause("walk", Tense.Past, Aspect.Perfective, Phrase("bird", Number.Singular), Obliques: [new(Role.Time, new QuestionWord(Interrogative.When), Configuration.At)]) { Adverbs = [] }, null),
+                "when did the bird walk?"),
+            (new Question(new Clause("eat", Tense.Past, Aspect.Perfective, Phrase("cat", Number.Singular), Phrase("fish", Number.Singular)) { Adverbs = [] }, QuestionAdverb.How), "how did the cat eat the fish?"),
         ];
         (Statement Clause, string Translation)[] complements =
         [
@@ -507,6 +510,8 @@ public static class LanguageDescription
         [
             (new Clause("see", Tense.Present, Aspect.Imperfective, Indefinites.Pronoun(Quantifier.Some, Ontology.Person), Phrase("dog", Number.Singular)) { Adverbs = [] }, "someone sees the dog"),
             (new Clause("eat", Tense.Past, Aspect.Perfective, Phrase("cat", Number.Singular), Indefinites.Pronoun(Quantifier.No, Ontology.Thing)) { Adverbs = [] }, "the cat ate nothing"),
+            (new Clause("sleep", Tense.Present, Aspect.Imperfective, Phrase("dog", Number.Singular), Obliques: [new(Role.Time, Indefinites.Pronoun(Quantifier.No, Ontology.Time), Configuration.At)]) { Adverbs = [] },
+                "the dog never sleeps"),
             (new Clause("sleep", Tense.Present, Aspect.Imperfective, Phrase("dog", Number.Plural) with { Quantifier = Quantifier.All }) { Adverbs = [] }, "all the dogs sleep"),
             (new Clause("see", Tense.Past, Aspect.Perfective, new NounPhrase("bird", Number.Plural, Quantifier: Quantifier.Few), Phrase("fish", Number.Singular)) { Adverbs = [] },
                 "few birds saw the fish"),

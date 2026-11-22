@@ -98,7 +98,7 @@ public static partial class Generator
         var extraSyllables = SelectExtraSyllables(SelectRootLengthNoise(stages.For("root length noise")), lexiconSeed, phonology);
         var lexicon = GenerateLexicon(lexiconSeed, extraSyllables, phonology, new Dictionary<PartOfSpeech, IEnumerable<Lexeme>>
         {
-            [PartOfSpeech.Noun] = [.. pronouns.Forms.Values, .. questions.Words.Values, questions.Why, .. indefinites.Own.Values],
+            [PartOfSpeech.Noun] = [.. pronouns.Forms.Values, .. questions.Words.Values, .. questions.Adverbs.Values, .. indefinites.Own.Values],
             [PartOfSpeech.Adjective] = [.. numerals.Words.Values, .. indefinites.Quantifiers.Values, .. new[] { numerals.Many, numerals.Ordinals.First, numerals.Ordinals.Second }.OfType<Lexeme>()],
             [PartOfSpeech.Verb] = [predication.Copula, .. predication.LocationalCopula is { } locational ? [locational] : Array.Empty<Lexeme>(),
                 .. modals.Markers.Values.Select(m => m.Value).OfType<ModalVerb>().Select(m => m.Verb),

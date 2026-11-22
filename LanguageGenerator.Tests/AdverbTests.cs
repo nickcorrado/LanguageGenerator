@@ -321,15 +321,15 @@ public class AdverbTests
     [InlineData("walk  subject:dog  when:now.PL", "an adverb takes no glosses")]
     [InlineData("walk  subject:dog  when:why", "why fills no role")]
     [InlineData("walk  subject:dog  when:who", "who isn't an adverb")]
-    [InlineData("walk  subject:dog  when:when", "A question can't ask when yet")]
+    [InlineData("walk  subject:dog  when:when", "so it's time:when")]
     [InlineData("walk  subject:dog  often:(again always)", "An adverb is one word, as in often:again")]
     [InlineData("walk  subject:dog  manner:slow.CMPR", "A manner can't compare yet")]
     [InlineData("walk  subject:dog  manner:(and slow quiet)", "manner: takes one adjective")]
     [InlineData("walk  subject:dog  manner:slow.ADV", "an adverb made from an adjective is written manner:slow")]
     [InlineData("be  subject:dog  adjective:big.INTS.INTS", "more than one INTS")]
     [InlineData("be  subject:dog  adjective:big  companion:cat", "and time: or duration:")]
-    [InlineData("walk  subject:dog  time:what", "can't ask when or for how long")]
-    [InlineData("walk  subject:dog  duration:what", "can't ask when or for how long")]
+    [InlineData("walk  subject:dog  time:what", "is time:when")]
+    [InlineData("walk  subject:dog  duration:what", "can't ask for how long")]
     [InlineData("walk  subject:dog  time:night  time:sun", "more than one time")]
     public void Parse_BadAdverbs_SayWhy(string gloss, string message) =>
         Assert.Contains(message, Assert.Throws<ClauseFormatException>(() => ClauseFile.Parse($"x\n  {gloss}")).Message);

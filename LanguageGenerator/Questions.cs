@@ -55,6 +55,15 @@ public enum Interrogative
     /// nere-den are one word in three cases.
     /// </summary>
     Where,
+    /// <summary>A time, in the role of when, as Turkish ne zaman 'what time' is marked as a time is.</summary>
+    When,
+}
+
+/// <summary>A question word that fills no role, but asks why or how something happened.</summary>
+public enum QuestionAdverb
+{
+    Why,
+    How,
 }
 
 /// <summary>A question word in a role, which inflects for that role as a noun does.</summary>
@@ -64,14 +73,14 @@ public record QuestionWord(Interrogative Word);
 /// How a language asks: how it marks a yes-no question, whether its question words go first in a
 /// content question, and the question words themselves.
 /// </summary>
-//Why is a word of its own, since it fills no role, but takes the place a question word does
-public record Questions(PolarQuestionMarking Polar, bool FrontsQuestionWords, IReadOnlyDictionary<Interrogative, Lexeme> Words, Lexeme Why);
+//why and how are words of their own, since they fill no role, but take the place a question word does
+public record Questions(PolarQuestionMarking Polar, bool FrontsQuestionWords, IReadOnlyDictionary<Interrogative, Lexeme> Words, IReadOnlyDictionary<QuestionAdverb, Lexeme> Adverbs);
 
 /// <summary>
-/// A statement asked rather than said. With a question word in one of its roles, or Why, it asks
-/// for what that is, as in 'who saw you?' or 'why didn't you come?'; with neither, it asks whether
-/// it's true, as in 'did you see them?'.
+/// A statement asked rather than said. With a question word in one of its roles, or an adverb, it
+/// asks for what that is, as in 'who saw you?', 'why didn't you come?' or 'how did you get here?';
+/// with neither, it asks whether it's true, as in 'did you see them?'.
 /// </summary>
 //a clause with a verb, a passive, a copular clause or a comparison, with any modal, and at most one
 //question word, as a direct argument of a role
-public record Question(Statement Statement, bool Why);
+public record Question(Statement Statement, QuestionAdverb? Adverb);

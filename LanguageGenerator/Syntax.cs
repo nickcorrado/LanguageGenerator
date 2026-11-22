@@ -931,11 +931,11 @@ public static class Syntax
     /*
       a content question puts its question word first, with the rest of its phrase, where the
       language fronts them, as English does, and otherwise leaves it in its role's own place, as
-      Mandarin and Japanese do; 'why' goes first too, or else where obliques go, as a phrase saying
-      why would. It needs no other marking. A yes-no question takes the language's particle, its
-      affix on the finite verb, or the finite verb first, or nothing but intonation. A language that
-      puts the verb first in a yes-no question puts it right after a fronted question word in a
-      content one, as German does
+      Mandarin and Japanese do; 'why' and 'how' go first too, or else where obliques go, as a phrase
+      saying why or how would. It needs no other marking. A yes-no question takes the language's
+      particle, its affix on the finite verb, or the finite verb first, or nothing but intonation. A
+      language that puts the verb first in a yes-no question puts it right after a fronted question
+      word in a content one, as German does
       TODO many languages use their yes-no marker in content questions too, as Japanese does its ka,
       which WALS doesn't count
      */
@@ -944,17 +944,17 @@ public static class Syntax
         var questions = language.Questions;
         var finite = VerbRoot(language, question.Statement);
         var asked = Asked(language, question.Statement);
-        if (asked is null && !question.Why)
+        if (asked is null && question.Adverb is null)
         {
             return Polar(language, Words(language, question.Statement), finite);
         }
-        IReadOnlyList<Word> why = question.Why ? [new Word([questions.Why.Root])] : [];
+        IReadOnlyList<Word> adverb = question.Adverb is { } which ? [new Word([questions.Adverbs[which].Root])] : [];
         if (!questions.FrontsQuestionWords)
         {
-            return Words(language, question.Statement, why);
+            return Words(language, question.Statement, adverb);
         }
         var words = Words(language, question.Statement).ToList();
-        List<Word> fronted = [.. why];
+        List<Word> fronted = [.. adverb];
         if (asked is var (root, phrase) && TakePhrase(words, root, phrase) is var (taken, rest))
         {
             fronted.AddRange(taken);
