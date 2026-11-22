@@ -160,6 +160,8 @@ public static class ClauseFile
 
     private static IEnumerable<string> NounsIn(Argument argument) => argument switch
     {
+        //an indefinite pronoun's noun is the language's to say, and no noun of the text's
+        NounPhrase { Indefinite: not null } n => n.Relative is { } relative ? ArgumentsOf(relative).SelectMany(NounsIn) : [],
         NounPhrase n => [n.Noun, .. Given(n.Possessor).SelectMany(NounsIn), .. n.Relative is { } relative ? ArgumentsOf(relative).SelectMany(NounsIn) : []],
         Pronoun => [],
         QuestionWord or DemonstrativePronoun or DemonstrativePlace => [],
@@ -324,6 +326,12 @@ public static class ClauseFile
         else
         {
             statement = ToClause(verb, features, roles, subject, number);
+        }
+        //a negative indefinite says the clause is negated, and a language whose verb takes negation
+        //beside one adds it itself
+        if ((features.Negative || features.ModalNegative) && ArgumentsOf(statement).Any(Indefinites.IsNegative))
+        {
+            throw new ClauseFormatException("A clause with nobody, nothing, nowhere or no already says 'not', so its verb takes no NEG, as in come.PST subject:nobody for 'nobody came'.", number);
         }
         if (features.Modality is { } modal)
         {
@@ -775,13 +783,18 @@ public static class ClauseFile
         }
         foreach (var item in items.Skip(1).Where(i => i.Role is not (null or "possessor" or "relative")))
         {
-            throw new ClauseFormatException($"Noun phrases can't have {A(item.Role!)} yet, only adjectives, a number, an ordinal, a possessor and a relative clause.", number);
+            throw new ClauseFormatException($"Noun phrases can't have {A(item.Role!)} yet, only adjectives, a number, an ordinal, a quantifier, a possessor and a relative clause.", number);
         }
         var noun = ParseArgument(items[0].Value, number).Value as NounPhrase
             ?? throw new ClauseFormatException($"{head} can't take adjectives, a number or a possessor yet.", number);
+        if (noun.Indefinite is not null && items.Skip(1).FirstOrDefault(i => i.Role != "relative") is { } extra)
+        {
+            throw new ClauseFormatException($"{head} takes only a relative clause, not '{extra.Text}'.", number);
+        }
 
         int? count = null;
         int? ordinal = null;
+        Quantifier? quantifier = null;
         Argument? possessor = null;
         Statement? relative = null;
         var adjectives = new List<Adjective>();
@@ -829,6 +842,16 @@ public static class ClauseFile
                     throw new ClauseFormatException($"Ordinals go from 1st to {NumeralSystem.Largest}th for now, not {word}.", number);
                 }
             }
+            else if (QuantifierWords.TryGetValue(word.Split('.')[0], out var q))
+            {
+                quantifier = word.Contains('.') ? throw new ClauseFormatException($"{q.ToString().ToLowerInvariant()} takes no glosses: its noun has them, as in ({head} {word.Split('.')[0]}).", number)
+                    : quantifier is null ? q
+                    : throw new ClauseFormatException($"'{head}' has more than one quantifier.", number);
+            }
+            else if (word.Split('.')[0] == "each")
+            {
+                throw new ClauseFormatException($"Write every for each, as in ({head} every).", number);
+            }
             else if (Conjunctions.ContainsKey(word))
             {
                 throw new ClauseFormatException($"Write {word} first, before what it joins, as in ({word} dog.DEF cat.DEF), not '{group.Text}'.", number);
@@ -846,6 +869,27 @@ public static class ClauseFile
                 adjectives.Add(ParseAdjective(word, number));
             }
         }
+        /*
+          a quantifier says how much there is, as an indefinite article would, so it can't take one,
+          and every and no pick out no particular one, so they can't be definite either, though 'all
+          the dogs' and 'most of the men' are. Only all goes with a number, as in 'all three dogs'
+         */
+        if (quantifier is { } said)
+        {
+            var name = said.ToString().ToLowerInvariant();
+            if (noun.Definiteness == Definiteness.Indefinite)
+            {
+                throw new ClauseFormatException($"'{head}' takes {name} or NDF, not both: write ({head.Split('.')[0]} {name}).", number);
+            }
+            if (said is Quantifier.Every or Quantifier.No && (noun.Definiteness is not null || noun.Demonstrative is not null))
+            {
+                throw new ClauseFormatException($"{name} can't go with {(noun.Definiteness?.Gloss ?? noun.Demonstrative!.Gloss)}: it picks out no particular one.", number);
+            }
+            if (count is not null && said != Quantifier.All)
+            {
+                throw new ClauseFormatException($"Only all goes with a number, as in ({head} all 3), not {name}.", number);
+            }
+        }
         //a number gives the noun its number unless the noun has one already
         var given = ParseWord(head, number).Features.OfType<Number>().Any();
         return noun with
@@ -855,6 +899,7 @@ public static class ClauseFile
             Ordinal = ordinal,
             Possessor = possessor,
             Relative = relative,
+            Quantifier = quantifier ?? noun.Quantifier,
             Number = given || count is not { } n ? noun.Number : NumberFor(n),
         };
     }
@@ -959,10 +1004,10 @@ public static class ClauseFile
         return new Manner(ParseAdjective(token, number));
     }
 
-    //words for where besides here and there wait on spatial adpositions and indefinites, which most
+    //words for where besides here, there and the indefinites wait on spatial adpositions, which most
     //languages make them from
     private static readonly HashSet<string> PlaceAdverbs =
-        ["inside", "outside", "above", "below", "upstairs", "downstairs", "everywhere", "somewhere", "nowhere", "away", "upstream", "downstream"];
+        ["inside", "outside", "above", "below", "upstairs", "downstairs", "away", "upstream", "downstream"];
 
     //'here' and 'there', which say a place by how far it is, as demonstratives do
     private static readonly Dictionary<string, Distance> PlaceDemonstratives = new()
@@ -972,6 +1017,50 @@ public static class ClauseFile
     };
 
     private static readonly string PlaceRoles = "location:here, goal:here for 'to here' or source:here for 'from here'";
+
+    //the indefinite pronouns, each its series and kind
+    private static readonly Dictionary<string, (Quantifier Series, Ontology Kind)> IndefiniteWords = new()
+    {
+        ["someone"] = (Quantifier.Some, Ontology.Person),
+        ["something"] = (Quantifier.Some, Ontology.Thing),
+        ["somewhere"] = (Quantifier.Some, Ontology.Place),
+        ["nobody"] = (Quantifier.No, Ontology.Person),
+        ["nothing"] = (Quantifier.No, Ontology.Thing),
+        ["nowhere"] = (Quantifier.No, Ontology.Place),
+        ["everyone"] = (Quantifier.Every, Ontology.Person),
+        ["everything"] = (Quantifier.Every, Ontology.Thing),
+        ["everywhere"] = (Quantifier.Every, Ontology.Place),
+    };
+
+    //other English words for them, and what to write instead
+    private static readonly Dictionary<string, string> IndefiniteSpellings = new()
+    {
+        ["somebody"] = "someone",
+        ["everybody"] = "everyone",
+        ["noone"] = "nobody",
+        ["anyone"] = "nobody in a negated clause, or someone in a question",
+        ["anybody"] = "nobody in a negated clause, or someone in a question",
+        ["anything"] = "nothing in a negated clause, or something in a question",
+        ["anywhere"] = "nowhere in a negated clause, or somewhere in a question",
+    };
+
+    private static readonly Dictionary<string, Quantifier> QuantifierWords = Enum.GetValues<Quantifier>().ToDictionary(q => q.ToString().ToLowerInvariant());
+    public static IReadOnlyList<string> QuantifierNames => [.. QuantifierWords.Keys];
+
+    //an indefinite pronoun, which takes no glosses, or null if the word isn't one
+    private static NounPhrase? ParseIndefinite(string meaning, IReadOnlyList<Grammeme> features, int number)
+    {
+        if (IndefiniteSpellings.TryGetValue(meaning, out var instead))
+        {
+            throw new ClauseFormatException($"Write {instead}, not {meaning}.", number);
+        }
+        if (!IndefiniteWords.TryGetValue(meaning, out var indefinite))
+        {
+            return null;
+        }
+        return features.Count == 0 ? Indefinites.Pronoun(indefinite.Series, indefinite.Kind)
+            : throw new ClauseFormatException($"{meaning} can't take {features[0].Gloss}: an indefinite pronoun takes no glosses.", number);
+    }
 
     /*
       what a role saying where, to where or from where holds: 'here' or 'there', which can't take a
@@ -985,17 +1074,22 @@ public static class ClauseFile
             return ParseArgument(value, number);
         }
         var (meaning, features) = ParseWord(token, number);
-        if (!PlaceDemonstratives.TryGetValue(meaning, out var distance))
+        var place = IndefiniteWords.TryGetValue(meaning, out var indefinite) && indefinite.Kind == Ontology.Place;
+        if (!PlaceDemonstratives.TryGetValue(meaning, out var distance) && !place)
         {
             return ParseArgument(value, number);
         }
         if (role is not (Role.Location or Role.Goal or Role.Source))
         {
-            throw new ClauseFormatException($"{meaning} says a place, so it's {PlaceRoles}, not {role.ToString().ToLowerInvariant()}:{meaning}.", number);
+            throw new ClauseFormatException($"{meaning} says a place, so it's {PlaceRoles.Replace("here", meaning)}, not {role.ToString().ToLowerInvariant()}:{meaning}.", number);
         }
         if (configuration != Configuration.At)
         {
-            throw new ClauseFormatException($"{meaning} can't take a configuration, as in 'under here'.", number);
+            throw new ClauseFormatException($"{meaning} can't take a configuration, as in 'under {meaning}'.", number);
+        }
+        if (place)
+        {
+            return ParseIndefinite(meaning, features, number)!;
         }
         return features switch
         {
@@ -1063,9 +1157,15 @@ public static class ClauseFile
         {
             throw new ClauseFormatException($"{meaning} says a place, so it's {PlaceRoles}, not {role}:{meaning}.", number);
         }
+        if (IndefiniteWords.TryGetValue(meaning, out var indefinite))
+        {
+            throw new ClauseFormatException(indefinite.Kind == Ontology.Place
+                ? $"{meaning} says a place, so it's {PlaceRoles.Replace("here", meaning)}, not {role}:{meaning}."
+                : $"{meaning} isn't an adverb: it fills a role, as in subject:{meaning}.", number);
+        }
         if (PlaceAdverbs.Contains(meaning))
         {
-            throw new ClauseFormatException($"'{meaning}' can't be said yet: words for where besides here and there, like inside and somewhere, wait on spatial adpositions and indefinites.", number);
+            throw new ClauseFormatException($"'{meaning}' can't be said yet: words for where besides here, there and somewhere, like inside and upstream, wait on spatial adpositions.", number);
         }
         if (features.Count > 0)
         {
@@ -1121,6 +1221,11 @@ public static class ClauseFile
         {
             throw new ClauseFormatException($"{noun} says a place, so it's {PlaceRoles}, on its own.", number);
         }
+        if (ParseIndefinite(noun, features, number) is { } indefinite)
+        {
+            return indefinite.Indefinite != Ontology.Place ? indefinite
+                : throw new ClauseFormatException($"{noun} says a place, so it's {PlaceRoles.Replace("here", noun)}, on its own.", number);
+        }
         if (QuestionWords.TryGetValue(noun, out var asked))
         {
             return features.Count == 0 ? new QuestionWord(asked)
@@ -1154,7 +1259,9 @@ public static class ClauseFile
                 case Case:
                     throw new ClauseFormatException($"'{noun}' can't take {feature.Gloss}: a noun's case comes from its role.", number);
                 case Polarity:
-                    throw new ClauseFormatException($"'{noun}' can't take {feature.Gloss}: it's the verb that's negated.", number);
+                    throw new ClauseFormatException($"'{noun}' can't take {feature.Gloss}: it's the verb that's negated, or for 'no {noun}', write ({noun} no).", number);
+                case Quantification:
+                    throw new ClauseFormatException($"'{noun}' can't take {feature.Gloss}: write NDF for 'a {noun}', and a quantifier as a word, as in ({noun} some) or ({noun} every).", number);
                 default:
                     throw new ClauseFormatException($"'{noun}' can't take {feature.Gloss} ({feature.Name}) yet: nouns have only number, definiteness and a demonstrative.", number);
             }

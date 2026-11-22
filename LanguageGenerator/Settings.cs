@@ -391,6 +391,17 @@ public static class Settings
     public static Setting<Articles, bool> ArticleWithDemonstrative { get; } = ArticleStage.Declare("article-with-demonstrative", Nouns,
         a => a.WithDemonstrative, (a, with) => a with { WithDemonstrative = with }, YesNo);
 
+    public static Stage<Indefinites> IndefiniteStage { get; } = new("indefinites", l => l.Indefinites, null);
+    /// <summary>What indefinite pronouns like 'someone' are made from, as WALS 46A has it.</summary>
+    public static Setting<Indefinites, IndefinitePronouns> IndefinitePronouns { get; } = IndefiniteStage.Declare("indefinite-pronouns", Nouns,
+        i => i.Type, SettingWrites.WithIndefinitePronouns, Choice<IndefinitePronouns>.Of(Enum.GetValues<IndefinitePronouns>()));
+    /// <summary>Whether a negative indefinite like 'nobody' takes the verb's negation too, as WALS 115A has it.</summary>
+    public static Setting<Indefinites, NegativeIndefiniteNegation> NegativeIndefiniteNegation { get; } = IndefiniteStage.Declare("negative-indefinite-negation", Nouns,
+        i => i.Negation, (i, negation) => i with { Negation = negation }, Choice<NegativeIndefiniteNegation>.Of(Enum.GetValues<NegativeIndefiniteNegation>()));
+    /// <summary>Whether a quantifier like 'all' goes before its noun.</summary>
+    public static Setting<Indefinites, bool> QuantifiersBeforeNoun { get; } = IndefiniteStage.Declare("quantifiers-before-noun", Nouns,
+        i => i.QuantifiersBeforeNoun, (i, before) => i with { QuantifiersBeforeNoun = before }, YesNo);
+
     //joining clauses and nouns
 
     public static Stage<Conjunctions> ConjunctionStage { get; } = new("conjunctions", l => l.Conjunctions, null);
@@ -510,7 +521,7 @@ public static class Settings
     [
         VowelStage, ConsonantStage, SyllableStage, StressStage, ClusterRepairStage, SyllableContactStage, DropoffStage, SoundChangeStage, SyllableChangeStage, WordOrderStage, MorphologyStage, AlignmentStage,
         RoleRegionStage, CaseStage, ConfigurationRegionStage, ConfigurationPlanStage, NounParadigmStage, VerbParadigmStage, PronounStage, PredicationStage, LocationalCopulaStage, AdjectiveAgreementStage,
-        CommandStage, NegationStage, QuestionStage, PassiveStage, ModalStage, PossessionStage, GenderStage, NumeralStage, DemonstrativeStage, ArticleStage, ConjunctionStage, SubordinationStage, ComplementationStage, RelativizationStage, ComparisonStage, DegreeStage, SimilativeStage,
+        CommandStage, NegationStage, QuestionStage, PassiveStage, ModalStage, PossessionStage, GenderStage, NumeralStage, DemonstrativeStage, ArticleStage, IndefiniteStage, ConjunctionStage, SubordinationStage, ComplementationStage, RelativizationStage, ComparisonStage, DegreeStage, SimilativeStage,
     ];
 
     /// <summary>Every setting, in the order they're declared.</summary>
@@ -521,7 +532,7 @@ public static class Settings
         .. CaseStage.Settings, .. ConfigurationRegionStage.Settings, .. ConfigurationPlanStage.Settings, .. NounParadigmStage.Settings,
         .. VerbParadigmStage.Settings, .. PronounStage.Settings, .. PredicationStage.Settings, .. LocationalCopulaStage.Settings, .. AdjectiveAgreementStage.Settings,
         .. CommandStage.Settings, .. NegationStage.Settings, .. QuestionStage.Settings, .. PassiveStage.Settings, .. ModalStage.Settings, .. PossessionStage.Settings, .. GenderStage.Settings,
-        .. NumeralStage.Settings, .. DemonstrativeStage.Settings, .. ArticleStage.Settings, .. ConjunctionStage.Settings, .. SubordinationStage.Settings, .. ComplementationStage.Settings, .. RelativizationStage.Settings, .. ComparisonStage.Settings,
+        .. NumeralStage.Settings, .. DemonstrativeStage.Settings, .. ArticleStage.Settings, .. IndefiniteStage.Settings, .. ConjunctionStage.Settings, .. SubordinationStage.Settings, .. ComplementationStage.Settings, .. RelativizationStage.Settings, .. ComparisonStage.Settings,
         .. DegreeStage.Settings, .. SimilativeStage.Settings,
     ];
 

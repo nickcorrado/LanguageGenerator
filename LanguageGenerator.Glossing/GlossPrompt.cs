@@ -47,7 +47,7 @@ public static class GlossPrompt
 
             - A passive verb has PASS, its subject is what's done to, and agent: is who does it, if the
               sentence says: 'each light is carried by a small figure' is
-              carry.PASS  subject:(light each)  agent:(figure.NDF small). Keep a passive passive.
+              carry.PASS  subject:(light every)  agent:(figure.NDF small). Keep a passive passive.
             - Noun features: {Values<Number>()}; {Values<Definiteness>()}; {Values<Distance>(d => d != Distance.Neutral)}.
             - A noun with 'the' is DEF, and with 'a' or 'an' NDF. A noun with neither is bare, as 'wolves',
               'water' or 'his dogs' are, and so is a possessed noun: 'the king's house' is
@@ -64,6 +64,22 @@ public static class GlossPrompt
               there', with there.MED for a place near the person spoken to. 'The men here' says a
               place inside a noun phrase, which is a relative clause:
               (man.PL.DEF relative:[be  subject:_  location:here]).
+            - A quantifier is a word in its noun's phrase: {string.Join(", ", ClauseFile.QuantifierNames)}.
+              'Few travelers' is (traveler.PL few), not a number, 'each light' or 'every light'
+              (light every), 'most of the men' (man.PL.DEF most), 'all three dogs' (dog.PL.DEF all 3)
+              and 'no traveler' (traveler no). Every and no never take DEF, and none takes NDF.
+              'All' or 'each' with a pronoun, as in 'they are all smiling' or 'we all want', has no
+              gloss yet: leave it out.
+            - someone, something, nobody, nothing, everyone and everything fill a role as a noun
+              does, and can take a relative clause; somewhere, nowhere and everywhere go in location:,
+              goal: or source:, as here does. 'Somebody' is someone, 'everybody' everyone and 'no
+              one' nobody. 'Anyone', 'anything' and 'anywhere' are nobody, nothing and nowhere in a
+              negated clause, and someone, something and somewhere in a question. A clause with
+              nobody, nothing, nowhere or no never takes NEG, which the language adds itself where it
+              needs it:
+
+                I didn't see anyone
+                  see.PST.PFV  subject:1SG  object:nobody
             - Unmarked defaults: present, imperfective, affirmative, singular. Leave defaults out.
             - There's no perfect, so 'has fallen' or 'have watched' is a past, PST, with PFV when it's
               done and over, and its English line says it in the past: 'I have watched them for years'
@@ -277,9 +293,7 @@ public static class GlossPrompt
                 eat the bread
                   eat.IMP  object:bread.DEF
 
-              and not 'Eat only the bread.', since nothing in the gloss says 'only'. For 'A dog
-              barks somewhere behind the mill.', the English line is 'a dog barks behind the mill',
-              without 'somewhere'.
+              and not 'Eat only the bread.', since nothing in the gloss says 'only'.
             - Paraphrase into what the format can say when that keeps the meaning, as with 'went' for
               walk.PST, or 'lives in' for be with location:.
             - Never drop a modal, like might or maybe, that has no gloss: 'it might rain'

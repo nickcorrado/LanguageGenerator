@@ -94,6 +94,37 @@ public static class LanguageDescription
             : $"words of their own ({string.Join(", ", demonstratives.Distances.Select(d => $"{demonstratives.Place(d).Root.Meaning} {Stem(demonstratives.Place(d))}"))})";
         output.WriteLine($"Demonstratives: {demonstratives.Contrast}, {adnominal}, {where}; {standing}; 'here' and 'there' {places}");
 
+        var indefinites = lang.Indefinites;
+        string Kind(Ontology kind) => indefinites.BaseOf(kind) switch
+        {
+            IndefiniteBase.Interrogative => "question words",
+            IndefiniteBase.GenericNoun => $"'{Indefinites.NounFor(kind)}'",
+            _ => "words of their own",
+        };
+        var markers = string.Join(", ", indefinites.Markers.Select(m =>
+        {
+            var spelled = m.Value.Spell(orthography);
+            var form = indefinites.MarkerPosition switch { ExponentPosition.Prefix => $"{spelled}-", ExponentPosition.Suffix => $"-{spelled}", _ => spelled };
+            return $"{form} ({m.Key.ToString().ToLowerInvariant()})";
+        }));
+        var markerWhere = indefinites.MarkerPosition switch
+        {
+            ExponentPosition.PrecedingParticle => " before them",
+            ExponentPosition.FollowingParticle => " after them",
+            _ => "",
+        };
+        var made = indefinites.PersonBase == indefinites.ThingBase ? $"made from {Kind(Ontology.Person)}"
+            : $"'someone' made from {Kind(Ontology.Person)} and 'something' from {Kind(Ontology.Thing)}";
+        var indefiniteMarking = indefinites.Type is IndefinitePronouns.GenericNounBased or IndefinitePronouns.Special ? "" : $", marked {markers}{markerWhere}";
+        var negated = indefinites.Negation switch
+        {
+            NegativeIndefiniteNegation.Always => "'nobody' takes the verb's negation too",
+            NegativeIndefiniteNegation.Never => "'nobody' leaves the verb unnegated",
+            _ => "'nobody' takes the verb's negation too only where it follows the verb",
+        };
+        var quantifiers = string.Join(", ", indefinites.Quantifiers.Select(q => $"{q.Key.ToString().ToLowerInvariant()} {Stem(q.Value)}"));
+        output.WriteLine($"Indefinites: {made}{indefiniteMarking}; {negated}; quantifiers {quantifiers}, {(indefinites.QuantifiersBeforeNoun ? "before" : "after")} the noun");
+
         output.WriteLine(lang.MorphosyntacticAlignment);
         output.WriteLine($"Cases: {string.Join(", ", lang.Cases.Select(c => c.Gloss))}");
         foreach (var (role, marker) in lang.RoleMarkers)
@@ -472,6 +503,14 @@ public static class LanguageDescription
             (new Clause("sleep", Tense.Present, Aspect.Imperfective, Phrase("cat", Number.Plural), Obliques: [new(Role.Location, new DemonstrativePlace(Distance.Proximal), Configuration.At)]) { Adverbs = [] },
                 "the cats sleep here"),
         ];
+        (Statement Clause, string Translation)[] quantified =
+        [
+            (new Clause("see", Tense.Present, Aspect.Imperfective, Indefinites.Pronoun(Quantifier.Some, Ontology.Person), Phrase("dog", Number.Singular)) { Adverbs = [] }, "someone sees the dog"),
+            (new Clause("eat", Tense.Past, Aspect.Perfective, Phrase("cat", Number.Singular), Indefinites.Pronoun(Quantifier.No, Ontology.Thing)) { Adverbs = [] }, "the cat ate nothing"),
+            (new Clause("sleep", Tense.Present, Aspect.Imperfective, Phrase("dog", Number.Plural) with { Quantifier = Quantifier.All }) { Adverbs = [] }, "all the dogs sleep"),
+            (new Clause("see", Tense.Past, Aspect.Perfective, new NounPhrase("bird", Number.Plural, Quantifier: Quantifier.Few), Phrase("fish", Number.Singular)) { Adverbs = [] },
+                "few birds saw the fish"),
+        ];
         (Statement Clause, string Translation)[] adverbs =
         [
             (new Clause("sleep", Tense.Present, Aspect.Imperfective, Phrase("dog", Number.Singular)) { Adverbs = [new Adverb("now", AdverbKind.When)] }, "the dog is sleeping now"),
@@ -485,7 +524,7 @@ public static class LanguageDescription
         ];
         (Statement Clause, string Translation)[] all =
             [.. examples, .. copular, .. commands, .. copularCommands, .. coordinated, .. subordinated, .. passives, .. comparatives, .. addressed, .. modalized, .. questions,
-                .. complements, .. relatives, .. demonstrated, .. adverbs];
+                .. complements, .. relatives, .. demonstrated, .. quantified, .. adverbs];
         foreach (var (clause, translation) in all)
         {
             output.WriteLine();

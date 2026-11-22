@@ -1,0 +1,274 @@
+using static LanguageGenerator.Tests.Sentences;
+
+namespace LanguageGenerator.Tests;
+
+//quantifiers and indefinite pronouns: how they're written, how languages draw them, and how a noun
+//phrase and a clause say them, with the verb's negation beside a negative one where the language
+//has it
+public class IndefiniteTests
+{
+    private static Statement Parsed(string text) => Assert.Single(ClauseFile.Parse(text)).Statement;
+
+    private static ClauseFormatException Error(string text) => Assert.Throws<ClauseFormatException>(() => ClauseFile.Parse(text));
+
+    private static Clause ClauseOf(string gloss) => Assert.IsType<Clause>(Parsed($"x\n  {gloss}").Value);
+
+    private static NounPhrase Indefinite(Quantifier series, Ontology kind) => Indefinites.Pronoun(series, kind);
+
+    [Theory]
+    [InlineData("someone", "Some", "Person")]
+    [InlineData("nothing", "No", "Thing")]
+    [InlineData("everyone", "Every", "Person")]
+    public void Parse_IndefinitePronoun_IsAnIndefinitePhraseOfItsKind(string written, string series, string kind) =>
+        Assert.Equal(Indefinite(Enum.Parse<Quantifier>(series), Enum.Parse<Ontology>(kind)), ClauseOf($"see  subject:1SG  object:{written}").Object.GetValueOrDefault().Value);
+
+    [Theory]
+    [InlineData("location:somewhere", "Location", "Some")]
+    [InlineData("goal:nowhere", "Goal", "No")]
+    [InlineData("source:everywhere", "Source", "Every")]
+    public void Parse_IndefinitePlace_IsAPlaceInItsRole(string written, string role, string series)
+    {
+        var oblique = Assert.Single(ClauseOf($"walk  subject:3PL  {written}").Obliques);
+
+        Assert.Equal(Enum.Parse<Role>(role), oblique.Role);
+        Assert.Equal(Indefinite(Enum.Parse<Quantifier>(series), Ontology.Place), oblique.Argument.Value);
+    }
+
+    [Fact]
+    public void Parse_IndefiniteWithARelativeClause_KeepsIt()
+    {
+        var nobody = Assert.IsType<NounPhrase>(ClauseOf("return  subject:(nobody relative:[go  subject:_  goal.in:forest.DEF])").Subject.Value);
+
+        Assert.Equal(("person", Quantifier.No, Ontology.Person), (nobody.Noun, nobody.Quantifier, nobody.Indefinite));
+        Assert.NotNull(nobody.Relative);
+    }
+
+    [Theory]
+    [InlineData("(traveler.PL few)", "Few", "Plural", null)]
+    [InlineData("(light every)", "Every", "Singular", null)]
+    [InlineData("(man.PL.DEF most)", "Most", "Plural", "Definite")]
+    [InlineData("(traveler no)", "No", "Singular", null)]
+    public void Parse_Quantifier_IsInItsNounPhrase(string written, string quantifier, string number, string? definiteness)
+    {
+        var phrase = Assert.IsType<NounPhrase>(ClauseOf($"come  subject:{written}").Subject.Value);
+
+        Assert.Equal((Enum.Parse<Quantifier>(quantifier), number, definiteness, (Ontology?)null), (phrase.Quantifier, phrase.Number.Name, phrase.Definiteness?.Name, phrase.Indefinite));
+    }
+
+    [Fact]
+    public void Parse_AllWithANumber_KeepsBoth()
+    {
+        var dogs = Assert.IsType<NounPhrase>(ClauseOf("sleep  subject:(dog.PL.DEF all 3)").Subject.Value);
+
+        Assert.Equal((Quantifier.All, 3), (dogs.Quantifier, dogs.Count));
+    }
+
+    [Theory]
+    [InlineData("sleep  subject:nobody.PL", "takes no glosses")]
+    [InlineData("sleep  subject:somewhere", "says a place")]
+    [InlineData("walk  subject:1SG  route:somewhere", "not route:somewhere")]
+    [InlineData("walk  subject:1SG  location.under:somewhere", "can't take a configuration")]
+    [InlineData("walk  subject:1SG  when:somewhere", "says a place")]
+    [InlineData("walk  subject:1SG  when:nobody", "isn't an adverb")]
+    [InlineData("sleep  subject:anyone", "Write nobody in a negated clause")]
+    [InlineData("sleep  subject:somebody", "Write someone")]
+    [InlineData("sleep.NEG  subject:nobody", "takes no NEG")]
+    [InlineData("see.NEG  subject:1SG  object:(dog no)", "takes no NEG")]
+    [InlineData("swim.ABIL.NEG  subject:nobody", "takes no NEG")]
+    [InlineData("sleep  subject:(dog each)", "Write every")]
+    [InlineData("sleep  subject:(dog.NDF some)", "not both")]
+    [InlineData("sleep  subject:(dog.DEF every)", "picks out no particular one")]
+    [InlineData("sleep  subject:(dog.PROX no)", "picks out no particular one")]
+    [InlineData("sleep  subject:(dog.PL some 3)", "Only all goes with a number")]
+    [InlineData("sleep  subject:(dog.PL all most)", "more than one quantifier")]
+    [InlineData("sleep  subject:(dog all.PL)", "takes no glosses")]
+    [InlineData("sleep  subject:(nobody old)", "takes only a relative clause")]
+    [InlineData("sleep  subject:dog.INDF", "write NDF")]
+    public void Parse_BadIndefinites_SayWhy(string gloss, string message) => Assert.Contains(message, Error($"x\n  {gloss}").Message);
+
+    [Fact]
+    public void Nouns_SkipIndefinitesButNotTheirRelativeClauses() =>
+        Assert.Equal(["forest"], ClauseFile.Nouns(ClauseFile.Parse("x\n  return  subject:(nobody relative:[go  subject:_  goal.in:forest.DEF])  location:somewhere")).Select(n => n.Noun));
+
+    private static List<Indefinites> Draws(Func<LanguageSpec, LanguageSpec> fix)
+    {
+        var language = GeneratedLanguages.With(fix);
+        var rand = new Random(1);
+        return [.. Enumerable.Range(0, 4000).Select(_ => Generator.GenerateIndefinites(rand, language.MorphologicalProfile, language.Numerals, language.Phonology))];
+    }
+
+    [Fact]
+    public void GenerateIndefinites_ManyDraws_MatchTheWalsCounts()
+    {
+        var drawn = Draws(s => s);
+        double Share(Func<Indefinites, bool> holds) => drawn.Count(holds) / 4000.0;
+
+        //WALS 46A: of 324, from question words in 194, from nouns in 85, special in 22 and mixed in 23
+        Assert.InRange(Share(i => i.Type == IndefinitePronouns.InterrogativeBased), 0.57, 0.63);
+        Assert.InRange(Share(i => i.Type == IndefinitePronouns.GenericNounBased), 0.24, 0.29);
+        Assert.InRange(Share(i => i.Type == IndefinitePronouns.Special), 0.055, 0.085);
+        Assert.InRange(Share(i => i.Type == IndefinitePronouns.Mixed), 0.055, 0.085);
+        //115A: of 194, the verb negated too in 170, never in 11, and after the verb only in 13
+        Assert.InRange(Share(i => i.Negation == NegativeIndefiniteNegation.Always), 0.86, 0.89);
+        Assert.InRange(Share(i => i.Negation == NegativeIndefiniteNegation.Never), 0.045, 0.07);
+        //a mixed one makes persons and things each from question words or nouns
+        Assert.All(drawn.Where(i => i.Type == IndefinitePronouns.Mixed), i =>
+            Assert.Equal([IndefiniteBase.Interrogative, IndefiniteBase.GenericNoun], new[] { i.PersonBase, i.ThingBase }.Order()));
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void GenerateIndefinites_ManyDraws_MostlyPutQuantifiersWhereNumeralsGo(bool numeralsBefore)
+    {
+        var drawn = Draws(s => s.Fix(Settings.NumeralsBeforeNoun, numeralsBefore));
+
+        Assert.InRange(drawn.Count(i => i.QuantifiersBeforeNoun == numeralsBefore) / 4000.0, 0.77, 0.83);
+    }
+
+    [Fact]
+    public void GenerateIndefinites_ManyDraws_HaveEveryFormAndKeepThemApart()
+    {
+        Assert.All(Draws(s => s).Take(500), i =>
+        {
+            Assert.Equal(Indefinites.Series.Order(), i.Markers.Keys.Order());
+            Assert.Equal(9, i.Own.Count);
+            Assert.Equal(Enum.GetValues<Quantifier>(), i.Quantifiers.Keys.Order());
+            var forms = i.Markers.Values.Select(m => m.Form).Concat(i.Own.Values.Concat(i.Quantifiers.Values).Select(l => l.Root.Form)).Select(f => string.Concat(f.Select(p => p.IpaSymbol))).ToList();
+            Assert.Equal(forms.Count, forms.Distinct().Count());
+        });
+    }
+
+    [Fact]
+    public void GenerateIndefinites_IsolatingLanguage_MarksQuestionWordsWithWords() =>
+        Assert.All(Draws(s => s.Fix(Settings.Fusion, Fusion.Isolating)), i => Assert.False(i.MarkersAreAffixes));
+
+    [Fact]
+    public void GenerateIndefinites_RestrictedNumerals_SayManyWithTheNumeralsWord() =>
+        Assert.All(Draws(s => s.Fix(Settings.NumeralBase, NumeralBase.Restricted)), i => Assert.Equal("many", i.Quantifiers[Quantifier.Many].Root.Meaning));
+
+    private static Clause Sees(Argument subject, Argument @object) => new("see", Tense.Present, Aspect.Imperfective, subject, @object) { Adverbs = [] };
+
+    private static Language With(IndefinitePronouns type) => GeneratedLanguages.With(s => s.Fix(Settings.IndefinitePronouns, type));
+
+    [Fact]
+    public void Realize_InterrogativeBased_IsTheQuestionWordWithItsSeriesMarker()
+    {
+        var language = With(IndefinitePronouns.InterrogativeBased);
+        var morphemes = Syntax.Realize(language, Sees(Indefinite(Quantifier.Some, Ontology.Person), new NounPhrase("dog", Number.Singular)), "x")
+            .Words.SelectMany(w => w.Word.Morphemes).ToList();
+
+        Assert.Contains(language.Questions.Words[Interrogative.Who].Root, morphemes);
+        Assert.Contains(language.Indefinites.Markers[Quantifier.Some], morphemes);
+    }
+
+    [Fact]
+    public void Realize_Special_IsItsWordOfItsOwn()
+    {
+        var language = With(IndefinitePronouns.Special);
+        var sentence = Syntax.Realize(language, Sees(new NounPhrase("dog", Number.Singular), Indefinite(Quantifier.Every, Ontology.Thing)), "x");
+
+        Assert.True(IndexOf(sentence, language.Indefinites.Own[(Quantifier.Every, Ontology.Thing)].Root) >= 0);
+    }
+
+    [Fact]
+    public void Realize_GenericNounBased_IsTheNounWithItsQuantifier()
+    {
+        var language = With(IndefinitePronouns.GenericNounBased);
+        var sentence = Syntax.Realize(language, Sees(Indefinite(Quantifier.Some, Ontology.Person), new NounPhrase("dog", Number.Singular)), "x");
+
+        Assert.True(IndexOf(sentence, language.Lexicon.Noun("person").Root) >= 0);
+        Assert.True(IndexOf(sentence, language.Indefinites.Quantifiers[Quantifier.Some].Root) >= 0);
+    }
+
+    [Fact]
+    public void Realize_Mixed_MakesEachKindAsItsBaseSays()
+    {
+        var language = With(IndefinitePronouns.Mixed);
+        var sentence = Syntax.Realize(language, Sees(Indefinite(Quantifier.Some, Ontology.Person), Indefinite(Quantifier.Some, Ontology.Thing)), "x");
+        var (fromNoun, fromQuestion) = language.Indefinites.PersonBase == IndefiniteBase.GenericNoun
+            ? (language.Lexicon.Noun("person"), language.Questions.Words[Interrogative.What])
+            : (language.Lexicon.Noun("thing"), language.Questions.Words[Interrogative.Who]);
+
+        Assert.True(IndexOf(sentence, fromNoun.Root) >= 0);
+        Assert.True(IndexOf(sentence, fromQuestion.Root) >= 0);
+    }
+
+    [Fact]
+    public void Realize_EveryIndefiniteInEveryRole_SaysItsWords()
+    {
+        var relative = new Clause("sleep", Tense.Present, Aspect.Imperfective, new Gap(null)) { Adverbs = [] };
+        Assert.All(GeneratedLanguages.Sample.Take(60), l => Assert.All(Indefinites.Series, series =>
+        {
+            var sentence = Syntax.Realize(l, new Clause("see", Tense.Past, Aspect.Perfective, Indefinite(series, Ontology.Person) with { Relative = relative },
+                Indefinite(series, Ontology.Thing), Obliques: [new(Role.Location, Indefinite(series, Ontology.Place), Configuration.At)]) { Adverbs = [] }, "x");
+
+            Assert.True(sentence.Words.Count >= 4);
+        }));
+    }
+
+    //whether a clause's verb is negated, by the language's own negation marker
+    private static bool Negated(Language language, Statement statement) =>
+        Syntax.Realize(language, statement, "x").Words.SelectMany(w => w.Word.Morphemes).Any(m => language.Negation.Markers.Any(n => n.Marker.Equals(m)));
+
+    private static Language Concording(NegativeIndefiniteNegation negation) => GeneratedLanguages.With(s => s
+        .Fix(Settings.NegativeIndefiniteNegation, negation).Fix(Settings.ConstituentOrder, ConstituentWordOrder.SVO).Fix(Settings.IndefinitePronouns, IndefinitePronouns.Special));
+
+    [Theory]
+    [InlineData("Always", true, true)]
+    [InlineData("Never", false, false)]
+    [InlineData("AfterVerb", false, true)]
+    public void Realize_NegativeIndefinite_NegatesTheVerbAsTheLanguageHasIt(string negation, bool beforeVerb, bool afterVerb)
+    {
+        var language = Concording(Enum.Parse<NegativeIndefiniteNegation>(negation));
+        var nobody = Indefinite(Quantifier.No, Ontology.Person);
+        var dog = new NounPhrase("dog", Number.Singular, Definiteness: Definiteness.Definite);
+
+        //'nobody sees the dog' has nobody before the verb, and 'the dog sees nobody' after it
+        Assert.Equal((beforeVerb, afterVerb), (Negated(language, Sees(nobody, dog)), Negated(language, Sees(dog, nobody))));
+        Assert.Equal(afterVerb, Negated(language, Sees(dog, new NounPhrase("cat", Number.Singular, Quantifier: Quantifier.No))));
+        Assert.False(Negated(language, Sees(Indefinite(Quantifier.Some, Ontology.Person), dog)));
+    }
+
+    [Fact]
+    public void Realize_NegativeIndefiniteWithAModal_NegatesItOnce()
+    {
+        var language = Concording(NegativeIndefiniteNegation.Always);
+        var swims = new Clause("swim", Tense.Present, Aspect.Imperfective, Indefinite(Quantifier.No, Ontology.Person)) { Adverbs = [] };
+        var morphemes = Syntax.Realize(language, new Modalized(swims, Modality.Ability, false), "x").Words.SelectMany(w => w.Word.Morphemes).ToList();
+
+        Assert.Equal(language.Negation.Markers.Count, morphemes.Count(m => language.Negation.Markers.Any(n => n.Marker.Equals(m))));
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void Realize_Quantifier_GoesOutsideTheNumeralOnItsSide(bool before)
+    {
+        var language = GeneratedLanguages.With(s => s.Fix(Settings.QuantifiersBeforeNoun, before));
+        var dogs = new NounPhrase("dog", Number.Plural, [new("big", false)], Count: 3, Quantifier: Quantifier.All);
+        var sentence = Syntax.Realize(language, new Clause("sleep", Tense.Present, Aspect.Imperfective, dogs) { Adverbs = [] }, "x");
+        var all = IndexOf(sentence, language.Indefinites.Quantifiers[Quantifier.All].Root);
+        var others = new[] { IndexOf(sentence, "three"), IndexOf(sentence, "big"), IndexOf(sentence, "dog") };
+
+        Assert.True(before ? all < others.Min() : all > others.Max());
+    }
+
+    [Fact]
+    public void Generate_IndefiniteSettingsFixed_HaveThem()
+    {
+        var spec = SpecFile.Parse("""
+            {
+              "indefinite-pronouns": "Mixed",
+              "negative-indefinite-negation": "AfterVerb",
+              "quantifiers-before-noun": false
+            }
+            """);
+
+        Assert.All(Enumerable.Range(0, 10).Select(seed => Generator.Generate(seed, spec)), l =>
+        {
+            Assert.True(l.Indefinites is { Type: IndefinitePronouns.Mixed, Negation: NegativeIndefiniteNegation.AfterVerb, QuantifiersBeforeNoun: false });
+            RelatedStageTests.AssertKeepsTheRules(l);
+        });
+    }
+}

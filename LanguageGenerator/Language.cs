@@ -16,6 +16,7 @@ public class Language
     public required Articles Articles { get; init; }
     /// <summary>How 'this' and 'that' are said: beside a noun, standing alone, and as 'here' and 'there'.</summary>
     public required Demonstratives Demonstratives { get; init; }
+    public required Indefinites Indefinites { get; init; }
     public required MorphosyntacticAlignment MorphosyntacticAlignment { get; init; }
     public required RoleRegions RoleRegions { get; init; }
     public required IReadOnlyList<Case> Cases { get; init; }

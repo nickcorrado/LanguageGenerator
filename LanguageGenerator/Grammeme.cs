@@ -290,6 +290,17 @@ public record Distance(string Name, string Gloss) : Grammeme(Name, Gloss)
     public static Distance Neutral { get; } = new("Neutral", "DEM");
 }
 
+/// <summary>
+/// What a marker makes a question word mean, as Japanese dare-ka 'who-INDF' is 'someone' and dare-mo
+/// 'who-UNIV' is 'everyone'. One making it 'nobody', as Russian ni-kto, is glossed NEG.
+/// </summary>
+public record Quantification(string Name, string Gloss) : Grammeme(Name, Gloss)
+{
+    public static Quantification Existential { get; } = new("Existential", "INDF");
+    /// <summary>The Leipzig rules have no gloss for it, so it's the one grammars commonly use.</summary>
+    public static Quantification Universal { get; } = new("Universal", "UNIV");
+}
+
 /// <summary>How much of a property an adjective says: more of it, as English -er does.</summary>
 //the plain degree is never marked, so it has no value here
 public record Degree(string Name, string Gloss) : Grammeme(Name, Gloss)
