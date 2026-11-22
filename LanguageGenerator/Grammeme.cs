@@ -52,6 +52,19 @@ public record Aspect(string Name, string Gloss) : Grammeme(Name, Gloss)
     public static Aspect Perfect { get; } = new("Perfect", "PRF");
     /// <summary>What's going on at the time of the clause, as in 'a woman is waiting'.</summary>
     public static Aspect Progressive { get; } = new("Progressive", "PROG");
+    /// <summary>What's done habitually or customarily, as in 'she used to walk there'.</summary>
+    public static Aspect Habitual { get; } = new("Habitual", "HAB");
+}
+
+/// <summary>
+/// Beginning or ceasing to do something, as a marker on the verb, as Russian za-pel 'started singing'.
+/// A clause file says these with the verbs begin and stop, which a language with a marker for one
+/// folds into the verb, as it does 'want' with a desiderative.
+/// </summary>
+public record Phase(string Name, string Gloss) : Grammeme(Name, Gloss)
+{
+    public static Phase Inceptive { get; } = new("Inceptive", "INCEP");
+    public static Phase Cessative { get; } = new("Cessative", "CESS");
 }
 
 public record Mood(string Name, string Gloss) : Grammeme(Name, Gloss)

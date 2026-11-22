@@ -21,7 +21,7 @@ public class AspectTests
     [Fact]
     public void Generate_IsolatingLanguages_HaveNoAspectAffixes() =>
         Assert.All(GeneratedLanguages.Sample.Where(l => l.MorphologicalProfile.Fusion == Fusion.Isolating),
-            l => Assert.DoesNotContain(AspectKind.Affix, (AspectKind[])[l.Aspects.Perfect.Kind, l.Aspects.Progressive.Kind]));
+            l => Assert.DoesNotContain(AspectKind.Affix, (AspectKind[])[l.Aspects.Perfect.Kind, l.Aspects.Progressive.Kind, l.Aspects.Habitual.Kind, l.Aspects.Inceptive.Kind, l.Aspects.Cessative.Kind]));
 
     [Fact]
     public void Generate_PerfectAndProgressiveParticles_SoundDifferent() =>
@@ -38,10 +38,22 @@ public class AspectTests
         Assert.All(Languages(AspectKind.None, AspectKind.None), l =>
             Assert.Equal(Glosses(Realized(l, DogEatsFish(Tense.Future, Aspect.Perfective))), Glosses(Realized(l, DogEatsFish(Tense.Future, Aspect.Perfect)))));
 
+    [Theory]
+    [InlineData("Progressive")]
+    [InlineData("Habitual")]
+    public void Realize_UnmarkedProgressiveOrHabitual_IsAnImperfective(string aspect) =>
+        Assert.All(Languages(AspectKind.None, AspectKind.None, s => s.Fix(Settings.Habitual, AspectKind.None)), l =>
+            Assert.Equal(Glosses(Realized(l, DogEatsFish(Tense.Past, Aspect.Imperfective))),
+                Glosses(Realized(l, DogEatsFish(Tense.Past, ClauseFile.ValuesOf<Aspect>().Single(a => a.Name == aspect))))));
+
     [Fact]
-    public void Realize_UnmarkedProgressive_IsAnImperfective() =>
-        Assert.All(Languages(AspectKind.None, AspectKind.None), l =>
-            Assert.Equal(Glosses(Realized(l, DogEatsFish(Tense.Past, Aspect.Imperfective))), Glosses(Realized(l, DogEatsFish(Tense.Past, Aspect.Progressive)))));
+    public void Realize_HabitualBe_IsTheCopulaThatSaysWhat() =>
+        Assert.All(Languages(AspectKind.None, AspectKind.None, s => s.Fix(Settings.Habitual, AspectKind.Be).Fix(Settings.LocationalCopula, true)), l =>
+        {
+            var habitual = Realized(l, DogEatsFish(Tense.Past, Aspect.Habitual));
+            Assert.True(IndexOf(habitual, l.Predication.Copula.Root) >= 0);
+            Assert.Equal([l.Lexicon.Verb("eat").Root], habitual.Words[IndexOf(habitual, l.Lexicon.Verb("eat").Root)].Word.Morphemes.Select(m => m.Value as Root));
+        });
 
     [Theory]
     [InlineData(AspectKind.Have, "have")]
@@ -158,6 +170,7 @@ public class AspectTests
             {
                 Assert.NotEmpty(Realized(l, clause(Aspect.Perfect)).Words);
                 Assert.NotEmpty(Realized(l, clause(Aspect.Progressive)).Words);
+                Assert.NotEmpty(Realized(l, clause(Aspect.Habitual)).Words);
             }
         });
     }
@@ -166,7 +179,8 @@ public class AspectTests
     [InlineData("repair  subject:nobody  object:3SG.N", null)]
     [InlineData("repair.PRF  subject:nobody  object:3SG.N", "Perfect")]
     [InlineData("mend.PST.PROG  subject:3SG.F  object:net.NDF", "Progressive")]
-    public void Parse_PerfectAndProgressive_AreAspects(string gloss, string? aspect) =>
+    [InlineData("walk.PST.HAB  subject:3SG.F", "Habitual")]
+    public void Parse_PerfectProgressiveAndHabitual_AreAspects(string gloss, string? aspect) =>
         Assert.Equal(aspect is null ? Aspect.Imperfective : ClauseFile.ValuesOf<Aspect>().Single(a => a.Name == aspect), Assert.IsType<Clause>(Parsed(gloss).Value).Aspect);
 
     [Theory]
@@ -182,6 +196,9 @@ public class AspectTests
         { """{ "perfect": "Affix", "fusion": "Isolating" }""", "A perfect can only be an affix" },
         { """{ "progressive": "Affix", "fusion": "Isolating" }""", "A progressive can only be an affix" },
         { """{ "progressive": "Have" }""", "progressive takes one of" },
+        { """{ "habitual": "Affix", "fusion": "Isolating" }""", "A habitual can only be an affix" },
+        { """{ "inceptive": "Affix", "fusion": "Isolating" }""", "An inceptive can only be an affix" },
+        { """{ "cessative": "Sit" }""", "cessative takes one of" },
     };
 
     [Theory]

@@ -89,6 +89,16 @@ public static class GlossPrompt
             - 'Be' with an -ing verb is PROG, a progressive: 'a woman is waiting' is wait.PROG and 'she
               was mending a net' mend.PST.PROG. A present that isn't going on right now, as in 'smoke
               rises from the chimneys' or 'the crows tell me everything', has neither.
+            - HAB, a habitual, is for what English says is done again and again: 'used to', 'would'
+              for a past habit, or a word saying it's usual, as 'usually' or 'every night'. 'She used
+              to walk there' is walk.PST.HAB, 'each night he would sit by the fire' sit.PST.HAB, and
+              'he usually drinks alone' drink.HAB. 'Would' that isn't a habit, as in 'would it be so
+              terrible?', isn't HAB.
+            - Beginning or ceasing to do something is begin or stop with a to clause, whatever verb
+              English uses: 'she began to hum' is begin.PST.PFV object:[to  hum], 'they started
+              running' begin.PST.PFV object:[to  run], and 'everyone stops talking' stop
+              object:[to  talk]. Begin or stop with no verb after it stays as it is, as in 'the forest
+              begins where the fields end' or 'they stop'.
             - A modal can't take PRF or PROG yet, so 'must have gone' or 'should be waiting' can't be
               expressed.
 

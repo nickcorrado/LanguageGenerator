@@ -339,6 +339,17 @@ public static class Settings
     /// <summary>How the progressive is marked: not at all, by an affix, a particle, or an auxiliary 'be' or 'sit'.</summary>
     public static Setting<Aspects, AspectKind> Progressive { get; } = AspectStage.Declare("progressive", Clauses,
         a => a.Progressive.Kind, (a, kind) => a with { Progressive = a.Progressive with { Kind = kind } }, Choice<AspectKind>.Of([.. LanguageGenerator.Aspects.ProgressiveKinds]));
+    /// <summary>How the habitual is marked: not at all, by an affix, a particle, or an auxiliary 'be'.</summary>
+    public static Setting<Aspects, AspectKind> Habitual { get; } = AspectStage.Declare("habitual", Clauses,
+        a => a.Habitual.Kind, (a, kind) => a with { Habitual = a.Habitual with { Kind = kind } }, Choice<AspectKind>.Of([.. LanguageGenerator.Aspects.HabitualKinds]));
+    /// <summary>How beginning to do something is marked on the verb: not at all, where it's said with 'begin', by an affix or by a particle.</summary>
+    public static Setting<Aspects, AspectKind> Inceptive { get; } = AspectStage.Declare("inceptive", Clauses,
+        a => a.Inceptive.Kind, (a, kind) => a with { Inceptive = a.Inceptive with { Kind = kind } }, Choice<AspectKind>.Of([.. LanguageGenerator.Aspects.PhaseKinds]));
+    /// <summary>How ceasing to do something is marked on the verb: not at all, where it's said with 'stop', by an affix or by a particle.</summary>
+    public static Setting<Aspects, AspectKind> Cessative { get; } = AspectStage.Declare("cessative", Clauses,
+        a => a.Cessative.Kind, (a, kind) => a with { Cessative = a.Cessative with { Kind = kind } }, Choice<AspectKind>.Of([.. LanguageGenerator.Aspects.PhaseKinds]));
+    /// <summary>The settings of how each aspect is marked.</summary>
+    public static IReadOnlyList<Setting<Aspects, AspectKind>> AspectMarkers { get; } = [Perfect, Progressive, Habitual, Inceptive, Cessative];
 
     //noun phrases
 

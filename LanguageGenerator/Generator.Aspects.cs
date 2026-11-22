@@ -1,6 +1,6 @@
 namespace LanguageGenerator;
 
-//the perfect and the progressive
+//the perfect, the progressive, the habitual, and beginning and ceasing
 public static partial class Generator
 {
     /*
@@ -36,9 +36,44 @@ public static partial class Generator
     ];
 
     /*
+      WALS has no chapter on the habitual either, so these are guesses after Bybee, Perkins and
+      Pagliuca and Dahl, who find habituals more often inflectional than progressives, as Turkish
+      -Ir and the Bantu habitual prefixes are, and some periphrastic with the copula, as Hindi jātā
+      hai 'goes, habitually' and Irish bíonn are. Most languages have none, and say a habit as an
+      imperfective, as WALS 65A finds theirs covering habituals
+     */
+    private static readonly (AspectKind Value, int Languages)[] HabitualCounts =
+    [
+        (AspectKind.None, 60),
+        (AspectKind.Affix, 20),
+        (AspectKind.Particle, 12),
+        (AspectKind.Be, 8),
+    ];
+
+    /*
+      nobody counts inceptives or cessatives on the verb, so these are guesses too: most languages
+      say beginning and ceasing with verbs of their own, as English does, and some mark them on the
+      verb, as Russian za-pel 'started singing' does with an inceptive. That a cessative on the verb
+      is the rarer of the two is a guess as well
+     */
+    private static readonly (AspectKind Value, int Languages)[] InceptiveCounts =
+    [
+        (AspectKind.None, 80),
+        (AspectKind.Affix, 12),
+        (AspectKind.Particle, 8),
+    ];
+
+    private static readonly (AspectKind Value, int Languages)[] CessativeCounts =
+    [
+        (AspectKind.None, 88),
+        (AspectKind.Affix, 7),
+        (AspectKind.Particle, 5),
+    ];
+
+    /*
       an affix goes on the side the language puts its affixes, and an isolating language uses a
       particle in its place. A particle or an auxiliary goes before the verb in a VO language and
-      after it in an OV one, as auxiliaries do per Dryer. The two markers' forms are kept apart, so
+      after it in an OV one, as auxiliaries do per Dryer. The markers' forms are kept apart, so
       that a perfect and a progressive that are both particles don't sound alike
      */
     public static Aspects GenerateAspects(Random rand, MorphologicalProfile morphology, WordOrder wordOrder, Phonology phonology)
@@ -56,6 +91,9 @@ public static partial class Generator
             return new AspectMarker(kind, form, rand.NextDouble() < PrefixChance(morphology) ? ExponentPosition.Prefix : ExponentPosition.Suffix, before);
         }
         var perfect = Marker(PerfectCounts);
-        return new Aspects(perfect, Marker(ProgressiveCounts));
+        var progressive = Marker(ProgressiveCounts);
+        var habitual = Marker(HabitualCounts);
+        var inceptive = Marker(InceptiveCounts);
+        return new Aspects(perfect, progressive, habitual, inceptive, Marker(CessativeCounts));
     }
 }
