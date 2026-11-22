@@ -359,6 +359,26 @@ public static class Settings
     public static Setting<NumeralSystem, OrdinalType> Ordinals { get; } = NumeralStage.Declare("ordinals", Nouns,
         n => n.Ordinals.Type, SettingWrites.Unwritable<NumeralSystem, OrdinalType>("Ordinals of another type"), Choice<OrdinalType>.Of(Enum.GetValues<OrdinalType>()));
 
+    public static Stage<Demonstratives> DemonstrativeStage { get; } = new("demonstratives", l => l.Demonstratives, null);
+    /// <summary>How many distances demonstratives tell apart, as WALS 41A has it.</summary>
+    public static Setting<Demonstratives, DistanceContrast> DistanceContrast { get; } = DemonstrativeStage.Declare("distance-contrast", Nouns,
+        d => d.Contrast, SettingWrites.Unwritable<Demonstratives, DistanceContrast>("Demonstratives telling apart another number of distances"),
+        Choice<DistanceContrast>.Of(Enum.GetValues<DistanceContrast>()));
+    /// <summary>Where a demonstrative goes: a word before or after its noun, or an affix on it, as WALS 88A has it.</summary>
+    public static Setting<Demonstratives, ExponentPosition> DemonstrativePosition { get; } = DemonstrativeStage.Declare("demonstrative-position", Nouns,
+        d => d.Position, SettingWrites.WithDemonstrativePosition,
+        new Choice<ExponentPosition>([("Before", ExponentPosition.PrecedingParticle), ("After", ExponentPosition.FollowingParticle),
+            ("Prefix", ExponentPosition.Prefix), ("Suffix", ExponentPosition.Suffix)]));
+    /// <summary>Whether a demonstrative agrees with its noun's gender, as Spanish este and esta do.</summary>
+    public static Setting<Demonstratives, bool> DemonstrativeGenderAgreement { get; } = DemonstrativeStage.Declare("demonstrative-gender-agreement", Nouns,
+        d => d.AgreesInGender, SettingWrites.WithDemonstrativeGenderAgreement, YesNo);
+    /// <summary>Whether a demonstrative standing alone has a stem of its own, rather than being the one beside a noun, as WALS 42A has it.</summary>
+    public static Setting<Demonstratives, bool> DemonstrativePronounsOwnStem { get; } = DemonstrativeStage.Declare("demonstrative-pronouns-own-stem", Nouns,
+        d => d.Pronouns.OwnStem, (d, own) => d with { Pronouns = d.Pronouns with { OwnStem = own } }, YesNo);
+    /// <summary>Whether 'here' and 'there' are the demonstratives standing alone, marked as a place is, rather than words of their own.</summary>
+    public static Setting<Demonstratives, bool> PlacesFromDemonstratives { get; } = DemonstrativeStage.Declare("here-from-demonstratives", Nouns,
+        d => d.Places.FromDemonstratives, (d, from) => d with { Places = d.Places with { FromDemonstratives = from } }, YesNo);
+
     public static Stage<Articles> ArticleStage { get; } = new("articles", l => l.Articles, null);
     public static Setting<Articles, DefiniteArticle> DefiniteArticle { get; } = ArticleStage.Declare("definite-article", Nouns,
         SettingWrites.DefiniteOf, SettingWrites.WithDefinite, Choice<DefiniteArticle>.Of(Enum.GetValues<DefiniteArticle>()));
@@ -367,6 +387,9 @@ public static class Settings
     /// <summary>Whether an article agrees with its noun's gender, as Spanish el and la do.</summary>
     public static Setting<Articles, bool> ArticleGenderAgreement { get; } = ArticleStage.Declare("article-gender-agreement", Nouns,
         a => a.Definite?.AgreesInGender == true || a.Indefinite?.AgreesInGender == true, SettingWrites.WithArticleGenderAgreement, YesNo);
+    /// <summary>Whether the definite article stays beside a demonstrative, as Greek aftó to spíti 'this the house' keeps it.</summary>
+    public static Setting<Articles, bool> ArticleWithDemonstrative { get; } = ArticleStage.Declare("article-with-demonstrative", Nouns,
+        a => a.WithDemonstrative, (a, with) => a with { WithDemonstrative = with }, YesNo);
 
     //joining clauses and nouns
 
@@ -487,7 +510,7 @@ public static class Settings
     [
         VowelStage, ConsonantStage, SyllableStage, StressStage, ClusterRepairStage, SyllableContactStage, DropoffStage, SoundChangeStage, SyllableChangeStage, WordOrderStage, MorphologyStage, AlignmentStage,
         RoleRegionStage, CaseStage, ConfigurationRegionStage, ConfigurationPlanStage, NounParadigmStage, VerbParadigmStage, PronounStage, PredicationStage, LocationalCopulaStage, AdjectiveAgreementStage,
-        CommandStage, NegationStage, QuestionStage, PassiveStage, ModalStage, PossessionStage, GenderStage, NumeralStage, ArticleStage, ConjunctionStage, SubordinationStage, ComplementationStage, RelativizationStage, ComparisonStage, DegreeStage, SimilativeStage,
+        CommandStage, NegationStage, QuestionStage, PassiveStage, ModalStage, PossessionStage, GenderStage, NumeralStage, DemonstrativeStage, ArticleStage, ConjunctionStage, SubordinationStage, ComplementationStage, RelativizationStage, ComparisonStage, DegreeStage, SimilativeStage,
     ];
 
     /// <summary>Every setting, in the order they're declared.</summary>
@@ -498,7 +521,7 @@ public static class Settings
         .. CaseStage.Settings, .. ConfigurationRegionStage.Settings, .. ConfigurationPlanStage.Settings, .. NounParadigmStage.Settings,
         .. VerbParadigmStage.Settings, .. PronounStage.Settings, .. PredicationStage.Settings, .. LocationalCopulaStage.Settings, .. AdjectiveAgreementStage.Settings,
         .. CommandStage.Settings, .. NegationStage.Settings, .. QuestionStage.Settings, .. PassiveStage.Settings, .. ModalStage.Settings, .. PossessionStage.Settings, .. GenderStage.Settings,
-        .. NumeralStage.Settings, .. ArticleStage.Settings, .. ConjunctionStage.Settings, .. SubordinationStage.Settings, .. ComplementationStage.Settings, .. RelativizationStage.Settings, .. ComparisonStage.Settings,
+        .. NumeralStage.Settings, .. DemonstrativeStage.Settings, .. ArticleStage.Settings, .. ConjunctionStage.Settings, .. SubordinationStage.Settings, .. ComplementationStage.Settings, .. RelativizationStage.Settings, .. ComparisonStage.Settings,
         .. DegreeStage.Settings, .. SimilativeStage.Settings,
     ];
 

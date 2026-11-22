@@ -69,7 +69,30 @@ public static class LanguageDescription
             { Position: ExponentPosition.PrecedingParticle } => $"{name} article {Forms(article, "", "")} before the noun",
             _ => $"{name} article {Forms(article, "", "")} after the noun",
         };
-        output.WriteLine($"Articles: {DescribeArticle(lang.Articles.Definite, "definite")}; {DescribeArticle(lang.Articles.Indefinite, "indefinite")}");
+        var articles = lang.Articles;
+        var definite = articles.DefiniteFromDemonstrative ? $"the demonstrative as the definite article, {DescribeArticle(articles.Definite, "definite")}" : DescribeArticle(articles.Definite, "definite");
+        output.WriteLine($"Articles: {definite}; {DescribeArticle(articles.Indefinite, "indefinite")}{(articles.WithDemonstrative ? "; the definite article stays beside a demonstrative" : "")}");
+
+        var demonstratives = lang.Demonstratives;
+        string Stem(Lexeme lexeme) => phonology.Realize(new Word([lexeme.Root])).Spell(orthography);
+        var adnominal = string.Join(", ", demonstratives.Forms.Select(f =>
+        {
+            var spelled = f.Value.Spell(orthography);
+            var form = demonstratives.Position switch { ExponentPosition.Prefix => $"{spelled}-", ExponentPosition.Suffix => $"-{spelled}", _ => spelled };
+            return $"{form} ({string.Join(".", new Grammeme?[] { f.Key.Distance, f.Key.Gender, f.Key.Number }.OfType<Grammeme>().Select(g => g.Gloss))})";
+        }));
+        var where = demonstratives.Position switch
+        {
+            ExponentPosition.PrecedingParticle => "before the noun",
+            ExponentPosition.FollowingParticle => "after the noun",
+            _ => "on the noun",
+        };
+        var standing = demonstratives.Pronouns.OwnStem
+            ? $"stems of their own standing alone ({string.Join(", ", demonstratives.Distances.Select(d => $"{d.Gloss} {Stem(demonstratives.Pronoun(d))}"))})"
+            : "the same standing alone";
+        var places = demonstratives.Places.FromDemonstratives ? "made from the demonstratives"
+            : $"words of their own ({string.Join(", ", demonstratives.Distances.Select(d => $"{demonstratives.Place(d).Root.Meaning} {Stem(demonstratives.Place(d))}"))})";
+        output.WriteLine($"Demonstratives: {demonstratives.Contrast}, {adnominal}, {where}; {standing}; 'here' and 'there' {places}");
 
         output.WriteLine(lang.MorphosyntacticAlignment);
         output.WriteLine($"Cases: {string.Join(", ", lang.Cases.Select(c => c.Gloss))}");
@@ -440,6 +463,15 @@ public static class LanguageDescription
                 Obliques: [new(Role.Goal, Phrase("house", Number.Singular) with { Relative = Gapped("sleep", Phrase("bird", Number.Plural), obliques: [new(Role.Location, new Gap(null), Configuration.In)]) }, Configuration.At)]) { Adverbs = [] },
                 "the person walked to the house that the birds slept in"),
         ];
+        (Statement Clause, string Translation)[] demonstrated =
+        [
+            (new Clause("sleep", Tense.Present, Aspect.Imperfective, new NounPhrase("dog", Number.Singular, Demonstrative: Distance.Proximal)) { Adverbs = [] }, "this dog sleeps"),
+            (new Clause("see", Tense.Present, Aspect.Imperfective, Phrase("cat", Number.Singular), new NounPhrase("bird", Number.Plural, Demonstrative: Distance.Distal)) { Adverbs = [] },
+                "the cat sees those birds"),
+            (new Clause("eat", Tense.Past, Aspect.Perfective, Phrase("dog", Number.Singular), new DemonstrativePronoun(Distance.Distal, Number.Singular)) { Adverbs = [] }, "the dog ate that"),
+            (new Clause("sleep", Tense.Present, Aspect.Imperfective, Phrase("cat", Number.Plural), Obliques: [new(Role.Location, new DemonstrativePlace(Distance.Proximal), Configuration.At)]) { Adverbs = [] },
+                "the cats sleep here"),
+        ];
         (Statement Clause, string Translation)[] adverbs =
         [
             (new Clause("sleep", Tense.Present, Aspect.Imperfective, Phrase("dog", Number.Singular)) { Adverbs = [new Adverb("now", AdverbKind.When)] }, "the dog is sleeping now"),
@@ -453,7 +485,7 @@ public static class LanguageDescription
         ];
         (Statement Clause, string Translation)[] all =
             [.. examples, .. copular, .. commands, .. copularCommands, .. coordinated, .. subordinated, .. passives, .. comparatives, .. addressed, .. modalized, .. questions,
-                .. complements, .. relatives, .. adverbs];
+                .. complements, .. relatives, .. demonstrated, .. adverbs];
         foreach (var (clause, translation) in all)
         {
             output.WriteLine();

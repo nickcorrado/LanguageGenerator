@@ -67,6 +67,7 @@ internal static class SettingWrites
     public static DefiniteArticle DefiniteOf(Articles articles) => articles.Definite switch
     {
         null => DefiniteArticle.None,
+        _ when articles.DefiniteFromDemonstrative => DefiniteArticle.Demonstrative,
         var article when IsAffix(article) => DefiniteArticle.Affix,
         _ => DefiniteArticle.Word,
     };
@@ -81,7 +82,7 @@ internal static class SettingWrites
 
     //an article can be taken away, but one of another kind needs forms where it goes
     public static Articles WithDefinite(Articles drawn, DefiniteArticle kind) =>
-        kind == DefiniteOf(drawn) ? drawn : kind == DefiniteArticle.None ? drawn with { Definite = null } : throw NoForm($"A definite article that's a {kind}");
+        kind == DefiniteOf(drawn) ? drawn : kind == DefiniteArticle.None ? drawn with { Definite = null, DefiniteFromDemonstrative = false } : throw NoForm($"A definite article that's a {kind}");
 
     public static Articles WithIndefinite(Articles drawn, IndefiniteArticle kind) =>
         kind == IndefiniteOf(drawn) ? drawn : kind == IndefiniteArticle.None ? drawn with { Indefinite = null } : throw NoForm($"An indefinite article that's {kind}");
@@ -109,7 +110,53 @@ internal static class SettingWrites
         var agreesNow = drawn.Definite?.AgreesInGender == true || drawn.Indefinite?.AgreesInGender == true;
         return agrees == agreesNow ? drawn
             : agrees ? throw NoForm("An article agreeing in gender")
-            : new Articles(Ungendered(drawn.Definite), Ungendered(drawn.Indefinite));
+            : drawn with { Definite = Ungendered(drawn.Definite), Indefinite = Ungendered(drawn.Indefinite) };
+    }
+
+    /*
+      a demonstrative moves between a word and an affix keeping its forms, which are a syllable
+      either way, and an affix can't stand alone, so its pronouns take the stems of their own
+     */
+    public static Demonstratives WithDemonstrativePosition(Demonstratives drawn, ExponentPosition position)
+    {
+        var affix = position is ExponentPosition.Prefix or ExponentPosition.Suffix;
+        return drawn with
+        {
+            Position = position,
+            Forms = drawn.Forms.ToDictionary(f => f.Key, f => affix ? (Morpheme)new Affix(f.Value.Form, Glosses(f.Value)) : new Particle(f.Value.Form, Glosses(f.Value))),
+            Pronouns = affix ? drawn.Pronouns with { OwnStem = true } : drawn.Pronouns,
+        };
+
+        static IReadOnlyList<Grammeme> Glosses(Morpheme m) => m.Value switch
+        {
+            Affix a => a.Grammemes,
+            Particle p => p.Grammemes,
+            _ => throw new ArgumentException("A demonstrative is an affix or a word.", nameof(m)),
+        };
+    }
+
+    //a demonstrative stops agreeing in gender by keeping its first gender's forms for every noun,
+    //which are the forms its pronouns' stems were taken from
+    public static Demonstratives WithDemonstrativeGenderAgreement(Demonstratives drawn, bool agrees)
+    {
+        if (agrees == drawn.AgreesInGender)
+        {
+            return drawn;
+        }
+        if (agrees)
+        {
+            throw NoForm("A demonstrative agreeing in gender");
+        }
+        var first = drawn.Forms.Keys.First().Gender;
+        return drawn with
+        {
+            Forms = drawn.Forms.Where(f => f.Key.Gender == first).ToDictionary(f => (f.Key.Distance, (Gender?)null, f.Key.Number), f => f.Value.Value switch
+            {
+                Affix a => (Morpheme)new Affix(a.Form, [.. a.Grammemes.Where(g => g is not Gender)]),
+                Particle p => new Particle(p.Form, [.. p.Grammemes.Where(g => g is not Gender)]),
+                _ => f.Value,
+            }),
+        };
     }
 
     public static ImperativeForms ImperativesOf(Commands commands) => (commands.Singular, commands.Plural) switch

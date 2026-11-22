@@ -180,6 +180,19 @@ public static class SpecRules
             }
             return noDefinite && noIndefinite && agreeing.Count > 1 ? spec.With(Settings.ArticleGenderAgreement, [false]) : spec;
         }),
+        SpecRule.Together(Settings.Fusion, Settings.DemonstrativePosition,
+            (fusion, position) => fusion != Fusion.Isolating || position is not (ExponentPosition.Prefix or ExponentPosition.Suffix),
+            "A demonstrative can only be an affix where words take affixes, so fusion can't be Isolating."),
+        SpecRule.Together(Settings.Genders, Settings.DemonstrativeGenderAgreement, (genders, agrees) => !agrees || genders != NounGenders.None,
+            "A demonstrative can only agree in gender where nouns have genders, so genders can't be None."),
+        //an affix can't stand alone for a noun
+        SpecRule.Together(Settings.DemonstrativePosition, Settings.DemonstrativePronounsOwnStem,
+            (position, own) => own || position is not (ExponentPosition.Prefix or ExponentPosition.Suffix),
+            "A demonstrative that's an affix can't stand alone, so demonstrative-pronouns-own-stem can't be false."),
+        //an article that's the demonstrative can't go beside it again
+        SpecRule.Together(Settings.DefiniteArticle, Settings.ArticleWithDemonstrative,
+            (kind, with) => !with || kind is DefiniteArticle.Word or DefiniteArticle.Affix,
+            "Only a definite article of its own, a word or an affix, can stay beside a demonstrative."),
         //and with 'with' joins only nouns, never clauses
         SpecRule.Together(Settings.AndIsWith, Settings.ClauseAnd, (with, clauses) => !with || clauses != ClauseAnd.SameAsNouns,
             "Clauses can only be joined like nouns where 'and' between nouns isn't 'with', which doesn't join clauses."),

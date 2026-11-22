@@ -14,6 +14,8 @@ public class Language
     public required MorphologicalProfile MorphologicalProfile { get; init; }
     public required WordOrder WordOrder { get; init; }
     public required Articles Articles { get; init; }
+    /// <summary>How 'this' and 'that' are said: beside a noun, standing alone, and as 'here' and 'there'.</summary>
+    public required Demonstratives Demonstratives { get; init; }
     public required MorphosyntacticAlignment MorphosyntacticAlignment { get; init; }
     public required RoleRegions RoleRegions { get; init; }
     public required IReadOnlyList<Case> Cases { get; init; }
