@@ -5,7 +5,8 @@ namespace LanguageGenerator;
 /// These stages coin their markers along with what they decide, so a write reuses the forms the
 /// draw already has, as a negative particle's form becomes a prefix's. A value that needs a form
 /// where the draw has none, as a passive where it drew none, can't be written; but every such value
-/// is drawn at least 2% of the time, so redrawing always gives it long before the limit.
+/// is drawn at least 2% of the time, so redrawing gives it long before the limit, and where no draw
+/// meets the whole spec, the draw that's kept is one whose missing values can all be written.
 /// </summary>
 internal static class SettingWrites
 {
@@ -293,7 +294,7 @@ internal static class SettingWrites
     }
 
 
-    private static InvalidOperationException NoForm(string value) =>
+    private static NoFormException NoForm(string value) =>
         new($"{value} can't be written in, since what was drawn has no form to reuse, and no draw gave it. A draw gives it at least 2% of the time, so this shouldn't happen.");
 
     private static IReadOnlyList<Grammeme> GrammemesOf(Morpheme morpheme) => morpheme.Value switch
@@ -529,3 +530,9 @@ internal static class SettingWrites
         _ => drawn with { PersonBase = IndefiniteBase.GenericNoun, ThingBase = IndefiniteBase.Interrogative },
     };
 }
+
+/// <summary>
+/// Thrown where a value can't be written into what a stage drew, since the draw has no form for it,
+/// so a draw missing it has to be passed over for one that has it.
+/// </summary>
+public sealed class NoFormException(string message) : InvalidOperationException(message);

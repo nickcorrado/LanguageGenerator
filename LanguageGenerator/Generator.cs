@@ -220,7 +220,10 @@ public static partial class Generator
           draw can match and meets every condition, which keeps the odds of the rest conditional on
           them; and if none does within the limit, as for a value the odds never give, the closest
           draw is kept. Any fixed value the kept draw still lacks, as an inventory or a number always
-          would, is written into it, and it's mended to meet any condition it still doesn't
+          would, is written into it, and it's mended to meet any condition it still doesn't. A draw
+          missing a value that can't be written, one that needs a form it has none for, is passed
+          over: otherwise the closest draw could lack a common value of that kind for having chased
+          rare ones, which a draw meeting as much of the spec would have
          */
         public T DrawAlone<T>(Stage<T> stage, Func<Random, T> draw, int limit)
         {
@@ -235,20 +238,39 @@ public static partial class Generator
             var redrawable = settings.Where(s => s.Redrawable).ToList();
             int Meeting(T drawn) => redrawable.Count(s => s.Matches(drawn, spec.Allowed(s)!)) + conditions.Count(c => c.Holds(drawn, earlier));
             var goal = redrawable.Count + conditions.Count;
-            var result = draw(Sampling.For(seed, stage.Name));
-            var best = Meeting(result);
-            for (int attempt = 1; best < goal && attempt < limit; attempt++)
+            (T Written, int Meeting)? best = null;
+            NoFormException? missed = null;
+            for (int attempt = 0; (best?.Meeting ?? -1) < goal && attempt < limit; attempt++)
             {
-                var drawn = draw(Sampling.For(seed, $"{stage.Name} #{attempt}"));
-                if (Meeting(drawn) is var meeting && meeting > best)
+                var drawn = draw(Sampling.For(seed, attempt == 0 ? stage.Name : $"{stage.Name} #{attempt}"));
+                if (Meeting(drawn) is var meeting && meeting > (best?.Meeting ?? -1))
                 {
-                    (result, best) = (drawn, meeting);
+                    /*
+                      EXCEPTION AS CONTROL FLOW: a write throws NoFormException for a value the draw
+                      has no form for, which only trying the write finds out. It's expected, not an
+                      error: the draw is just passed over. Only a draw closer than the one kept is
+                      tried, and few are
+                     */
+                    try
+                    {
+                        best = (Written(drawn), meeting);
+                    }
+                    catch (NoFormException e)
+                    {
+                        missed = e;
+                    }
                 }
             }
-            result = settings.Aggregate(result, (drawn, s) => s.Matches(drawn, spec.Allowed(s)!) ? drawn : s.Write(drawn, spec.Allowed(s)!));
-            return conditions.Aggregate(result, (drawn, c) => c.Holds(drawn, earlier) ? drawn
-                : c.Repair is { } repair ? repair(drawn)
-                : throw new InvalidOperationException($"Nothing mends what {stage.Name} draws to meet a condition: {c.Says}"));
+            return best is { } kept ? kept.Written : throw missed!;
+
+            //a draw with the fixed values it lacks written in, mended to meet its conditions
+            T Written(T drawn)
+            {
+                var written = settings.Aggregate(drawn, (d, s) => s.Matches(d, spec.Allowed(s)!) ? d : s.Write(d, spec.Allowed(s)!));
+                return conditions.Aggregate(written, (d, c) => c.Holds(d, earlier) ? d
+                    : c.Repair is { } repair ? repair(d)
+                    : throw new InvalidOperationException($"Nothing mends what {stage.Name} draws to meet a condition: {c.Says}"));
+            }
         }
 
         /*
