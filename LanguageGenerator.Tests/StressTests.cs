@@ -282,7 +282,8 @@ public class StressTests
         {
             var changes = l.Phonology.SyllableChanges;
             Assert.True(!changes.Contains(SoundChange.UnstressedReduction) || l.Phonology.Vowels.Contains(Vowel.ə));
-            Assert.True(!changes.Contains(SoundChange.Syncope) || l.Phonology.SyllableRule.Template.Slots.Contains(Slot.Final));
+            Assert.True(!changes.Contains(SoundChange.Syncope) || l.Phonology.SyllableRule.Template.Slots.Contains(Slot.Final)
+                && (l.Phonology.Stress.Free || l.Phonology.Stress.Rule is not (Stress.Penultimate or Stress.Ultimate or Stress.UltimateIfHeavy)));
             Assert.True(!changes.Contains(SoundChange.Apocope) || l.Phonology.SyllableRule.Template.Slots.Contains(Slot.Final));
             Assert.True(!changes.Contains(SoundChange.PretonicSyncope) || l.Phonology.SyllableRule.Template.Slots.Contains(Slot.Final)
                 && (l.Phonology.Stress.Free || l.Phonology.Stress.Rule is not (Stress.Initial or Stress.Second or Stress.InitialIfHeavy)));

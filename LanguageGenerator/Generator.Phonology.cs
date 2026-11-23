@@ -131,8 +131,9 @@ public static partial class Generator
           it brings together, apocope for those it leaves at the end of a word, and an unstressed vowel
           weakens to schwa where there is one, or else rises to a close vowel. Verner's law needs a
           fricative to voice, aphaeresis a first vowel that can go unstressed, which a fixed first
-          syllable never is, and pretonic syncope a vowel two syllables before the stress, which stress
-          fixed on the first or second never has
+          syllable never is, and syncope two syllables on the far side of the stress: after it, which
+          stress fixed on either of the last two never has, or before it, which stress fixed on either
+          of the first two never has
          */
         if (rand.NextDouble() < 0.08 && SoundChange.HasFricativePair(consonants))
         {
@@ -147,7 +148,7 @@ public static partial class Generator
         {
             changes.Add(SoundChange.UnstressedShortening);
         }
-        if (rand.NextDouble() < 0.15 && codas)
+        if (rand.NextDouble() < 0.15 && codas && (stress.Free || stress.Rule is not (Stress.Penultimate or Stress.Ultimate or Stress.UltimateIfHeavy)))
         {
             changes.Add(SoundChange.Syncope);
         }
