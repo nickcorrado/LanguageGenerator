@@ -47,6 +47,6 @@ public class PredicationSettingTests
         var without = with with { LocationalCopula = null };
 
         Assert.Null(Settings.LocationalCopula.Write(with, [false]).LocationalCopula);
-        Assert.Contains("can't be written in", Assert.Throws<InvalidOperationException>(() => Settings.LocationalCopula.Write(without, [true])).Message);
+        Assert.Contains("can't be written in", Assert.Throws<NoFormException>(() => Settings.LocationalCopula.Write(without, [true])).Message);
     }
 }

@@ -50,7 +50,7 @@ public class CommandSettingTests
     {
         var drawn = GeneratedLanguages.Sample.Select(l => l.Commands).First(c => Settings.Imperatives.Get(c) == ImperativeForms.OneForBoth);
 
-        Assert.Contains("can't be written in", Assert.Throws<InvalidOperationException>(() => Settings.Imperatives.Write(drawn, [ImperativeForms.SingularAndPlural])).Message);
+        Assert.Contains("can't be written in", Assert.Throws<NoFormException>(() => Settings.Imperatives.Write(drawn, [ImperativeForms.SingularAndPlural])).Message);
     }
 
     [Fact]
@@ -59,7 +59,7 @@ public class CommandSettingTests
         var with = GeneratedLanguages.Sample.Select(l => l.Commands).First(c => c.Prohibitive is not null);
 
         Assert.Null(Settings.ProhibitiveNegator.Write(with, [false]).Prohibitive);
-        Assert.Contains("can't be written in", Assert.Throws<InvalidOperationException>(() =>
+        Assert.Contains("can't be written in", Assert.Throws<NoFormException>(() =>
             Settings.ProhibitiveNegator.Write(with with { Prohibitive = null }, [true])).Message);
     }
 }
