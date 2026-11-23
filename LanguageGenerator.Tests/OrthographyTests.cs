@@ -25,21 +25,53 @@ public class OrthographyTests
     [Fact]
     public void Constructor_TwoPhonemesSpelledAlike_Throws()
     {
-        Assert.Throws<ArgumentException>(() => new Orthography(new Dictionary<Phoneme, string> { [Vowel.a] = "a", [Vowel.æ] = "a" }));
+        Assert.Throws<ArgumentException>(() => new Orthography(new Dictionary<Phoneme, string> { [Vowel.a] = "a", [Vowel.æ] = "a" }, StressSpelling.Unmarked));
     }
 
     [Fact]
     public void Constructor_SpellingsThatRunTogether_AreAllowed()
     {
-        var orthography = new Orthography(new Dictionary<Phoneme, string> { [Consonant.s] = "s", [Consonant.h] = "h", [Consonant.ʃ] = "sh" });
+        var orthography = new Orthography(new Dictionary<Phoneme, string> { [Consonant.s] = "s", [Consonant.h] = "h", [Consonant.ʃ] = "sh" }, StressSpelling.Unmarked);
 
         Assert.Equal(orthography.Spell([Consonant.s, Consonant.h]), orthography.Spell([Consonant.ʃ]));
     }
 
     [Fact]
+    public void WithMark_ComposesWhereUnicodeCan_AndStacksOtherwise()
+    {
+        Assert.Equal("á", Orthography.WithMark("a", StressSpelling.Acute));
+        Assert.Equal("è", Orthography.WithMark("e", StressSpelling.Grave));
+        Assert.Equal("ý", Orthography.WithMark("y", StressSpelling.Acute));
+        //on the first letter of a digraph or a doubled vowel
+        Assert.Equal("áa", Orthography.WithMark("aa", StressSpelling.Acute));
+        //and on top of a mark the letter already has
+        Assert.Equal("ā́", Orthography.WithMark("ā", StressSpelling.Acute));
+    }
+
+    [Fact]
+    public void Constructor_AStressedVowelSpelledLikeAnother_Throws()
+    {
+        var spellings = new Dictionary<Phoneme, string> { [Vowel.a] = "a", [Vowel.aː] = "á" };
+
+        Assert.Throws<ArgumentException>(() => new Orthography(spellings, StressSpelling.Acute));
+        Assert.Equal("à", new Orthography(spellings, StressSpelling.Grave).SpellStressed(Vowel.a));
+    }
+
+    [Fact]
+    public void SelectOrthography_FreeStress_MarksWithAMarkNoVowelUses()
+    {
+        var free = GeneratedLanguages.With(spec => spec.Fix(Settings.FreeStress, true));
+
+        Assert.NotEqual(StressSpelling.Unmarked, free.Orthography.Stress);
+        Assert.DoesNotContain(free.Phonology.Vowels, v =>
+            free.Orthography.Spell(v).Normalize(System.Text.NormalizationForm.FormD).Contains(Orthography.CombiningMark(free.Orthography.Stress)));
+        Assert.All(GeneratedLanguages.Sample.Where(l => !l.Phonology.Stress.Free), l => Assert.Equal(StressSpelling.Unmarked, l.Orthography.Stress));
+    }
+
+    [Fact]
     public void Spell_PhonemeOutsideTheOrthography_Throws()
     {
-        var orthography = new Orthography(new Dictionary<Phoneme, string> { [Vowel.a] = "a" });
+        var orthography = new Orthography(new Dictionary<Phoneme, string> { [Vowel.a] = "a" }, StressSpelling.Unmarked);
 
         Assert.Throws<ArgumentException>(() => orthography.Spell(Vowel.i));
     }

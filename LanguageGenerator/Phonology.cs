@@ -83,7 +83,8 @@ public record Phonology
             segments = change.Apply(segments, this, Places(syllables, StressedSyllable(word, segments, syllables)));
             syllables = Repaired(word, ref segments);
         }
-        return new SurfaceForm(word, segments, syllables) { StressedSyllable = StressedSyllable(word, segments, syllables) };
+        var stressed = StressedSyllable(word, segments, syllables);
+        return new SurfaceForm(word, segments, syllables) { StressedSyllable = stressed, StressMarked = stressed is { } s && s != Stress.Rule.StressedSyllable(syllables) };
     }
 
     /*
@@ -223,8 +224,25 @@ public record SurfaceForm(Word Word, IReadOnlyList<Segment> Segments, IReadOnlyL
     /// <summary>The index of the stressed syllable, or null for a word with no stress.</summary>
     public required int? StressedSyllable { get; init; }
 
-    public string Spell(Orthography orthography) => orthography.Spell(Phonemes);
-    public string Syllabified(Orthography orthography) => string.Join(".", Syllables.Select(s => s.Spell(orthography)));
+    /// <summary>
+    /// Whether the stress falls where the language's rule, applied to these syllables, wouldn't put
+    /// it, as it can only where stress is free. Spelling marks it there, as Spanish marks teléfono.
+    /// </summary>
+    public required bool StressMarked { get; init; }
+
+    public string Spell(Orthography orthography) => string.Concat(Segments.Select((_, i) => Spell(orthography, i)));
+
+    public string Syllabified(Orthography orthography) => string.Join(".", Syllables.Select((s, i) => i == StressedSyllable && StressMarked
+        ? orthography.Spell(s.Onset) + orthography.SpellStressed(s.Nucleus) + (s.Coda is { } coda ? orthography.Spell(coda) : "")
+        : s.Spell(orthography)));
+
+    //the index among the segments of the vowel that carries a stress mark, or -1 if none does
+    private int MarkedVowel => StressMarked
+        ? Segments.Select((s, i) => (s, i)).Where(x => x.s.Phoneme is Vowel).ElementAt(StressedSyllable!.Value).i
+        : -1;
+
+    private string Spell(Orthography orthography, int index) =>
+        index == MarkedVowel ? orthography.SpellStressed((Vowel)Segments[index].Phoneme) : orthography.Spell(Segments[index].Phoneme);
 
     /// <summary>
     /// The IPA by syllable, with ˈ before the stressed one in place of the dot, as in [paˈta.ma]. A
@@ -237,7 +255,9 @@ public record SurfaceForm(Word Word, IReadOnlyList<Segment> Segments, IReadOnlyL
     //the surface form split back into its morphemes, lining up with Gloss. A morpheme that lost
     //all of its sounds to a sound change or cluster repair shows as ∅
     public string Segmented(Orthography orthography) => string.Join("-", Word.Morphemes.Select(morpheme =>
-        Segments.Any(s => s.Morpheme.Equals(morpheme)) ? orthography.Spell(Segments.Where(s => s.Morpheme.Equals(morpheme)).Select(s => s.Phoneme)) : "∅"));
+        Segments.Any(s => s.Morpheme.Equals(morpheme))
+            ? string.Concat(Enumerable.Range(0, Segments.Count).Where(i => Segments[i].Morpheme.Equals(morpheme)).Select(i => Spell(orthography, i)))
+            : "∅"));
 
     public string Gloss => Word.Gloss;
 }

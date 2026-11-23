@@ -66,6 +66,19 @@ public enum MidVowelSpelling
     CircumflexOnOpen,
 }
 
+/// <summary>
+/// How a language with free stress writes a stress its rule wouldn't give, as Spanish writes
+/// teléfono but not casa. A language without free stress has no need to.
+/// </summary>
+public enum StressSpelling
+{
+    Unmarked,
+    //á é, as in Spanish or Greek
+    Acute,
+    //à è, as in Italian città
+    Grave,
+}
+
 public record OrthographicStyle(
     PostalveolarSpelling Postalveolars,
     LongVowelSpelling LongVowels,

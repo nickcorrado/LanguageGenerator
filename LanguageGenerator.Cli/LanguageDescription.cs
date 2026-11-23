@@ -40,7 +40,13 @@ public static class LanguageDescription
         }
         var orthography = lang.Orthography;
         var unusual = orthography.Spellings.Where(s => s.Value != s.Key.IpaSymbol).Select(s => $"{s.Key.IpaSymbol} = {s.Value}");
-        output.WriteLine($"Spelling: {orthography.Style?.ToString() ?? "IPA"}");
+        var stressMark = orthography.Stress switch
+        {
+            StressSpelling.Unmarked => "",
+            StressSpelling.Acute or StressSpelling.Grave => $", {orthography.Stress} where the stress breaks its rule",
+            _ => throw new ArgumentOutOfRangeException(nameof(orthography.Stress), orthography.Stress, null),
+        };
+        output.WriteLine($"Spelling: {orthography.Style?.ToString() ?? "IPA"}{stressMark}");
         output.WriteLine($"  {string.Join(", ", unusual)}");
         //citation forms, spelled and then in IPA by syllable, with the stress marked
         foreach (var lexeme in lang.Lexicon)
