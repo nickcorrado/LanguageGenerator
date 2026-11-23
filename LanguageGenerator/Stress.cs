@@ -1,14 +1,14 @@
 namespace LanguageGenerator;
 
 /// <summary>
-/// Which syllable of a word is stressed, counted over the whole word, affixes and all, so stress can
-/// move as a word is inflected.
+/// Which syllable of a word is stressed by rule, counted over the whole word, affixes and all, so
+/// stress can move as a word is inflected.
 /// </summary>
 /*
   a stress accent, made by loudness and length, as in Spanish or Russian, not a pitch accent like
-  Japanese's, which is out of scope with tone. Stress here is always predictable from the word's
-  syllables, either at a fixed place or drawn to heavy syllables, ones with a long vowel or a coda;
-  lexical stress, which each word would have to store, as Russian's does, is left out
+  Japanese's, which is out of scope with tone. The rule puts stress at a fixed place or draws it to
+  heavy syllables, ones with a long vowel or a coda. Where stress is free, the rule is only the
+  default, for words whose roots store no accent of their own (see StressSystem)
  */
 public enum Stress
 {
@@ -26,6 +26,21 @@ public enum Stress
     InitialIfHeavy,
     //the last heavy syllable, and the first if there's none, as in Eastern Mari
     LastHeavy,
+}
+
+/// <summary>
+/// How a language places stress: by its rule alone, or, where stress is free, on the vowel a root
+/// stores as accented, as in Russian or Greek, with the rule for words whose roots store none.
+/// </summary>
+/*
+  an accent belongs to a root, never an affix, so a root that stores one keeps the stress however
+  it's inflected, while one that doesn't has it fall by the rule, which suffixes can move, much as
+  Russian's unaccented stems do. Words without a root, like particles and articles, have no stress
+  at all, free or not: they lean on the words around them, as English the [ðə] does
+ */
+public record StressSystem(Stress Rule, bool Free)
+{
+    public string Description => Free ? $"free, where a root stores it, and otherwise {Rule.Description}" : Rule.Description;
 }
 
 public static class StressExtensions

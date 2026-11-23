@@ -170,11 +170,26 @@ public static partial class Generator
     /*
       WALS 14A counts 502 languages by where they fix stress: 92 on the first syllable, 16 the second,
       1 the third, 12 the antepenultimate, 110 the penultimate and 51 the last, and 220 with no fixed
-      place. Those 220 include languages whose stress each word stores, which are left out here, so
-      they're shared among the kinds of weight-sensitive stress, by guessed weights that follow WALS
-      15A in making stress at the right edge of the word commoner than at the left
+      place, which are shared among the kinds of weight-sensitive stress, by guessed weights that
+      follow WALS 15A in making stress at the right edge of the word commoner than at the left. 15A
+      also finds stress not predictable at all in 26 of its 500 languages, where each word stores
+      it; that's drawn apart from the rule, which such a language keeps for roots that store none
      */
-    public static Stress SelectStress(Random rand) => Sampling.Categorical(rand, StressCounts);
+    public static StressSystem SelectStress(Random rand) => new(Sampling.Categorical(rand, StressCounts), rand.NextDouble() < 26 / 500.0);
+
+    /*
+      the share of roots in a language with free stress that store no accent, and so take the rule's
+      stress, as most Spanish words have the stress their spelling predicts. It's a guess. A root that
+      does store one stores it on any of its vowels alike
+     */
+    private const double AccentlessRoots = 0.5;
+
+    /// <summary>
+    /// A root with this form, storing an accent drawn for it where stress is free. A language
+    /// without free stress draws nothing, so its roots come out as they would without this.
+    /// </summary>
+    public static Root CoinRoot(Random rand, Phonology phonology, IReadOnlyList<Phoneme> form, string meaning) =>
+        new(form, meaning, phonology.Stress.Free && rand.NextDouble() >= AccentlessRoots ? rand.Next(form.Count(p => p is Vowel)) : null);
 
     private static readonly (Stress Value, int Languages)[] StressCounts =
     [

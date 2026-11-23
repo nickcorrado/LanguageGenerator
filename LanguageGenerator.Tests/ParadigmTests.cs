@@ -2,8 +2,8 @@
 
 public class ParadigmTests
 {
-    private static readonly Lexeme Dog = new(new Root([Consonant.k, Vowel.a, Consonant.b, Vowel.a], "dog"), PartOfSpeech.Noun);
-    private static readonly Lexeme See = new(new Root([Consonant.s, Vowel.i], "see"), PartOfSpeech.Verb);
+    private static readonly Lexeme Dog = new(new Root([Consonant.k, Vowel.a, Consonant.b, Vowel.a], "dog", null), PartOfSpeech.Noun);
+    private static readonly Lexeme See = new(new Root([Consonant.s, Vowel.i], "see", null), PartOfSpeech.Verb);
     private static readonly InflectionalCategory NumberCategory = new("Number", [Number.Singular, Number.Plural]);
     private static readonly InflectionalCategory CaseCategory = new("Case", [Case.Nominative, Case.Accusative]);
 

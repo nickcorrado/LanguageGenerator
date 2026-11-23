@@ -69,7 +69,7 @@ public static partial class Generator
                 {
                     forms.Take(word.Root.Form);
                 }
-                return (null, new Lexeme(new Root(forms.Draw(() => GenerateForm(rand, phonology, 0, maxSyllables: 1)), "for"), PartOfSpeech.Adposition));
+                return (null, new Lexeme(CoinRoot(rand, phonology, forms.Draw(() => GenerateForm(rand, phonology, 0, maxSyllables: 1)), "for"), PartOfSpeech.Adposition));
         }
     }
 }

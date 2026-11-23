@@ -22,7 +22,7 @@ public static partial class Generator
         var clauseAndType = Sampling.Categorical(rand, ClauseAndCounts);
         var forms = new DistinctForms();
         Lexeme Word(string meaning) =>
-            new(new Root(forms.Draw(() => GenerateForm(rand, phonology, 0, maxSyllables: 1)), meaning), PartOfSpeech.Conjunction);
+            new(CoinRoot(rand, phonology, forms.Draw(() => GenerateForm(rand, phonology, 0, maxSyllables: 1)), meaning), PartOfSpeech.Conjunction);
 
         //where clauses are set side by side, nouns are too, unless they're joined with 'with'
         NounAnd nounAnd = andIsWith ? new AndWith()

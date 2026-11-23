@@ -98,9 +98,9 @@ public static partial class Generator
                 }
             }
         }
-        var adnominal = distances.ToDictionary(d => d, d => new Lexeme(new Root(cells[(d, genderValues[0], numberValues[0])].Form, d.Gloss), PartOfSpeech.Noun));
-        var own = distances.ToDictionary(d => d, d => new Lexeme(new Root(forms.Draw(() => GenerateForm(rand, phonology, 0, maxSyllables: 1)), d.Gloss), PartOfSpeech.Noun));
-        var places = distances.ToDictionary(d => d, d => new Lexeme(new Root(forms.Draw(() => GenerateForm(rand, phonology, 0, maxSyllables: 2)), PlaceGloss(d, contrast)), PartOfSpeech.Noun));
+        var adnominal = distances.ToDictionary(d => d, d => new Lexeme(CoinRoot(rand, phonology, cells[(d, genderValues[0], numberValues[0])].Form, d.Gloss), PartOfSpeech.Noun));
+        var own = distances.ToDictionary(d => d, d => new Lexeme(CoinRoot(rand, phonology, forms.Draw(() => GenerateForm(rand, phonology, 0, maxSyllables: 1)), d.Gloss), PartOfSpeech.Noun));
+        var places = distances.ToDictionary(d => d, d => new Lexeme(CoinRoot(rand, phonology, forms.Draw(() => GenerateForm(rand, phonology, 0, maxSyllables: 2)), PlaceGloss(d, contrast)), PartOfSpeech.Noun));
         return new Demonstratives(contrast, position, cells, new PronominalDemonstratives(ownStem, adnominal, own), new PlaceDemonstratives(fromDemonstratives, places));
     }
 }

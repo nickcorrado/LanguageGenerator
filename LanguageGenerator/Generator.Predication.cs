@@ -21,7 +21,7 @@ public static partial class Generator
     public static Predication GeneratePredication(Random rand, Phonology phonology) => new(
         Sampling.Categorical(rand, PredicativeAdjectiveCounts),
         Sampling.Categorical(rand, ZeroCopulaCounts),
-        new Lexeme(new Root(GenerateForm(rand, phonology, 0, maxSyllables: 1), "COP"), PartOfSpeech.Verb));
+        new Lexeme(CoinRoot(rand, phonology, GenerateForm(rand, phonology, 0, maxSyllables: 1), "COP"), PartOfSpeech.Verb));
 
     //WALS 119A
     private static readonly (bool Value, int Languages)[] LocationalCopulaCounts = [(true, 269), (false, 117)];
@@ -37,6 +37,6 @@ public static partial class Generator
         var forms = new DistinctForms(draws: 11);
         forms.Take(predication.Copula.Root.Form);
         var form = forms.Draw(() => GenerateForm(rand, phonology, 0, maxSyllables: 1));
-        return predication with { LocationalCopula = new Lexeme(new Root(form, "be.at"), PartOfSpeech.Verb) };
+        return predication with { LocationalCopula = new Lexeme(CoinRoot(rand, phonology, form, "be.at"), PartOfSpeech.Verb) };
     }
 }

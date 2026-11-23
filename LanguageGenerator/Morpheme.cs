@@ -2,8 +2,11 @@
 
 //forms are underlying: the phonemes before sandhi applies at morpheme boundaries
 
-/// <summary>A free morpheme with its own meaning, glossed by that meaning.</summary>
-public record Root(IReadOnlyList<Phoneme> Form, string Meaning);
+/// <summary>
+/// A free morpheme with its own meaning, glossed by that meaning. Where stress is free, Accent is
+/// which of its vowels it stores as stressed, counting from 0, or null if it stores none.
+/// </summary>
+public record Root(IReadOnlyList<Phoneme> Form, string Meaning, int? Accent);
 /// <summary>A bound morpheme expressing one or more grammemes. Several make it fusional.</summary>
 public record Affix(IReadOnlyList<Phoneme> Form, IReadOnlyList<Grammeme> Grammemes);
 /// <summary>A free morpheme expressing grammemes, standing as a word of its own.</summary>

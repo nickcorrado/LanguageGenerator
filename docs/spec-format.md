@@ -88,7 +88,8 @@ The symbols are the generator's 53 phonemes, given exactly, so `ʦ` and not `ts`
 | `dropoff` | A number between 0 and 1; 0.15 if free |
 | `syllable-template` | `CV`, `CVF`, `CLV`, `CLVF`, `SCV`, `SCVF`, `SCLVF`, where C is a consonant, V a vowel, F a final consonant, L a liquid or glide after the first consonant and S a sibilant before it |
 | `coda-restriction` | `Any`, `Sonorants`, `Nasals`, `SingleNasal` |
-| `stress` | `Initial`, `Second`, `Third`, `Antepenultimate`, `Penultimate`, `Ultimate`, `UltimateIfHeavy`, `PenultimateIfHeavy`, `InitialIfHeavy`, `LastHeavy` |
+| `stress` | `Initial`, `Second`, `Third`, `Antepenultimate`, `Penultimate`, `Ultimate`, `UltimateIfHeavy`, `PenultimateIfHeavy`, `InitialIfHeavy`, `LastHeavy`, where the rule puts stress, which free stress keeps for roots that store none |
+| `free-stress` | `true` if each root may store which of its vowels is stressed, as in Russian |
 | `cluster-repair` | `Epenthesis`, `Deletion` |
 | `syllable-contact` | `Any`, `NoSteepRise`, `NoRise`, what may meet across a syllable boundary |
 | `nasal-assimilation`, `degemination`, `intervocalic-voicing`, `lenition`, `voicing-assimilation`, `final-devoicing`, `glide-formation` | `true` if the language has the sound change |

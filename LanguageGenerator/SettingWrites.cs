@@ -408,17 +408,17 @@ internal static class SettingWrites
     //only take each other's form
     public static Comparison WithComparison(Comparison drawn, ComparisonKind kind)
     {
-        var form = drawn.Value switch
+        var root = drawn.Value switch
         {
-            ParticleComparison p => p.Than.Root.Form,
-            ExceedComparison e => e.Exceed.Root.Form,
+            ParticleComparison p => p.Than.Root,
+            ExceedComparison e => e.Exceed.Root,
             _ => null,
         };
         return kind switch
         {
             ComparisonKind.Locational => new LocationalComparison(Role.Source),
             ComparisonKind.Conjoined => new ConjoinedComparison(),
-            ComparisonKind.Exceed => new ExceedComparison(new Lexeme(new Root(form ?? throw NoForm("Exceed comparison"), "exceed"), PartOfSpeech.Verb)),
+            ComparisonKind.Exceed => new ExceedComparison(new Lexeme((root ?? throw NoForm("Exceed comparison")) with { Meaning = "exceed" }, PartOfSpeech.Verb)),
             _ => drawn.Value is ParticleComparison ? drawn
                 : throw NoForm("Particle comparison"),
         };
@@ -449,11 +449,13 @@ internal static class SettingWrites
         _ => ModalKind.Particle,
     };
 
-    private static IReadOnlyList<Phoneme> FormOf(ModalMarking marking) => marking.Value switch
+    //a marker's form, and the accent a verb's root stores; an affix or particle stores none, so a
+    //verb made from one takes the rule's stress
+    private static (IReadOnlyList<Phoneme> Form, int? Accent) FormOf(ModalMarking marking) => marking.Value switch
     {
-        ModalAffix a => a.Marker.Form,
-        ModalVerb v => v.Verb.Root.Form,
-        ModalParticle p => p.Marker.Form,
+        ModalAffix a => (a.Marker.Form, null),
+        ModalVerb v => (v.Verb.Root.Form, v.Verb.Root.Accent),
+        ModalParticle p => (p.Marker.Form, null),
     };
 
     private static bool? BeforeVerbOf(ModalMarking marking) => marking.Value switch
@@ -465,16 +467,16 @@ internal static class SettingWrites
 
     //each modality of a region has a marker of the region's kind and form, glossed for itself, as
     //the generator gives them
-    private static Modals WithRegion(Modals modals, Modality modality, ModalKind kind, IReadOnlyList<Phoneme> form, ExponentPosition affixPosition, bool beforeVerb)
+    private static Modals WithRegion(Modals modals, Modality modality, ModalKind kind, (IReadOnlyList<Phoneme> Form, int? Accent) form, ExponentPosition affixPosition, bool beforeVerb)
     {
         var markers = new Dictionary<Modality, ModalMarking>(modals.Markers);
         foreach (var m in modals.RegionOf(modality))
         {
             markers[m] = kind switch
             {
-                ModalKind.Affix => new ModalAffix(new Affix(form, [m]), affixPosition),
-                ModalKind.Verb => new ModalVerb(new Lexeme(new Root(form, ModalityMap.VerbGloss(m)), PartOfSpeech.Verb), beforeVerb),
-                _ => new ModalParticle(new Particle(form, [m]), beforeVerb),
+                ModalKind.Affix => new ModalAffix(new Affix(form.Form, [m]), affixPosition),
+                ModalKind.Verb => new ModalVerb(new Lexeme(new Root(form.Form, ModalityMap.VerbGloss(m), form.Accent), PartOfSpeech.Verb), beforeVerb),
+                _ => new ModalParticle(new Particle(form.Form, [m]), beforeVerb),
             };
         }
         return modals with { Markers = markers };

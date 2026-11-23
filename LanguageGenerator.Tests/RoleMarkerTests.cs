@@ -17,7 +17,7 @@ public class RoleMarkerTests
 
     //a formless word for each region, glossed for it
     private static Dictionary<Role, Lexeme> Adpositions(IReadOnlyList<RoleRegion> regions) =>
-        regions.SelectMany(r => r.Roles.Select(role => (role, Word: new Lexeme(new Root([], r.Gloss), PartOfSpeech.Adposition))))
+        regions.SelectMany(r => r.Roles.Select(role => (role, Word: new Lexeme(new Root([], r.Gloss, null), PartOfSpeech.Adposition))))
             .ToDictionary(x => x.role, x => x.Word);
 
     //a duration marked like the object, unless a test says otherwise

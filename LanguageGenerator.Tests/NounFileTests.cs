@@ -109,7 +109,7 @@ public class NounFileTests
     [Fact]
     public void ClassOf_IsWhatTheFileSays_OrElseAThing()
     {
-        var lexicon = new Lexicon((meaning, _) => new Root([], meaning));
+        var lexicon = new Lexicon((meaning, _) => new Root([], meaning, null));
 
         lexicon.Classify(new Dictionary<string, SemanticClass> { ["marta"] = SemanticClass.Female, ["dog"] = SemanticClass.Animal });
 
@@ -121,7 +121,7 @@ public class NounFileTests
     [Fact]
     public void Classify_ListsThatDisagree_Throw_WithoutChangingAnything()
     {
-        var lexicon = new Lexicon((meaning, _) => new Root([], meaning));
+        var lexicon = new Lexicon((meaning, _) => new Root([], meaning, null));
         lexicon.Classify(new Dictionary<string, SemanticClass> { ["marta"] = SemanticClass.Female });
 
         Assert.Throws<ArgumentException>(() => lexicon.Classify(new Dictionary<string, SemanticClass> { ["crow"] = SemanticClass.Animal, ["marta"] = SemanticClass.Male }));

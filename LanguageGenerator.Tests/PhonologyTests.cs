@@ -44,7 +44,7 @@ public class PhonologyTests
             SoundChanges = [],
             ClusterRepair = ClusterRepair.Epenthesis,
             EpentheticVowel = Vowel.ə,
-            Stress = Stress.Penultimate,
+            Stress = new StressSystem(Stress.Penultimate, false),
             Dropoff = new Dropoff(0.15),
             SyllableContact = SyllableContact.Any,
         };
@@ -66,7 +66,7 @@ public class PhonologyTests
             SoundChanges = [],
             ClusterRepair = ClusterRepair.Epenthesis,
             EpentheticVowel = Vowel.ə,
-            Stress = Stress.Penultimate,
+            Stress = new StressSystem(Stress.Penultimate, false),
             Dropoff = new Dropoff(0.15),
             SyllableContact = SyllableContact.Any,
         };

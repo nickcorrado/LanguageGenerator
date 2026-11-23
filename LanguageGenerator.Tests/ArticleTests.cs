@@ -4,7 +4,7 @@ namespace LanguageGenerator.Tests;
 
 public class ArticleTests
 {
-    private static readonly Root Dog = new([Consonant.d, Vowel.o, Consonant.g], "dog");
+    private static readonly Root Dog = new([Consonant.d, Vowel.o, Consonant.g], "dog", null);
     private static readonly Affix Plural = new([Consonant.s], [Number.Plural]);
     private static readonly Affix Accusative = new([Vowel.a], [Case.Accusative]);
     private static readonly Affix DefiniteAffix = new([Consonant.n], [Definiteness.Definite]);

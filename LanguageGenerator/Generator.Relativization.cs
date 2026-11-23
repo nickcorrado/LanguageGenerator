@@ -79,7 +79,7 @@ public static partial class Generator
             forms.Draw(() => kind == RelativizerKind.Affix ? MarkerForm(rand, true, phonology) : [.. GenerateSyllable(rand, phonology.SyllableRule, phonology.Dropoff, needsOnset: false).Phonemes]),
             rand.NextDouble() < PrefixChance(morphology) ? ExponentPosition.Prefix : ExponentPosition.Suffix);
         var fromQuestionWords = rand.NextDouble() < PronounFromQuestionWordsChance;
-        var own = new Lexeme(new Root(forms.Draw(() => GenerateForm(rand, phonology, 0, maxSyllables: 1)), "REL"), PartOfSpeech.Noun);
+        var own = new Lexeme(CoinRoot(rand, phonology, forms.Draw(() => GenerateForm(rand, phonology, 0, maxSyllables: 1)), "REL"), PartOfSpeech.Noun);
         return new Relativization(beforeNoun, subject, @object, oblique, relativizer, new RelativePronoun(fromQuestionWords, own));
     }
 }

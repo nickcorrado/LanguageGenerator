@@ -92,7 +92,7 @@ public static partial class Generator
         });
         var own = new Dictionary<(Quantifier, Ontology), Lexeme>();
         void Own(Quantifier series, Ontology kind) =>
-            own[(series, kind)] = new Lexeme(new Root(forms.Draw(() => GenerateForm(rand, phonology, 0, maxSyllables: 2)), IndefiniteGloss(series, kind)), PartOfSpeech.Noun);
+            own[(series, kind)] = new Lexeme(CoinRoot(rand, phonology, forms.Draw(() => GenerateForm(rand, phonology, 0, maxSyllables: 2)), IndefiniteGloss(series, kind)), PartOfSpeech.Noun);
         foreach (var series in Indefinites.Series)
         {
             foreach (var kind in new[] { Ontology.Person, Ontology.Thing, Ontology.Place })
@@ -101,7 +101,7 @@ public static partial class Generator
             }
         }
         var quantifiers = Enum.GetValues<Quantifier>().ToDictionary(q => q, q => q == Quantifier.Many && numerals.Many is { } many ? many
-            : new Lexeme(new Root(forms.Draw(() => GenerateForm(rand, phonology, 0, maxSyllables: 2)), q.ToString().ToLowerInvariant()), PartOfSpeech.Adjective));
+            : new Lexeme(CoinRoot(rand, phonology, forms.Draw(() => GenerateForm(rand, phonology, 0, maxSyllables: 2)), q.ToString().ToLowerInvariant()), PartOfSpeech.Adjective));
         var beforeNoun = rand.NextDouble() < QuantifierWithNumeralChance ? numerals.BeforeNoun : !numerals.BeforeNoun;
         var negation = Sampling.Categorical(rand, NegativeIndefiniteCounts);
         //times were added later, so they're drawn last, leaving what was drawn before as it was

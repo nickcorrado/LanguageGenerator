@@ -2,7 +2,7 @@
 
 public class GenderTests
 {
-    private static Lexeme Noun(string meaning, params Phoneme[] form) => new(new Root(form, meaning), PartOfSpeech.Noun);
+    private static Lexeme Noun(string meaning, params Phoneme[] form) => new(new Root(form, meaning, null), PartOfSpeech.Noun);
 
     private static GenderSystem System(NounGenders genders, GenderAssignment assignment) =>
         new() { Genders = genders, Assignment = assignment, Markers = null, MarkerPosition = ExponentPosition.Suffix, VerbsAgree = false };
