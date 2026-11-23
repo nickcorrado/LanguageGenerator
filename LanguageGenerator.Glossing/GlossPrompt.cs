@@ -107,7 +107,7 @@ public static class GlossPrompt
               for a past habit, or a word saying it's usual, as 'usually' or 'every night'. 'She used
               to walk there' is walk.PST.HAB, 'each night he would sit by the fire' sit.PST.HAB, and
               'he usually drinks alone' drink.HAB. 'Would' that isn't a habit, as in 'would it be so
-              terrible?', isn't HAB.
+              terrible?', isn't HAB and has no gloss yet.
             - Beginning or ceasing to do something is begin or stop with a to clause, whatever verb
               English uses: 'she began to hum' is begin.PST.PFV object:[to  hum], 'they started
               running' begin.PST.PFV object:[to  run], and 'everyone stops talking' stop
@@ -338,14 +338,14 @@ public static class GlossPrompt
               word' is that he did what he promised. Keep a figure of speech only where anyone could
               follow its picture, as in 'the forest began to take what it was owed' or 'the crows
               tell me everything'.
-            - Never drop a modal, like might or maybe, that has no gloss: 'it might rain'
-              doesn't say 'it rains'.
+            - Never drop a modal that has no gloss, like a 'would' or 'could' that imagines
+              something: 'would it be so terrible?' doesn't ask 'is it terrible?'.
             - Never drop or paraphrase away a word that negates, like 'nobody', 'nothing', 'never' or 'no':
               'nobody believes him' is subject:nobody, not 'people do not believe him', and 'she
               says no' keeps object:no.
             - When a sentence can't be said even loosely, as with a question asking two things, or
               how long, how often, how many, which or whose, or a question inside another clause that isn't quoted (like 'did anyone see what happened?'), a modal other than ABIL,
-              PERM, OBLIG or ADVS (like might or maybe), a relative clause with 'whose' or on a
+              PERM, OBLIG, ADVS, DUB or PRSM (like a 'would' or 'could' that imagines something), a relative clause with 'whose' or on a
               pronoun (like 'he who hesitates'), a comparison other than an adjective with be (like 'runs faster than',
               'stronger arms than yours' or 'as tall as'), a comparison with a clause (like 'warmer
               than it should be' or 'slower than before'), the most or a superlative (like 'the
