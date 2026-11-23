@@ -41,9 +41,52 @@ public class StressTests
     }
 
     private static Phonology WithStress(Stress stress, params SoundChange[] syllableChanges) =>
-        TestData.Phonology(SyllableTemplates.CVF, ClusterRepair.Epenthesis) with { Stress = stress, SyllableChanges = syllableChanges };
+        TestData.Phonology(SyllableTemplates.CVF, ClusterRepair.Epenthesis) with { Stress = new StressSystem(stress, false), SyllableChanges = syllableChanges };
+
+    private static Phonology WithFreeStress(Stress stress, params SoundChange[] soundChanges) =>
+        TestData.Phonology(SyllableTemplates.CVF, ClusterRepair.Epenthesis, soundChanges) with { Stress = new StressSystem(stress, true) };
 
     private static readonly Phoneme[] Pata = [Consonant.p, Vowel.a, Consonant.t, Vowel.a];
+
+    //a root storing an accent on the given vowel, or none, with plural suffixes after it
+    private static Word Accented(int? accent, Phoneme[] root, params Phoneme[][] suffixes) =>
+        new([new Root(root, "dog", accent), .. suffixes.Select(s => (Morpheme)new Affix(s, [Number.Plural]))]);
+
+    [Fact]
+    public void Realize_FreeStress_KeepsAStoredAccentWhereASuffixWouldMoveTheRules()
+    {
+        var phonology = WithFreeStress(Stress.Penultimate);
+
+        Assert.Equal("ˈpa.ta.ma", phonology.Realize(Accented(0, Pata, [Consonant.m, Vowel.a])).Transcribed());
+        Assert.Equal("paˈta", phonology.Realize(Accented(1, Pata)).Transcribed());
+        //a root that stores none takes the rule's stress, which the suffix moves
+        Assert.Equal("paˈta.ma", phonology.Realize(Accented(null, Pata, [Consonant.m, Vowel.a])).Transcribed());
+    }
+
+    [Fact]
+    public void Realize_FreeStress_PassesTheAccentOfALostVowelToTheOneItMet()
+    {
+        Phoneme[] pati = [Consonant.p, Vowel.a, Consonant.t, Vowel.i];
+        Phoneme[] pate = [Consonant.p, Vowel.a, Consonant.t, Vowel.e];
+
+        //elided before the suffix's vowel, which takes its place
+        Assert.Equal(1, WithFreeStress(Stress.Initial, SoundChange.VowelElision).Realize(Accented(1, pate, [Vowel.o, Consonant.m, Vowel.a])).StressedSyllable);
+        //turned into a glide before it
+        Assert.Equal("patˈjo.ma", WithFreeStress(Stress.Initial, SoundChange.GlideFormation).Realize(Accented(1, pati, [Vowel.o, Consonant.m, Vowel.a])).Transcribed());
+        //merged into the vowel before it
+        Assert.Equal("paˈteː", WithFreeStress(Stress.Initial, SoundChange.IdenticalVowelFusion).Realize(Accented(2, [.. pate, Vowel.e])).Transcribed());
+    }
+
+    [Fact]
+    public void Realize_AWordWithoutARoot_HasNoStress()
+    {
+        var phonology = WithStress(Stress.Penultimate, SoundChange.UnstressedReduction);
+        var particle = phonology.Realize(new Word([new Particle(Pata, [Definiteness.Definite])]));
+
+        Assert.Null(particle.StressedSyllable);
+        //so it's unmarked, and every vowel it has is unstressed
+        Assert.Equal("pə.tə", particle.Transcribed());
+    }
 
     [Fact]
     public void Transcribed_MarksTheStressedSyllableButNotAWordOfOne()
@@ -123,9 +166,21 @@ public class StressTests
     {
         Assert.All(GeneratedLanguages.Sample, l => Assert.All(l.Lexicon.Select(x => l.Phonology.Realize(new Word([x.Root]))), form =>
         {
-            Assert.InRange(form.StressedSyllable, 0, form.Syllables.Count - 1);
+            Assert.InRange(form.StressedSyllable!.Value, 0, form.Syllables.Count - 1);
             Assert.Equal(form.Syllables.Count > 1 ? 1 : 0, form.Transcribed().Count(c => c == 'ˈ'));
         }));
+    }
+
+    [Fact]
+    public void Generate_OnlyFreeStress_StoresAccents()
+    {
+        var free = GeneratedLanguages.With(spec => spec.Fix(Settings.FreeStress, true));
+        var roots = free.Lexicon.Select(x => x.Root).ToList();
+
+        Assert.Contains(roots, r => r.Accent is not null);
+        Assert.Contains(roots, r => r.Accent is null);
+        Assert.All(roots, r => Assert.True(r.Accent is null || r.Accent < r.Form.Count(p => p is Vowel)));
+        Assert.All(GeneratedLanguages.Sample.Where(l => !l.Phonology.Stress.Free), l => Assert.All(l.Lexicon, x => Assert.Null(x.Root.Accent)));
     }
 
     [Fact]

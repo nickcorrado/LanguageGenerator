@@ -4,7 +4,7 @@ namespace LanguageGenerator.Tests;
 
 public class NumeralTests
 {
-    private static Lexeme Formless(string meaning) => new(new Root([], meaning), PartOfSpeech.Numeral);
+    private static Lexeme Formless(string meaning) => new(new Root([], meaning, null), PartOfSpeech.Numeral);
 
     private static readonly Ordinals CardinalOrdinals = new(OrdinalType.Cardinal, null, null, null);
 

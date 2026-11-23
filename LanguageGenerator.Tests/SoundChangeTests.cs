@@ -96,8 +96,8 @@ public class SoundChangeTests
         Consonant Sound(string ipa) => Consonant.All.Single(c => c.IpaSymbol == ipa);
 
         var surface = TestData.Phonology(SyllableTemplates.CVF, ClusterRepair.Deletion, SoundChange.VoicingAssimilation);
-        Morpheme morpheme = new Root([], "dog");
-        var changed = SoundChange.VoicingAssimilation.Apply([new(Vowel.a, morpheme), new(Sound(first), morpheme), new(Sound(second), morpheme), new(Vowel.a, morpheme)], surface);
+        Morpheme morpheme = new Root([], "dog", null);
+        var changed = SoundChange.VoicingAssimilation.Apply([new(Vowel.a, morpheme, false), new(Sound(first), morpheme, false), new(Sound(second), morpheme, false), new(Vowel.a, morpheme, false)], surface);
 
         Assert.Equal($"a{result}a", string.Concat(changed.Select(s => s.Phoneme.IpaSymbol)));
     }
@@ -614,7 +614,7 @@ public class SoundChangeTests
     [Fact]
     public void FrontBackHarmony_Prefix_AgreesWithTheRootToo()
     {
-        var word = new Word([new Affix([Consonant.l, Vowel.æ], [Number.Plural]), new Root(Ka, "dog")]);
+        var word = new Word([new Affix([Consonant.l, Vowel.æ], [Number.Plural]), new Root(Ka, "dog", null)]);
         var phonology = TestData.Phonology(SyllableTemplates.CV, ClusterRepair.Epenthesis, SoundChange.FrontBackHarmony);
 
         Assert.Equal("laka", string.Concat(phonology.Realize(word).Phonemes.Select(p => p.IpaSymbol)));

@@ -21,10 +21,10 @@ public static partial class Generator
         {
             ComparisonType.Locational => new LocationalComparison(Sampling.Categorical(rand, LocationalRoles)),
             ComparisonType.Particle => new ParticleComparison(
-                new Lexeme(new Root(GenerateForm(rand, phonology, 0, maxSyllables: 1), "than"), PartOfSpeech.Adposition),
+                new Lexeme(CoinRoot(rand, phonology, GenerateForm(rand, phonology, 0, maxSyllables: 1), "than"), PartOfSpeech.Adposition),
                 wordOrder.AdpositionalPhraseDirectionality == HeadDirectionality.Initial),
             ComparisonType.Exceed => new ExceedComparison(
-                new Lexeme(new Root(GenerateForm(rand, phonology, 0.5, maxSyllables: 2), "exceed"), PartOfSpeech.Verb)),
+                new Lexeme(CoinRoot(rand, phonology, GenerateForm(rand, phonology, 0.5, maxSyllables: 2), "exceed"), PartOfSpeech.Verb)),
             _ => new ConjoinedComparison(),
         };
 
@@ -85,7 +85,7 @@ public static partial class Generator
         {
             forms.Take(particle.Than.Root.Form);
         }
-        return new SimilativeWord(new Lexeme(new Root(forms.Draw(() => GenerateForm(rand, phonology, 0, maxSyllables: 1)), "like"), PartOfSpeech.Adposition),
+        return new SimilativeWord(new Lexeme(CoinRoot(rand, phonology, forms.Draw(() => GenerateForm(rand, phonology, 0, maxSyllables: 1)), "like"), PartOfSpeech.Adposition),
             wordOrder.AdpositionalPhraseDirectionality == HeadDirectionality.Initial);
     }
 }

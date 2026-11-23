@@ -91,7 +91,7 @@ public static partial class Generator
         {
             ConfigurationMarker marker = plan.Markers[region.Head].Value switch
             {
-                PlannedAdposition a => new SpatialAdposition(new Adposition(new Lexeme(new Root(
+                PlannedAdposition a => new SpatialAdposition(new Adposition(new Lexeme(CoinRoot(rand, phonology, 
                     forms.Draw(() => GenerateForm(rand, phonology, 0, maxSyllables: 1)), ConfigurationMap.GlossFor(region.Head)), PartOfSpeech.Adposition), type), a.Governs),
                 RelationalNoun n => n,
                 SpatialCase c => c,

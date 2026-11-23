@@ -88,7 +88,7 @@ public static partial class Generator
         var forms = new DistinctForms(draws: 11);
         foreach (var region in regions.Where(r => r.Case is not { } @case || !cases.Contains(@case)))
         {
-            var word = new Lexeme(new Root(forms.Draw(() => GenerateForm(rand, phonology, 0, maxSyllables: 1)), region.Gloss), PartOfSpeech.Adposition);
+            var word = new Lexeme(CoinRoot(rand, phonology, forms.Draw(() => GenerateForm(rand, phonology, 0, maxSyllables: 1)), region.Gloss), PartOfSpeech.Adposition);
             foreach (var role in region.Roles)
             {
                 words[role] = word;

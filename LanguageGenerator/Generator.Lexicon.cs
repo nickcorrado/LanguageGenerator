@@ -20,15 +20,16 @@ public static partial class Generator
      */
     public static Lexicon GenerateLexicon(int seed, double extraSyllables, Phonology phonology, IReadOnlyDictionary<PartOfSpeech, IEnumerable<Lexeme>> closedClasses)
     {
-        string Surface(Root root) => string.Concat(phonology.Realize(new Word([root])).Phonemes.Select(p => p.IpaSymbol));
+        //sounding alike takes in the stress, which tells words apart where it's free
+        string Surface(Root root) => phonology.Realize(new Word([root])).Transcribed();
         var taken = closedClasses.ToDictionary(c => c.Key, c => c.Value.Select(l => Surface(l.Root)).ToHashSet());
         var lexicon = new Lexicon((meaning, partOfSpeech) =>
         {
             var rand = Sampling.For(seed, $"{partOfSpeech}:{meaning}");
-            var root = new Root(GenerateForm(rand, phonology, extraSyllables), meaning);
+            var root = CoinRoot(rand, phonology, GenerateForm(rand, phonology, extraSyllables), meaning);
             for (int attempt = 0; attempt < 10 && taken.TryGetValue(partOfSpeech, out var forms) && forms.Contains(Surface(root)); attempt++)
             {
-                root = new Root(GenerateForm(rand, phonology, extraSyllables), meaning);
+                root = CoinRoot(rand, phonology, GenerateForm(rand, phonology, extraSyllables), meaning);
             }
             return root;
         });
@@ -75,7 +76,7 @@ public static partial class Generator
         {
             var rand = Sampling.For(seed, "root length");
             var forms = Enumerable.Range(0, RootsToSample)
-                .Select(_ => string.Concat(phonology.Realize(new Word([new Root(GenerateForm(rand, phonology, extraSyllables), "")])).Phonemes.Select(p => p.IpaSymbol)));
+                .Select(_ => phonology.Realize(new Word([CoinRoot(rand, phonology, GenerateForm(rand, phonology, extraSyllables), "")])).Transcribed());
             var pairs = forms.GroupBy(form => form).Sum(same => same.Count() * (same.Count() - 1L) / 2);
             return pairs / (RootsToSample * (RootsToSample - 1) / 2.0);
         }

@@ -72,9 +72,13 @@ public static class Settings
     public static Setting<SyllableShape, CodaRestriction> CodaRestriction { get; } = SyllableStage.Declare("coda-restriction", Sounds,
         s => s.Codas, (s, c) => s with { Codas = c }, Choice<CodaRestriction>.Of(Enum.GetValues<CodaRestriction>()));
 
-    public static Stage<Stress> StressStage { get; } = new("stress", l => l.Phonology.Stress, null);
-    public static Setting<Stress, Stress> Stress { get; } = StressStage.Declare("stress", Sounds,
-        s => s, (_, s) => s, Choice<Stress>.Of(Enum.GetValues<Stress>()));
+    public static Stage<StressSystem> StressStage { get; } = new("stress", l => l.Phonology.Stress, null);
+    /// <summary>Where the rule puts stress, which free stress keeps for roots that store no accent.</summary>
+    public static Setting<StressSystem, Stress> Stress { get; } = StressStage.Declare("stress", Sounds,
+        s => s.Rule, (s, r) => s with { Rule = r }, Choice<Stress>.Of(Enum.GetValues<Stress>()));
+    /// <summary>Whether each root stores which of its vowels is stressed, as in Russian.</summary>
+    public static Setting<StressSystem, bool> FreeStress { get; } = StressStage.Declare("free-stress", Sounds,
+        s => s.Free, (s, f) => s with { Free = f }, YesNo);
 
     public static Stage<ClusterRepair> ClusterRepairStage { get; } = new("cluster repair", l => l.Phonology.ClusterRepair, null);
     /// <summary>How a cluster the syllables can't hold, made by putting morphemes together, is fixed.</summary>

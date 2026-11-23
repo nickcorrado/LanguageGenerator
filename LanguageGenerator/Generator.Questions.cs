@@ -62,7 +62,7 @@ public static partial class Generator
         var fronts = rand.Next(initial + inPlace) < initial;
 
         var forms = new DistinctForms();
-        Lexeme Word(string meaning) => new(new Root(forms.Draw(() => GenerateForm(rand, phonology, 0.5, maxSyllables: 2)), meaning), PartOfSpeech.Noun);
+        Lexeme Word(string meaning) => new(CoinRoot(rand, phonology, forms.Draw(() => GenerateForm(rand, phonology, 0.5, maxSyllables: 2)), meaning), PartOfSpeech.Noun);
         //drawn in the order each was added, so that a new one leaves the others' forms as they were
         var words = new[] { Interrogative.Who, Interrogative.What, Interrogative.Where }.ToDictionary(w => w, w => Word(w.ToString().ToLowerInvariant()));
         var adverbs = new Dictionary<QuestionAdverb, Lexeme> { [QuestionAdverb.Why] = Word("why") };

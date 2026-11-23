@@ -52,7 +52,7 @@ public static partial class Generator
             var form = NewForm();
             //a pronoun's gloss is its person and number, as in 1SG, and one meaning both I and we is just 1
             var gloss = firstPersonPlural == FirstPersonPlural.SameAsSingular && meaning.Person == Person.First ? Person.First.Gloss : meaning.Gloss;
-            forms[meaning] = new Lexeme(new Root(form, gloss), PartOfSpeech.Pronoun);
+            forms[meaning] = new Lexeme(CoinRoot(rand, phonology, form, gloss), PartOfSpeech.Pronoun);
         }
         if (firstPersonPlural == FirstPersonPlural.SameAsSingular)
         {
@@ -94,7 +94,7 @@ public static partial class Generator
             {
                 var form = gender == Gender.Masculine ? lexeme.Root.Form : NewForm();
                 var genderedMeaning = meaning with { Gender = gender };
-                withGender[genderedMeaning] = new Lexeme(new Root(form, genderedMeaning.Gloss), PartOfSpeech.Pronoun);
+                withGender[genderedMeaning] = new Lexeme(CoinRoot(rand, phonology, form, genderedMeaning.Gloss), PartOfSpeech.Pronoun);
             }
         }
 

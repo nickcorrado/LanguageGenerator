@@ -3,8 +3,9 @@
 /// <summary>
 /// One sound of a word's surface form and the morpheme it belongs to. A word never has the same
 /// morpheme twice, so that morpheme also says where the sound sits among the word's morphemes.
+/// Accented marks the vowel a root stores as stressed, where stress is free.
 /// </summary>
-public record Segment(Phoneme Phoneme, Morpheme Morpheme);
+public record Segment(Phoneme Phoneme, Morpheme Morpheme, bool Accented);
 
 /// <summary>What a language does with a consonant cluster its syllables can't hold.</summary>
 public enum ClusterRepair
@@ -31,17 +32,12 @@ public record Phonology
     public required SyllableContact SyllableContact { get; init; }
     /// <summary>Applied in order across the whole word, before clusters are repaired.</summary>
     public required IReadOnlyList<SoundChange> SoundChanges { get; init; }
-    /*
-      TODO stress: syllables don't have any yet. WALS 14A counts fixed stress positions, and 15A what
-      weight does to them. It would bring unstressed vowel reduction and syncope, as more changes here
-      that run after harmony, and the homophone check should then look at inflected forms too
-     */
     /// <summary>Changes that depend on syllables, so they apply once a word has them.</summary>
     public IReadOnlyList<SoundChange> SyllableChanges { get; init; } = [];
     public required ClusterRepair ClusterRepair { get; init; }
     public required Vowel EpentheticVowel { get; init; }
-    /// <summary>Which syllable of a word is stressed.</summary>
-    public required Stress Stress { get; init; }
+    /// <summary>Which syllable of a word is stressed, by rule or as its root stores it.</summary>
+    public required StressSystem Stress { get; init; }
     /// <summary>
     /// How steeply sounds get rarer down the inventory, which is ordered commonest first, as every
     /// word and affix is coined.
@@ -60,18 +56,20 @@ public record Phonology
     /*
       underlying morphemes, run together → sound changes → cluster repair → syllables and stress →
       changes that depend on syllables, each followed by repair, syllables and stress again, since it
-      can leave a word that needs them: a syllable lost to syncope moves the stress, as it would in a
-      language that had lost it. Every segment keeps track of its morpheme throughout, so the result
-      can still be segmented
+      can leave a word that needs them: a syllable lost to syncope moves stress that falls by rule, as
+      it would in a language that had lost it, though a stored accent stays on its vowel. Every
+      segment keeps track of its morpheme throughout, so the result can still be segmented
      */
     public SurfaceForm Realize(Word word)
     {
         var segments = new List<Segment>();
         foreach (var morpheme in word.Morphemes)
         {
+            var accent = morpheme.Value is Root { Accent: { } a } ? a : -1;
+            var vowels = 0;
             foreach (var phoneme in morpheme.Form)
             {
-                segments.Add(new Segment(phoneme, morpheme));
+                segments.Add(new Segment(phoneme, morpheme, phoneme is Vowel && vowels++ == accent));
             }
         }
         foreach (var change in SoundChanges)
@@ -82,10 +80,24 @@ public record Phonology
         var syllables = Repaired(word, ref segments);
         foreach (var change in SyllableChanges)
         {
-            segments = change.Apply(segments, this, Places(syllables, this.Stress.StressedSyllable(syllables)));
+            segments = change.Apply(segments, this, Places(syllables, StressedSyllable(word, segments, syllables)));
             syllables = Repaired(word, ref segments);
         }
-        return new SurfaceForm(word, segments, syllables) { StressedSyllable = this.Stress.StressedSyllable(syllables) };
+        return new SurfaceForm(word, segments, syllables) { StressedSyllable = StressedSyllable(word, segments, syllables) };
+    }
+
+    /*
+      the syllable of the accented vowel if there is one, since every vowel is a nucleus, and
+      otherwise the rule's. A word without a root has no stress, so null
+     */
+    private int? StressedSyllable(Word word, List<Segment> segments, IReadOnlyList<Syllable> syllables)
+    {
+        if (word.Root is null)
+        {
+            return null;
+        }
+        var accented = segments.FindIndex(s => s.Accented);
+        return accented >= 0 ? segments.Take(accented).Count(s => s.Phoneme is Vowel) : Stress.Rule.StressedSyllable(syllables);
     }
 
     //the word's syllables, once it's been repaired until it has legal ones
@@ -104,8 +116,8 @@ public record Phonology
         return syllables;
     }
 
-    //where each sound sits, in the order of the word's segments
-    private static List<SyllablePlace> Places(IReadOnlyList<Syllable> syllables, int stressed) =>
+    //where each sound sits, in the order of the word's segments. With no stressed syllable, none is
+    private static List<SyllablePlace> Places(IReadOnlyList<Syllable> syllables, int? stressed) =>
     [
         .. syllables.SelectMany((syllable, index) =>
         {
@@ -184,7 +196,7 @@ public record Phonology
             {
                 //an inserted vowel belongs with the morpheme after it, or the last one at the end of a word
                 var neighbor = at < segments.Count ? segments[at] : segments[^1];
-                candidates.Add(([.. segments[..at], neighbor with { Phoneme = EpentheticVowel }, .. segments[at..]], cluster.End + 1));
+                candidates.Add(([.. segments[..at], neighbor with { Phoneme = EpentheticVowel, Accented = false }, .. segments[at..]], cluster.End + 1));
             }
         }
         //deletion, or the only fix left for a consonant no vowel can save
@@ -208,15 +220,15 @@ public record SurfaceForm(Word Word, IReadOnlyList<Segment> Segments, IReadOnlyL
 {
     public IEnumerable<Phoneme> Phonemes => Segments.Select(s => s.Phoneme);
 
-    /// <summary>The index of the stressed syllable.</summary>
-    public int StressedSyllable { get; init; }
+    /// <summary>The index of the stressed syllable, or null for a word with no stress.</summary>
+    public required int? StressedSyllable { get; init; }
 
     public string Spell(Orthography orthography) => orthography.Spell(Phonemes);
     public string Syllabified(Orthography orthography) => string.Join(".", Syllables.Select(s => s.Spell(orthography)));
 
     /// <summary>
     /// The IPA by syllable, with ˈ before the stressed one in place of the dot, as in [paˈta.ma]. A
-    /// word of one syllable needs no mark.
+    /// word of one syllable needs no mark, and one with no stress has none.
     /// </summary>
     public string Transcribed() => Syllables.Count == 1
         ? Syllables[0].Spell(Orthography.Ipa)

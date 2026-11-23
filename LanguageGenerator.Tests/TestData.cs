@@ -17,14 +17,14 @@ internal static class TestData
         SoundChanges = [.. rules],
         ClusterRepair = repair,
         EpentheticVowel = Vowel.ə,
-        Stress = Stress.Penultimate,
+        Stress = new StressSystem(Stress.Penultimate, false),
         Dropoff = new Dropoff(0.15),
         SyllableContact = SyllableContact.Any,
     };
 
     //the first form is a root meaning "dog"; any after it are plural suffixes
     public static Word Word(params Phoneme[][] morphemes) =>
-        new([.. morphemes.Select((form, i) => i == 0 ? (Morpheme)new Root(form, "dog") : new Affix(form, [Number.Plural]))]);
+        new([.. morphemes.Select((form, i) => i == 0 ? (Morpheme)new Root(form, "dog", null) : new Affix(form, [Number.Plural]))]);
 }
 
 //a template with no onsets, which no generated language has, for testing what happens at the edges

@@ -86,23 +86,46 @@ public sealed class SoundChange(string name, Func<Site, bool> when, Func<Site, P
 {
     public override string ToString() => name;
 
+    /*
+      an accented vowel that's lost, or becomes a glide, passes its accent to the vowel it met: the
+      one before it, which it merged into, if that one's kept, and otherwise the one right after it,
+      as an elided vowel leaves its accent to the vowel that took its place. A vowel lost with no
+      vowel beside it takes its accent with it, though no change loses one that's accented
+     */
     public List<Segment> Apply(List<Segment> segments, Phonology phonology, IReadOnlyList<SyllablePlace>? places = null)
     {
         var result = new List<Segment>();
+        var accentForNext = false;
         for (int i = 0; i < segments.Count; i++)
         {
             var site = new Site(segments[i], result.LastOrDefault(), i + 1 < segments.Count ? segments[i + 1] : null, segments, i, places?[i], places);
-            if (!when(site))
+            var kept = !when(site) ? segments[i]
+                : becomes(site, phonology) is { } sound ? segments[i] with { Phoneme = sound }
+                : null;
+            if (accentForNext && kept?.Phoneme is Vowel)
             {
-                result.Add(segments[i]);
+                kept = kept with { Accented = true };
             }
-            else if (becomes(site, phonology) is { } sound)
+            accentForNext = false;
+            if (segments[i].Accented && kept?.Phoneme is not Vowel)
             {
-                result.Add(segments[i] with { Phoneme = sound });
+                kept = kept is null ? null : kept with { Accented = false };
+                if (i > 0 && segments[i - 1].Phoneme is Vowel && result.LastOrDefault()?.Phoneme is Vowel)
+                {
+                    result[^1] = result[^1] with { Accented = true };
+                }
+                else
+                {
+                    accentForNext = true;
+                }
+            }
+            if (kept is not null)
+            {
+                result.Add(kept);
             }
             if (places is null && site.Next is { } next && insertsAfter?.Invoke(site, phonology) is { } inserted)
             {
-                result.Add(new Segment(inserted, next.Morpheme));
+                result.Add(new Segment(inserted, next.Morpheme, false));
             }
         }
         return result;
@@ -270,8 +293,9 @@ public sealed class SoundChange(string name, Func<Site, bool> when, Func<Site, P
     /// </summary>
     /*
       the vowel needs a vowel two sounds away on each side, the stressed one before it, so it's never
-      in the last syllable, and only one vowel goes, leaving a cluster of two. The stress is found
-      again afterwards, over the syllables that are left
+      in the last syllable, and only one vowel goes, leaving a cluster of two. Stress that falls by
+      rule is found again afterwards, over the syllables that are left, while a stored accent stays
+      on its vowel, as Italian's did
      */
     public static SoundChange Syncope { get; } = new("syncope (ˈkalida → ˈkalda)",
         site => Unstressed(site) && site.Sound is Vowel { Long: false } && site.Index >= 2 && site.Index + 2 < site.Word.Count
