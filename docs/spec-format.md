@@ -95,7 +95,7 @@ The symbols are the generator's 53 phonemes, given exactly, so `ʦ` and not `ts`
 | `nasal-assimilation`, `degemination`, `intervocalic-voicing`, `lenition`, `voicing-assimilation`, `final-devoicing`, `glide-formation` | `true` if the language has the sound change |
 | `vowel-harmony` | `None`, `FrontBack`, `TongueRoot` |
 | `hiatus-resolution` | `None`, `VowelElision`, `VowelCoalescence`, `GreekContraction`, `GlideInsertion`, `GlottalInsertion`, for vowels that meet where morphemes do |
-| `coda-devoicing`, `coda-weakening`, `compensatory-lengthening`, `closed-syllable-laxing`, `open-syllable-lengthening`, `unstressed-shortening`, `syncope` | `true` if the language has the change, which applies once words have syllables |
+| `coda-devoicing`, `coda-weakening`, `compensatory-lengthening`, `closed-syllable-laxing`, `open-syllable-lengthening`, `unstressed-shortening`, `syncope`, `apocope` | `true` if the language has the change, which applies once words have syllables |
 | `unstressed-vowels` | `None`, `Reduction`, `Raising`, what happens to vowels without the stress |
 | `contact-repair` | `None`, `CodaAssimilation`, `OnsetHardening`, `CodaNasalization` |
 | `constituent-order` | `SOV`, `SVO`, `VSO`, `VOS`, `OVS`, `OSV` |

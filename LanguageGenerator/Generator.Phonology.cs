@@ -121,7 +121,8 @@ public static partial class Generator
 
         /*
           changes that follow the stress. The odds are guesses. Length can only follow stress in a
-          language with long vowels, syncope needs codas for the consonants it brings together, and an
+          language with long vowels, syncope needs codas for the consonants it brings together, apocope
+          for those it leaves at the end of a word, and an
           unstressed vowel weakens to schwa where there is one, or else rises to a close vowel
          */
         var hasLong = vowels.Any(v => v.Long);
@@ -136,6 +137,10 @@ public static partial class Generator
         if (rand.NextDouble() < 0.15 && codas)
         {
             changes.Add(SoundChange.Syncope);
+        }
+        if (rand.NextDouble() < 0.1 && codas)
+        {
+            changes.Add(SoundChange.Apocope);
         }
         var weakening = rand.NextDouble();
         if (weakening < 0.2 && vowels.Contains(Vowel.ə))

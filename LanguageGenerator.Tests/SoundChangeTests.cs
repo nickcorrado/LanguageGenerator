@@ -521,7 +521,7 @@ public class SoundChangeTests
     {
         var rand = new Random(1);
         var rule = new SyllableRule(SyllableTemplates.CV, TestData.Vowels, TestData.Consonants);
-        SoundChange[] needCodas = [SoundChange.CodaDevoicing, SoundChange.CodaWeakening, SoundChange.CompensatoryLengthening, SoundChange.ClosedSyllableLaxing, SoundChange.Syncope];
+        SoundChange[] needCodas = [SoundChange.CodaDevoicing, SoundChange.CodaWeakening, SoundChange.CompensatoryLengthening, SoundChange.ClosedSyllableLaxing, SoundChange.Syncope, SoundChange.Apocope];
 
         var drawn = Enumerable.Range(0, 500).SelectMany(_ => Generator.SelectSyllableChanges(rand, rule, TestData.Vowels, SyllableContact.NoRise)).ToList();
 

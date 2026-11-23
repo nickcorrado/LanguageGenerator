@@ -119,6 +119,7 @@ public static class Settings
     public static Setting<IReadOnlyList<SoundChange>, bool> OpenSyllableLengthening { get; } = Change(SyllableChangeStage, SoundChange.SyllableChangeOrder, "open-syllable-lengthening", SoundChange.OpenSyllableLengthening);
     public static Setting<IReadOnlyList<SoundChange>, bool> UnstressedShortening { get; } = Change(SyllableChangeStage, SoundChange.SyllableChangeOrder, "unstressed-shortening", SoundChange.UnstressedShortening);
     public static Setting<IReadOnlyList<SoundChange>, bool> Syncope { get; } = Change(SyllableChangeStage, SoundChange.SyllableChangeOrder, "syncope", SoundChange.Syncope);
+    public static Setting<IReadOnlyList<SoundChange>, bool> Apocope { get; } = Change(SyllableChangeStage, SoundChange.SyllableChangeOrder, "apocope", SoundChange.Apocope);
     public static Setting<IReadOnlyList<SoundChange>, UnstressedVowels> UnstressedVowels { get; } = ChangeKind(SyllableChangeStage, SoundChange.SyllableChangeOrder, "unstressed-vowels", SoundChange.UnstressedChanges);
     public static Setting<IReadOnlyList<SoundChange>, ContactRepair> ContactRepair { get; } = ChangeKind(SyllableChangeStage, SoundChange.SyllableChangeOrder, "contact-repair", SoundChange.ContactRepairs);
 

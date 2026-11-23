@@ -304,6 +304,27 @@ public sealed class SoundChange(string name, Func<Site, bool> when, Func<Site, P
             && site.Word[site.Index + 1].Phoneme is Consonant && site.Word[site.Index + 2].Phoneme is Vowel,
         (site, phonology) => phonology.SyllableRule.IsLegalCoda([(Consonant)site.Word[site.Index - 1].Phoneme]) ? null : site.Sound);
 
+    /// <summary>
+    /// A short unstressed vowel at the end of a word is lost after a consonant, as Latin mare became
+    /// Spanish mar, so long as the consonants before it can then end the word.
+    /// </summary>
+    /*
+      a vowel must come earlier in the word, so a word is never left without one. Stress that falls
+      by rule is found again over the syllables that are left, as Polish's was when it lost its final
+      vowels, while a stored accent stays on its vowel, which is how Spanish and French came to stress
+      last syllables their rules wouldn't
+     */
+    public static SoundChange Apocope { get; } = new("apocope (ˈmare → ˈmar)",
+        site => Unstressed(site) && site.Sound is Vowel { Long: false } && site.Index == site.Word.Count - 1 && FinalCluster(site.Word) is { Count: > 0 },
+        (site, phonology) => phonology.SyllableRule.IsLegalCoda(FinalCluster(site.Word)!) ? null : site.Sound);
+
+    //the consonants between a word's last two vowels, or null if it has only one
+    private static List<Consonant>? FinalCluster(IReadOnlyList<Segment> word)
+    {
+        var previous = word.Take(word.Count - 1).ToList().FindLastIndex(s => s.Phoneme is Vowel);
+        return previous < 0 ? null : [.. word.Skip(previous + 1).Take(word.Count - 2 - previous).Select(s => (Consonant)s.Phoneme)];
+    }
+
     //how each unstressed vowel weakens
     private static readonly Dictionary<Phoneme, Vowel> Raised = new()
     {
@@ -544,7 +565,7 @@ public sealed class SoundChange(string name, Func<Site, bool> when, Func<Site, P
     /// <summary>Every change a language's syllable changes can have, in the order they apply.</summary>
     public static IReadOnlyList<SoundChange> SyllableChangeOrder { get; } =
     [
-        CodaDevoicing, CodaWeakening, CompensatoryLengthening, ClosedSyllableLaxing, OpenSyllableLengthening, UnstressedShortening, Syncope,
+        CodaDevoicing, CodaWeakening, CompensatoryLengthening, ClosedSyllableLaxing, OpenSyllableLengthening, UnstressedShortening, Syncope, Apocope,
         UnstressedReduction, UnstressedRaising, CodaAssimilation, OnsetHardening, CodaNasalization,
     ];
 

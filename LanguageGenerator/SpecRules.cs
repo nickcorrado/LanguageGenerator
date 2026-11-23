@@ -246,7 +246,7 @@ public static class SpecRules
 
         //a change that works on codas needs syllables that have them, and devoicing or weakening a
         //coda needs one that can be an obstruent
-        .. new[] { Settings.FinalDevoicing, Settings.CodaDevoicing, Settings.CodaWeakening, Settings.CompensatoryLengthening, Settings.ClosedSyllableLaxing, Settings.Syncope }
+        .. new[] { Settings.FinalDevoicing, Settings.CodaDevoicing, Settings.CodaWeakening, Settings.CompensatoryLengthening, Settings.ClosedSyllableLaxing, Settings.Syncope, Settings.Apocope }
             .Select(change => SpecRule.Together(Settings.SyllableTemplate, change, (template, on) => !on || HasCodas(template),
                 $"{change.Name} needs a syllable template with a coda: CVF, CLVF, SCVF or SCLVF.")),
         .. new[] { Settings.CodaDevoicing, Settings.CodaWeakening }.Select(change => SpecRule.Together(Settings.CodaRestriction, change,
