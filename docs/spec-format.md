@@ -127,6 +127,8 @@ The symbols are the generator's 53 phonemes, given exactly, so `ʦ` and not `ts`
 | `passive` | `true` if the language has a passive |
 | `modalities-ability-permission`, `modalities-permission-obligation`, `modalities-obligation-advisability` | `true` if the edge of the modality map joins its two modalities, so they share a marker, as English can is both 'able to' and 'allowed to' |
 | `ability-modal`, `permission-modal`, `obligation-modal`, `advisability-modal` | `Affix`, `Verb` or `Particle`, how 'can', 'may', 'must' and 'should' are marked |
+| `modalities-permission-dubitative`, `modalities-obligation-presumptive` | `true` if an epistemic modal shares the marker of the situational one it grew from, as English may and must are both |
+| `dubitative-modal`, `presumptive-modal` | `Affix`, `Verb`, said impersonally with the clause as its complement, or `Particle`, how an epistemic 'might' and 'must' are marked |
 | `perfect` | `None`, `Affix`, `Particle`, or an auxiliary verb: `Have`, `Be` or `Finish`, how a perfect like 'has gone' is marked |
 | `progressive` | `None`, `Affix`, `Particle`, or an auxiliary verb: `Be`, the copula that says where, or `Sit`, how a progressive like 'is waiting' is marked |
 | `habitual` | `None`, `Affix`, `Particle`, or the auxiliary `Be`, how a habitual like 'used to go' is marked |

@@ -339,17 +339,20 @@ public static class Syntax
       subject was taken from the main clause says it as a pronoun, as Greek thélo na páo 'I want
       that I go' says it in the verb
      */
-    private static (IReadOnlyList<Word> Words, bool Balanced) Complement(Language language, ComplementClause complement, Argument subject)
+    //subject is the main clause's, or null where it has none the complement could share, as an impersonal verb's 'it' isn't
+    private static (IReadOnlyList<Word> Words, bool Balanced) Complement(Language language, ComplementClause complement, Argument? subject)
     {
         var marking = language.Complementation.MarkingOf(complement.Kind);
-        var shared = complement.SharesSubject || SubjectOf(complement.Clause).Equals(subject);
+        var shared = complement.SharesSubject || subject is { } main && SubjectOf(complement.Clause).Equals(main);
         var derank = marking.Balance == Balance.Deranked || marking.Balance == Balance.Either && shared;
         var deranked = derank ? Deranked(language, complement.Clause, shared, marking.MarkedAs) : null;
         if (deranked is not null && marking.MarkedAs is not null)
         {
             return (deranked, false);
         }
-        var clause = deranked ?? Words(language, complement.SharesSubject ? WithSubject(complement.Clause, Pronominal(language, subject)) : complement.Clause);
+        var clause = deranked ?? Words(language, complement.SharesSubject
+            ? WithSubject(complement.Clause, Pronominal(language, subject ?? throw new ArgumentException("A complement that shares its subject needs the main clause's.", nameof(subject))))
+            : complement.Clause);
         var marked = Complementation.PositionOf(marking.Position) is { } position ? Subordinate(clause, marking.Marker, position, VerbRoot(language, complement.Clause)) : clause;
         return (marked, deranked is null);
     }
@@ -975,9 +978,31 @@ public static class Syntax
 
     public static Sentence Realize(Language language, Modalized modalized, string translation) => Sentence(language, Words(language, modalized, []), translation);
 
-    //the clause, with its modal where its verb is
+    //the clause, with its modal where its verb is, or as the complement of an epistemic modal verb
     private static IReadOnlyList<Word> Words(Language language, Modalized modalized, IReadOnlyList<Word> adverbs) =>
-        Words(language, modalized.Clause, new Modal(language.Modals.Markers[modalized.Modality], modalized.Negative), adverbs);
+        language.Modals.Markers[modalized.Modality].Value is ModalVerb verb && modalized.Modality.Epistemic
+            ? Impersonal(language, verb, modalized.Clause, modalized.Negative, adverbs)
+            : Words(language, modalized.Clause, new Modal(language.Modals.Markers[modalized.Modality], modalized.Negative), adverbs);
+
+    /*
+      an epistemic modal verb is said impersonally, with what it judges as the 'that' clause of its
+      verb, which keeps its own tense, as Greek borí na éfige 'it-may that he-left' and Hungarian
+      lehet, hogy elment 'it may be that he left' do; the same verb said personally is the
+      situational modal, as Greek boró na fíjo 'I can leave' is. The modal verb is present, since
+      the judgment is the speaker's now, takes 'it' as its subject, which a language that drops its
+      pronouns leaves unsaid, and the modal's negation. Its complement is marked as a proposition,
+      and goes last or where the object goes, as one does; a language that deranks propositions
+      loses the clause's tense, as it does in any complement
+     */
+    private static IReadOnlyList<Word> Impersonal(Language language, ModalVerb modal, Statement clause, bool negative, IReadOnlyList<Word> adverbs)
+    {
+        var it = new Pronoun(Person.Third, Number.Singular);
+        var subject = Subject(language, it, Role.IntransitiveSubject);
+        var verb = Verb(language, modal.Verb, Tense.Present, Aspect.Imperfective, it, negative);
+        var (complement, balanced) = Complement(language, new ComplementClause(ComplementKind.Proposition, clause, SharesSubject: false), null);
+        var last = balanced && language.Complementation.Last;
+        return [.. Flat(Order(language.WordOrder, subject, verb, last ? null : complement, WhereObliquesGo(language, [(Closeness.Reason, adverbs)]))), .. last ? complement : []];
+    }
 
     private static IReadOnlyList<Word> Words(Language language, Statement clause, Modal modal, IReadOnlyList<Word> adverbs) => clause.Value switch
     {

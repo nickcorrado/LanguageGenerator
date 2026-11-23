@@ -45,6 +45,20 @@ public static class GlossPrompt
                 you should not follow them
                   follow.NEG.ADVS  subject:2SG  object:3PL
 
+            - A modal can also be the speaker's judgment of whether something is so: DUB for 'may',
+              'might' or 'could' meaning perhaps, and for 'maybe' or 'perhaps', and PRSM for 'must'
+              meaning surely, and for 'surely' or 'probably'. These judge the clause whole, so its
+              tense and aspect stay what they'd be without the modal, and they can take PRF and PROG.
+              'You must find the key' is OBLIG, but 'she must be tired' is PRSM; 'you may go' is PERM,
+              but 'it may rain' is DUB:
+
+                he must have left
+                  leave.PRF.PRSM  subject:3SG.M
+                maybe they are waiting for us
+                  wait.PROG.DUB  subject:3PL  object:1PL
+                she might not come
+                  come.NEG.DUB  subject:3SG.F
+
             - A passive verb has PASS, its subject is what's done to, and agent: is who does it, if the
               sentence says: 'each light is carried by a small figure' is
               carry.PASS  subject:(light every)  agent:(figure.NDF small). Keep a passive passive.
@@ -93,14 +107,14 @@ public static class GlossPrompt
               for a past habit, or a word saying it's usual, as 'usually' or 'every night'. 'She used
               to walk there' is walk.PST.HAB, 'each night he would sit by the fire' sit.PST.HAB, and
               'he usually drinks alone' drink.HAB. 'Would' that isn't a habit, as in 'would it be so
-              terrible?', isn't HAB.
+              terrible?', isn't HAB and has no gloss yet.
             - Beginning or ceasing to do something is begin or stop with a to clause, whatever verb
               English uses: 'she began to hum' is begin.PST.PFV object:[to  hum], 'they started
               running' begin.PST.PFV object:[to  run], and 'everyone stops talking' stop
               object:[to  talk]. Begin or stop with no verb after it stays as it is, as in 'the forest
               begins where the fields end' or 'they stop'.
-            - A modal can't take PRF or PROG yet, so 'must have gone' or 'should be waiting' can't be
-              expressed.
+            - Only DUB and PRSM take PRF or PROG, so 'should have gone' or 'should be waiting' can't
+              be expressed.
 
             Pronouns are a person and number instead of a word, as in subject:1SG or object:3PL, then
             optionally .INCL or .EXCL for 'we' (whether it includes the hearer), and a gender for a
@@ -324,14 +338,14 @@ public static class GlossPrompt
               word' is that he did what he promised. Keep a figure of speech only where anyone could
               follow its picture, as in 'the forest began to take what it was owed' or 'the crows
               tell me everything'.
-            - Never drop a modal, like might or maybe, that has no gloss: 'it might rain'
-              doesn't say 'it rains'.
+            - Never drop a modal that has no gloss, like a 'would' or 'could' that imagines
+              something: 'would it be so terrible?' doesn't ask 'is it terrible?'.
             - Never drop or paraphrase away a word that negates, like 'nobody', 'nothing', 'never' or 'no':
               'nobody believes him' is subject:nobody, not 'people do not believe him', and 'she
               says no' keeps object:no.
             - When a sentence can't be said even loosely, as with a question asking two things, or
               how long, how often, how many, which or whose, or a question inside another clause that isn't quoted (like 'did anyone see what happened?'), a modal other than ABIL,
-              PERM, OBLIG or ADVS (like might or maybe), a relative clause with 'whose' or on a
+              PERM, OBLIG, ADVS, DUB or PRSM (like a 'would' or 'could' that imagines something), a relative clause with 'whose' or on a
               pronoun (like 'he who hesitates'), a comparison other than an adjective with be (like 'runs faster than',
               'stronger arms than yours' or 'as tall as'), a comparison with a clause (like 'warmer
               than it should be' or 'slower than before'), the most or a superlative (like 'the

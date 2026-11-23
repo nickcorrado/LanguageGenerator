@@ -16,7 +16,7 @@ public class ModalTests
     //where the modal's marker is in a sentence: the modal verb's word, or the word with its affix or particle
     private static int ModalAt(Sentence sentence) => sentence.Words.ToList().FindIndex(w => w.Word.Morphemes.Any(m => m.Value switch
     {
-        Root r => r.Meaning is "can" or "may" or "must" or "should",
+        Root r => r.Meaning is "can" or "may" or "must" or "should" or "might",
         Affix a => a.Grammemes.Any(g => g is Modality),
         Particle p => p.Grammemes.Any(g => g is Modality),
     }));
@@ -203,4 +203,57 @@ public class ModalTests
     [InlineData("go.ABIL.OBLIG  subject:2SG", "more than one modality")]
     public void Parse_BadModals_SayWhy(string gloss, string message) =>
         Assert.Contains(message, Assert.Throws<ClauseFormatException>(() => ClauseFile.Parse($"x\n  {gloss}")).Message);
+
+    //a few languages marking an epistemic modal as this says, each generated for the test
+    private static IEnumerable<Language> Epistemic(Modality modality, ModalKind kind, Func<LanguageSpec, LanguageSpec> more) =>
+        Enumerable.Range(0, 4).Select(seed => Generator.Generate(seed, more(LanguageSpec.Free.Fix(Settings.ModalOf(modality), kind))));
+
+    [Theory]
+    [InlineData("Dubitative", false)]
+    [InlineData("Presumptive", false)]
+    [InlineData("Dubitative", true)]
+    public void Realize_EpistemicModalVerb_IsImpersonalAndLeavesTheClauseItsTense(string modality, bool negative) =>
+        Assert.All(Epistemic(ClauseFile.ValuesOf<Modality>().Single(m => m.Name == modality), ModalKind.Verb,
+            s => s.Fix(Settings.PropositionBalance, Balance.Balanced).Fix(Settings.Negation, NegationStrategy.Prefix, NegationStrategy.Suffix)), l =>
+        {
+            var epistemic = ClauseFile.ValuesOf<Modality>().Single(m => m.Name == modality);
+            var clause = DogEatsFish(false) with { Tense = Tense.Past };
+            var sentence = Realized(l, new Modalized(clause, epistemic, negative));
+            var plain = Realized(l, clause);
+            var eat = l.Lexicon.Verb("eat").Root;
+            var modal = sentence.Words[ModalAt(sentence)];
+
+            //what's judged keeps its own tense and agreement, and the judgment is the speaker's now, about 'it'
+            Assert.Equal(plain.Words[IndexOf(plain, eat)].Gloss, sentence.Words[IndexOf(sentence, eat)].Gloss);
+            Assert.Equal(ModalityMap.VerbGloss(epistemic), modal.Word.Root!.Meaning);
+            Assert.DoesNotContain(Tense.Past.Gloss, modal.Gloss);
+            Assert.Equal(negative, IsNegated(modal.Word));
+        });
+
+    [Theory]
+    [InlineData(ModalKind.Affix)]
+    [InlineData(ModalKind.Particle)]
+    public void Realize_EpistemicAffixOrParticle_LeavesTheVerbItsTense(ModalKind kind) =>
+        Assert.All(Epistemic(Modality.Presumptive, kind, s => kind == ModalKind.Affix ? s.Inflecting() : s), l =>
+        {
+            var clause = DogEatsFish(false) with { Tense = Tense.Past, Aspect = Aspect.Perfect };
+            var sentence = Realized(l, new Modalized(clause, Modality.Presumptive, false));
+            var plain = Realized(l, clause);
+            var eat = l.Lexicon.Verb("eat").Root;
+
+            Assert.Equal(plain.Words[IndexOf(plain, eat)].Gloss,
+                sentence.Words[IndexOf(sentence, eat)].Gloss.Replace($"-{Modality.Presumptive.Gloss}", "").Replace($"{Modality.Presumptive.Gloss}-", ""));
+            Assert.Equal(kind == ModalKind.Particle ? plain.Words.Count + 1 : plain.Words.Count, sentence.Words.Count);
+        });
+
+    [Theory]
+    [InlineData("leave.PRF.PRSM  subject:3SG.M", "Presumptive", "Perfect")]
+    [InlineData("wait.PROG.DUB  subject:3PL  object:1PL", "Dubitative", "Progressive")]
+    public void Parse_EpistemicModal_JudgesThePerfectOrProgressive(string gloss, string modality, string aspect)
+    {
+        var modalized = Assert.IsType<Modalized>(Parsed(gloss).Value);
+
+        Assert.Equal(modality, modalized.Modality.Name);
+        Assert.Equal(aspect, Assert.IsType<Clause>(modalized.Clause.Value).Aspect.Name);
+    }
 }

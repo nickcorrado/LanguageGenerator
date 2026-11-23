@@ -303,10 +303,15 @@ public static class ClauseFile
                 ? $"A command can't take {modality.Gloss}: it already says what to do."
                 : $"A comparison can't take {modality.Gloss} yet.", number);
         }
-        //'must have gone' is mostly epistemic, sure of a past, which the modals here aren't
-        if (features.Modality is not null && features.Aspect is { } aspect && (aspect == Aspect.Perfect || aspect == Aspect.Progressive))
+        /*
+          an epistemic modal judges a perfect or progressive whole, as 'he must have left' is sure
+          now of a past; a situational one with either is mostly a regret, as 'you should have gone'
+          is, which can't be said yet
+         */
+        if (features.Modality is { Epistemic: false } situational && features.Aspect is { } aspect && (aspect == Aspect.Perfect || aspect == Aspect.Progressive))
         {
-            throw new ClauseFormatException($"A modal can't take {aspect.Gloss} yet, as in 'must have gone' or 'should be waiting'.", number);
+            throw new ClauseFormatException($"{situational.Gloss} can't take {aspect.Gloss} yet, as in 'should have gone' or 'should be waiting'. " +
+                $"A modal that's sure or unsure of what happened, as in 'must have gone' or 'might be waiting', is {Modality.Presumptive.Gloss} or {Modality.Dubitative.Gloss}.", number);
         }
         var asked = CheckQuestion(features, roles, adverb, number);
 
