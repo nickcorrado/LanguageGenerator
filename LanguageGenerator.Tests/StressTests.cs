@@ -201,6 +201,59 @@ public class StressTests
     }
 
     [Fact]
+    public void PretonicSyncope_LosesTheVowelRightBeforeTheStress()
+    {
+        Phoneme[] kalidana = [Consonant.k, Vowel.a, Consonant.l, Vowel.i, Consonant.d, Vowel.a, Consonant.n, Vowel.a];
+
+        Assert.Equal("kalˈda.na", WithStress(Stress.Penultimate, SoundChange.PretonicSyncope).Realize(TestData.Word(kalidana)).Transcribed());
+        //with the stress on the i, the vowel before it is the first, which has no vowel before it to close
+        Assert.Equal("kalidana", Sounds(WithStress(Stress.Antepenultimate, SoundChange.PretonicSyncope), kalidana));
+    }
+
+    [Fact]
+    public void Aphaeresis_LosesAFirstUnstressedVowel()
+    {
+        Phoneme[] amika = [Vowel.a, Consonant.m, Vowel.i, Consonant.k, Vowel.a];
+
+        Assert.Equal("ˈmi.ka", WithStress(Stress.Penultimate, SoundChange.Aphaeresis).Realize(TestData.Word(amika)).Transcribed());
+        //a stressed first vowel stays
+        Assert.Equal("amika", Sounds(WithStress(Stress.Initial, SoundChange.Aphaeresis), amika));
+        //and so does one before consonants that can't start a word, as CVF's one onset consonant can't
+        Assert.Equal("ampata", Sounds(WithStress(Stress.Penultimate, SoundChange.Aphaeresis), [Vowel.a, Consonant.m, Consonant.p, Vowel.a, Consonant.t, Vowel.a]));
+    }
+
+    [Fact]
+    public void VernersLaw_VoicesAFricativeUnlessTheStressIsRightBeforeIt()
+    {
+        Phoneme[] asa = [Vowel.a, Consonant.s, Vowel.a];
+
+        Assert.Equal("aza", Sounds(WithStress(Stress.Ultimate, SoundChange.VernersLaw), asa));
+        Assert.Equal("asa", Sounds(WithStress(Stress.Initial, SoundChange.VernersLaw), asa));
+        //where stress is free, it's the root's accent that decides
+        var free = TestData.Phonology(SyllableTemplates.CVF, ClusterRepair.Epenthesis) with
+        {
+            Stress = new StressSystem(Stress.Initial, true), SyllableChanges = [SoundChange.VernersLaw],
+        };
+        Assert.Equal("aza", string.Concat(free.Realize(Accented(1, asa)).Phonemes.Select(p => p.IpaSymbol)));
+        Assert.Equal("asa", string.Concat(free.Realize(Accented(0, asa)).Phonemes.Select(p => p.IpaSymbol)));
+    }
+
+    [Fact]
+    public void AccentRetraction_MovesAStoredAccentOffTheLastSyllable()
+    {
+        var phonology = TestData.Phonology(SyllableTemplates.CVF, ClusterRepair.Epenthesis) with
+        {
+            Stress = new StressSystem(Stress.Ultimate, true), SyllableChanges = [SoundChange.AccentRetraction],
+        };
+
+        Assert.Equal("ˈpa.ta", phonology.Realize(Accented(1, Pata)).Transcribed());
+        //a suffix keeps it off the last syllable, so it stays
+        Assert.Equal("paˈta.ma", phonology.Realize(Accented(1, Pata, [Consonant.m, Vowel.a])).Transcribed());
+        //and stress by rule doesn't move
+        Assert.Equal("paˈta", phonology.Realize(Accented(null, Pata)).Transcribed());
+    }
+
+    [Fact]
     public void Generate_GeneratedLanguages_StressOneSyllableOfEveryWord()
     {
         Assert.All(GeneratedLanguages.Sample, l => Assert.All(l.Lexicon.Select(x => l.Phonology.Realize(new Word([x.Root]))), form =>
@@ -231,6 +284,11 @@ public class StressTests
             Assert.True(!changes.Contains(SoundChange.UnstressedReduction) || l.Phonology.Vowels.Contains(Vowel.ə));
             Assert.True(!changes.Contains(SoundChange.Syncope) || l.Phonology.SyllableRule.Template.Slots.Contains(Slot.Final));
             Assert.True(!changes.Contains(SoundChange.Apocope) || l.Phonology.SyllableRule.Template.Slots.Contains(Slot.Final));
+            Assert.True(!changes.Contains(SoundChange.PretonicSyncope) || l.Phonology.SyllableRule.Template.Slots.Contains(Slot.Final)
+                && (l.Phonology.Stress.Free || l.Phonology.Stress.Rule is not (Stress.Initial or Stress.Second or Stress.InitialIfHeavy)));
+            Assert.True(!changes.Contains(SoundChange.Aphaeresis) || l.Phonology.Stress.Free || l.Phonology.Stress.Rule != Stress.Initial);
+            Assert.True(!changes.Contains(SoundChange.VernersLaw) || SoundChange.HasFricativePair(l.Phonology.Consonants));
+            Assert.True(!changes.Contains(SoundChange.AccentRetraction) || l.Phonology.Stress.Free);
             Assert.True(!changes.Contains(SoundChange.UnstressedShortening) || l.Phonology.Vowels.Any(v => v.Long));
             Assert.False(changes.Contains(SoundChange.UnstressedReduction) && changes.Contains(SoundChange.UnstressedRaising));
         });

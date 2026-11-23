@@ -95,7 +95,7 @@ public class SyllableContactTests
         var rand = new Random(1);
         var rule = new SyllableRule(SyllableTemplates.CVF, TestData.Vowels, TestData.Consonants);
 
-        Assert.DoesNotContain(Enumerable.Range(0, 500).SelectMany(_ => Generator.SelectSyllableChanges(rand, rule, TestData.Vowels, SyllableContact.Any)), Repairs.Contains);
+        Assert.DoesNotContain(Enumerable.Range(0, 500).SelectMany(_ => Generator.SelectSyllableChanges(rand, rule, TestData.Vowels, TestData.Consonants, SyllableContact.Any, TestData.Stress)), Repairs.Contains);
     }
 
     [Fact]
@@ -103,7 +103,7 @@ public class SyllableContactTests
     {
         var rand = new Random(1);
         var rule = new SyllableRule(SyllableTemplates.CVF, TestData.Vowels, TestData.Consonants);
-        var draws = Enumerable.Range(0, 2000).Select(_ => Generator.SelectSyllableChanges(rand, rule, TestData.Vowels, SyllableContact.NoRise)).ToList();
+        var draws = Enumerable.Range(0, 2000).Select(_ => Generator.SelectSyllableChanges(rand, rule, TestData.Vowels, TestData.Consonants, SyllableContact.NoRise, TestData.Stress)).ToList();
 
         Assert.Contains(draws, changes => changes.Any(Repairs.Contains));
         Assert.All(draws, changes => Assert.True(changes.Count(Repairs.Contains) <= 1));
