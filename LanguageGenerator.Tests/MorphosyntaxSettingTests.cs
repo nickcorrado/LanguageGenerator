@@ -103,6 +103,6 @@ public class MorphosyntaxSettingTests
     public void Write_ValueNeedingAFormWhereNoneWasDrawn_Throws()
     {
         //no draw is short of a passive for long, so writing one where none was drawn never happens
-        Assert.Throws<InvalidOperationException>(() => Settings.HasPassive.Write(null, [true]));
+        Assert.Throws<NoFormException>(() => Settings.HasPassive.Write(null, [true]));
     }
 }

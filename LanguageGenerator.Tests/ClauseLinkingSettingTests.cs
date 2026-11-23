@@ -78,6 +78,31 @@ public class ClauseLinkingSettingTests
         Assert.All(Enumerable.Range(0, 20).Select(seed => Generator.Generate(seed, spec)), l => SpecTests.AssertMeets(l, spec));
     }
 
+    /*
+      'when' marked at the clause's end is rare in a VO language, and with the rest no draw meets
+      the whole spec, so values are written in. The draw kept must have 'before' and 'until' apart
+      already, since parting them would need a form for the second that a write can't coin. Seed 6
+      once kept one that had them joined, though it was no closer to the spec than others
+     */
+    [Fact]
+    public void Generate_RareSubordinatorsBesideAnEdgeParted_KeepADrawThatHasItParted()
+    {
+        var spec = SpecFile.Parse("""
+            {
+              "constituent-order": "SVO",
+              "subordinators-purpose-because": true,
+              "subordinators-before-until": false,
+              "when-subordinator": "Final",
+              "purpose-subordinator": "Initial",
+              "when-clause-first": false,
+              "purpose-balance": "Balanced",
+              "reason-balance": "Either"
+            }
+            """);
+
+        Assert.All(Enumerable.Range(0, 10).Select(seed => Generator.Generate(seed, spec)), l => SpecTests.AssertMeets(l, spec));
+    }
+
     [Fact]
     public void Generate_SuffixInAVerbObjectLanguage_IsWrittenIn()
     {

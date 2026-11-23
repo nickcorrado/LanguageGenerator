@@ -79,7 +79,7 @@ public class InflectionSettingTests
         var language = GeneratedLanguages.Sample[0];
         var other = language.Pronouns.FirstPersonPlural == FirstPersonPlural.Plain ? FirstPersonPlural.InclusiveExclusive : FirstPersonPlural.Plain;
 
-        Assert.Contains("can't be written in", Assert.Throws<InvalidOperationException>(() => Settings.FirstPersonPlural.Write(language.Pronouns, [other])).Message);
-        Assert.Contains("can't be written in", Assert.Throws<InvalidOperationException>(() => Settings.VerbAgreement.Write(language.Paradigms.Verbs, [!language.Paradigms.Verbs.Categories.Has<Person>()])).Message);
+        Assert.Contains("can't be written in", Assert.Throws<NoFormException>(() => Settings.FirstPersonPlural.Write(language.Pronouns, [other])).Message);
+        Assert.Contains("can't be written in", Assert.Throws<NoFormException>(() => Settings.VerbAgreement.Write(language.Paradigms.Verbs, [!language.Paradigms.Verbs.Categories.Has<Person>()])).Message);
     }
 }
