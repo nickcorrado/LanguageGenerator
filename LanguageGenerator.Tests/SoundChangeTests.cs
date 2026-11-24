@@ -614,7 +614,7 @@ public class SoundChangeTests
     [Fact]
     public void FrontBackHarmony_Prefix_AgreesWithTheRootToo()
     {
-        var word = new Word([new Affix([Consonant.l, Vowel.æ], [Number.Plural]), new Root(Ka, "dog", null)]);
+        var word = new Word([new Affix([Consonant.l, Vowel.æ], [Number.Plural], AffixAccent.None), new Root(Ka, "dog", null)]);
         var phonology = TestData.Phonology(SyllableTemplates.CV, ClusterRepair.Epenthesis, SoundChange.FrontBackHarmony);
 
         Assert.Equal("laka", string.Concat(phonology.Realize(word).Phonemes.Select(p => p.IpaSymbol)));

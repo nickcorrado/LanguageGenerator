@@ -374,9 +374,11 @@ public static class LanguageDescription
         /*
           each paradigm, shown on the first lexeme that uses it, and the pronouns' on 1SG. Spelled surface
           forms come first, with the underlying form after them in IPA wherever sandhi or cluster repair
-          changed something
+          changed something. Where stress is free, each form's transcription shows where its stress
+          falls, on the first lexeme whose root stores no accent, if any, so its affixes' accents decide
          */
-        var shown = lang.Paradigms.All.Select(p => (Paradigm: p, Lexeme: lang.Lexicon.First(l => l.PartOfSpeech == p.PartOfSpeech)))
+        var free = phonology.Stress.Free;
+        var shown = lang.Paradigms.All.Select(p => (Paradigm: p, Lexeme: lang.Lexicon.Where(l => l.PartOfSpeech == p.PartOfSpeech).OrderBy(l => l.Root.Accent is null ? 0 : 1).First()))
             .Append((pronouns.Paradigm, pronouns.For(new(Person.First, Number.Singular))));
         foreach (var (paradigm, lexeme) in shown)
         {
@@ -390,7 +392,8 @@ public static class LanguageDescription
                 var changed = forms.Any(f => !f.Phonemes.SequenceEqual(f.Word.Morphemes.SelectMany(m => m.Form)));
                 var underlying = string.Join(" ", forms.Select(f => f.Word.Segmented(Orthography.Ipa)));
                 var gloss = string.Join(" ", forms.Select(f => f.Gloss));
-                output.WriteLine($"  {surface,-24} {gloss,-20}{(changed ? $" /{underlying}/" : "")}");
+                var stress = free ? $" [{string.Join(" ", forms.Select(f => f.Transcribed()))}]" : "";
+                output.WriteLine($"  {surface,-24} {gloss,-20}{stress}{(changed ? $" /{underlying}/" : "")}");
             }
         }
     }

@@ -36,7 +36,7 @@ public static partial class Generator
         var positions = NegationPositions(strategy);
 
         Morpheme Marker(ExponentPosition position) => position is ExponentPosition.Prefix or ExponentPosition.Suffix
-            ? new Affix(MarkerForm(rand, true, phonology), grammemes)
+            ? CoinAffix(rand, phonology, MarkerForm(rand, true, phonology), grammemes)
             : new Particle(MarkerForm(rand, false, phonology), grammemes);
         return new Negation(strategy, [.. positions.Select(p => (p, Marker(p)))]);
     }

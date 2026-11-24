@@ -25,7 +25,7 @@ internal static class TestData
 
     //the first form is a root meaning "dog"; any after it are plural suffixes
     public static Word Word(params Phoneme[][] morphemes) =>
-        new([.. morphemes.Select((form, i) => i == 0 ? (Morpheme)new Root(form, "dog", null) : new Affix(form, [Number.Plural]))]);
+        new([.. morphemes.Select((form, i) => i == 0 ? (Morpheme)new Root(form, "dog", null) : new Affix(form, [Number.Plural], AffixAccent.None))]);
 }
 
 //a template with no onsets, which no generated language has, for testing what happens at the edges

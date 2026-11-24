@@ -111,13 +111,16 @@ public static partial class Generator
 
         var propositionPosition = Position(ComplementKind.Proposition);
         var propositionForm = Form(propositionPosition == ComplementizerPosition.Suffix);
-        var proposition = new ComplementMarking(ComplementizerMarker(propositionForm, propositionPosition), propositionPosition,
+        var propositionAccent = CoinAffixAccent(rand, phonology, propositionForm);
+        var proposition = new ComplementMarking(ComplementizerMarker(propositionForm, propositionPosition, propositionAccent), propositionPosition,
             Sampling.Categorical(rand, PropositionBalance), Sampling.Categorical(rand, MarkedAsOdds(ComplementKind.Proposition)));
         var eventPosition = Position(ComplementKind.Event);
         var eventForm = rand.NextDouble() < SharedComplementizerChance && (eventPosition == ComplementizerPosition.Suffix) == (propositionPosition == ComplementizerPosition.Suffix)
             ? propositionForm
             : Form(eventPosition == ComplementizerPosition.Suffix);
-        var @event = new ComplementMarking(ComplementizerMarker(eventForm, eventPosition), eventPosition, eventBalance, Sampling.Categorical(rand, MarkedAsOdds(ComplementKind.Event)));
+        //a complementizer the two share is one morpheme, accent and all
+        var eventAccent = ReferenceEquals(eventForm, propositionForm) ? propositionAccent : CoinAffixAccent(rand, phonology, eventForm);
+        var @event = new ComplementMarking(ComplementizerMarker(eventForm, eventPosition, eventAccent), eventPosition, eventBalance, Sampling.Categorical(rand, MarkedAsOdds(ComplementKind.Event)));
 
         var quotativeKind = Sampling.Categorical(rand, QuotativeOdds(objectFirst));
         if (quotativeKind == QuotativeKind.Complementizer && propositionPosition == ComplementizerPosition.None)
@@ -134,13 +137,14 @@ public static partial class Generator
             (WantComplement.Affix or WantComplement.Particle, _) => DesiderativeKind.Particle,
             _ => DesiderativeKind.Verb,
         };
-        var desiderative = new Desiderative(wantKind, Form(wantKind == DesiderativeKind.Affix),
+        var wantForm = Form(wantKind == DesiderativeKind.Affix);
+        var desiderative = new Desiderative(wantKind, wantForm, CoinAffixAccent(rand, phonology, wantForm),
             rand.NextDouble() < PrefixChance(morphology) ? ExponentPosition.Prefix : ExponentPosition.Suffix, before);
         return new Complementation(proposition, @event, quotative, last, desiderative);
     }
 
-    //a complementizer's morpheme: an affix if it's a suffix, and otherwise a word, said or not
-    public static Morpheme ComplementizerMarker(IReadOnlyList<Phoneme> form, ComplementizerPosition position) => position == ComplementizerPosition.Suffix
-        ? new Affix(form, [Linkage.Complementizer])
+    //a complementizer's morpheme: an affix with this accent if it's a suffix, and otherwise a word, said or not
+    public static Morpheme ComplementizerMarker(IReadOnlyList<Phoneme> form, ComplementizerPosition position, AffixAccent accent) => position == ComplementizerPosition.Suffix
+        ? new Affix(form, [Linkage.Complementizer], accent)
         : new Particle(form, [Linkage.Complementizer]);
 }

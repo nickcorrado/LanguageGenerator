@@ -85,7 +85,7 @@ public static partial class Generator
                 {
                     var form = forms.Draw(() => MarkerForm(rand, isAffix, phonology));
                     List<Grammeme> grammemes = [meaning, .. new Grammeme?[] { gender, number }.OfType<Grammeme>()];
-                    cells[(gender, number)] = isAffix ? new Affix(form, grammemes) : new Particle(form, grammemes);
+                    cells[(gender, number)] = isAffix ? CoinAffix(rand, phonology, form, grammemes) : new Particle(form, grammemes);
                 }
             }
             return new Article(position, cells);
@@ -100,7 +100,7 @@ public static partial class Generator
                 {
                     var form = demonstratives.For(distal, gender ?? genders.Values.FirstOrDefault(), number ?? Number.Singular).Form;
                     List<Grammeme> grammemes = [Definiteness.Definite, .. new Grammeme?[] { gender, number }.OfType<Grammeme>()];
-                    cells[(gender, number)] = demonstratives.IsAffix ? new Affix(form, grammemes) : new Particle(form, grammemes);
+                    cells[(gender, number)] = demonstratives.IsAffix ? CoinAffix(rand, phonology, form, grammemes) : new Particle(form, grammemes);
                 }
             }
             return new Article(demonstratives.Position, cells);

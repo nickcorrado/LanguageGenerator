@@ -79,7 +79,7 @@ public static partial class Generator
             foreach (var subordinator in region)
             {
                 List<Grammeme> meaning = [Linkage.For(subordinator)];
-                markers[subordinator] = new SubordinatorMarking(affix ? new Affix(form, meaning) : new Particle(form, meaning), position,
+                markers[subordinator] = new SubordinatorMarking(affix ? CoinAffix(rand, phonology, form, meaning) : new Particle(form, meaning), position,
                     balances.GetValueOrDefault(subordinator, whenBalance), rand.NextDouble() < BeforeMainChance(subordinator, objectFirst),
                     Sampling.Categorical(rand, SubordinatorMap.AttachmentsOf(subordinator)));
             }

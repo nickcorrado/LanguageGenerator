@@ -88,7 +88,7 @@ public static partial class Generator
                 kind = AspectKind.Particle;
             }
             var form = forms.Draw(() => MarkerForm(rand, kind == AspectKind.Affix, phonology));
-            return new AspectMarker(kind, form, rand.NextDouble() < PrefixChance(morphology) ? ExponentPosition.Prefix : ExponentPosition.Suffix, before);
+            return new AspectMarker(kind, form, CoinAffixAccent(rand, phonology, form), rand.NextDouble() < PrefixChance(morphology) ? ExponentPosition.Prefix : ExponentPosition.Suffix, before);
         }
         var perfect = Marker(PerfectCounts);
         var progressive = Marker(ProgressiveCounts);

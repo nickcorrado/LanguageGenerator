@@ -88,7 +88,7 @@ public static partial class Generator
                 Quantifier.No => Polarity.Negative,
                 _ => Quantification.Universal,
             };
-            return isAffix ? (Morpheme)new Affix(form, [meaning]) : new Particle(form, [meaning]);
+            return isAffix ? (Morpheme)CoinAffix(rand, phonology, form, [meaning]) : new Particle(form, [meaning]);
         });
         var own = new Dictionary<(Quantifier, Ontology), Lexeme>();
         void Own(Quantifier series, Ontology kind) =>

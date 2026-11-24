@@ -77,7 +77,7 @@ public static partial class Generator
             : (before ? ExponentPosition.Prefix : ExponentPosition.Suffix);
         var affix = position is ExponentPosition.Prefix or ExponentPosition.Suffix;
         var form = MarkerForm(rand, affix, phonology);
-        Morpheme marker = affix ? new Affix(form, [Ordinality.Ordinal]) : new Particle(form, [Ordinality.Ordinal]);
+        Morpheme marker = affix ? CoinAffix(rand, phonology, form, [Ordinality.Ordinal]) : new Particle(form, [Ordinality.Ordinal]);
         return new Ordinals(type, first, second, (position, marker));
     }
 

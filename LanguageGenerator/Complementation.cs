@@ -79,13 +79,13 @@ public enum DesiderativeKind
 /// BeforeVerb, as modals are.
 /// </summary>
 //the marker's form is coined whatever the kind, so that a spec can write one in
-public record Desiderative(DesiderativeKind Kind, IReadOnlyList<Phoneme> Form, ExponentPosition AffixPosition, bool BeforeVerb)
+public record Desiderative(DesiderativeKind Kind, IReadOnlyList<Phoneme> Form, AffixAccent Accent, ExponentPosition AffixPosition, bool BeforeVerb)
 {
     /// <summary>The marker on the verb of what's wanted, or null where 'want' is a verb.</summary>
     public ModalMarking? Marking => Kind switch
     {
         DesiderativeKind.Verb => null,
-        DesiderativeKind.Affix => new ModalAffix(new Affix(Form, [Volition.Desiderative]), AffixPosition),
+        DesiderativeKind.Affix => new ModalAffix(new Affix(Form, [Volition.Desiderative], Accent), AffixPosition),
         DesiderativeKind.Particle => new ModalParticle(new Particle(Form, [Volition.Desiderative]), BeforeVerb),
         _ => throw new InvalidOperationException(),
     };
@@ -116,7 +116,7 @@ public record Complementation(ComplementMarking Proposition, ComplementMarking E
         QuotativeKind.Word => (Quotative.Word, Quotative.BeforeQuote ? ExponentPosition.PrecedingParticle : ExponentPosition.FollowingParticle),
         QuotativeKind.Complementizer => Proposition.Position switch
         {
-            ComplementizerPosition.Suffix => (new Affix(Proposition.Marker.Form, [Linkage.Quotative]), ExponentPosition.Suffix),
+            ComplementizerPosition.Suffix => (new Affix(Proposition.Marker.Form, [Linkage.Quotative], Proposition.Marker.Value is Affix a ? a.Accent : AffixAccent.None), ExponentPosition.Suffix),
             ComplementizerPosition.Initial => (new Particle(Proposition.Marker.Form, [Linkage.Quotative]), ExponentPosition.PrecedingParticle),
             ComplementizerPosition.Final => (new Particle(Proposition.Marker.Form, [Linkage.Quotative]), ExponentPosition.FollowingParticle),
             _ => throw new InvalidOperationException("A quotation can only be marked with the complementizer where a proposition has one."),

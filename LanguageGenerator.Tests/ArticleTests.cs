@@ -5,9 +5,9 @@ namespace LanguageGenerator.Tests;
 public class ArticleTests
 {
     private static readonly Root Dog = new([Consonant.d, Vowel.o, Consonant.g], "dog", null);
-    private static readonly Affix Plural = new([Consonant.s], [Number.Plural]);
-    private static readonly Affix Accusative = new([Vowel.a], [Case.Accusative]);
-    private static readonly Affix DefiniteAffix = new([Consonant.n], [Definiteness.Definite]);
+    private static readonly Affix Plural = new([Consonant.s], [Number.Plural], AffixAccent.None);
+    private static readonly Affix Accusative = new([Vowel.a], [Case.Accusative], AffixAccent.None);
+    private static readonly Affix DefiniteAffix = new([Consonant.n], [Definiteness.Definite], AffixAccent.None);
     private static readonly Particle DefiniteWord = new([Consonant.t, Vowel.a], [Definiteness.Definite]);
     private static readonly Particle IndefiniteWord = new([Vowel.u], [Definiteness.Indefinite]);
 

@@ -43,9 +43,9 @@ public enum RelativizerKind
 /// side AffixPosition says.
 /// </summary>
 //the form is coined whatever the kind, so that a spec can write one in
-public record Relativizer(RelativizerKind Kind, IReadOnlyList<Phoneme> Form, ExponentPosition AffixPosition)
+public record Relativizer(RelativizerKind Kind, IReadOnlyList<Phoneme> Form, AffixAccent Accent, ExponentPosition AffixPosition)
 {
-    public Morpheme Marker => Kind == RelativizerKind.Affix ? new Affix(Form, [Linkage.Relative]) : new Particle(Form, [Linkage.Relative]);
+    public Morpheme Marker => Kind == RelativizerKind.Affix ? new Affix(Form, [Linkage.Relative], Accent) : new Particle(Form, [Linkage.Relative]);
 }
 
 /// <summary>

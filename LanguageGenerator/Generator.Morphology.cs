@@ -141,7 +141,7 @@ public static partial class Generator
         {
             if (zeroMarking.IsZero(values))
             {
-                exponents.Add((values, position is ExponentPosition.Prefix or ExponentPosition.Suffix ? new Affix([], values) : new Particle([], values)));
+                exponents.Add((values, position is ExponentPosition.Prefix or ExponentPosition.Suffix ? new Affix([], values, AffixAccent.None) : new Particle([], values)));
                 continue;
             }
             //affixes are often a bare consonant (English -s, -t), which is what gives sandhi and cluster
@@ -150,7 +150,7 @@ public static partial class Generator
             var form = forms.Draw(() => bare
                 ? [phonology.Consonants[Sampling.TruncatedGeometric(rand, phonology.Consonants.Count, phonology.Dropoff.Value)]]
                 : [.. GenerateSyllable(rand, phonology.SyllableRule, phonology.Dropoff, needsOnset: false).Phonemes]);
-            Morpheme exponent = position is ExponentPosition.Prefix or ExponentPosition.Suffix ? new Affix(form, values) : new Particle(form, values);
+            Morpheme exponent = position is ExponentPosition.Prefix or ExponentPosition.Suffix ? CoinAffix(rand, phonology, form, values) : new Particle(form, values);
             exponents.Add((values, exponent));
         }
         return exponents;

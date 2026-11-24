@@ -77,7 +77,7 @@ public static partial class Generator
             {
                 markers[modality] = kind switch
                 {
-                    ModalKind.Affix => new ModalAffix(new Affix(form, [modality]), prefix ? ExponentPosition.Prefix : ExponentPosition.Suffix),
+                    ModalKind.Affix => new ModalAffix(CoinAffix(rand, phonology, form, [modality]), prefix ? ExponentPosition.Prefix : ExponentPosition.Suffix),
                     ModalKind.Verb => new ModalVerb(new Lexeme(CoinRoot(rand, phonology, form, ModalityMap.VerbGloss(modality)), PartOfSpeech.Verb), before),
                     _ => new ModalParticle(new Particle(form, [modality]), before),
                 };

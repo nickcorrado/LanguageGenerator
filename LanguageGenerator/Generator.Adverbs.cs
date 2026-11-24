@@ -35,7 +35,7 @@ public static partial class Generator
         return Sampling.Categorical(rand, counts) switch
         {
             MannerType.Bare => new MannerBare(),
-            MannerType.Affix => new MannerAffix(new Affix(MarkerForm(rand, true, phonology), [Derivation.Adverbial]),
+            MannerType.Affix => new MannerAffix(CoinAffix(rand, phonology, MarkerForm(rand, true, phonology), [Derivation.Adverbial]),
                 rand.NextDouble() < PrefixChance(morphology) ? ExponentPosition.Prefix : ExponentPosition.Suffix),
             _ => new MannerWord(new Particle(MarkerForm(rand, false, phonology), [Derivation.Adverbial]), rand.NextDouble() < MannerWordBeforeChance),
         };

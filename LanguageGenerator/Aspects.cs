@@ -46,7 +46,7 @@ public union AspectMarking(AspectAffix, AspectParticle, AspectAuxiliary);
 /// root the affix goes on, and which side of the verb a particle or auxiliary goes on.
 /// </summary>
 //the form is coined whatever the kind, so that a spec can write one in, as the desiderative's is
-public record AspectMarker(AspectKind Kind, IReadOnlyList<Phoneme> Form, ExponentPosition AffixPosition, bool BeforeVerb)
+public record AspectMarker(AspectKind Kind, IReadOnlyList<Phoneme> Form, AffixAccent Accent, ExponentPosition AffixPosition, bool BeforeVerb)
 {
     /// <summary>
     /// The marking of this aspect or phase, glossed as it, or null where the language doesn't mark
@@ -55,7 +55,7 @@ public record AspectMarker(AspectKind Kind, IReadOnlyList<Phoneme> Form, Exponen
     public AspectMarking? MarkingOf(Grammeme aspect) => Kind switch
     {
         AspectKind.None => null,
-        AspectKind.Affix => new AspectAffix(new Affix(Form, [aspect]), AffixPosition),
+        AspectKind.Affix => new AspectAffix(new Affix(Form, [aspect], Accent), AffixPosition),
         AspectKind.Particle => new AspectParticle(new Particle(Form, [aspect]), BeforeVerb),
         //a completive 'finish' follows its verb in VO and OV languages alike, as Thai kin lɛ́ɛw 'eat
         //finish' and Japanese tabe-te shimau 'eat-CONV finish' do
