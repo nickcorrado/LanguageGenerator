@@ -79,10 +79,11 @@ public readonly record struct Site(Segment Segment, Segment? Previous, Segment? 
   alone. A change is a value, so a language's are a list that can be drawn, compared or extended.
   Besides changing or deleting a sound, a change can insert one after it, which belongs to the
   morpheme after it, as an inserted consonant starts the suffix it comes before. Only changes
-  that run before syllables can insert, since syllable places are counted by sound
+  that run before syllables can insert, since syllable places are counted by sound. A change can
+  also move a stored accent back to the vowel before it, without changing any sound
  */
 public sealed class SoundChange(string name, Func<Site, bool> when, Func<Site, Phonology, Phoneme?> becomes, (Vowel First, Vowel Second)[]? pairs = null,
-    Func<Site, Phonology, Phoneme?>? insertsAfter = null)
+    Func<Site, Phonology, Phoneme?>? insertsAfter = null, Func<Site, bool>? retractsAccent = null)
 {
     public override string ToString() => name;
 
@@ -107,6 +108,11 @@ public sealed class SoundChange(string name, Func<Site, bool> when, Func<Site, P
                 kept = kept with { Accented = true };
             }
             accentForNext = false;
+            if (kept is { Accented: true } && retractsAccent?.Invoke(site) == true && result.FindLastIndex(s => s.Phoneme is Vowel) is >= 0 and var before)
+            {
+                kept = kept with { Accented = false };
+                result[before] = result[before] with { Accented = true };
+            }
             if (segments[i].Accented && kept?.Phoneme is not Vowel)
             {
                 kept = kept is null ? null : kept with { Accented = false };
@@ -271,6 +277,39 @@ public sealed class SoundChange(string name, Func<Site, bool> when, Func<Site, P
     private static bool Unstressed(Site site) => site.Place is { Position: SyllablePosition.Nucleus, Stressed: false };
 
     /// <summary>
+    /// A stored accent on the last syllable of a word moves to the syllable before it, as
+    /// Neo-Štokavian Serbo-Croatian's did (ženà → žèna), so a root accented on its last vowel is
+    /// stressed there only where a suffix follows it.
+    /// </summary>
+    //only a stored accent moves, since stress by rule is already where the rule puts it
+    public static SoundChange AccentRetraction { get; } = new("accent retraction (paˈta → ˈpata)",
+        NeverChanges, (site, _) => site.Sound,
+        retractsAccent: site => site.Sound is Vowel && !site.Word.Skip(site.Index + 1).Any(s => s.Phoneme is Vowel));
+
+    /// <summary>
+    /// A voiceless fricative between voiced sounds takes its voiced counterpart unless the stress falls
+    /// on the vowel right before it, as Germanic's did by Verner's law, so the s of Old English
+    /// wesan 'to be' is the r of wǣron 'were', where the stress once followed it.
+    /// </summary>
+    /*
+      voiced sounds are vowels and sonorants. Where stress is free, roots differ in which of their
+      fricatives voice, and so may the forms of one root, as the stress moves; under a fixed rule,
+      every word voices alike
+     */
+    public static SoundChange VernersLaw { get; } = new("Verner's law (aˈsa → aˈza)",
+        site => site.Sound is Consonant { Voiced: false, Manner: ConsonantManner.Fricative or ConsonantManner.Sibilant }
+            && Voiced(site.Previous?.Phoneme) && Voiced(site.Next?.Phoneme)
+            && site.Word.Take(site.Index).ToList().FindLastIndex(s => s.Phoneme is Vowel) is >= 0 and var vowel && site.Places?[vowel].Stressed == false,
+        (site, phonology) => phonology.Counterpart((Consonant)site.Sound, voiced: true) ?? site.Sound);
+
+    private static bool Voiced(Phoneme? phoneme) => phoneme is Vowel or Consonant { IsObstruent: false, Voiced: true };
+
+    /// <summary>Whether an inventory has a voiceless fricative with a voiced counterpart, for Verner's law.</summary>
+    public static bool HasFricativePair(IReadOnlyCollection<Consonant> consonants) =>
+        consonants.Any(c => c is { Voiced: false, Manner: ConsonantManner.Fricative or ConsonantManner.Sibilant }
+            && consonants.Any(v => v.Voiced && v.Place == c.Place && v.Manner == c.Manner && v.Aspirated == c.Aspirated && v.Labialized == c.Labialized));
+
+    /// <summary>
     /// A long vowel loses its length outside the stressed syllable, as length followed stress in
     /// Latin's daughters.
     /// </summary>
@@ -303,6 +342,59 @@ public sealed class SoundChange(string name, Func<Site, bool> when, Func<Site, P
             && site.Places?[site.Index - 2].Stressed == true
             && site.Word[site.Index + 1].Phoneme is Consonant && site.Word[site.Index + 2].Phoneme is Vowel,
         (site, phonology) => phonology.SyllableRule.IsLegalCoda([(Consonant)site.Word[site.Index - 1].Phoneme]) ? null : site.Sound);
+
+    /// <summary>
+    /// A short vowel right before the stressed syllable is lost between single consonants, as Latin
+    /// verecundia became Spanish vergüenza, so long as the consonants can then close one syllable and
+    /// open the next.
+    /// </summary>
+    //the mirror of syncope, with the stressed vowel after it, so it's never in the first syllable
+    public static SoundChange PretonicSyncope { get; } = new("pretonic syncope (kaliˈdana → kalˈdana)",
+        site => Unstressed(site) && site.Sound is Vowel { Long: false } && site.Index >= 2 && site.Index + 2 < site.Word.Count
+            && site.Word[site.Index - 1].Phoneme is Consonant && site.Word[site.Index - 2].Phoneme is Vowel
+            && site.Word[site.Index + 1].Phoneme is Consonant && site.Word[site.Index + 2].Phoneme is Vowel
+            && site.Places?[site.Index + 2].Stressed == true,
+        (site, phonology) => phonology.SyllableRule.IsLegalCoda([(Consonant)site.Word[site.Index - 1].Phoneme]) ? null : site.Sound);
+
+    /// <summary>
+    /// A short unstressed vowel at the end of a word is lost after a consonant, as Latin mare became
+    /// Spanish mar, so long as the consonants before it can then end the word.
+    /// </summary>
+    /*
+      a vowel must come earlier in the word, so a word is never left without one. Stress that falls
+      by rule is found again over the syllables that are left, as Polish's was when it lost its final
+      vowels, while a stored accent stays on its vowel, which is how Spanish and French came to stress
+      last syllables their rules wouldn't
+     */
+    public static SoundChange Apocope { get; } = new("apocope (ˈmare → ˈmar)",
+        site => Unstressed(site) && site.Sound is Vowel { Long: false } && site.Index == site.Word.Count - 1 && FinalCluster(site.Word) is { Count: > 0 },
+        (site, phonology) => phonology.SyllableRule.IsLegalCoda(FinalCluster(site.Word)!) ? null : site.Sound);
+
+    //the consonants between a word's last two vowels, or null if it has only one
+    private static List<Consonant>? FinalCluster(IReadOnlyList<Segment> word)
+    {
+        var previous = word.Take(word.Count - 1).ToList().FindLastIndex(s => s.Phoneme is Vowel);
+        return previous < 0 ? null : [.. word.Skip(previous + 1).Take(word.Count - 2 - previous).Select(s => (Consonant)s.Phoneme)];
+    }
+
+    /// <summary>
+    /// A short unstressed vowel at the start of a word is lost before a consonant, as English esquire
+    /// became squire, so long as the consonants after it can then start the word.
+    /// </summary>
+    /*
+      the mirror of apocope: a vowel must come later in the word, and stress that falls by rule is
+      found again over the syllables that are left, while a stored accent stays on its vowel
+     */
+    public static SoundChange Aphaeresis { get; } = new("aphaeresis (aˈmika → ˈmika)",
+        site => Unstressed(site) && site.Sound is Vowel { Long: false } && site.Index == 0 && InitialCluster(site.Word) is { Count: > 0 },
+        (site, phonology) => phonology.SyllableRule.IsLegalOnset(InitialCluster(site.Word)!) ? null : site.Sound);
+
+    //the consonants between a word's first two vowels, or null if it has only one
+    private static List<Consonant>? InitialCluster(IReadOnlyList<Segment> word)
+    {
+        var next = word.Skip(1).ToList().FindIndex(s => s.Phoneme is Vowel);
+        return next < 0 ? null : [.. word.Skip(1).Take(next).Select(s => (Consonant)s.Phoneme)];
+    }
 
     //how each unstressed vowel weakens
     private static readonly Dictionary<Phoneme, Vowel> Raised = new()
@@ -544,8 +636,8 @@ public sealed class SoundChange(string name, Func<Site, bool> when, Func<Site, P
     /// <summary>Every change a language's syllable changes can have, in the order they apply.</summary>
     public static IReadOnlyList<SoundChange> SyllableChangeOrder { get; } =
     [
-        CodaDevoicing, CodaWeakening, CompensatoryLengthening, ClosedSyllableLaxing, OpenSyllableLengthening, UnstressedShortening, Syncope,
-        UnstressedReduction, UnstressedRaising, CodaAssimilation, OnsetHardening, CodaNasalization,
+        AccentRetraction, CodaDevoicing, CodaWeakening, CompensatoryLengthening, ClosedSyllableLaxing, VernersLaw, OpenSyllableLengthening, UnstressedShortening,
+        Syncope, PretonicSyncope, Apocope, Aphaeresis, UnstressedReduction, UnstressedRaising, CodaAssimilation, OnsetHardening, CodaNasalization,
     ];
 
     /// <summary>The change for each kind of harmony, of which a language has one at most.</summary>

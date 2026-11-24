@@ -98,9 +98,15 @@ public static partial class Generator
       and weakening need obstruents in codas, which a coda restriction rules out, and lengthening needs
       long vowels. The odds are guesses
      */
-    public static List<SoundChange> SelectSyllableChanges(Random rand, SyllableRule rule, IReadOnlyCollection<Vowel> vowels, SyllableContact contact)
+    public static List<SoundChange> SelectSyllableChanges(Random rand, SyllableRule rule, IReadOnlyCollection<Vowel> vowels, IReadOnlyCollection<Consonant> consonants,
+        SyllableContact contact, StressSystem stress)
     {
         var changes = new List<SoundChange>();
+        //only a stored accent retracts. The odds are a guess
+        if (rand.NextDouble() < 0.3 && stress.Free)
+        {
+            changes.Add(SoundChange.AccentRetraction);
+        }
         var codas = rule.Template.Slots.Any(s => s is Slot.Final);
         if (rand.NextDouble() < 0.2 && codas && rule.Codas == CodaRestriction.Any)
         {
@@ -121,9 +127,18 @@ public static partial class Generator
 
         /*
           changes that follow the stress. The odds are guesses. Length can only follow stress in a
-          language with long vowels, syncope needs codas for the consonants it brings together, and an
-          unstressed vowel weakens to schwa where there is one, or else rises to a close vowel
+          language with long vowels, syncope before or after the stress needs codas for the consonants
+          it brings together, apocope for those it leaves at the end of a word, and an unstressed vowel
+          weakens to schwa where there is one, or else rises to a close vowel. Verner's law needs a
+          fricative to voice, aphaeresis a first vowel that can go unstressed, which a fixed first
+          syllable never is, and syncope two syllables on the far side of the stress: after it, which
+          stress fixed on either of the last two never has, or before it, which stress fixed on either
+          of the first two never has
          */
+        if (rand.NextDouble() < 0.08 && SoundChange.HasFricativePair(consonants))
+        {
+            changes.Add(SoundChange.VernersLaw);
+        }
         var hasLong = vowels.Any(v => v.Long);
         if (rand.NextDouble() < 0.12 && hasLong)
         {
@@ -133,9 +148,21 @@ public static partial class Generator
         {
             changes.Add(SoundChange.UnstressedShortening);
         }
-        if (rand.NextDouble() < 0.15 && codas)
+        if (rand.NextDouble() < 0.15 && codas && (stress.Free || stress.Rule is not (Stress.Penultimate or Stress.Ultimate or Stress.UltimateIfHeavy)))
         {
             changes.Add(SoundChange.Syncope);
+        }
+        if (rand.NextDouble() < 0.1 && codas && (stress.Free || stress.Rule is not (Stress.Initial or Stress.Second or Stress.InitialIfHeavy)))
+        {
+            changes.Add(SoundChange.PretonicSyncope);
+        }
+        if (rand.NextDouble() < 0.1 && codas)
+        {
+            changes.Add(SoundChange.Apocope);
+        }
+        if (rand.NextDouble() < 0.08 && (stress.Rule != Stress.Initial || stress.Free))
+        {
+            changes.Add(SoundChange.Aphaeresis);
         }
         var weakening = rand.NextDouble();
         if (weakening < 0.2 && vowels.Contains(Vowel.ə))

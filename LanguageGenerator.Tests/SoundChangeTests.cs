@@ -447,7 +447,7 @@ public class SoundChangeTests
         var rule = new SyllableRule(SyllableTemplates.CVF, TestData.Vowels, TestData.Consonants);
 
         Assert.DoesNotContain(SoundChange.CompensatoryLengthening,
-            Enumerable.Range(0, 500).SelectMany(_ => Generator.SelectSyllableChanges(rand, rule, [Vowel.a, Vowel.i], SyllableContact.NoRise)));
+            Enumerable.Range(0, 500).SelectMany(_ => Generator.SelectSyllableChanges(rand, rule, [Vowel.a, Vowel.i], TestData.Consonants, SyllableContact.NoRise, TestData.Stress)));
     }
 
     [Fact]
@@ -521,9 +521,9 @@ public class SoundChangeTests
     {
         var rand = new Random(1);
         var rule = new SyllableRule(SyllableTemplates.CV, TestData.Vowels, TestData.Consonants);
-        SoundChange[] needCodas = [SoundChange.CodaDevoicing, SoundChange.CodaWeakening, SoundChange.CompensatoryLengthening, SoundChange.ClosedSyllableLaxing, SoundChange.Syncope];
+        SoundChange[] needCodas = [SoundChange.CodaDevoicing, SoundChange.CodaWeakening, SoundChange.CompensatoryLengthening, SoundChange.ClosedSyllableLaxing, SoundChange.Syncope, SoundChange.PretonicSyncope, SoundChange.Apocope];
 
-        var drawn = Enumerable.Range(0, 500).SelectMany(_ => Generator.SelectSyllableChanges(rand, rule, TestData.Vowels, SyllableContact.NoRise)).ToList();
+        var drawn = Enumerable.Range(0, 500).SelectMany(_ => Generator.SelectSyllableChanges(rand, rule, TestData.Vowels, TestData.Consonants, SyllableContact.NoRise, TestData.Stress)).ToList();
 
         Assert.DoesNotContain(drawn, needCodas.Contains);
         //the changes that follow stress need no codas
@@ -535,7 +535,7 @@ public class SoundChangeTests
     {
         var rand = new Random(1);
         var rule = new SyllableRule(SyllableTemplates.CVF, TestData.Vowels, TestData.Consonants, CodaRestriction.Sonorants);
-        var drawn = Enumerable.Range(0, 500).SelectMany(_ => Generator.SelectSyllableChanges(rand, rule, TestData.Vowels, SyllableContact.NoRise)).ToList();
+        var drawn = Enumerable.Range(0, 500).SelectMany(_ => Generator.SelectSyllableChanges(rand, rule, TestData.Vowels, TestData.Consonants, SyllableContact.NoRise, TestData.Stress)).ToList();
 
         Assert.Contains(SoundChange.ClosedSyllableLaxing, drawn);
         Assert.DoesNotContain(SoundChange.CodaDevoicing, drawn);

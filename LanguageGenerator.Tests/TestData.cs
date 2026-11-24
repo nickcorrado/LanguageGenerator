@@ -5,6 +5,7 @@ internal static class TestData
 {
     public static List<Vowel> Vowels { get; } = [.. Vowel.All];
     public static List<Consonant> Consonants { get; } = [.. Consonant.All];
+    public static StressSystem Stress { get; } = new(LanguageGenerator.Stress.Penultimate, false);
 
     public static Phonology Phonology(SyllableTemplate template, ClusterRepair repair, params SoundChange[] rules) =>
         Phonology(template, repair, Consonants, rules);
@@ -17,7 +18,7 @@ internal static class TestData
         SoundChanges = [.. rules],
         ClusterRepair = repair,
         EpentheticVowel = Vowel.ə,
-        Stress = new StressSystem(Stress.Penultimate, false),
+        Stress = Stress,
         Dropoff = new Dropoff(0.15),
         SyllableContact = SyllableContact.Any,
     };

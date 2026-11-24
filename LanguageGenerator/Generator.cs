@@ -28,16 +28,18 @@ public static partial class Generator
         var shape = stages.Draw(Settings.SyllableStage, SelectSyllableShape);
         var syllableRule = new SyllableRule(shape.Template, vowels, consonants, shape.Codas);
         var syllableContact = stages.Draw(Settings.SyllableContactStage, rand => SelectSyllableContact(rand, syllableRule));
+        //stress comes before the changes that follow it, which depend on what it is
+        var stress = stages.Draw(Settings.StressStage, SelectStress);
         var phonology = new Phonology
         {
             Vowels = vowels,
             Consonants = consonants,
             SyllableRule = syllableRule,
             SoundChanges = stages.Draw(Settings.SoundChangeStage, rand => SelectSoundChanges(rand, syllableRule, vowels)),
-            SyllableChanges = stages.Draw(Settings.SyllableChangeStage, rand => SelectSyllableChanges(rand, syllableRule, vowels, syllableContact)),
+            SyllableChanges = stages.Draw(Settings.SyllableChangeStage, rand => SelectSyllableChanges(rand, syllableRule, vowels, consonants, syllableContact, stress)),
             ClusterRepair = stages.Draw(Settings.ClusterRepairStage, SelectClusterRepair),
             EpentheticVowel = SelectEpentheticVowel(vowels),
-            Stress = stages.Draw(Settings.StressStage, SelectStress),
+            Stress = stress,
             SyllableContact = syllableContact,
             Dropoff = syllableDropoff,
         };
