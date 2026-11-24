@@ -217,7 +217,7 @@ public sealed class SoundChange(string name, Func<Site, bool> when, Func<Site, P
     /// in Finnish talo-ssa 'in the house' but kylä-ssä 'in the village'.
     /// </summary>
     //a pairs with æ as Finnish a does with ä, being the language's back open vowel, though by its
-    //features it's central. ə and ɨ have no partner, so they're neutral
+    //features it's central. ə, ɨ and the diphthongs have no partner, so they're neutral
     public static SoundChange FrontBackHarmony { get; } = Harmony("front-back harmony (kæ-la → kælæ)",
         [(Vowel.æ, Vowel.a), (Vowel.e, Vowel.o), (Vowel.ɛ, Vowel.ɔ), (Vowel.i, Vowel.u), (Vowel.eː, Vowel.oː), (Vowel.iː, Vowel.uː)]);
 
@@ -308,6 +308,38 @@ public sealed class SoundChange(string name, Func<Site, bool> when, Func<Site, P
                 ? labialized
                 : null;
 
+    //the close vowel each glide is
+    private static readonly Dictionary<Phoneme, Vowel> Vocalized = new() { [Consonant.j] = Vowel.i, [Consonant.w] = Vowel.u };
+
+    /// <summary>
+    /// A glide closing a syllable merges with the vowel before it into the diphthong they make, as
+    /// a vowel gliding toward i or u is a diphthong, so the Spanish rey 'king' is said with ei.
+    /// </summary>
+    /*
+      every language with diphthongs has it, where it has the diphthong, so a vowel and a glide after
+      it never sound like a diphthong without being one, whether a root or an affix put them
+      together: ka-j gives kai. A glide that starts the next syllable stays, as in ka.ja. It comes
+      right after labialization, which only touches onsets, so the rest see the diphthong. The
+      diphthong keeps the vowel's morpheme, so a suffix of just the glide is left with no sound of its own
+     */
+    public static SoundChange GlideVocalization { get; } = new("glide vocalization (kaj → kai)",
+        site => site.Place?.Position is SyllablePosition.Nucleus or SyllablePosition.Coda,
+        (site, phonology) => site.Place!.Value.Position switch
+        {
+            SyllablePosition.Nucleus => VocalizedAfter(site.Word, site.Index, site.Places!, phonology) ?? site.Sound,
+            SyllablePosition.Coda => VocalizedAfter(site.Word, site.Index - 1, site.Places!, phonology) is null ? site.Sound : null,
+            SyllablePosition.Onset => site.Sound,
+            _ => throw new ArgumentOutOfRangeException(nameof(site), site.Place, null),
+        });
+
+    //the diphthong the vowel here makes with a glide closing its syllable, if the language has it
+    private static Vowel? VocalizedAfter(IReadOnlyList<Segment> word, int index, IReadOnlyList<SyllablePlace> places, Phonology phonology) =>
+        index >= 0 && index + 1 < word.Count && places[index + 1].Position == SyllablePosition.Coda
+            && Vocalized.TryGetValue(word[index + 1].Phoneme, out var close)
+            && Vowel.DiphthongOf(word[index].Phoneme, close) is { } diphthong && phonology.Vowels.Contains(diphthong)
+                ? diphthong
+                : null;
+
     /// <summary>
     /// A stored accent on the last syllable of a word moves to the syllable before it, as
     /// Neo-Štokavian Serbo-Croatian's did (ženà → žèna), so a root accented on its last vowel is
@@ -350,6 +382,22 @@ public sealed class SoundChange(string name, Func<Site, bool> when, Func<Site, P
         (site, phonology) => phonology.Vowels.FirstOrDefault(v => !v.Long && v.Lengthened == site.Sound) ?? site.Sound);
 
     /// <summary>
+    /// A diphthong outside the stressed syllable becomes a single vowel, as Latin's ae and oe became
+    /// e, and au o, in Romance: ai, ei and oi give e, au and ou give o, and ui gives i.
+    /// </summary>
+    //where the language lacks that vowel, the diphthong keeps only the vowel it starts on, and where it
+    //lacks that too, it stays a diphthong
+    public static SoundChange UnstressedMonophthongization { get; } = new("unstressed monophthongization (kaiˈta → keˈta)",
+        site => Unstressed(site) && site.Sound is Vowel { IsDiphthong: true },
+        (site, phonology) => new[] { Monophthong((Vowel)site.Sound), ((Vowel)site.Sound).Start! }.FirstOrDefault(phonology.Vowels.Contains) ?? site.Sound);
+
+    private static Vowel Monophthong(Vowel diphthong) =>
+        diphthong == Vowel.ai || diphthong == Vowel.ei || diphthong == Vowel.oi ? Vowel.e
+        : diphthong == Vowel.au || diphthong == Vowel.ou ? Vowel.o
+        : diphthong == Vowel.ui ? Vowel.i
+        : throw new ArgumentOutOfRangeException(nameof(diphthong), diphthong.IpaSymbol, "Not a diphthong.");
+
+    /// <summary>
     /// A stressed vowel in an open syllable lengthens, as in Italian, where the first vowel of casa is
     /// long but not that of carta.
     /// </summary>
@@ -369,7 +417,7 @@ public sealed class SoundChange(string name, Func<Site, bool> when, Func<Site, P
       on its vowel, as Italian's did
      */
     public static SoundChange Syncope { get; } = new("syncope (ˈkalida → ˈkalda)",
-        site => Unstressed(site) && site.Sound is Vowel { Long: false } && site.Index >= 2 && site.Index + 2 < site.Word.Count
+        site => Unstressed(site) && site.Sound is Vowel { Heavy: false } && site.Index >= 2 && site.Index + 2 < site.Word.Count
             && site.Word[site.Index - 1].Phoneme is Consonant && site.Word[site.Index - 2].Phoneme is Vowel
             && site.Places?[site.Index - 2].Stressed == true
             && site.Word[site.Index + 1].Phoneme is Consonant && site.Word[site.Index + 2].Phoneme is Vowel,
@@ -382,7 +430,7 @@ public sealed class SoundChange(string name, Func<Site, bool> when, Func<Site, P
     /// </summary>
     //the mirror of syncope, with the stressed vowel after it, so it's never in the first syllable
     public static SoundChange PretonicSyncope { get; } = new("pretonic syncope (kaliˈdana → kalˈdana)",
-        site => Unstressed(site) && site.Sound is Vowel { Long: false } && site.Index >= 2 && site.Index + 2 < site.Word.Count
+        site => Unstressed(site) && site.Sound is Vowel { Heavy: false } && site.Index >= 2 && site.Index + 2 < site.Word.Count
             && site.Word[site.Index - 1].Phoneme is Consonant && site.Word[site.Index - 2].Phoneme is Vowel
             && site.Word[site.Index + 1].Phoneme is Consonant && site.Word[site.Index + 2].Phoneme is Vowel
             && site.Places?[site.Index + 2].Stressed == true,
@@ -399,7 +447,7 @@ public sealed class SoundChange(string name, Func<Site, bool> when, Func<Site, P
       last syllables their rules wouldn't
      */
     public static SoundChange Apocope { get; } = new("apocope (ˈmare → ˈmar)",
-        site => Unstressed(site) && site.Sound is Vowel { Long: false } && site.Index == site.Word.Count - 1 && FinalCluster(site.Word) is { Count: > 0 },
+        site => Unstressed(site) && site.Sound is Vowel { Heavy: false } && site.Index == site.Word.Count - 1 && FinalCluster(site.Word) is { Count: > 0 },
         (site, phonology) => phonology.SyllableRule.IsLegalCoda(FinalCluster(site.Word)!) ? null : site.Sound);
 
     //the consonants between a word's last two vowels, or null if it has only one
@@ -418,7 +466,7 @@ public sealed class SoundChange(string name, Func<Site, bool> when, Func<Site, P
       found again over the syllables that are left, while a stored accent stays on its vowel
      */
     public static SoundChange Aphaeresis { get; } = new("aphaeresis (aˈmika → ˈmika)",
-        site => Unstressed(site) && site.Sound is Vowel { Long: false } && site.Index == 0 && InitialCluster(site.Word) is { Count: > 0 },
+        site => Unstressed(site) && site.Sound is Vowel { Heavy: false } && site.Index == 0 && InitialCluster(site.Word) is { Count: > 0 },
         (site, phonology) => phonology.SyllableRule.IsLegalOnset(InitialCluster(site.Word)!) ? null : site.Sound);
 
     //the consonants between a word's first two vowels, or null if it has only one
@@ -435,10 +483,11 @@ public sealed class SoundChange(string name, Func<Site, bool> when, Func<Site, P
     };
 
     /// <summary>
-    /// An unstressed vowel other than a close one weakens to schwa, as in English or Catalan.
+    /// An unstressed short vowel other than a close one weakens to schwa, as in English or Catalan.
     /// </summary>
+    //long vowels and diphthongs are left to the changes that shorten them, which come before this
     public static SoundChange UnstressedReduction { get; } = new("unstressed reduction (ˈpata → ˈpatə)",
-        site => Unstressed(site) && site.Sound is Vowel { Long: false, Height: not VowelHeight.Close } vowel && vowel != Vowel.ə,
+        site => Unstressed(site) && site.Sound is Vowel { Heavy: false, Height: not VowelHeight.Close } vowel && vowel != Vowel.ə,
         (site, phonology) => phonology.Vowels.Contains(Vowel.ə) ? Vowel.ə : site.Sound);
 
     /// <summary>
@@ -533,10 +582,14 @@ public sealed class SoundChange(string name, Func<Site, bool> when, Func<Site, P
             ? null
             : ((Vowel)site.Sound).Lengthened is { } lengthened && phonology.Vowels.Contains(lengthened) ? lengthened : site.Sound);
 
+    //a diphthong is the same as another only if it glides to the same vowel, so ai and a aren't alike
     private static bool SameQuality(Vowel first, Vowel second) =>
-        first.Height == second.Height && first.Backness == second.Backness && first.Rounded == second.Rounded;
+        first.Height == second.Height && first.Backness == second.Backness && first.Rounded == second.Rounded && first.Offglide == second.Offglide;
 
     private static bool IsHigh(Vowel vowel) => vowel.Height == VowelHeight.Close;
+
+    //whether a vowel takes part in Greek contraction
+    private static bool Contracts(Vowel vowel) => !IsHigh(vowel) && !vowel.IsDiphthong;
 
     //the glide each close vowel becomes, or is echoed by
     private static readonly Dictionary<Phoneme, Consonant> Glides = new()
@@ -569,21 +622,48 @@ public sealed class SoundChange(string name, Func<Site, bool> when, Func<Site, P
     }
 
     /// <summary>
+    /// A vowel and a close vowel after it merge into the diphthong that glides from one to the
+    /// other, as Greek's did, where ε + ι gave ει, and Latin's, where de + inde gave deinde.
+    /// </summary>
+    /*
+      only where the language has the diphthong. A vowel joins at most one diphthong, so in o-u-i the
+      o takes the u and the i is left after them. It follows glide formation, so a close vowel before
+      a vowel has already become a glide, and the vowels it leaves meet the rest of what the language
+      does where vowels meet
+     */
+    public static SoundChange DiphthongFormation { get; } = new("diphthong formation (ka-i → kai)",
+        site => site.Sound is Vowel,
+        (site, phonology) => DiphthongStartingAt(site.Word, site.Index, phonology) is { } diphthong ? diphthong
+            : site.Index > 0 && DiphthongStartingAt(site.Word, site.Index - 1, phonology) is not null ? null
+            : site.Sound);
+
+    //the diphthong the vowel here and the one after it make in this language, if any, which they don't
+    //if this one already makes one with the vowel before it
+    private static Vowel? DiphthongStartingAt(IReadOnlyList<Segment> word, int index, Phonology phonology) =>
+        index + 1 < word.Count && Vowel.DiphthongOf(word[index].Phoneme, word[index + 1].Phoneme) is { } diphthong && phonology.Vowels.Contains(diphthong)
+            && !(index > 0 && DiphthongStartingAt(word, index - 1, phonology) is not null)
+                ? diphthong
+                : null;
+
+    /// <summary>
     /// Two vowels that meet, neither of them close, merge into one long vowel, as in Attic Greek:
     /// a rounded vowel wins, as e + o gave ō, and otherwise the first one does, as a + e gave ā.
     /// </summary>
-    //close vowels don't contract, as Greek ι and υ didn't, so they're left for glide formation, or
-    //left alone. Schwa gives way to anything. The vowel is long where the language has it long
+    /*
+      close vowels don't contract, as Greek ι and υ didn't, so they're left for glide formation, or
+      left alone, and nor do diphthongs, which end in one. Schwa gives way to anything. The vowel is
+      long where the language has it long
+     */
     public static SoundChange GreekContraction { get; } = new("Greek contraction (ka-e → kaː, ke-o → koː)",
-        site => site.Sound is Vowel vowel && !IsHigh(vowel)
-            && (site.Before is Vowel before && !IsHigh(before) || site.Next?.Phoneme is Vowel next && !IsHigh(next)),
+        site => site.Sound is Vowel vowel && Contracts(vowel)
+            && (site.Before is Vowel before && Contracts(before) || site.Next?.Phoneme is Vowel next && Contracts(next)),
         (site, phonology) =>
         {
-            if (site.Before is Vowel before && !IsHigh(before))
+            if (site.Before is Vowel before && Contracts(before))
             {
                 return null;
             }
-            var run = site.Word.Skip(site.Index).Select(s => s.Phoneme).TakeWhile(p => p is Vowel v && !IsHigh(v)).Cast<Vowel>().ToList();
+            var run = site.Word.Skip(site.Index).Select(s => s.Phoneme).TakeWhile(p => p is Vowel v && Contracts(v)).Cast<Vowel>().ToList();
             var full = run.Where(v => v != Vowel.ə).DefaultIfEmpty(Vowel.ə).ToList();
             var winner = full.FirstOrDefault(v => v.Rounded) ?? full[0];
             return winner.Lengthened is { } lengthened && phonology.Vowels.Contains(lengthened) ? lengthened : winner;
@@ -593,16 +673,20 @@ public sealed class SoundChange(string name, Func<Site, bool> when, Func<Site, P
     /// A glide comes between vowels that meet, the one that goes with the first vowel, as in many
     /// languages of West Africa and the Pacific: j after a front vowel, w after a rounded one.
     /// </summary>
-    //after a, ə or ɨ, which go with neither, the glide goes with the second vowel instead. A language
-    //without the glide leaves the vowels as they are
+    /*
+      a diphthong ends on a close vowel, so the glide is that one's, as ai-a gives aija. After a, ə or
+      ɨ, which go with neither, the glide goes with the second vowel instead. A language without the
+      glide leaves the vowels as they are
+     */
     public static SoundChange GlideInsertion { get; } = new("glide insertion (ki-a → kija, ku-a → kuwa)",
         NeverChanges, Nothing,
         insertsAfter: (site, phonology) =>
         {
-            if (site.Sound is not Vowel first || site.Next?.Phoneme is not Vowel second)
+            if (site.Sound is not Vowel vowel || site.Next?.Phoneme is not Vowel second)
             {
                 return null;
             }
+            var first = vowel.Offglide ?? vowel;
             var glide = first.Rounded ? Consonant.w
                 : first.Backness == VowelFrontness.Front ? Consonant.j
                 : second.Rounded ? Consonant.w : Consonant.j;
@@ -642,18 +726,21 @@ public sealed class SoundChange(string name, Func<Site, bool> when, Func<Site, P
     /*
       schwa gives way to anything. Otherwise the result is rounded if either vowel was, as Greek o wins
       over e, and halfway between their heights, and long if it can be, since it fills the time of two.
-      Going by features means it works for any inventory
+      Going by features means it works for any inventory. A diphthong meets the vowel after it with
+      the close vowel it ends on, and the vowel before it with the one it starts on, and the result is
+      always a single vowel, or the first one, in an inventory without any
      */
     private static Vowel Merged(Vowel first, Vowel second, Phonology phonology)
     {
+        (first, second) = (first.Offglide ?? first, second.Start ?? second);
         if (first == Vowel.ə || second == Vowel.ə)
         {
             return first == Vowel.ə ? second : first;
         }
         var rounded = first.Rounded || second.Rounded;
         var height = ((int)first.Height + (int)second.Height) / 2.0;
-        return phonology.Vowels.Where(v => v != Vowel.ə)
-            .MinBy(v => (v.Rounded != rounded, Math.Abs((int)v.Height - height), !v.Long, v == Vowel.ɨ))!;
+        return phonology.Vowels.Where(v => v != Vowel.ə && !v.IsDiphthong)
+            .MinBy(v => (v.Rounded != rounded, Math.Abs((int)v.Height - height), !v.Long, v == Vowel.ɨ)) ?? first;
     }
 
     //these come after the changes they list, since static properties are set in the order they're written
@@ -662,14 +749,14 @@ public sealed class SoundChange(string name, Func<Site, bool> when, Func<Site, P
     public static IReadOnlyList<SoundChange> SoundChangeOrder { get; } =
     [
         NasalAssimilation, Degemination, IntervocalicVoicing, Lenition, VoicingAssimilation, FinalDevoicing, FrontBackHarmony, TongueRootHarmony,
-        IdenticalVowelFusion, GlideFormation, VowelElision, VowelCoalescence, GreekContraction, GlideInsertion, GlottalInsertion,
+        IdenticalVowelFusion, GlideFormation, DiphthongFormation, VowelElision, VowelCoalescence, GreekContraction, GlideInsertion, GlottalInsertion,
     ];
 
     /// <summary>Every change a language's syllable changes can have, in the order they apply.</summary>
     public static IReadOnlyList<SoundChange> SyllableChangeOrder { get; } =
     [
-        Labialization, AccentRetraction, CodaDevoicing, CodaWeakening, CompensatoryLengthening, ClosedSyllableLaxing, VernersLaw, OpenSyllableLengthening, UnstressedShortening,
-        Syncope, PretonicSyncope, Apocope, Aphaeresis, UnstressedReduction, UnstressedRaising, CodaAssimilation, OnsetHardening, CodaNasalization,
+        Labialization, GlideVocalization, AccentRetraction, CodaDevoicing, CodaWeakening, CompensatoryLengthening, ClosedSyllableLaxing, VernersLaw, OpenSyllableLengthening, UnstressedShortening,
+        UnstressedMonophthongization, Syncope, PretonicSyncope, Apocope, Aphaeresis, UnstressedReduction, UnstressedRaising, CodaAssimilation, OnsetHardening, CodaNasalization,
     ];
 
     /// <summary>The change for each kind of harmony, of which a language has one at most.</summary>

@@ -36,7 +36,7 @@ Rules keep a value written in from contradicting what was drawn before it: a spa
 
 - A coda restriction needs a syllable template with a coda.
 - A sound change that works on codas, like final devoicing or syncope, needs a template with a coda, and devoicing or weakening a coda needs a coda that can be any consonant. A syllable contact restriction needs a template with a coda, and a contact repair needs a restriction. Accent retraction needs free stress, since only a stored accent moves.
-- A sound change needs the sounds it works with: unstressed reduction needs ə, unstressed raising a mid vowel besides i and u, harmony a pair of vowels it can match, the changes of length long vowels, glide formation and glide insertion j or w, glottal insertion ʔ or h, and Verner's law a voiceless fricative and its voiced counterpart. Where the inventory is free, it's drawn with them.
+- A sound change needs the sounds it works with: unstressed reduction needs ə, unstressed raising a mid vowel besides i and u, harmony a pair of vowels it can match, the changes of length long vowels, diphthong formation and unstressed monophthongization a diphthong, glide formation and glide insertion j or w, glottal insertion ʔ or h, and Verner's law a voiceless fricative and its voiced counterpart. Where the inventory is free, it's drawn with them.
 - Obliques can only go between the object and the verb where the object comes first.
 - An oblique case needs its role to head its region: a dative can't be fixed along with the edge joining recipients to possessors, since the genitive would mark them both.
 - A configuration marked by case needs nouns that inflect, and a case on the location's region.
@@ -74,9 +74,9 @@ The inventory is drawn again until it has every required sound and none forbidde
 
 `vowel-count` and `consonant-count` say how many sounds an inventory has: a number, an array of the numbers allowed, or a range, as `{ "min": 18, "max": 24 }`, either end of which can be left out. A count no draw gives is written in by cutting the rarest sounds or adding the commonest, keeping every sound the spec requires and every sound its sound changes need.
 
-The symbols are the generator's 58 phonemes, given exactly, so `ʦ` and not `ts`, and `aː` with the length mark and not a colon. Long vowels are sounds of their own:
+The symbols are the generator's 64 phonemes, given exactly, so `ʦ` and not `ts`, and `aː` with the length mark and not a colon. Long vowels and diphthongs are sounds of their own, and a diphthong is written as its two vowels, so `ai`:
 
-- Vowels: a e i æ ɛ ə ɨ ɔ o u iː eː aː oː uː
+- Vowels: a e i æ ɛ ə ɨ ɔ o u iː eː aː oː uː ai au ei ou oi ui
 - Consonants: the error for a symbol the generator doesn't have lists them all.
 
 ## Settings
@@ -84,7 +84,7 @@ The symbols are the generator's 58 phonemes, given exactly, so `ʦ` and not `ts`
 | Setting | Values |
 | --- | --- |
 | `vowels`, `consonants` | An array of IPA symbols, commonest first, or `{ "require": [...], "forbid": [...] }` |
-| `vowel-count`, `consonant-count` | A number of sounds from 1 to 15 vowels or 43 consonants, an array of them, or `{ "min": ..., "max": ... }` |
+| `vowel-count`, `consonant-count` | A number of sounds from 1 to 21 vowels or 43 consonants, an array of them, or `{ "min": ..., "max": ... }` |
 | `dropoff` | A number between 0 and 1; 0.15 if free |
 | `syllable-template` | `CV`, `CVF`, `CLV`, `CLVF`, `CGV`, `CGVF`, `SCV`, `SCVF`, `SCLVF`, where C is a consonant, V a vowel, F a final consonant, L a liquid or glide after the first consonant, G only a glide there, j or w, and S a sibilant before it |
 | `coda-restriction` | `Any`, `Sonorants`, `Nasals`, `SingleNasal` |
@@ -92,10 +92,10 @@ The symbols are the generator's 58 phonemes, given exactly, so `ʦ` and not `ts`
 | `free-stress` | `true` if each root may store which of its vowels is stressed, as in Russian |
 | `cluster-repair` | `Epenthesis`, `Deletion` |
 | `syllable-contact` | `Any`, `NoSteepRise`, `NoRise`, what may meet across a syllable boundary |
-| `nasal-assimilation`, `degemination`, `intervocalic-voicing`, `lenition`, `voicing-assimilation`, `final-devoicing`, `glide-formation` | `true` if the language has the sound change |
+| `nasal-assimilation`, `degemination`, `intervocalic-voicing`, `lenition`, `voicing-assimilation`, `final-devoicing`, `glide-formation`, `diphthong-formation` | `true` if the language has the sound change |
 | `vowel-harmony` | `None`, `FrontBack`, `TongueRoot` |
 | `hiatus-resolution` | `None`, `VowelElision`, `VowelCoalescence`, `GreekContraction`, `GlideInsertion`, `GlottalInsertion`, for vowels that meet where morphemes do |
-| `coda-devoicing`, `coda-weakening`, `compensatory-lengthening`, `closed-syllable-laxing`, `open-syllable-lengthening`, `unstressed-shortening`, `syncope`, `pretonic-syncope`, `apocope`, `aphaeresis`, `verners-law`, `accent-retraction` | `true` if the language has the change, which applies once words have syllables |
+| `coda-devoicing`, `coda-weakening`, `compensatory-lengthening`, `closed-syllable-laxing`, `open-syllable-lengthening`, `unstressed-shortening`, `unstressed-monophthongization`, `syncope`, `pretonic-syncope`, `apocope`, `aphaeresis`, `verners-law`, `accent-retraction` | `true` if the language has the change, which applies once words have syllables |
 | `unstressed-vowels` | `None`, `Reduction`, `Raising`, what happens to vowels without the stress |
 | `contact-repair` | `None`, `CodaAssimilation`, `OnsetHardening`, `CodaNasalization` |
 | `constituent-order` | `SOV`, `SVO`, `VSO`, `VOS`, `OVS`, `OSV` |

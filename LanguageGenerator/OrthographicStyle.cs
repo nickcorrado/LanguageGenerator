@@ -53,6 +53,15 @@ public enum LongVowelSpelling
     Doubled,
 }
 
+/// <summary>How the close vowel a diphthong glides toward is written.</summary>
+public enum DiphthongSpelling
+{
+    //ai au, as in German or Hawaiian
+    Vowels,
+    //ay aw, with the letters for j and w, as in Tagalog
+    Glides,
+}
+
 /// <summary>
 /// How /e/ is told apart from /ɛ/, and /o/ from /ɔ/, in a language that has both.
 /// </summary>
@@ -90,6 +99,7 @@ public record OrthographicStyle(
     string VoicedVelarFricative,
     string BilabialFricative,
     string PalatalFricative,
+    DiphthongSpelling Diphthongs,
     DentalFricativeSpelling DentalFricatives = DentalFricativeSpelling.Thorn,
     string VelarNasal = "ŋ",
     string VelarFricative = "x",
@@ -146,6 +156,16 @@ public record OrthographicStyle(
 
     private string Spell(Phoneme phoneme, IReadOnlyCollection<Phoneme> inventory)
     {
+        //the vowel it starts on as the language spells it, so a language marking e apart from ɛ marks ei too
+        if (phoneme is Vowel { IsDiphthong: true } diphthong)
+        {
+            return Spell(diphthong.Start!, inventory) + Diphthongs switch
+            {
+                DiphthongSpelling.Vowels => diphthong.Offglide!.IpaSymbol,
+                DiphthongSpelling.Glides => diphthong.Offglide == Vowel.i ? PalatalGlide : "w",
+                _ => throw new ArgumentOutOfRangeException(nameof(Diphthongs), Diphthongs, null),
+            };
+        }
         if (phoneme is Vowel { Long: true } longVowel)
         {
             var letter = longVowel.IpaSymbol.TrimEnd('ː');
@@ -259,6 +279,6 @@ public record OrthographicStyle(
         phoneme == Consonant.k ? VelarStop : phoneme == Consonant.j ? PalatalGlide : phoneme.IpaSymbol;
 
     public override string ToString() =>
-        $"{Postalveolars} postalveolars, {LongVowels} long vowels, {MidVowels} mid vowels, {DentalFricatives} dental fricatives, schwa {Schwa}, æ {NearOpenFront}, k {VelarStop}, j {PalatalGlide}, ŋ {VelarNasal}, x {VelarFricative}, ɣ {VoicedVelarFricative}, β {BilabialFricative}, ç {PalatalFricative}, "
+        $"{Postalveolars} postalveolars, {LongVowels} long vowels, {MidVowels} mid vowels, {Diphthongs} diphthongs, {DentalFricatives} dental fricatives, schwa {Schwa}, æ {NearOpenFront}, k {VelarStop}, j {PalatalGlide}, ŋ {VelarNasal}, x {VelarFricative}, ɣ {VoicedVelarFricative}, β {BilabialFricative}, ç {PalatalFricative}, "
         + $"{DentalAffricates} dental affricates, {Aspiration} aspirates, ʔ {GlottalStop}, ɲ {PalatalNasal}, c {PalatalStop}, ɨ {CloseCentral}";
 }

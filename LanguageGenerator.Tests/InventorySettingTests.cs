@@ -105,9 +105,11 @@ public class InventorySettingTests
 
     public static TheoryData<string, string> Impossible => new()
     {
-        { """{ "vowels": { "forbid": ["a", "e", "i", "æ", "ɛ", "ə", "ɨ", "ɔ", "o", "iː", "oː", "aː", "eː", "u", "uː"] } }""", "not every vowel can be forbidden" },
+        { """{ "vowels": { "forbid": ["a", "e", "i", "æ", "ɛ", "ə", "ɨ", "ɔ", "o", "iː", "oː", "aː", "eː", "u", "uː", "ai", "au", "ei", "ou", "oi", "ui"] } }""", "not every vowel can be forbidden" },
         { """{ "unstressed-vowels": "Reduction", "vowels": { "forbid": ["ə"] } }""", "Unstressed reduction needs ə" },
         { """{ "glide-formation": true, "consonants": { "forbid": ["j", "w"] } }""", "glide-formation needs j or w" },
+        { """{ "diphthong-formation": true, "vowels": ["a", "i", "u"] }""", "diphthong-formation needs a diphthong" },
+        { """{ "unstressed-monophthongization": true, "vowels": { "forbid": ["ai", "au", "ei", "ou", "oi", "ui"] } }""", "unstressed-monophthongization needs a diphthong" },
     };
 
     [Theory]

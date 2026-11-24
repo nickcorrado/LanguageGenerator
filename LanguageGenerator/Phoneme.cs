@@ -35,17 +35,48 @@ public class Vowel : Phoneme
     public static Vowel u { get; } = new("u", VowelHeight.Close, VowelFrontness.Back, true, false);
     public static Vowel uː { get; } = new("uː", VowelHeight.Close, VowelFrontness.Back, true, true);
 
+    /*
+      falling diphthongs, which glide from one vowel toward a close one in a single syllable, as in
+      English eye or cow, commonest first. Each is one phoneme, as long vowels are, so it's one
+      nucleus. They're written as PHOIBLE writes them, without the IPA's mark for the second part not
+      being a syllable of its own, since a syllable break shows where two vowels are in hiatus
+      instead. Rising diphthongs, as in Spanish pie, are a glide before a vowel, in the onset
+     */
+    public static Vowel ai { get; } = new("ai", a, i);
+    public static Vowel au { get; } = new("au", a, u);
+    public static Vowel ei { get; } = new("ei", e, i);
+    public static Vowel ou { get; } = new("ou", o, u);
+    public static Vowel oi { get; } = new("oi", o, i);
+    public static Vowel ui { get; } = new("ui", u, i);
+
     /// <summary>Every vowel a language can have, from which the generator prunes.</summary>
     //declared after the vowels themselves, since static properties initialize in order
-    public static IReadOnlyList<Vowel> All { get; } = [a, e, i, æ, ɛ, ə, ɨ, ɔ, o, iː, oː, aː, eː, u, uː];
+    public static IReadOnlyList<Vowel> All { get; } = [a, e, i, æ, ɛ, ə, ɨ, ɔ, o, iː, oː, aː, eː, u, uː, ai, au, ei, ou, oi, ui];
 
+    /// <summary>Every diphthong, commonest first.</summary>
+    public static IReadOnlyList<Vowel> Diphthongs { get; } = [ai, au, ei, ou, oi, ui];
+
+    //a diphthong's height, backness and rounding are its first part's
     public VowelHeight Height { get; }
     public VowelFrontness Backness { get; }
     public bool Rounded { get; }
     public bool Long { get; }
 
-    /// <summary>The same vowel held longer, if there is one.</summary>
-    public Vowel? Lengthened => Long ? null : All.FirstOrDefault(v => v.Long && v.Height == Height && v.Backness == Backness && v.Rounded == Rounded);
+    /// <summary>The vowel a diphthong starts on, or null for a single vowel.</summary>
+    public Vowel? Start { get; }
+    /// <summary>The close vowel a diphthong glides toward, or null for a single vowel.</summary>
+    public Vowel? Offglide { get; }
+    public bool IsDiphthong => Offglide is not null;
+
+    /// <summary>Whether the vowel fills the time of two, as a long vowel or a diphthong does, making its syllable heavy.</summary>
+    public bool Heavy => Long || IsDiphthong;
+
+    /// <summary>The same vowel held longer, if there is one. A diphthong has none.</summary>
+    public Vowel? Lengthened => Long || IsDiphthong ? null
+        : All.FirstOrDefault(v => v.Long && v.Height == Height && v.Backness == Backness && v.Rounded == Rounded);
+
+    /// <summary>The diphthong that starts on one vowel and glides toward the other, if there is one.</summary>
+    public static Vowel? DiphthongOf(Phoneme start, Phoneme offglide) => Diphthongs.FirstOrDefault(d => d.Start == start && d.Offglide == offglide);
 
     private Vowel(string ipaSymbol, VowelHeight vowelHeight, VowelFrontness vowelBackness, bool rounded, bool @long)
         : base(ipaSymbol)
@@ -54,6 +85,13 @@ public class Vowel : Phoneme
         Backness = vowelBackness;
         Rounded = rounded;
         Long = @long;
+    }
+
+    private Vowel(string ipaSymbol, Vowel start, Vowel offglide)
+        : this(ipaSymbol, start.Height, start.Backness, start.Rounded, false)
+    {
+        Start = start;
+        Offglide = offglide;
     }
 }
 

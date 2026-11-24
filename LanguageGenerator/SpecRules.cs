@@ -64,6 +64,8 @@ public static class SpecRules
         SoundNeed<Vowel>.Of(Settings.CompensatoryLengthening, on => on ? HasLong : null, "compensatory-lengthening needs long vowels."),
         SoundNeed<Vowel>.Of(Settings.OpenSyllableLengthening, on => on ? HasLong : null, "open-syllable-lengthening needs long vowels."),
         SoundNeed<Vowel>.Of(Settings.UnstressedShortening, on => on ? HasLong : null, "unstressed-shortening needs long vowels."),
+        SoundNeed<Vowel>.Of(Settings.DiphthongFormation, on => on ? HasDiphthong : null, "diphthong-formation needs a diphthong."),
+        SoundNeed<Vowel>.Of(Settings.UnstressedMonophthongization, on => on ? HasDiphthong : null, "unstressed-monophthongization needs a diphthong."),
         SoundNeed<Vowel>.Of(Settings.UnstressedVowels, kind => kind switch
             {
                 UnstressedVowels.Reduction => vowels => vowels.Contains(Vowel.ə),
@@ -403,6 +405,7 @@ public static class SpecRules
     private static bool HasCodas(SyllableTemplate template) => template.Slots.Contains(Slot.Final);
 
     private static bool HasLong(IReadOnlyCollection<Vowel> vowels) => vowels.Any(v => v.Long);
+    private static bool HasDiphthong(IReadOnlyCollection<Vowel> vowels) => vowels.Any(v => v.IsDiphthong);
 
     private static bool HasGlide(IReadOnlyCollection<Consonant> consonants) => consonants.Contains(Consonant.j) || consonants.Contains(Consonant.w);
 

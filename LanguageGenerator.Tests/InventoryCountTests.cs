@@ -14,7 +14,7 @@ public class InventoryCountTests
     [InlineData("""{ "vowel-count": 5 }""", new[] { 5 })]
     [InlineData("""{ "vowel-count": [3, 7] }""", new[] { 3, 7 })]
     [InlineData("""{ "vowel-count": { "min": 5, "max": 7 } }""", new[] { 5, 6, 7 })]
-    [InlineData("""{ "vowel-count": { "min": 13 } }""", new[] { 13, 14, 15 })]
+    [InlineData("""{ "vowel-count": { "min": 19 } }""", new[] { 19, 20, 21 })]
     public void Parse_Count_AllowsThoseNumbers(string json, int[] counts) =>
         Assert.Equal(counts.Cast<object>(), SpecFile.Parse(json).Allowed(Settings.VowelCount)!);
 
@@ -38,7 +38,7 @@ public class InventoryCountTests
 
     [Fact]
     public void Problems_CountOutOfRange_SaysWhy() =>
-        Assert.Contains(SpecFile.Parse("""{ "vowel-count": 16 }""").Problems(), p => p.Contains("isn't from 1 to 15"));
+        Assert.Contains(SpecFile.Parse("""{ "vowel-count": 22 }""").Problems(), p => p.Contains("isn't from 1 to 21"));
 
     [Fact]
     public void Generate_CountsFixed_HaveThatMany()
@@ -112,7 +112,7 @@ public class InventoryCountTests
     {
         { """{ "vowel-count": 4, "vowels": ["a", "i", "u"] }""", "An exact list of vowels has to have as many as vowel-count allows" },
         { """{ "consonant-count": 1, "consonants": { "require": ["p", "t"] } }""", "consonant-count has to leave room" },
-        { """{ "vowel-count": 14, "vowels": { "forbid": ["a", "e"] } }""", "can't be more than it allows" },
+        { """{ "vowel-count": 20, "vowels": { "forbid": ["a", "e"] } }""", "can't be more than it allows" },
         { """{ "vowel-count": 2, "unstressed-vowels": "Raising" }""", "vowel-count has to leave room" },
     };
 
