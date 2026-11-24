@@ -276,6 +276,33 @@ public sealed class SoundChange(string name, Func<Site, bool> when, Func<Site, P
 
     private static bool Unstressed(Site site) => site.Place is { Position: SyllablePosition.Nucleus, Stressed: false };
 
+    //each velar and the labialized velar it and a w make
+    private static readonly Dictionary<Phoneme, Consonant> Labialized = new() { [Consonant.k] = Consonant.kʷ, [Consonant.g] = Consonant.gʷ };
+
+    /// <summary>
+    /// A velar and a w after it in the same onset merge into the labialized velar, as Latin qu
+    /// was one sound, kʷ, and not k and w.
+    /// </summary>
+    /*
+      every language with a labialized velar has it, where it has the one that velar makes, so kw
+      never sounds like kʷ without being it, whether a root or an affix put the two together. A w
+      that starts the next syllable after a k closing one stays, as in ak.wa. It comes first among
+      the syllable changes, so the rest see the labialized velar. It keeps the velar's morpheme, so
+      a suffix of just the w is left with no sound of its own
+     */
+    public static SoundChange Labialization { get; } = new("labialization (kwa → kʷa)",
+        site => site.Place?.Position == SyllablePosition.Onset,
+        (site, phonology) => LabializedAt(site.Word, site.Index, site.Places!, phonology) is { } labialized ? labialized
+            : site.Index > 0 && LabializedAt(site.Word, site.Index - 1, site.Places!, phonology) is not null ? null
+            : site.Sound);
+
+    //the labialized velar the velar here makes with a w after it in its onset, if the language has it
+    private static Consonant? LabializedAt(IReadOnlyList<Segment> word, int index, IReadOnlyList<SyllablePlace> places, Phonology phonology) =>
+        index + 1 < word.Count && places[index].Position == SyllablePosition.Onset && places[index + 1].Position == SyllablePosition.Onset
+            && word[index + 1].Phoneme == Consonant.w && Labialized.TryGetValue(word[index].Phoneme, out var labialized) && phonology.Consonants.Contains(labialized)
+                ? labialized
+                : null;
+
     /// <summary>
     /// A stored accent on the last syllable of a word moves to the syllable before it, as
     /// Neo-Štokavian Serbo-Croatian's did (ženà → žèna), so a root accented on its last vowel is
@@ -636,7 +663,7 @@ public sealed class SoundChange(string name, Func<Site, bool> when, Func<Site, P
     /// <summary>Every change a language's syllable changes can have, in the order they apply.</summary>
     public static IReadOnlyList<SoundChange> SyllableChangeOrder { get; } =
     [
-        AccentRetraction, CodaDevoicing, CodaWeakening, CompensatoryLengthening, ClosedSyllableLaxing, VernersLaw, OpenSyllableLengthening, UnstressedShortening,
+        Labialization, AccentRetraction, CodaDevoicing, CodaWeakening, CompensatoryLengthening, ClosedSyllableLaxing, VernersLaw, OpenSyllableLengthening, UnstressedShortening,
         Syncope, PretonicSyncope, Apocope, Aphaeresis, UnstressedReduction, UnstressedRaising, CodaAssimilation, OnsetHardening, CodaNasalization,
     ];
 

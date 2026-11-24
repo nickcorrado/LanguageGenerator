@@ -652,4 +652,68 @@ public class SoundChangeTests
 
         Assert.Equal("kæ-læ", phonology.Realize(TestData.Word([Consonant.k, Vowel.æ], La)).Segmented(Orthography.Ipa));
     }
+
+    private static Phonology Labializing(SyllableTemplate template, List<Consonant> consonants) =>
+        TestData.Phonology(template, ClusterRepair.Epenthesis, consonants) with { SyllableChanges = [SoundChange.Labialization] };
+
+    [Theory]
+    [InlineData(new[] { "k", "w", "a" }, "kʷa")]
+    [InlineData(new[] { "g", "w", "a" }, "gʷa")]
+    [InlineData(new[] { "a", "k", "w", "a" }, "a.kʷa")]
+    //a w after a consonant that makes no labialized velar stays
+    [InlineData(new[] { "t", "w", "a" }, "twa")]
+    public void Labialization_AVelarAndAWInOneOnset_MergeIntoTheLabializedVelar(string[] sounds, string expected)
+    {
+        Phoneme Sound(string ipa) => Vowel.All.Concat<Phoneme>(Consonant.All).Single(p => p.IpaSymbol == ipa);
+
+        var surface = Labializing(SyllableTemplates.CGV, TestData.Consonants).Realize(TestData.Word([.. sounds.Select(Sound)]));
+
+        Assert.Equal(expected, surface.Syllabified(Orthography.Ipa));
+    }
+
+    [Fact]
+    public void Labialization_AWStartingTheNextSyllable_Stays()
+    {
+        //CVF can't put k and w in one onset, so the k closes the first syllable
+        var surface = Labializing(SyllableTemplates.CVF, TestData.Consonants).Realize(TestData.Word([Vowel.a, Consonant.k, Consonant.w, Vowel.a]));
+
+        Assert.Equal("ak.wa", surface.Syllabified(Orthography.Ipa));
+    }
+
+    [Fact]
+    public void Labialization_WithoutTheLabializedVelar_LeavesKw()
+    {
+        List<Consonant> nokʷ = [.. TestData.Consonants.Where(c => !c.Labialized)];
+
+        Assert.Equal("kwa", Labializing(SyllableTemplates.CGV, nokʷ).Realize(TestData.Word([Consonant.k, Consonant.w, Vowel.a])).Syllabified(Orthography.Ipa));
+    }
+
+    [Fact]
+    public void Labialization_AcrossAMorphemeBoundary_KeepsTheVelarsMorpheme()
+    {
+        var surface = Labializing(SyllableTemplates.CGV, TestData.Consonants).Realize(TestData.Word([Vowel.a, Consonant.k], [Consonant.w, Vowel.a]));
+
+        Assert.Equal("a.kʷa", surface.Syllabified(Orthography.Ipa));
+        Assert.Equal("akʷ-a", surface.Segmented(Orthography.Ipa));
+    }
+
+    [Fact]
+    public void GlideFormation_InCGV_HasAnOnsetToGoTo()
+    {
+        Assert.Equal("kja", Surface(SyllableTemplates.CGV, SoundChange.GlideFormation, [Consonant.k, Vowel.i], [Vowel.a]));
+    }
+
+    [Fact]
+    public void Generate_LanguagesThatLabialize_HaveALabializedVelarAndRoomForKw()
+    {
+        var labializing = GeneratedLanguages.Sample.Where(l => l.Phonology.SyllableChanges.Contains(SoundChange.Labialization)).ToList();
+
+        Assert.NotEmpty(labializing);
+        Assert.All(labializing, l =>
+        {
+            var (consonants, rule) = (l.Phonology.Consonants, l.Phonology.SyllableRule);
+            Assert.True(consonants.Contains(Consonant.kʷ) && rule.IsLegalOnset([Consonant.k, Consonant.w])
+                || consonants.Contains(Consonant.gʷ) && rule.IsLegalOnset([Consonant.g, Consonant.w]));
+        });
+    }
 }

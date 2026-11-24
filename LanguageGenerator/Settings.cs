@@ -65,7 +65,7 @@ public static class Settings
         s => s.Template, (s, t) => s with { Template = t },
         new Choice<SyllableTemplate>(
         [
-            ("CV", SyllableTemplates.CV), ("CVF", SyllableTemplates.CVF), ("CLV", SyllableTemplates.CLV), ("CLVF", SyllableTemplates.CLVF),
+            ("CV", SyllableTemplates.CV), ("CVF", SyllableTemplates.CVF), ("CLV", SyllableTemplates.CLV), ("CLVF", SyllableTemplates.CLVF), ("CGV", SyllableTemplates.CGV), ("CGVF", SyllableTemplates.CGVF),
             ("SCV", SyllableTemplates.SCV), ("SCVF", SyllableTemplates.SCVF), ("SCLVF", SyllableTemplates.SCLVF),
         ]));
     /// <summary>Which consonants can close a syllable, where the template lets one.</summary>
