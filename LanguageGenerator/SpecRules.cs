@@ -96,7 +96,7 @@ public static class SpecRules
         //a restriction is only ever drawn for a template with a coda, and means nothing without one
         SpecRule.Together(Settings.SyllableTemplate, Settings.CodaRestriction,
             (template, codas) => codas == CodaRestriction.Any || template.Slots.Contains(Slot.Final),
-            "A coda restriction needs a syllable template with a coda: CVF, CLVF, SCVF or SCLVF."),
+            "A coda restriction needs a syllable template with a coda: CVF, CLVF, CGVF, SCVF or SCLVF."),
         //with the verb before its object, between them is just before the verb, which WALS has no
         //languages with obliques in either
         SpecRule.Together(Settings.ConstituentOrder, Settings.ObliquePosition,
@@ -251,7 +251,7 @@ public static class SpecRules
         .. new[] { Settings.FinalDevoicing, Settings.CodaDevoicing, Settings.CodaWeakening, Settings.CompensatoryLengthening, Settings.ClosedSyllableLaxing, Settings.Syncope, Settings.PretonicSyncope,
             Settings.Apocope }
             .Select(change => SpecRule.Together(Settings.SyllableTemplate, change, (template, on) => !on || HasCodas(template),
-                $"{change.Name} needs a syllable template with a coda: CVF, CLVF, SCVF or SCLVF.")),
+                $"{change.Name} needs a syllable template with a coda: CVF, CLVF, CGVF, SCVF or SCLVF.")),
         .. new[] { Settings.CodaDevoicing, Settings.CodaWeakening }.Select(change => SpecRule.Together(Settings.CodaRestriction, change,
             (codas, on) => !on || codas == CodaRestriction.Any, $"{change.Name} needs codas that can be any consonant, so coda-restriction must be Any.")),
         //only a stored accent retracts, so retraction needs accents to store
@@ -259,7 +259,7 @@ public static class SpecRules
             "accent-retraction needs free stress, since only an accent a root stores moves."),
         //syllable contact only matters across a coda, and a language repairs only the contacts it restricts
         SpecRule.Together(Settings.SyllableTemplate, Settings.SyllableContact, (template, contact) => contact == SyllableContact.Any || HasCodas(template),
-            "A syllable contact restriction needs a syllable template with a coda: CVF, CLVF, SCVF or SCLVF."),
+            "A syllable contact restriction needs a syllable template with a coda: CVF, CLVF, CGVF, SCVF or SCLVF."),
         SpecRule.Together(Settings.SyllableContact, Settings.ContactRepair, (contact, repair) => repair == ContactRepair.None || contact != SyllableContact.Any,
             "A contact repair needs a syllable contact restriction, so syllable-contact can't be Any."),
         //and a change needs the sounds it works with

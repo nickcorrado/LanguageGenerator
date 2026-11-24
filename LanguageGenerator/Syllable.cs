@@ -52,7 +52,7 @@ public class NaturalClass<T> : IReadOnlyList<T> where T : Phoneme
 }
 
 /// <summary>
-/// One of the C, S, L, V and F of a template like CLVF: a kind of sound, whose phonemes aren't
+/// One of the C, S, L, G, V and F of a template like CLVF: a kind of sound, whose phonemes aren't
 /// known until it's resolved against a language's inventory.
 /// </summary>
 //consonantal slots are optional; every syllable has exactly one nucleus, so the vowel never is
@@ -61,6 +61,7 @@ public enum Slot
     Consonant,
     Sibilant,
     Liquid,
+    Glide,
     Vowel,
     Final,
 }
@@ -74,6 +75,7 @@ public static class SlotExtensions
             Slot.Consonant => 'C',
             Slot.Sibilant => 'S',
             Slot.Liquid => 'L',
+            Slot.Glide => 'G',
             Slot.Vowel => 'V',
             Slot.Final => 'F',
             _ => throw new ArgumentOutOfRangeException(nameof(slot), slot, null),
@@ -117,11 +119,14 @@ public static class SyllableTemplates
     public static SyllableTemplate CVF { get; } = new(Slot.Consonant, Slot.Vowel, Slot.Final);
     public static SyllableTemplate CLV { get; } = new(Slot.Consonant, Slot.Liquid, Slot.Vowel);
     public static SyllableTemplate CLVF { get; } = new(Slot.Consonant, Slot.Liquid, Slot.Vowel, Slot.Final);
+    //a consonant and only a glide after it, as in Korean, Mandarin or Swahili
+    public static SyllableTemplate CGV { get; } = new(Slot.Consonant, Slot.Glide, Slot.Vowel);
+    public static SyllableTemplate CGVF { get; } = new(Slot.Consonant, Slot.Glide, Slot.Vowel, Slot.Final);
     public static SyllableTemplate SCV { get; } = new(Slot.Sibilant, Slot.Consonant, Slot.Vowel);
     public static SyllableTemplate SCVF { get; } = new(Slot.Sibilant, Slot.Consonant, Slot.Vowel, Slot.Final);
     public static SyllableTemplate SCLVF { get; } = new(Slot.Sibilant, Slot.Consonant, Slot.Liquid, Slot.Vowel, Slot.Final);
 
-    public static IReadOnlyList<SyllableTemplate> All { get; } = [CV, CVF, CLV, CLVF, SCV, SCVF, SCLVF];
+    public static IReadOnlyList<SyllableTemplate> All { get; } = [CV, CVF, CLV, CLVF, CGV, CGVF, SCV, SCVF, SCLVF];
 }
 
 /// <summary>Which consonants may close a syllable.</summary>
@@ -149,6 +154,7 @@ public class SyllableRule
     private readonly NaturalClass<Consonant> consonants;
     private readonly NaturalClass<Consonant> sibilants;
     private readonly NaturalClass<Consonant> liquids;
+    private readonly NaturalClass<Consonant> glides;
     private readonly NaturalClass<Consonant> finals;
 
     public SyllableRule(SyllableTemplate template, IReadOnlyList<Vowel> vowels, IReadOnlyList<Consonant> consonants, CodaRestriction codas = CodaRestriction.Any)
@@ -158,10 +164,13 @@ public class SyllableRule
         //Where() keeps the inventory's order, which matters because picks are biased toward the front
         Vowels = new(vowels);
         this.consonants = new(consonants);
-        //natural classes, by feature: S is a voiceless sibilant, as in s-clusters like st or šp, and
-        //L is any liquid or glide, as in pl, pr, kw or by
+        /*
+          natural classes, by feature: S is a voiceless sibilant, as in s-clusters like st or šp, L is
+          any liquid or glide, as in pl, pr, kw or by, and G only a glide, as in kw or by but not pl
+         */
         sibilants = new(consonants.Where(c => c.Manner == ConsonantManner.Sibilant && !c.Voiced));
         liquids = new(consonants.Where(c => c.Manner is ConsonantManner.Approximant or ConsonantManner.LateralApproximant or ConsonantManner.Trill or ConsonantManner.Flap));
+        glides = new(consonants.Where(c => c.Manner is ConsonantManner.Approximant && Sonority(c) == 5));
         /*
           generation, legality and cluster repair all read this one class, so restricting it
           restricts codas everywhere. A restriction can leave nothing (a nasals-only language that
@@ -252,6 +261,7 @@ public class SyllableRule
         Slot.Consonant => consonants,
         Slot.Sibilant => sibilants,
         Slot.Liquid => liquids,
+        Slot.Glide => glides,
         Slot.Final => finals,
         Slot.Vowel => throw new ArgumentException("A vowel slot is the nucleus, not a consonant.", nameof(slot)),
         _ => throw new ArgumentOutOfRangeException(nameof(slot), slot, null),

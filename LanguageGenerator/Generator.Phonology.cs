@@ -102,6 +102,13 @@ public static partial class Generator
         SyllableContact contact, StressSystem stress)
     {
         var changes = new List<SoundChange>();
+        //every language with a labialized velar merges a velar and w into it where its onsets can hold
+        //the two, which draws nothing
+        if (consonants.Contains(Consonant.kʷ) && rule.IsLegalOnset([Consonant.k, Consonant.w])
+            || consonants.Contains(Consonant.gʷ) && rule.IsLegalOnset([Consonant.g, Consonant.w]))
+        {
+            changes.Add(SoundChange.Labialization);
+        }
         //only a stored accent retracts. The odds are a guess
         if (rand.NextDouble() < 0.3 && stress.Free)
         {
@@ -394,6 +401,7 @@ public static partial class Generator
             Slot.Consonant => sibilantOnset ? 0.7 : 0.85,
             Slot.Sibilant => 0.5,
             Slot.Liquid => sibilantOnset ? 0.2 : 0.3,
+            Slot.Glide => 0.3,
             Slot.Final => 0.5,
             _ => throw new ArgumentOutOfRangeException(nameof(slot), slot, null),
         };
@@ -426,15 +434,19 @@ public static partial class Generator
       complex, with one coda or an onset of a consonant and a liquid or glide, or both; and 151
       complex, with freer clusters, like the s-clusters of English. Within each band, which template
       is a guess: one coda is commoner than an onset cluster, and English-like SCLVF the commonest
-      of the complex ones
+      of the complex ones. WALS counts a liquid and a glide alike after the first consonant, so how
+      many languages allow only a glide there, as Korean, Mandarin and the Bantu languages do, is a
+      guess too
      */
     private static readonly (SyllableTemplate Template, int Weight)[] SimpleSyllables = [(SyllableTemplates.CV, 1)];
 
     private static readonly (SyllableTemplate Template, int Weight)[] ModeratelyComplexSyllables =
     [
-        (SyllableTemplates.CVF, 50),
-        (SyllableTemplates.CLV, 20),
-        (SyllableTemplates.CLVF, 30),
+        (SyllableTemplates.CVF, 40),
+        (SyllableTemplates.CLV, 15),
+        (SyllableTemplates.CLVF, 25),
+        (SyllableTemplates.CGV, 10),
+        (SyllableTemplates.CGVF, 10),
     ];
 
     private static readonly (SyllableTemplate Template, int Weight)[] ComplexSyllables =

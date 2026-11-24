@@ -14,7 +14,7 @@ public class SyllableTests
     [Fact]
     public void Name_OfEachTemplate_ComesFromItsSlots()
     {
-        Assert.Equal(["CV", "CVF", "CLV", "CLVF", "SCV", "SCVF", "SCLVF"], SyllableTemplates.All.Select(t => t.Name));
+        Assert.Equal(["CV", "CVF", "CLV", "CLVF", "CGV", "CGVF", "SCV", "SCVF", "SCLVF"], SyllableTemplates.All.Select(t => t.Name));
         Assert.Equal("VF", Templates.Onsetless.Name);
     }
 
@@ -42,6 +42,8 @@ public class SyllableTests
     [InlineData("VF")]
     [InlineData("CLV")]
     [InlineData("CLVF")]
+    [InlineData("CGV")]
+    [InlineData("CGVF")]
     [InlineData("SCV")]
     [InlineData("SCVF")]
     [InlineData("SCLVF")]
@@ -117,6 +119,15 @@ public class SyllableTests
     }
 
     [Fact]
+    public void GenerateSyllable_TwoConsonantOnsetInCGV_EndsInAGlide()
+    {
+        var twoConsonants = Generate(SyllableTemplates.CGV, TestData.Consonants, 2000).Where(s => s.Onset.Count == 2).ToList();
+
+        Assert.NotEmpty(twoConsonants);
+        Assert.All(twoConsonants, s => Assert.Contains(s.Onset.Last(), new[] { Consonant.j, Consonant.w }));
+    }
+
+    [Fact]
     public void GenerateSyllable_InventoryWithoutTheSlotsClass_LeavesThatSlotUnfilled()
     {
         var noSibilants = TestData.Consonants.Where(c => c.Manner != ConsonantManner.Sibilant).ToList();
@@ -133,6 +144,11 @@ public class SyllableTests
     [InlineData("SCLVF", "spl", true)]
     [InlineData("SCLVF", "stl", false)]
     [InlineData("SCLVF", "sl", true)]
+    [InlineData("CGV", "kj", true)]
+    [InlineData("CGVF", "kw", true)]
+    [InlineData("CGV", "kl", false)]
+    [InlineData("CGV", "kɹ", false)]
+    [InlineData("CGV", "pw", false)]
     [InlineData("VF", "t", false)]
     [InlineData("VF", "", true)]
     public void IsLegalOnset_FillsSlotsInOrder(string template, string onset, bool legal)
