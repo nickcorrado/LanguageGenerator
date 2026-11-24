@@ -52,7 +52,7 @@ public static partial class Generator
         {
             PolarKind.Particle => new QuestionParticle(new Particle(MarkerForm(rand, false, phonology), [Mood.Interrogative]),
                 Sampling.Categorical(rand, wordOrder.VerbPhraseDirectionality == HeadDirectionality.Initial ? VOParticleCounts : OVParticleCounts)),
-            PolarKind.Affix => new QuestionAffix(new Affix(MarkerForm(rand, true, phonology), [Mood.Interrogative]),
+            PolarKind.Affix => new QuestionAffix(CoinAffix(rand, phonology, MarkerForm(rand, true, phonology), [Mood.Interrogative]),
                 rand.NextDouble() < PrefixChance(morphology) ? ExponentPosition.Prefix : ExponentPosition.Suffix),
             PolarKind.Inversion => new QuestionInversion(),
             _ => new QuestionIntonation(),

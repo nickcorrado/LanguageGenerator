@@ -59,7 +59,7 @@ public static partial class Generator
     {
         var affix = morphology.Fusion != Fusion.Isolating && rand.NextDouble() < DegreeAffixChance;
         DegreeMarker marker = affix
-            ? new DegreeAffix(new Affix(MarkerForm(rand, true, phonology), [Degree.Comparative]),
+            ? new DegreeAffix(CoinAffix(rand, phonology, MarkerForm(rand, true, phonology), [Degree.Comparative]),
                 rand.NextDouble() < PrefixChance(morphology) ? ExponentPosition.Prefix : ExponentPosition.Suffix)
             : new DegreeWord(new Particle(MarkerForm(rand, false, phonology), [Degree.Comparative]), DegreeWordBefore(wordOrder));
         return new DegreeMarking(marker, rand.NextDouble() < DegreeWithStandardChance(comparison));
@@ -77,7 +77,7 @@ public static partial class Generator
     {
         if (morphology.Fusion != Fusion.Isolating && rand.NextDouble() < SimilativeAffixChance)
         {
-            return new SimilativeAffix(new Affix(MarkerForm(rand, true, phonology), [Case.Similative]),
+            return new SimilativeAffix(CoinAffix(rand, phonology, MarkerForm(rand, true, phonology), [Case.Similative]),
                 rand.NextDouble() < PrefixChance(morphology) ? ExponentPosition.Prefix : ExponentPosition.Suffix);
         }
         var forms = new DistinctForms();

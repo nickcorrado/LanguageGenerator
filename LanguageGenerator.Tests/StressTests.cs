@@ -50,7 +50,7 @@ public class StressTests
 
     //a root storing an accent on the given vowel, or none, with plural suffixes after it
     private static Word Accented(int? accent, Phoneme[] root, params Phoneme[][] suffixes) =>
-        new([new Root(root, "dog", accent), .. suffixes.Select(s => (Morpheme)new Affix(s, [Number.Plural]))]);
+        new([new Root(root, "dog", accent), .. suffixes.Select(s => (Morpheme)new Affix(s, [Number.Plural], AffixAccent.None))]);
 
     [Fact]
     public void Realize_FreeStress_KeepsAStoredAccentWhereASuffixWouldMoveTheRules()
@@ -61,6 +61,57 @@ public class StressTests
         Assert.Equal("paˈta", phonology.Realize(Accented(1, Pata)).Transcribed());
         //a root that stores none takes the rule's stress, which the suffix moves
         Assert.Equal("paˈta.ma", phonology.Realize(Accented(null, Pata, [Consonant.m, Vowel.a])).Transcribed());
+    }
+
+    //a root storing an accent on the given vowel, or none, with affixes carrying accents of their own
+    private static Word WithAffixes(int? accent, Phoneme[] root, params (Phoneme[] Form, AffixAccent Accent, bool Prefix)[] affixes) =>
+        new([.. affixes.Where(a => a.Prefix).Select(a => (Morpheme)new Affix(a.Form, [Number.Plural], a.Accent)),
+            new Root(root, "dog", accent),
+            .. affixes.Where(a => !a.Prefix).Select(a => (Morpheme)new Affix(a.Form, [Case.Accusative], a.Accent))]);
+
+    private static readonly Phoneme[] Ma = [Consonant.m, Vowel.a];
+
+    [Fact]
+    public void Realize_AnAccentedAffix_StressesAnUnaccentedRoot()
+    {
+        var phonology = WithFreeStress(Stress.Initial);
+
+        Assert.Equal("pa.taˈma", phonology.Realize(WithAffixes(null, Pata, (Ma, AffixAccent.Own(0), false))).Transcribed());
+        //and one with no accent leaves it to the rule, so the stress moves between the two
+        Assert.Equal("ˈpa.ta.ma", phonology.Realize(WithAffixes(null, Pata, (Ma, AffixAccent.None, false))).Transcribed());
+    }
+
+    [Fact]
+    public void Realize_TheFirstAccentInTheWord_Wins()
+    {
+        var phonology = WithFreeStress(Stress.Ultimate);
+
+        Assert.Equal("ˈpa.ta.ma", phonology.Realize(WithAffixes(0, Pata, (Ma, AffixAccent.Own(0), false))).Transcribed());
+        Assert.Equal("ˈma.pa.ta", phonology.Realize(WithAffixes(1, Pata, (Ma, AffixAccent.Own(0), true))).Transcribed());
+    }
+
+    [Fact]
+    public void Realize_APrestressingAffix_StressesTheSyllableBeforeIt()
+    {
+        var phonology = WithFreeStress(Stress.Initial);
+
+        Assert.Equal("paˈta.ma", phonology.Realize(WithAffixes(null, Pata, (Ma, AffixAccent.Before, false))).Transcribed());
+        //even with no vowel of its own
+        Assert.Equal("paˈtas", phonology.Realize(WithAffixes(null, Pata, ([Consonant.s], AffixAccent.Before, false))).Transcribed());
+        //but a prefix has nothing before it, so it leaves the stress to the rule
+        Assert.Equal("ˈma.pa.ta", phonology.Realize(WithAffixes(null, Pata, (Ma, AffixAccent.Before, true))).Transcribed());
+    }
+
+    [Fact]
+    public void Generate_OnlyFreeStress_GivesAffixesAccents()
+    {
+        static IEnumerable<AffixAccent> AffixAccents(Language l) =>
+            l.Paradigms.All.SelectMany(p => p.Slots).SelectMany(s => s.Exponents).Select(e => e.Exponent.Value).OfType<Affix>().Select(a => a.Accent);
+
+        var free = GeneratedLanguages.With(spec => spec.Fix(Settings.FreeStress, true).Fix(Settings.Fusion, Fusion.Concatenative));
+        Assert.Contains(AffixAccents(free), a => a.Kind == AffixAccentKind.Own);
+        Assert.Contains(AffixAccents(free), a => a.Kind == AffixAccentKind.None);
+        Assert.All(GeneratedLanguages.Sample.Where(l => !l.Phonology.Stress.Free), l => Assert.All(AffixAccents(l), a => Assert.Equal(AffixAccentKind.None, a.Kind)));
     }
 
     [Fact]

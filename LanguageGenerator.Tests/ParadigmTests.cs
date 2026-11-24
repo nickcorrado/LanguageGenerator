@@ -16,7 +16,7 @@ public class ParadigmTests
             Categories = categories,
             Position = position,
             Exponents = [.. Paradigm.Combinations(categories).Select(values => (values, position is ExponentPosition.Prefix or ExponentPosition.Suffix
-                ? (Morpheme)new Affix(forms.Dequeue(), values)
+                ? (Morpheme)new Affix(forms.Dequeue(), values, AffixAccent.None)
                 : new Particle(forms.Dequeue(), values)))],
         };
     }
@@ -83,7 +83,7 @@ public class ParadigmTests
         {
             Categories = [NumberCategory],
             Position = ExponentPosition.Suffix,
-            Exponents = [([Number.Singular], new Affix([], [Number.Singular])), ([Number.Plural], new Affix([Consonant.t, Vowel.i], [Number.Plural]))],
+            Exponents = [([Number.Singular], new Affix([], [Number.Singular], AffixAccent.None)), ([Number.Plural], new Affix([Consonant.t, Vowel.i], [Number.Plural], AffixAccent.None))],
         };
         var paradigm = Nouns(number, Slot(ExponentPosition.Suffix, CaseCategory));
 

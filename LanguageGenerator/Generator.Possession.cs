@@ -39,7 +39,7 @@ public static partial class Generator
             foreach (var number in new[] { Number.Singular, Number.Plural })
             {
                 var form = forms.Draw(() => VowelOrSyllable(rand, phonology));
-                affixes[(person, number)] = new Affix(form, [person, number, Possessive.Possessed]);
+                affixes[(person, number)] = CoinAffix(rand, phonology, form, [person, number, Possessive.Possessed]);
             }
         }
         return new Possession(marking, possessorFirst, affixes, position);

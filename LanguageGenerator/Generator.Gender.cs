@@ -40,7 +40,7 @@ public static partial class Generator
         var forms = new DistinctForms();
         foreach (var (gender, i) in system.Values.Select((g, i) => (g, i)))
         {
-            markers[gender] = new Affix(i == 0 ? [] : forms.Draw(() => VowelOrSyllable(rand, phonology)), [gender]);
+            markers[gender] = CoinAffix(rand, phonology, i == 0 ? [] : forms.Draw(() => VowelOrSyllable(rand, phonology)), [gender]);
         }
         return new GenderSystem { Genders = kind, Assignment = assignment, Markers = markers, MarkerPosition = position, VerbsAgree = verbsAgree };
     }

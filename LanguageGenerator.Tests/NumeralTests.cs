@@ -131,7 +131,7 @@ public class NumeralTests
         Assert.Equal(decimalLanguage.Numerals.LargestFirst ? ["three", "ten", "seven"] : ["seven", "three", "ten"], glosses);
     }
 
-    private static readonly Affix OrdinalSuffix = new([], [Ordinality.Ordinal]);
+    private static readonly Affix OrdinalSuffix = new([], [Ordinality.Ordinal], AffixAccent.None);
     private static readonly Particle OrdinalParticle = new([], [Ordinality.Ordinal]);
 
     private static string SayOrdinal(NumeralSystem system, int n) => string.Join(" ", system.SayOrdinal(n).Select(w => w.Gloss));

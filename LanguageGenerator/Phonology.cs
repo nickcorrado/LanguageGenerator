@@ -3,7 +3,8 @@
 /// <summary>
 /// One sound of a word's surface form and the morpheme it belongs to. A word never has the same
 /// morpheme twice, so that morpheme also says where the sound sits among the word's morphemes.
-/// Accented marks the vowel a root stores as stressed, where stress is free.
+/// Accented marks a vowel a morpheme's accent falls on, where stress is free: a root's or affix's
+/// own, or the one before an affix that stresses it.
 /// </summary>
 public record Segment(Phoneme Phoneme, Morpheme Morpheme, bool Accented);
 
@@ -65,7 +66,17 @@ public record Phonology
         var segments = new List<Segment>();
         foreach (var morpheme in word.Morphemes)
         {
-            var accent = morpheme.Value is Root { Accent: { } a } ? a : -1;
+            var accent = morpheme.Value switch
+            {
+                Root root => root.Accent ?? -1,
+                Affix affix => affix.Accent.Kind == AffixAccentKind.Own ? affix.Accent.Vowel : -1,
+                Particle => -1,
+            };
+            //an affix that stresses the syllable before it marks the last vowel before it, if any
+            if (morpheme.Value is Affix { Accent.Kind: AffixAccentKind.Before } && segments.FindLastIndex(s => s.Phoneme is Vowel) is >= 0 and var before)
+            {
+                segments[before] = segments[before] with { Accented = true };
+            }
             var vowels = 0;
             foreach (var phoneme in morpheme.Form)
             {
@@ -88,8 +99,9 @@ public record Phonology
     }
 
     /*
-      the syllable of the accented vowel if there is one, since every vowel is a nucleus, and
-      otherwise the rule's. A word without a root has no stress, so null
+      the syllable of the first accented vowel if there is one, since every vowel is a nucleus, so
+      the leftmost accent among the morphemes wins, as in Russian, and otherwise the rule's. A word
+      without a root has no stress, so null
      */
     private int? StressedSyllable(Word word, List<Segment> segments, IReadOnlyList<Syllable> syllables)
     {

@@ -29,6 +29,6 @@ public static partial class Generator
             : (before ? ExponentPosition.Prefix : ExponentPosition.Suffix);
         var affix = position is ExponentPosition.Prefix or ExponentPosition.Suffix;
         var form = MarkerForm(rand, affix, phonology);
-        return new Passive(affix ? new Affix(form, [Voice.Passive]) : new Particle(form, [Voice.Passive]), position);
+        return new Passive(affix ? CoinAffix(rand, phonology, form, [Voice.Passive]) : new Particle(form, [Voice.Passive]), position);
     }
 }

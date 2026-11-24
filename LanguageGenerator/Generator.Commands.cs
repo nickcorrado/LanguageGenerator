@@ -39,7 +39,7 @@ public static partial class Generator
         var affix = position is ExponentPosition.Prefix or ExponentPosition.Suffix;
         var forms = new DistinctForms();
 
-        Morpheme Marker(List<Phoneme> form, params Grammeme[] values) => affix ? new Affix(form, values) : new Particle(form, values);
+        Morpheme Marker(List<Phoneme> form, params Grammeme[] values) => affix ? CoinAffix(rand, phonology, form, values) : new Particle(form, values);
         Morpheme Marked(params Grammeme[] values) => Marker(forms.Draw(() => MarkerForm(rand, affix, phonology)), values);
         Morpheme Unmarkable(params Grammeme[] values) => rand.NextDouble() < 0.5 ? Marker([], values) : Marked(values);
 

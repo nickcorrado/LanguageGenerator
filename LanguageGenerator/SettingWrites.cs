@@ -102,7 +102,7 @@ internal static class SettingWrites
             {
                 Forms = article.Forms.Where(f => f.Key.Gender == first).ToDictionary(f => ((Gender?)null, f.Key.Number), f => f.Value.Value switch
                 {
-                    Affix a => (Morpheme)new Affix(a.Form, [.. a.Grammemes.Where(g => g is not Gender)]),
+                    Affix a => (Morpheme)(a with { Grammemes = [.. a.Grammemes.Where(g => g is not Gender)] }),
                     Particle p => new Particle(p.Form, [.. p.Grammemes.Where(g => g is not Gender)]),
                     _ => f.Value,
                 }),
@@ -124,7 +124,7 @@ internal static class SettingWrites
         return drawn with
         {
             Position = position,
-            Forms = drawn.Forms.ToDictionary(f => f.Key, f => affix ? (Morpheme)new Affix(f.Value.Form, Glosses(f.Value)) : new Particle(f.Value.Form, Glosses(f.Value))),
+            Forms = drawn.Forms.ToDictionary(f => f.Key, f => affix ? (Morpheme)new Affix(f.Value.Form, Glosses(f.Value), AccentOf(f.Value)) : new Particle(f.Value.Form, Glosses(f.Value))),
             Pronouns = affix ? drawn.Pronouns with { OwnStem = true } : drawn.Pronouns,
         };
 
@@ -153,7 +153,7 @@ internal static class SettingWrites
         {
             Forms = drawn.Forms.Where(f => f.Key.Gender == first).ToDictionary(f => (f.Key.Distance, (Gender?)null, f.Key.Number), f => f.Value.Value switch
             {
-                Affix a => (Morpheme)new Affix(a.Form, [.. a.Grammemes.Where(g => g is not Gender)]),
+                Affix a => (Morpheme)(a with { Grammemes = [.. a.Grammemes.Where(g => g is not Gender)] }),
                 Particle p => new Particle(p.Form, [.. p.Grammemes.Where(g => g is not Gender)]),
                 _ => f.Value,
             }),
@@ -179,7 +179,7 @@ internal static class SettingWrites
         }
         static Morpheme Glossed(Morpheme marker, params Grammeme[] values) => marker switch
         {
-            Affix a => new Affix(a.Form, values),
+            Affix a => a with { Grammemes = values },
             Particle p => new Particle(p.Form, values),
             _ => marker,
         };
@@ -230,15 +230,16 @@ internal static class SettingWrites
     };
 
     //a subordinator's region keeps its form in its new position, each subordinator with its own meaning
-    private static Subordination WithRegion(Subordination subordination, Subordinator subordinator, IReadOnlyList<Phoneme> form, ExponentPosition position)
+    private static Subordination WithRegion(Subordination subordination, Subordinator subordinator, Morpheme kept, ExponentPosition position)
     {
+        var form = kept.Form;
         var markers = new Dictionary<Subordinator, SubordinatorMarking>(subordination.Markers);
         foreach (var s in subordination.RegionOf(subordinator))
         {
             List<Grammeme> meaning = [Linkage.For(s)];
             markers[s] = markers[s] with
             {
-                Marker = position == ExponentPosition.Suffix ? new Affix(form, meaning) : new Particle(form, meaning),
+                Marker = position == ExponentPosition.Suffix ? new Affix(form, meaning, AccentOf(kept)) : new Particle(form, meaning),
                 Position = position,
             };
         }
@@ -246,7 +247,7 @@ internal static class SettingWrites
     }
 
     public static Subordination WithSubordinatorPosition(Subordination drawn, Subordinator subordinator, ExponentPosition position) =>
-        drawn.Markers[subordinator].Position == position ? drawn : WithRegion(drawn, subordinator, drawn.Markers[subordinator].Marker.Form, position);
+        drawn.Markers[subordinator].Position == position ? drawn : WithRegion(drawn, subordinator, drawn.Markers[subordinator].Marker, position);
 
     //joining two regions gives them the first one's marker; parting them would need a form for the second
     public static Subordination WithSubordinatorEdge(Subordination drawn, (Subordinator First, Subordinator Second) edge, bool joined)
@@ -261,7 +262,7 @@ internal static class SettingWrites
         }
         var kept = drawn.Markers[edge.First];
         var result = drawn with { Joined = [.. SubordinatorMap.Edges.Select(e => (e.First, e.Second)).Where(e => e == edge || drawn.Joined.Contains(e))] };
-        return WithRegion(result, edge.First, kept.Marker.Form, kept.Position);
+        return WithRegion(result, edge.First, kept.Marker, kept.Position);
     }
 
     public static Subordination WithBalance(Subordination drawn, IReadOnlyList<Subordinator> subordinators, Balance balance) =>
@@ -276,7 +277,7 @@ internal static class SettingWrites
         {
             return drawn;
         }
-        marking = marking with { Marker = Generator.ComplementizerMarker(marking.Marker.Form, position), Position = position };
+        marking = marking with { Marker = Generator.ComplementizerMarker(marking.Marker.Form, position, AccentOf(marking.Marker)), Position = position };
         var written = kind == ComplementKind.Proposition ? drawn with { Proposition = marking } : drawn with { Event = marking };
         return kind == ComplementKind.Proposition && position == ComplementizerPosition.None && drawn.Quotative.Kind == QuotativeKind.Complementizer
             ? written with { Quotative = written.Quotative with { Kind = QuotativeKind.Word } }
@@ -309,13 +310,13 @@ internal static class SettingWrites
     public static Negation WithNegation(Negation drawn, NegationStrategy strategy)
     {
         var grammemes = GrammemesOf(drawn.Markers[0].Marker);
-        var forms = drawn.Markers.Select(m => m.Marker.Form).ToList();
+        var markers = drawn.Markers.Select(m => m.Marker).ToList();
         return new Negation(strategy, [.. Generator.NegationPositions(strategy).Select((position, i) =>
         {
-            var form = forms[Math.Min(i, forms.Count - 1)];
+            var kept = markers[Math.Min(i, markers.Count - 1)];
             return (position, position is ExponentPosition.Prefix or ExponentPosition.Suffix
-                ? (Morpheme)new Affix(form, grammemes)
-                : new Particle(form, grammemes));
+                ? (Morpheme)new Affix(kept.Form, grammemes, AccentOf(kept))
+                : new Particle(kept.Form, grammemes));
         })]);
     }
 
@@ -343,12 +344,13 @@ internal static class SettingWrites
         {
             return system;
         }
-        List<IReadOnlyList<Phoneme>> forms = [.. drawn.Values.Skip(1).Select(g => drawn.Markers[g].Form)];
+        List<Affix> kept = [.. drawn.Values.Skip(1).Select(g => drawn.Markers[g])];
         return new GenderSystem
         {
             Genders = genders,
             Assignment = system.Assignment,
-            Markers = system.Values.Select((gender, i) => (gender, i)).ToDictionary(g => g.gender, g => new Affix(g.i == 0 ? [] : forms[(g.i - 1) % forms.Count], [g.gender])),
+            Markers = system.Values.Select((gender, i) => (gender, i)).ToDictionary(g => g.gender,
+                g => g.i == 0 ? new Affix([], [g.gender], AffixAccent.None) : kept[(g.i - 1) % kept.Count] with { Grammemes = [g.gender] }),
             MarkerPosition = system.MarkerPosition,
             VerbsAgree = system.VerbsAgree,
         };
@@ -382,14 +384,15 @@ internal static class SettingWrites
             QuestionAffix a => a.Marker.Form,
             _ => null,
         };
+        var accent = drawn.Polar.Value is QuestionAffix { Marker: var marker } ? marker.Accent : AffixAccent.None;
         IReadOnlyList<Phoneme> Form() => form ?? throw NoForm($"{polar} for polar questions");
         PolarQuestionMarking marking = polar switch
         {
             PolarQuestion.InitialParticle => new QuestionParticle(new Particle(Form(), [Mood.Interrogative]), QuestionParticlePosition.Initial),
             PolarQuestion.FinalParticle => new QuestionParticle(new Particle(Form(), [Mood.Interrogative]), QuestionParticlePosition.Final),
             PolarQuestion.SecondParticle => new QuestionParticle(new Particle(Form(), [Mood.Interrogative]), QuestionParticlePosition.Second),
-            PolarQuestion.Prefix => new QuestionAffix(new Affix(Form(), [Mood.Interrogative]), ExponentPosition.Prefix),
-            PolarQuestion.Suffix => new QuestionAffix(new Affix(Form(), [Mood.Interrogative]), ExponentPosition.Suffix),
+            PolarQuestion.Prefix => new QuestionAffix(new Affix(Form(), [Mood.Interrogative], accent), ExponentPosition.Prefix),
+            PolarQuestion.Suffix => new QuestionAffix(new Affix(Form(), [Mood.Interrogative], accent), ExponentPosition.Suffix),
             PolarQuestion.Inversion => new QuestionInversion(),
             _ => new QuestionIntonation(),
         };
@@ -428,14 +431,14 @@ internal static class SettingWrites
     //word order says, so only an affix can be written over a word
     public static DegreeMarking WithComparative(DegreeMarking drawn, MarkerKind kind) => (kind, drawn.Marker.Value) switch
     {
-        (MarkerKind.Affix, DegreeWord word) => drawn with { Marker = new DegreeAffix(new Affix(word.Marker.Form, word.Marker.Grammemes), ExponentPosition.Suffix) },
+        (MarkerKind.Affix, DegreeWord word) => drawn with { Marker = new DegreeAffix(new Affix(word.Marker.Form, word.Marker.Grammemes, AffixAccent.None), ExponentPosition.Suffix) },
         (MarkerKind.Word, DegreeAffix) => throw NoForm("A comparative word"),
         _ => drawn,
     };
 
     public static Similative WithSimilative(Similative drawn, MarkerKind kind) => (kind, drawn.Value) switch
     {
-        (MarkerKind.Affix, SimilativeWord word) => new SimilativeAffix(new Affix(word.Like.Root.Form, [Case.Similative]), ExponentPosition.Suffix),
+        (MarkerKind.Affix, SimilativeWord word) => new SimilativeAffix(new Affix(word.Like.Root.Form, [Case.Similative], AccentOf(word.Like.Root)), ExponentPosition.Suffix),
         (MarkerKind.Word, SimilativeAffix) => throw NoForm("A similative word"),
         _ => drawn,
     };
@@ -449,13 +452,32 @@ internal static class SettingWrites
         _ => ModalKind.Particle,
     };
 
-    //a marker's form, and the accent a verb's root stores; an affix or particle stores none, so a
-    //verb made from one takes the rule's stress
-    private static (IReadOnlyList<Phoneme> Form, int? Accent) FormOf(ModalMarking marking) => marking.Value switch
+    /*
+      the accent a marker written in as an affix carries over from the morpheme it's made from: an
+      affix's own, a root's stored accent as its own, and none from a particle, which has no stress
+      to give. A written-in marker can't draw one, since writing in never draws
+     */
+    private static AffixAccent AccentOf(Morpheme source) => source switch
     {
-        ModalAffix a => (a.Marker.Form, null),
-        ModalVerb v => (v.Verb.Root.Form, v.Verb.Root.Accent),
-        ModalParticle p => (p.Marker.Form, null),
+        Root r => r.Accent is { } vowel ? AffixAccent.Own(vowel) : AffixAccent.None,
+        Affix a => a.Accent,
+        Particle => AffixAccent.None,
+    };
+
+    //and back, for a root made from an affix: only an accent on its own vowel is one a root can store
+    private static int? RootAccentOf(AffixAccent accent) => accent.Kind switch
+    {
+        AffixAccentKind.Own => accent.Vowel,
+        AffixAccentKind.None or AffixAccentKind.Before => null,
+        _ => throw new ArgumentOutOfRangeException(nameof(accent), accent.Kind, null),
+    };
+
+    //a marker's form, and its accent as an affix would carry it
+    private static (IReadOnlyList<Phoneme> Form, AffixAccent Accent) FormOf(ModalMarking marking) => marking.Value switch
+    {
+        ModalAffix a => (a.Marker.Form, a.Marker.Accent),
+        ModalVerb v => (v.Verb.Root.Form, AccentOf(v.Verb.Root)),
+        ModalParticle p => (p.Marker.Form, AffixAccent.None),
     };
 
     private static bool? BeforeVerbOf(ModalMarking marking) => marking.Value switch
@@ -467,15 +489,15 @@ internal static class SettingWrites
 
     //each modality of a region has a marker of the region's kind and form, glossed for itself, as
     //the generator gives them
-    private static Modals WithRegion(Modals modals, Modality modality, ModalKind kind, (IReadOnlyList<Phoneme> Form, int? Accent) form, ExponentPosition affixPosition, bool beforeVerb)
+    private static Modals WithRegion(Modals modals, Modality modality, ModalKind kind, (IReadOnlyList<Phoneme> Form, AffixAccent Accent) form, ExponentPosition affixPosition, bool beforeVerb)
     {
         var markers = new Dictionary<Modality, ModalMarking>(modals.Markers);
         foreach (var m in modals.RegionOf(modality))
         {
             markers[m] = kind switch
             {
-                ModalKind.Affix => new ModalAffix(new Affix(form.Form, [m]), affixPosition),
-                ModalKind.Verb => new ModalVerb(new Lexeme(new Root(form.Form, ModalityMap.VerbGloss(m), form.Accent), PartOfSpeech.Verb), beforeVerb),
+                ModalKind.Affix => new ModalAffix(new Affix(form.Form, [m], form.Accent), affixPosition),
+                ModalKind.Verb => new ModalVerb(new Lexeme(new Root(form.Form, ModalityMap.VerbGloss(m), RootAccentOf(form.Accent)), PartOfSpeech.Verb), beforeVerb),
                 _ => new ModalParticle(new Particle(form.Form, [m]), beforeVerb),
             };
         }

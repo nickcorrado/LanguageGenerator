@@ -94,7 +94,7 @@ public static partial class Generator
                 {
                     var form = forms.Draw(() => MarkerForm(rand, false, phonology));
                     List<Grammeme> grammemes = [distance, .. new Grammeme?[] { gender, number }.OfType<Grammeme>()];
-                    cells[(distance, gender, number)] = isAffix ? new Affix(form, grammemes) : new Particle(form, grammemes);
+                    cells[(distance, gender, number)] = isAffix ? CoinAffix(rand, phonology, form, grammemes) : new Particle(form, grammemes);
                 }
             }
         }

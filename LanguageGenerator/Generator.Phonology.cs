@@ -218,6 +218,36 @@ public static partial class Generator
     public static Root CoinRoot(Random rand, Phonology phonology, IReadOnlyList<Phoneme> form, string meaning) =>
         new(form, meaning, phonology.Stress.Free && rand.NextDouble() >= AccentlessRoots ? rand.Next(form.Count(p => p is Vowel)) : null);
 
+    /*
+      the shares of affixes in a language with free stress that store an accent of their own, as
+      Russian's stressed endings do, or stress the syllable before them, as Turkish's prestressing
+      suffixes do. Both are guesses
+     */
+    private const double AccentedAffixes = 0.35, PrestressingAffixes = 0.1;
+
+    /// <summary>
+    /// An affix with this form, putting the stress where an accent drawn for it says, where stress
+    /// is free. As for roots, a language without free stress draws nothing, and nor does an affix
+    /// with no sound.
+    /// </summary>
+    public static Affix CoinAffix(Random rand, Phonology phonology, IReadOnlyList<Phoneme> form, IReadOnlyList<Grammeme> grammemes) =>
+        new(form, grammemes, CoinAffixAccent(rand, phonology, form));
+
+    /// <summary>The accent for an affix of this form, drawn as CoinAffix draws it.</summary>
+    //an affix with no vowel can still stress the syllable before it, as many of Turkish's do
+    public static AffixAccent CoinAffixAccent(Random rand, Phonology phonology, IReadOnlyList<Phoneme> form)
+    {
+        if (!phonology.Stress.Free || form.Count == 0)
+        {
+            return AffixAccent.None;
+        }
+        var roll = rand.NextDouble();
+        var vowels = form.Count(p => p is Vowel);
+        return roll < PrestressingAffixes ? AffixAccent.Before
+            : roll < PrestressingAffixes + AccentedAffixes && vowels > 0 ? AffixAccent.Own(rand.Next(vowels))
+            : AffixAccent.None;
+    }
+
     private static readonly (Stress Value, int Languages)[] StressCounts =
     [
         (Stress.Initial, 92),
