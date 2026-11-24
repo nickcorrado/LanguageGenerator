@@ -152,6 +152,7 @@ public class SoundChangeTests
     [InlineData("ɔ", null)]
     [InlineData("ə", null)]
     [InlineData("aː", null)]
+    [InlineData("ai", null)]
     public void Lengthened_GivesTheSameVowelHeldLonger(string vowel, string? lengthened)
     {
         Assert.Equal(lengthened, Vowel.All.Single(v => v.IpaSymbol == vowel).Lengthened?.IpaSymbol);
@@ -729,6 +730,191 @@ public class SoundChangeTests
             var (consonants, rule) = (l.Phonology.Consonants, l.Phonology.SyllableRule);
             Assert.True(consonants.Contains(Consonant.kʷ) && rule.IsLegalOnset([Consonant.k, Consonant.w])
                 || consonants.Contains(Consonant.gʷ) && rule.IsLegalOnset([Consonant.g, Consonant.w]));
+        });
+    }
+
+    //by syllable, since a diphthong and two vowels in hiatus are the same letters in IPA
+    private static string Syllabified(Phonology phonology, params Phoneme[][] morphemes) =>
+        phonology.Realize(TestData.Word(morphemes)).Syllabified(Orthography.Ipa);
+
+    private static Phonology WithChanges(params SoundChange[] changes) => TestData.Phonology(SyllableTemplates.CV, ClusterRepair.Epenthesis, changes);
+
+    [Theory]
+    [InlineData("a", "i", "kai")]
+    [InlineData("a", "u", "kau")]
+    [InlineData("e", "i", "kei")]
+    [InlineData("o", "i", "koi")]
+    [InlineData("u", "i", "kui")]
+    //a close vowel after the vowel it would glide from, or a vowel no diphthong ends on, stays in hiatus
+    [InlineData("i", "a", "ki.a")]
+    [InlineData("a", "e", "ka.e")]
+    public void DiphthongFormation_AVowelAndACloseVowelAfterIt_MergeIntoTheDiphthong(string first, string second, string expected)
+    {
+        Vowel Sound(string ipa) => Vowel.All.Single(v => v.IpaSymbol == ipa);
+
+        Assert.Equal(expected, Syllabified(WithChanges(SoundChange.DiphthongFormation), [Consonant.k, Sound(first)], [Sound(second)]));
+    }
+
+    [Fact]
+    public void DiphthongFormation_WithoutTheDiphthong_LeavesTheVowelsApart()
+    {
+        var phonology = WithChanges(SoundChange.DiphthongFormation) with { Vowels = [Vowel.a, Vowel.i, Vowel.u, Vowel.au] };
+
+        Assert.Equal("ka.i", Syllabified(phonology, Ka, [Vowel.i]));
+    }
+
+    [Fact]
+    public void DiphthongFormation_AVowelJoinsOnlyOneDiphthong()
+    {
+        //o takes the u, so the u can't take the i too, though ui is a diphthong
+        Assert.Equal("kou.i", Syllabified(WithChanges(SoundChange.DiphthongFormation), [Consonant.k, Vowel.o], [Vowel.u], [Vowel.i]));
+    }
+
+    [Fact]
+    public void DiphthongFormation_ADiphthongMadeAcrossAMorphemeBoundary_BelongsToTheFirst()
+    {
+        var surface = WithChanges(SoundChange.DiphthongFormation).Realize(TestData.Word(Ka, [Vowel.i]));
+
+        Assert.Equal("kai-∅", surface.Segmented(Orthography.Ipa));
+    }
+
+    [Fact]
+    public void DiphthongFormation_AfterGlideFormation_TakesOnlyTheVowelsLeftApart()
+    {
+        //the i before the a has already become j, so there's no ai to make
+        Assert.Equal("ka.ja", Syllabified(WithChanges(SoundChange.GlideFormation, SoundChange.DiphthongFormation), Ka, [Vowel.i], [Vowel.a]));
+    }
+
+    [Fact]
+    public void IdenticalVowelFusion_ADiphthongAndItsFirstVowel_ArentAlike()
+    {
+        Assert.Equal("kai.a", Syllabified(WithChanges(SoundChange.IdenticalVowelFusion), [Consonant.k, Vowel.ai], [Vowel.a]));
+    }
+
+    [Fact]
+    public void VowelCoalescence_ADiphthong_MeetsTheNextVowelWithItsCloseVowel()
+    {
+        //ai ends on i, and i + a gives e, which is never a diphthong
+        Assert.Equal("keː", Syllabified(WithChanges(SoundChange.VowelCoalescence), [Consonant.k, Vowel.ai], [Vowel.a]));
+        //and the vowel before it meets its first vowel, so a + ui is a + u, which gives o
+        Assert.Equal("koː", Syllabified(WithChanges(SoundChange.VowelCoalescence), Ka, [Vowel.ui]));
+    }
+
+    [Fact]
+    public void GreekContraction_ADiphthong_DoesntContract()
+    {
+        Assert.Equal("kai.e", Syllabified(WithChanges(SoundChange.GreekContraction), [Consonant.k, Vowel.ai], [Vowel.e]));
+    }
+
+    [Fact]
+    public void GlideInsertion_AfterADiphthong_PutsTheGlideOfItsCloseVowel()
+    {
+        Assert.Equal("kai.ja", Syllabified(WithChanges(SoundChange.GlideInsertion), [Consonant.k, Vowel.ai], [Vowel.a]));
+        Assert.Equal("kau.wa", Syllabified(WithChanges(SoundChange.GlideInsertion), [Consonant.k, Vowel.au], [Vowel.a]));
+    }
+
+    private static Phonology WithSyllableChanges(IReadOnlyList<Vowel> vowels, params SoundChange[] changes) =>
+        TestData.Phonology(SyllableTemplates.CVF, ClusterRepair.Epenthesis) with { Vowels = vowels, SyllableChanges = changes };
+
+    [Theory]
+    [InlineData("ai", "e")]
+    [InlineData("ei", "e")]
+    [InlineData("oi", "e")]
+    [InlineData("au", "o")]
+    [InlineData("ou", "o")]
+    [InlineData("ui", "i")]
+    public void UnstressedMonophthongization_OutsideTheStress_GivesASingleVowel(string diphthong, string monophthong)
+    {
+        //stress is on the second-to-last syllable, so the first is unstressed
+        var sound = Vowel.All.Single(v => v.IpaSymbol == diphthong);
+
+        Assert.Equal($"k{monophthong}.ta.ka", Syllabified(WithSyllableChanges(TestData.Vowels, SoundChange.UnstressedMonophthongization),
+            [Consonant.k, sound, Consonant.t, Vowel.a, Consonant.k, Vowel.a]));
+    }
+
+    [Fact]
+    public void UnstressedMonophthongization_UnderTheStress_KeepsTheDiphthong()
+    {
+        Assert.Equal("pa.kai.ta", Syllabified(WithSyllableChanges(TestData.Vowels, SoundChange.UnstressedMonophthongization),
+            [Consonant.p, Vowel.a, Consonant.k, Vowel.ai, Consonant.t, Vowel.a]));
+    }
+
+    [Fact]
+    public void UnstressedMonophthongization_WithoutTheSingleVowel_KeepsTheOneItStartsOn()
+    {
+        var phonology = WithSyllableChanges([Vowel.a, Vowel.i, Vowel.u, Vowel.ai], SoundChange.UnstressedMonophthongization);
+
+        Assert.Equal("ka.ta.ka", Syllabified(phonology, [Consonant.k, Vowel.ai, Consonant.t, Vowel.a, Consonant.k, Vowel.a]));
+    }
+
+    [Theory]
+    [InlineData(new[] { "k", "a", "j" }, "kai")]
+    [InlineData(new[] { "k", "a", "w" }, "kau")]
+    [InlineData(new[] { "k", "a", "j", "t", "a" }, "kai.ta")]
+    //a glide starting a syllable stays a glide
+    [InlineData(new[] { "k", "a", "j", "a" }, "ka.ja")]
+    //and so does one after a vowel it makes no diphthong with
+    [InlineData(new[] { "k", "i", "j" }, "kij")]
+    public void GlideVocalization_AGlideClosingASyllable_MergesIntoTheDiphthong(string[] sounds, string expected)
+    {
+        Phoneme Sound(string ipa) => Vowel.All.Concat<Phoneme>(Consonant.All).Single(p => p.IpaSymbol == ipa);
+
+        Assert.Equal(expected, Syllabified(WithSyllableChanges(TestData.Vowels, SoundChange.GlideVocalization), [.. sounds.Select(Sound)]));
+    }
+
+    [Fact]
+    public void GlideVocalization_WithoutTheDiphthong_LeavesTheGlide()
+    {
+        var phonology = WithSyllableChanges([Vowel.a, Vowel.e, Vowel.i, Vowel.u, Vowel.ai], SoundChange.GlideVocalization);
+
+        Assert.Equal("kej", Syllabified(phonology, [Consonant.k, Vowel.e, Consonant.j]));
+        Assert.Equal("kaw", Syllabified(phonology, [Consonant.k, Vowel.a, Consonant.w]));
+    }
+
+    [Fact]
+    public void GlideVocalization_ASuffixOfJustAGlide_MakesTheDiphthongWithTheVowelBefore()
+    {
+        var surface = WithSyllableChanges(TestData.Vowels, SoundChange.GlideVocalization).Realize(TestData.Word(Ka, [Consonant.j]));
+
+        Assert.Equal("kai", surface.Syllabified(Orthography.Ipa));
+        Assert.Equal("kai-∅", surface.Segmented(Orthography.Ipa));
+    }
+
+    [Fact]
+    public void ChangesOnShortVowels_LeaveADiphthongAlone()
+    {
+        //a diphthong is heavy, like a long vowel: the last syllable is unstressed, but it neither
+        //weakens to schwa nor is lost
+        Assert.Equal("pa.kai", Syllabified(WithSyllableChanges(TestData.Vowels, SoundChange.UnstressedReduction), [Consonant.p, Vowel.a, Consonant.k, Vowel.ai]));
+        Assert.Equal("pa.kai", Syllabified(WithSyllableChanges(TestData.Vowels, SoundChange.Apocope), [Consonant.p, Vowel.a, Consonant.k, Vowel.ai]));
+    }
+
+    [Fact]
+    public void Generate_Diphthongs_ComeOnlyWithBothTheirVowelsAndAfterEverySingleVowel()
+    {
+        var withDiphthongs = GeneratedLanguages.Sample.Where(l => l.Phonology.Vowels.Any(v => v.IsDiphthong)).ToList();
+
+        Assert.NotEmpty(withDiphthongs);
+        Assert.All(withDiphthongs, l =>
+        {
+            var vowels = l.Phonology.Vowels;
+            Assert.All(vowels.Where(v => v.IsDiphthong), d => Assert.True(vowels.Contains(d.Start!) && vowels.Contains(d.Offglide!), $"{d.IpaSymbol} without its vowels"));
+            Assert.True(vowels.SkipWhile(v => !v.IsDiphthong).All(v => v.IsDiphthong), $"{string.Join(" ", vowels.Select(v => v.IpaSymbol))} has a single vowel after a diphthong");
+        });
+    }
+
+    [Fact]
+    public void Generate_OnlyLanguagesWithDiphthongs_MakeOrUndoThem_AndEveryOneVocalizesItsGlides()
+    {
+        Assert.All(GeneratedLanguages.Sample, l =>
+        {
+            var diphthongs = l.Phonology.Vowels.Any(v => v.IsDiphthong);
+            Assert.Equal(diphthongs, l.Phonology.SyllableChanges.Contains(SoundChange.GlideVocalization));
+            if (!diphthongs)
+            {
+                Assert.DoesNotContain(SoundChange.DiphthongFormation, l.Phonology.SoundChanges);
+                Assert.DoesNotContain(SoundChange.UnstressedMonophthongization, l.Phonology.SyllableChanges);
+            }
         });
     }
 }

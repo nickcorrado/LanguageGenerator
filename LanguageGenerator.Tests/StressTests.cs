@@ -2,7 +2,7 @@ namespace LanguageGenerator.Tests;
 
 public class StressTests
 {
-    //a word from a pattern of syllables: L a light ta, H a heavy tak, V a heavy taː
+    //a word from a pattern of syllables: L a light ta, H a heavy tak, V a heavy taː, D a heavy tai
     private static List<Syllable> Syllables(string pattern) =>
     [
         .. pattern.Select(c => c switch
@@ -10,6 +10,7 @@ public class StressTests
             'L' => new Syllable([Consonant.t], Vowel.a, null),
             'H' => new Syllable([Consonant.t], Vowel.a, Consonant.k),
             'V' => new Syllable([Consonant.t], Vowel.aː, null),
+            'D' => new Syllable([Consonant.t], Vowel.ai, null),
             _ => throw new ArgumentOutOfRangeException(nameof(pattern)),
         }),
     ];
@@ -26,9 +27,11 @@ public class StressTests
     [InlineData(Stress.Ultimate, "LLL", 2)]
     [InlineData(Stress.UltimateIfHeavy, "LLH", 2)]
     [InlineData(Stress.UltimateIfHeavy, "LLV", 2)]
+    [InlineData(Stress.UltimateIfHeavy, "LLD", 2)]
     [InlineData(Stress.UltimateIfHeavy, "LLL", 1)]
     [InlineData(Stress.PenultimateIfHeavy, "LHL", 1)]
     [InlineData(Stress.PenultimateIfHeavy, "LVL", 1)]
+    [InlineData(Stress.PenultimateIfHeavy, "LDL", 1)]
     [InlineData(Stress.PenultimateIfHeavy, "LLL", 0)]
     [InlineData(Stress.PenultimateIfHeavy, "LL", 0)]
     [InlineData(Stress.InitialIfHeavy, "HLL", 0)]

@@ -57,7 +57,13 @@ public static partial class Generator
         {
             changes.Add(hiatus);
         }
-        return changes;
+        //a language with diphthongs may make them where vowels meet, which is drawn last so that the
+        //other draws are the same as a language's without diphthongs. The odds are a guess
+        if (vowels.Any(v => v.IsDiphthong) && rand.NextDouble() < 0.5)
+        {
+            changes.Add(SoundChange.DiphthongFormation);
+        }
+        return [.. SoundChange.SoundChangeOrder.Where(changes.Contains)];
     }
 
     /*
@@ -190,7 +196,19 @@ public static partial class Generator
         {
             changes.Add(repair);
         }
-        return changes;
+        /*
+          drawn last for the same reason as diphthong formation, and the odds are a guess too. Every
+          language with diphthongs vocalizes its glides, which draws nothing
+         */
+        if (vowels.Any(v => v.IsDiphthong))
+        {
+            changes.Add(SoundChange.GlideVocalization);
+            if (rand.NextDouble() < 0.2)
+            {
+                changes.Add(SoundChange.UnstressedMonophthongization);
+            }
+        }
+        return [.. SoundChange.SyllableChangeOrder.Where(changes.Contains)];
     }
 
     private static readonly (SoundChange? Value, int Weight)[] ContactRepairs =
@@ -287,10 +305,10 @@ public static partial class Generator
     /*
       the central vowels are the usual epenthetic vowels, schwa and then ɨ, as in Korean, and after
       them the close ones, i more than u, as in Japanese; failing those, the language's commonest
-      vowel, which is the first one since picks are biased toward the front
+      vowel that isn't a diphthong, which is the first one since picks are biased toward the front
      */
     public static Vowel SelectEpentheticVowel(IReadOnlyList<Vowel> vowels) =>
-        new[] { Vowel.ə, Vowel.ɨ, Vowel.i, Vowel.u }.FirstOrDefault(vowels.Contains) ?? vowels[0];
+        new[] { Vowel.ə, Vowel.ɨ, Vowel.i, Vowel.u }.FirstOrDefault(vowels.Contains) ?? vowels.FirstOrDefault(v => !v.IsDiphthong) ?? vowels[0];
 
     /*
       a set of conventions, applied to the whole inventory. Conventions that clash for this
@@ -318,6 +336,8 @@ public static partial class Generator
                 Pick(OrthographicStyle.VoicedVelarFricativeOptions),
                 Pick(OrthographicStyle.BilabialFricativeOptions),
                 Pick(OrthographicStyle.PalatalFricativeOptions),
+                //drawn only where there are diphthongs, so a language without them draws as it did before there were any
+                vowels.Any(v => v.IsDiphthong) ? Pick(Enum.GetValues<DiphthongSpelling>()) : DiphthongSpelling.Vowels,
                 Pick(Enum.GetValues<DentalFricativeSpelling>()),
                 Pick(OrthographicStyle.VelarNasalOptions),
                 Pick(OrthographicStyle.VelarFricativeOptions),
@@ -474,8 +494,9 @@ public static partial class Generator
 
     /*
       a vowel system is built, not pruned: how many qualities it has, then which, then whether they
-      come long too. Vowels spread out to fill the space (Liljencrants and Lindblom's dispersion), so
-      each size has its usual shapes, and a three-vowel language has a i u rather than any three
+      come long too, and which diphthongs it has. Vowels spread out to fill the space (Liljencrants and
+      Lindblom's dispersion), so each size has its usual shapes, and a three-vowel language has a i u
+      rather than any three
      */
     public static List<Vowel> GenerateVowels(Random rand)
     {
@@ -503,16 +524,41 @@ public static partial class Generator
           VowelMarkedness, jittered so that languages don't all share it, and long vowels, which
           are rarer in words than short ones, come after them
          */
-        return [.. qualities.Concat(longs)
+        List<Vowel> vowels = [.. qualities.Concat(longs)
             .Select(v => (Vowel: v, Rank: Array.IndexOf(VowelMarkedness, v) + (v.Long ? VowelMarkedness.Length : 0) + rand.NextDouble() * 2))
             .OrderBy(x => x.Rank)
             .Select(x => x.Vowel)];
+
+        /*
+          diphthongs come only with both of their vowels, and after every single vowel in the ranking,
+          since they're rarer in words. They're drawn after everything else, so a language without
+          them draws the rest as it would if there were none. Every odd is a guess: surveys disagree
+          on how many languages have diphthongs, since whether ai is one sound or a vowel and a glide
+          is a call each description makes, and UPSID, which mostly made it the second way, lists few.
+          ai is the commonest wherever they're counted
+         */
+        if (rand.NextDouble() < 0.3)
+        {
+            vowels.AddRange(DiphthongOdds
+                .Where(d => qualities.Contains(d.Diphthong.Start!) && qualities.Contains(d.Diphthong.Offglide!) && rand.NextDouble() < d.Chance)
+                .Select(d => (d.Diphthong, Rank: Rank(d.Diphthong) + rand.NextDouble() * 2))
+                .OrderBy(x => x.Rank)
+                .Select(x => x.Diphthong));
+        }
+        return vowels;
     }
 
-    //where a sound comes in the ranking an inventory is ordered by, before the jitter: where a sound
-    //written into an inventory goes. Long vowels come after every short one, as they're drawn
+    private static readonly (Vowel Diphthong, double Chance)[] DiphthongOdds =
+        [(Vowel.ai, 0.9), (Vowel.au, 0.7), (Vowel.ei, 0.5), (Vowel.ou, 0.4), (Vowel.oi, 0.4), (Vowel.ui, 0.25)];
+
+    /*
+      where a sound comes in the ranking an inventory is ordered by, before the jitter: where a sound
+      written into an inventory goes. Long vowels come after every short one, and diphthongs after
+      every long one, as they're drawn
+     */
     internal static int Rank(Phoneme phoneme) => phoneme switch
     {
+        Vowel { IsDiphthong: true } diphthong => 2 * VowelMarkedness.Length + Vowel.Diphthongs.ToList().IndexOf(diphthong),
         Vowel { Long: true } vowel => VowelMarkedness.Length + Array.FindIndex(VowelMarkedness, v => v.Lengthened == vowel),
         Vowel vowel => Array.IndexOf(VowelMarkedness, vowel),
         Consonant consonant => Array.IndexOf(ConsonantMarkedness, consonant),

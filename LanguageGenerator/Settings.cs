@@ -109,6 +109,7 @@ public static class Settings
     public static Setting<IReadOnlyList<SoundChange>, bool> FinalDevoicing { get; } = Change(SoundChangeStage, SoundChange.SoundChangeOrder, "final-devoicing", SoundChange.FinalDevoicing);
     public static Setting<IReadOnlyList<SoundChange>, VowelHarmony> VowelHarmony { get; } = ChangeKind(SoundChangeStage, SoundChange.SoundChangeOrder, "vowel-harmony", SoundChange.Harmonies);
     public static Setting<IReadOnlyList<SoundChange>, bool> GlideFormation { get; } = Change(SoundChangeStage, SoundChange.SoundChangeOrder, "glide-formation", SoundChange.GlideFormation);
+    public static Setting<IReadOnlyList<SoundChange>, bool> DiphthongFormation { get; } = Change(SoundChangeStage, SoundChange.SoundChangeOrder, "diphthong-formation", SoundChange.DiphthongFormation);
     public static Setting<IReadOnlyList<SoundChange>, HiatusResolution> HiatusResolution { get; } = ChangeKind(SoundChangeStage, SoundChange.SoundChangeOrder, "hiatus-resolution", SoundChange.HiatusResolutions);
 
     public static Stage<IReadOnlyList<SoundChange>> SyllableChangeStage { get; } = new("syllable changes", l => l.Phonology.SyllableChanges, null);
@@ -118,6 +119,7 @@ public static class Settings
     public static Setting<IReadOnlyList<SoundChange>, bool> ClosedSyllableLaxing { get; } = Change(SyllableChangeStage, SoundChange.SyllableChangeOrder, "closed-syllable-laxing", SoundChange.ClosedSyllableLaxing);
     public static Setting<IReadOnlyList<SoundChange>, bool> OpenSyllableLengthening { get; } = Change(SyllableChangeStage, SoundChange.SyllableChangeOrder, "open-syllable-lengthening", SoundChange.OpenSyllableLengthening);
     public static Setting<IReadOnlyList<SoundChange>, bool> UnstressedShortening { get; } = Change(SyllableChangeStage, SoundChange.SyllableChangeOrder, "unstressed-shortening", SoundChange.UnstressedShortening);
+    public static Setting<IReadOnlyList<SoundChange>, bool> UnstressedMonophthongization { get; } = Change(SyllableChangeStage, SoundChange.SyllableChangeOrder, "unstressed-monophthongization", SoundChange.UnstressedMonophthongization);
     public static Setting<IReadOnlyList<SoundChange>, bool> Syncope { get; } = Change(SyllableChangeStage, SoundChange.SyllableChangeOrder, "syncope", SoundChange.Syncope);
     public static Setting<IReadOnlyList<SoundChange>, bool> PretonicSyncope { get; } = Change(SyllableChangeStage, SoundChange.SyllableChangeOrder, "pretonic-syncope", SoundChange.PretonicSyncope);
     public static Setting<IReadOnlyList<SoundChange>, bool> Apocope { get; } = Change(SyllableChangeStage, SoundChange.SyllableChangeOrder, "apocope", SoundChange.Apocope);

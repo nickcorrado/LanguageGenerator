@@ -7,7 +7,7 @@ namespace LanguageGenerator;
 /*
   a stress accent, made by loudness and length, as in Spanish or Russian, not a pitch accent like
   Japanese's, which is out of scope with tone. The rule puts stress at a fixed place or draws it to
-  heavy syllables, ones with a long vowel or a coda. Where stress is free, the rule is only the
+  heavy syllables, ones with a long vowel, a diphthong or a coda. Where stress is free, the rule is only the
   default, for words whose roots store no accent of their own (see StressSystem)
  */
 public enum Stress
@@ -54,7 +54,7 @@ public static class StressExtensions
             var last = syllables.Count - 1;
             int FromEnd(int back) => Math.Max(0, last - back);
             int FromStart(int index) => Math.Min(last, index);
-            bool Heavy(int index) => index >= 0 && index <= last && (syllables[index].Coda is not null || syllables[index].Nucleus.Long);
+            bool Heavy(int index) => index >= 0 && index <= last && (syllables[index].Coda is not null || syllables[index].Nucleus.Heavy);
 
             return stress switch
             {

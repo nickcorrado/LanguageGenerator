@@ -89,6 +89,7 @@ public class OrthographyTests
         from voicedVelarFricative in OrthographicStyle.VoicedVelarFricativeOptions
         from bilabialFricative in OrthographicStyle.BilabialFricativeOptions
         from palatalFricative in OrthographicStyle.PalatalFricativeOptions
+        from diphthongs in Enum.GetValues<DiphthongSpelling>()
         from dentalFricatives in Enum.GetValues<DentalFricativeSpelling>()
         from velarNasal in OrthographicStyle.VelarNasalOptions
         from velarFricative in OrthographicStyle.VelarFricativeOptions
@@ -96,7 +97,7 @@ public class OrthographyTests
         from aspiration in Enum.GetValues<AspirationSpelling>()
         from glottalStop in OrthographicStyle.GlottalStopOptions
         from palatalNasal in OrthographicStyle.PalatalNasalOptions
-        select new OrthographicStyle(postalveolars, longVowels, midVowels, schwa, nearOpenFront, velarStop, palatalGlide, voicedVelarFricative, bilabialFricative, palatalFricative, dentalFricatives, velarNasal, velarFricative,
+        select new OrthographicStyle(postalveolars, longVowels, midVowels, schwa, nearOpenFront, velarStop, palatalGlide, voicedVelarFricative, bilabialFricative, palatalFricative, diphthongs, dentalFricatives, velarNasal, velarFricative,
             dentalAffricates, aspiration, glottalStop, palatalNasal);
 
     [Fact]
@@ -108,7 +109,7 @@ public class OrthographyTests
     [Fact]
     public void Spell_HacekMacronGrave_AppliesEachConventionToAllItsSounds()
     {
-        var style = new OrthographicStyle(PostalveolarSpelling.Hacek, LongVowelSpelling.Macron, MidVowelSpelling.GraveOnOpen, "ë", "ä", "k", "y", "gh", "bh", "ç");
+        var style = new OrthographicStyle(PostalveolarSpelling.Hacek, LongVowelSpelling.Macron, MidVowelSpelling.GraveOnOpen, "ë", "ä", "k", "y", "gh", "bh", "ç", DiphthongSpelling.Vowels);
 
         var spellings = style.Spell(FullInventory);
 
@@ -126,7 +127,7 @@ public class OrthographyTests
     {
         var spelled = from palatalStop in OrthographicStyle.PalatalStopOptions
                       from closeCentral in OrthographicStyle.CloseCentralOptions
-                      let style = new OrthographicStyle(PostalveolarSpelling.Digraph, LongVowelSpelling.Macron, MidVowelSpelling.GraveOnOpen, "ë", "ä", "k", "j", "gh", "bh", "ç",
+                      let style = new OrthographicStyle(PostalveolarSpelling.Digraph, LongVowelSpelling.Macron, MidVowelSpelling.GraveOnOpen, "ë", "ä", "k", "j", "gh", "bh", "ç", DiphthongSpelling.Vowels,
                           PalatalStop: palatalStop, CloseCentral: closeCentral)
                       let spellings = style.Spell([Vowel.a, Vowel.ɨ, Consonant.c, Consonant.q, Consonant.t])
                       select (palatalStop, closeCentral, spellings);
@@ -144,7 +145,7 @@ public class OrthographyTests
     [InlineData("c", "nh", "gj", "lh")]
     public void Spell_VoicedPalatalStopAndPalatalLateral_FollowTheirPartners(string palatalStop, string palatalNasal, string voicedStop, string lateral)
     {
-        var style = new OrthographicStyle(PostalveolarSpelling.Digraph, LongVowelSpelling.Macron, MidVowelSpelling.GraveOnOpen, "ë", "ä", "k", "y", "gh", "bh", "ç",
+        var style = new OrthographicStyle(PostalveolarSpelling.Digraph, LongVowelSpelling.Macron, MidVowelSpelling.GraveOnOpen, "ë", "ä", "k", "y", "gh", "bh", "ç", DiphthongSpelling.Vowels,
             PalatalNasal: palatalNasal, PalatalStop: palatalStop);
 
         var spellings = style.Spell([Vowel.a, Consonant.c, Consonant.ɟ, Consonant.ɲ, Consonant.ʎ, Consonant.l]);
@@ -158,7 +159,7 @@ public class OrthographyTests
     [InlineData("ğ", "v", "hy")]
     public void Spell_VoicedVelarBilabialAndPalatalFricatives_TakeTheirSpellings(string velar, string bilabial, string palatal)
     {
-        var style = new OrthographicStyle(PostalveolarSpelling.Digraph, LongVowelSpelling.Macron, MidVowelSpelling.GraveOnOpen, "ë", "ä", "k", "y", velar, bilabial, palatal);
+        var style = new OrthographicStyle(PostalveolarSpelling.Digraph, LongVowelSpelling.Macron, MidVowelSpelling.GraveOnOpen, "ë", "ä", "k", "y", velar, bilabial, palatal, DiphthongSpelling.Vowels);
 
         var spellings = style.Spell([Vowel.a, Consonant.ɣ, Consonant.β, Consonant.ç]);
 
@@ -168,7 +169,7 @@ public class OrthographyTests
     [Fact]
     public void Spell_BilabialFricativeAsV_ClashesWithV()
     {
-        var style = new OrthographicStyle(PostalveolarSpelling.Digraph, LongVowelSpelling.Macron, MidVowelSpelling.GraveOnOpen, "ë", "ä", "k", "y", "gh", "v", "ç");
+        var style = new OrthographicStyle(PostalveolarSpelling.Digraph, LongVowelSpelling.Macron, MidVowelSpelling.GraveOnOpen, "ë", "ä", "k", "y", "gh", "v", "ç", DiphthongSpelling.Vowels);
 
         Assert.False(Orthography.AreDistinct(style.Spell([Vowel.a, Consonant.β, Consonant.v]).Values));
     }
@@ -180,7 +181,7 @@ public class OrthographyTests
     [InlineData("r ɾ", "rr r")]
     public void Spell_Rhotics_AreROnTheirOwnAndRrForATrillBesideATap(string rhotics, string expected)
     {
-        var style = new OrthographicStyle(PostalveolarSpelling.Digraph, LongVowelSpelling.Macron, MidVowelSpelling.GraveOnOpen, "ë", "ä", "k", "y", "gh", "bh", "ç");
+        var style = new OrthographicStyle(PostalveolarSpelling.Digraph, LongVowelSpelling.Macron, MidVowelSpelling.GraveOnOpen, "ë", "ä", "k", "y", "gh", "bh", "ç", DiphthongSpelling.Vowels);
         var present = rhotics.Split(' ').Select(ipa => Consonant.All.Single(c => c.IpaSymbol == ipa)).ToList();
 
         var spellings = style.Spell([Vowel.a, Consonant.t, .. present]);
@@ -194,7 +195,7 @@ public class OrthographyTests
     [InlineData(AspirationSpelling.VoicedLetters, "b p d t g c")]
     public void Spell_Aspirates_FollowTheConventionAndVoicedLettersOnlyWorkWithoutVoicedStops(AspirationSpelling aspiration, string expected)
     {
-        var style = new OrthographicStyle(PostalveolarSpelling.Digraph, LongVowelSpelling.Macron, MidVowelSpelling.GraveOnOpen, "ë", "ä", "c", "y", "gh", "bh", "ç", Aspiration: aspiration);
+        var style = new OrthographicStyle(PostalveolarSpelling.Digraph, LongVowelSpelling.Macron, MidVowelSpelling.GraveOnOpen, "ë", "ä", "c", "y", "gh", "bh", "ç", DiphthongSpelling.Vowels, Aspiration: aspiration);
         List<Phoneme> stops = [Consonant.p, Consonant.pʰ, Consonant.t, Consonant.tʰ, Consonant.k, Consonant.kʰ];
 
         var plain = style.Spell([Vowel.a, .. stops]);
@@ -211,7 +212,7 @@ public class OrthographyTests
     [InlineData(MidVowelSpelling.CircumflexOnOpen)]
     public void Spell_MidVowelWithoutItsPartner_NeedsNoMark(MidVowelSpelling midVowels)
     {
-        var style = new OrthographicStyle(PostalveolarSpelling.Digraph, LongVowelSpelling.Macron, midVowels, "ë", "ä", "k", "y", "gh", "bh", "ç");
+        var style = new OrthographicStyle(PostalveolarSpelling.Digraph, LongVowelSpelling.Macron, midVowels, "ë", "ä", "k", "y", "gh", "bh", "ç", DiphthongSpelling.Vowels);
 
         var spellings = style.Spell(FullInventory.Where(p => p != Vowel.e && p != Vowel.o).ToList());
 
@@ -219,11 +220,34 @@ public class OrthographyTests
         Assert.Equal("o", spellings[Vowel.ɔ]);
     }
 
+    [Theory]
+    [InlineData(DiphthongSpelling.Vowels, "y", "ai au ei")]
+    [InlineData(DiphthongSpelling.Glides, "y", "ay aw ey")]
+    [InlineData(DiphthongSpelling.Glides, "j", "aj aw ej")]
+    public void Spell_Diphthongs_WriteTheirCloseVowelAsAVowelOrAsItsGlide(DiphthongSpelling diphthongs, string palatalGlide, string expected)
+    {
+        var style = new OrthographicStyle(PostalveolarSpelling.Digraph, LongVowelSpelling.Macron, MidVowelSpelling.GraveOnOpen, "ë", "ä", "k", palatalGlide, "gh", "bh", "ç", diphthongs);
+
+        var spellings = style.Spell([Vowel.a, Vowel.e, Vowel.i, Vowel.u, Vowel.ai, Vowel.au, Vowel.ei, Consonant.t]);
+
+        Assert.Equal(expected, string.Join(" ", new[] { Vowel.ai, Vowel.au, Vowel.ei }.Select(d => spellings[d])));
+        Assert.True(Orthography.AreDistinct(spellings.Values));
+    }
+
+    [Fact]
+    public void Spell_ADiphthong_StartsWithItsFirstVowelsSpelling()
+    {
+        //beside ɛ, e is marked é, and so is the e of ei
+        var style = new OrthographicStyle(PostalveolarSpelling.Digraph, LongVowelSpelling.Macron, MidVowelSpelling.AcuteOnClose, "ë", "ä", "k", "y", "gh", "bh", "ç", DiphthongSpelling.Vowels);
+
+        Assert.Equal("éi", style.Spell([Vowel.a, Vowel.e, Vowel.ɛ, Vowel.i, Vowel.ei])[Vowel.ei]);
+    }
+
     [Fact]
     public void Spell_ClashingConventions_SpellTwoPhonemesAlike()
     {
         //acute long vowels and acute close vowels both write oː and o as ó
-        var style = new OrthographicStyle(PostalveolarSpelling.Hacek, LongVowelSpelling.Acute, MidVowelSpelling.AcuteOnClose, "ë", "ä", "k", "y", "gh", "bh", "ç");
+        var style = new OrthographicStyle(PostalveolarSpelling.Hacek, LongVowelSpelling.Acute, MidVowelSpelling.AcuteOnClose, "ë", "ä", "k", "y", "gh", "bh", "ç", DiphthongSpelling.Vowels);
 
         Assert.False(Orthography.AreDistinct(style.Spell(FullInventory).Values));
     }
