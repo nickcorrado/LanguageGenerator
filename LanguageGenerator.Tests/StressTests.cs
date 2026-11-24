@@ -64,6 +64,22 @@ public class StressTests
     }
 
     [Fact]
+    public void Spell_MarksOnlyAStressTheRuleWouldntGive()
+    {
+        var phonology = WithFreeStress(Stress.Penultimate);
+        var orthography = new Orthography(new Dictionary<Phoneme, string> { [Consonant.p] = "p", [Consonant.t] = "t", [Consonant.m] = "m", [Vowel.a] = "a" }, StressSpelling.Acute);
+
+        Assert.Equal("pátama", phonology.Realize(Accented(0, Patama)).Spell(orthography));
+        Assert.Equal("patama", phonology.Realize(Accented(1, Patama)).Spell(orthography));
+        Assert.Equal("patama", phonology.Realize(Accented(null, Patama)).Spell(orthography));
+        //the mark goes with its morpheme and syllable
+        Assert.Equal("páta-ma", phonology.Realize(Accented(0, Pata, [Consonant.m, Vowel.a])).Segmented(orthography));
+        Assert.Equal("pá.ta.ma", phonology.Realize(Accented(0, Patama)).Syllabified(orthography));
+        //a particle has no stress to mark
+        Assert.Equal("pata", phonology.Realize(new Word([new Particle(Pata, [Definiteness.Definite])])).Spell(orthography));
+    }
+
+    [Fact]
     public void Realize_FreeStress_PassesTheAccentOfALostVowelToTheOneItMet()
     {
         Phoneme[] pati = [Consonant.p, Vowel.a, Consonant.t, Vowel.i];

@@ -259,9 +259,12 @@ public static partial class Generator
       a set of conventions, applied to the whole inventory. Conventions that clash for this
       inventory (acute long vowels beside acute close vowels both give ó, say) are drawn again as
       a set, so a language never ends up with a convention applied to only some of its sounds.
-      IPA is the fallback, which never clashes
+      A language with free stress also marks stress where its rule wouldn't put it, with a mark
+      none of its vowels is already spelled with, so è never has to carry a grave for stress too;
+      the acute is likelier, as it's the commoner. IPA is the fallback, which never clashes, and
+      takes an acute for stress
      */
-    public static Orthography SelectOrthography(Random rand, IReadOnlyList<Vowel> vowels, IReadOnlyList<Consonant> consonants)
+    public static Orthography SelectOrthography(Random rand, IReadOnlyList<Vowel> vowels, IReadOnlyList<Consonant> consonants, StressSystem stress)
     {
         var inventory = vowels.Concat<Phoneme>(consonants).ToList();
         T Pick<T>(IReadOnlyList<T> options) => options[rand.Next(options.Count)];
@@ -285,13 +288,26 @@ public static partial class Generator
                 Pick(OrthographicStyle.PalatalStopOptions),
                 Pick(OrthographicStyle.CloseCentralOptions));
             var spellings = style.Spell(inventory);
-            if (Orthography.AreDistinct(spellings.Values))
+            if (!Orthography.AreDistinct(spellings.Values))
             {
-                return new Orthography(spellings, style);
+                continue;
+            }
+            if (!stress.Free)
+            {
+                return new Orthography(spellings, StressSpelling.Unmarked, style);
+            }
+            var free = StressMarks.Where(m => !vowels.Any(v => spellings[v].Normalize(System.Text.NormalizationForm.FormD).Contains(Orthography.CombiningMark(m.Value)))).ToArray();
+            if (free.Length > 0 && Sampling.Categorical(rand, free) is var mark
+                && Orthography.AreDistinct(spellings.Values.Concat(vowels.Select(v => Orthography.WithMark(spellings[v], mark)))))
+            {
+                return new Orthography(spellings, mark, style);
             }
         }
-        return new Orthography(inventory.ToDictionary(p => p, p => p.IpaSymbol));
+        return new Orthography(inventory.ToDictionary(p => p, p => p.IpaSymbol), stress.Free ? StressSpelling.Acute : StressSpelling.Unmarked);
     }
+
+    //how likely each stress mark is, by a guess
+    private static readonly (StressSpelling Value, int Weight)[] StressMarks = [(StressSpelling.Acute, 3), (StressSpelling.Grave, 1)];
 
     //needsOnset fills the C slot if the onset would otherwise be empty, for a syllable that follows
     //another inside a root

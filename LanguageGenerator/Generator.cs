@@ -43,7 +43,7 @@ public static partial class Generator
             SyllableContact = syllableContact,
             Dropoff = syllableDropoff,
         };
-        var orthography = SelectOrthography(stages.For("orthography"), vowels, consonants);
+        var orthography = SelectOrthography(stages.For("orthography"), vowels, consonants, stress);
 
         /*
           these stages are drawn together, since what a later one can be depends on the earlier ones:
