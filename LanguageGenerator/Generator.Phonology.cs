@@ -315,6 +315,9 @@ public static partial class Generator
                 Pick(OrthographicStyle.NearOpenFrontOptions),
                 Pick(OrthographicStyle.VelarStopOptions),
                 Pick(OrthographicStyle.PalatalGlideOptions),
+                Pick(OrthographicStyle.VoicedVelarFricativeOptions),
+                Pick(OrthographicStyle.BilabialFricativeOptions),
+                Pick(OrthographicStyle.PalatalFricativeOptions),
                 Pick(Enum.GetValues<DentalFricativeSpelling>()),
                 Pick(OrthographicStyle.VelarNasalOptions),
                 Pick(OrthographicStyle.VelarFricativeOptions),
@@ -621,14 +624,24 @@ public static partial class Generator
         //Arabic: each in roughly one inventory in seven or eight in PHOIBLE
         Add(Consonant.c, Optional(0.14));
         Add(Consonant.q, consonants.Contains(Consonant.k) && Optional(0.13));
+        /*
+          ɟ voices along with the stops, so it all but always comes beside c, and only now and then
+          without it, which keeps it in PHOIBLE's 12% of inventories, a few points below c's 14%
+         */
+        Add(Consonant.ɟ, voicedStops && (consonants.Contains(Consonant.c) ? Likely(0.85) : Optional(0.09)));
 
         Add(Consonant.m, Likely(0.97));
         Add(Consonant.n, Likely(0.98));
         Add(Consonant.ŋ, consonants.Contains(Consonant.k) && Optional(0.6));
         Add(Consonant.ɲ, Optional(0.4));
 
-        //fricatives. Some languages have none at all, as is usual in Australia, and s is much
-        //the commonest where there are any. Voiced fricatives come with their voiceless partners
+        /*
+          fricatives. Some languages have none at all, as is usual in Australia, and s is much the
+          commonest where there are any. Voiced fricatives come with their voiceless partners, but
+          for β and ɣ, which most languages with them have without one, as Spanish has no ɸ beside
+          its β. Their odds, and ç's, are their shares of PHOIBLE's inventories, 10%, 14% and 5%,
+          given that there are fricatives at all
+         */
         if (Likely(0.9))
         {
             Add(Consonant.s, Likely(0.9));
@@ -646,6 +659,9 @@ public static partial class Generator
                 Add(Consonant.ʒ, consonants.Contains(Consonant.ʃ) && Likely(0.7));
                 Add(Consonant.ð, consonants.Contains(Consonant.θ) && Likely(0.8));
             }
+            Add(Consonant.β, Optional(0.11));
+            Add(Consonant.ɣ, Optional(0.155));
+            Add(Consonant.ç, Optional(0.055));
         }
 
         //affricates voice along with the stops, as English ʧ ʤ do with p b
@@ -658,6 +674,8 @@ public static partial class Generator
         Add(Consonant.w, Likely(0.82));
         //WALS 8A: 95 of 567 languages have no lateral at all
         Add(Consonant.l, Likely(0.75));
+        //a palatal lateral, as in Italian or Catalan, comes beside l, in PHOIBLE's 5% of inventories
+        Add(Consonant.ʎ, consonants.Contains(Consonant.l) && Optional(0.065));
         /*
           most languages have one rhotic, a trill or a tap far more often than English's ɹ. Some,
           like Spanish, have both a trill and a tap, but English speakers struggle to hear them
@@ -698,6 +716,7 @@ public static partial class Generator
         Consonant.w, Consonant.r, Consonant.ɾ, Consonant.h, Consonant.ʔ, Consonant.ɹ, Consonant.b, Consonant.d,
         Consonant.g, Consonant.ŋ, Consonant.ɲ, Consonant.f, Consonant.ʃ, Consonant.ʧ, Consonant.tʰ, Consonant.kʰ,
         Consonant.pʰ, Consonant.ʦ, Consonant.z, Consonant.v, Consonant.ʤ, Consonant.kʷ, Consonant.c, Consonant.x,
-        Consonant.q, Consonant.gʷ, Consonant.ʣ, Consonant.ʒ, Consonant.θ, Consonant.ð,
+        Consonant.ɣ, Consonant.ɟ, Consonant.β, Consonant.q, Consonant.gʷ, Consonant.ʣ, Consonant.ʒ, Consonant.ʎ,
+        Consonant.ç, Consonant.θ, Consonant.ð,
     ];
 }

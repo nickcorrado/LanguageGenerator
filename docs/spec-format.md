@@ -74,7 +74,7 @@ The inventory is drawn again until it has every required sound and none forbidde
 
 `vowel-count` and `consonant-count` say how many sounds an inventory has: a number, an array of the numbers allowed, or a range, as `{ "min": 18, "max": 24 }`, either end of which can be left out. A count no draw gives is written in by cutting the rarest sounds or adding the commonest, keeping every sound the spec requires and every sound its sound changes need.
 
-The symbols are the generator's 53 phonemes, given exactly, so `ʦ` and not `ts`, and `aː` with the length mark and not a colon. Long vowels are sounds of their own:
+The symbols are the generator's 58 phonemes, given exactly, so `ʦ` and not `ts`, and `aː` with the length mark and not a colon. Long vowels are sounds of their own:
 
 - Vowels: a e i æ ɛ ə ɨ ɔ o u iː eː aː oː uː
 - Consonants: the error for a symbol the generator doesn't have lists them all.
@@ -84,7 +84,7 @@ The symbols are the generator's 53 phonemes, given exactly, so `ʦ` and not `ts`
 | Setting | Values |
 | --- | --- |
 | `vowels`, `consonants` | An array of IPA symbols, commonest first, or `{ "require": [...], "forbid": [...] }` |
-| `vowel-count`, `consonant-count` | A number of sounds from 1 to 15 vowels or 38 consonants, an array of them, or `{ "min": ..., "max": ... }` |
+| `vowel-count`, `consonant-count` | A number of sounds from 1 to 15 vowels or 43 consonants, an array of them, or `{ "min": ..., "max": ... }` |
 | `dropoff` | A number between 0 and 1; 0.15 if free |
 | `syllable-template` | `CV`, `CVF`, `CLV`, `CLVF`, `CGV`, `CGVF`, `SCV`, `SCVF`, `SCLVF`, where C is a consonant, V a vowel, F a final consonant, L a liquid or glide after the first consonant, G only a glide there, j or w, and S a sibilant before it |
 | `coda-restriction` | `Any`, `Sonorants`, `Nasals`, `SingleNasal` |

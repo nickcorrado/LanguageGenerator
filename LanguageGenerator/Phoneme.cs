@@ -105,10 +105,19 @@ public class Consonant : Phoneme
     //labialized consonants by far
     public static Consonant kʷ { get; } = new("kʷ", ConsonantPlace.Velar, ConsonantManner.Plosive, false, labialized: true);
     public static Consonant gʷ { get; } = new("gʷ", ConsonantPlace.Velar, ConsonantManner.Plosive, true, labialized: true);
+    //the softened b and g of Spanish lobo and lago, made with the lips or the back of the tongue
+    //close but not touching, here as sounds of their own
+    public static Consonant β { get; } = new("β", ConsonantPlace.Labial, ConsonantManner.Fricative, true);
+    public static Consonant ɣ { get; } = new("ɣ", ConsonantPlace.Velar, ConsonantManner.Fricative, true);
+    //the rest of the palatals: the fricative of German ich, the lateral of Italian figlio, and the
+    //voiced partner of c, the gy of Hungarian
+    public static Consonant ç { get; } = new("ç", ConsonantPlace.Palatal, ConsonantManner.Fricative, false);
+    public static Consonant ʎ { get; } = new("ʎ", ConsonantPlace.Palatal, ConsonantManner.LateralApproximant, true);
+    public static Consonant ɟ { get; } = new("ɟ", ConsonantPlace.Palatal, ConsonantManner.Plosive, true);
 
     /// <summary>Every consonant a language can have.</summary>
     public static IReadOnlyList<Consonant> All { get; } =
-        [b, d, g, k, m, n, p, s, t, z, ʃ, ʒ, f, v, ɹ, r, ɾ, l, j, w, θ, ð, ŋ, h, x, ʧ, ʤ, ʦ, ʣ, ʔ, ɲ, c, q, pʰ, tʰ, kʰ, kʷ, gʷ];
+        [b, d, g, k, m, n, p, s, t, z, ʃ, ʒ, f, v, ɹ, r, ɾ, l, j, w, θ, ð, ŋ, h, x, ʧ, ʤ, ʦ, ʣ, ʔ, ɲ, c, q, pʰ, tʰ, kʰ, kʷ, gʷ, β, ɣ, ç, ʎ, ɟ];
 
     public ConsonantPlace Place { get; }
     public ConsonantManner Manner { get; }

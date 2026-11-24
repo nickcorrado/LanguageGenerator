@@ -87,6 +87,9 @@ public record OrthographicStyle(
     string NearOpenFront,
     string VelarStop,
     string PalatalGlide,
+    string VoicedVelarFricative,
+    string BilabialFricative,
+    string PalatalFricative,
     DentalFricativeSpelling DentalFricatives = DentalFricativeSpelling.Thorn,
     string VelarNasal = "ŋ",
     string VelarFricative = "x",
@@ -104,12 +107,23 @@ public record OrthographicStyle(
     public static IReadOnlyList<string> PalatalGlideOptions { get; } = ["y", "j"];
     public static IReadOnlyList<string> VelarNasalOptions { get; } = ["ŋ", "ng"];
     public static IReadOnlyList<string> VelarFricativeOptions { get; } = ["x", "kh"];
+    //Vietnamese and Arabic romanization gh, or Turkish ğ
+    public static IReadOnlyList<string> VoicedVelarFricativeOptions { get; } = ["gh", "ğ"];
+    //bh, as Irish writes its softened b, or v, which only works in a language without v for it to mean
+    public static IReadOnlyList<string> BilabialFricativeOptions { get; } = ["bh", "v"];
+    //German and IPA ç, or hy, as in Japanese hya, said with it
+    public static IReadOnlyList<string> PalatalFricativeOptions { get; } = ["ç", "hy"];
     //an apostrophe, or the Hawaiian ʻokina, since a glottal stop has no Latin letter
     public static IReadOnlyList<string> GlottalStopOptions { get; } = ["'", "ʻ"];
     //Spanish ñ, Swahili ny, Portuguese nh
     public static IReadOnlyList<string> PalatalNasalOptions { get; } = ["ñ", "ny", "nh"];
     //Hungarian ty, Latvian ķ, or c, as in Albanian or the IPA
     public static IReadOnlyList<string> PalatalStopOptions { get; } = ["ty", "ķ", "c"];
+
+    //ɟ goes with c's spelling, as Hungarian has gy beside ty and Latvian ģ beside ķ, and ʎ with ɲ's,
+    //as Spanish has ll beside ñ, Hungarian ly beside ny and Portuguese lh beside nh
+    private static readonly Dictionary<string, string> VoicedPalatalStops = new() { ["ty"] = "dy", ["ķ"] = "ģ", ["c"] = "gj" };
+    private static readonly Dictionary<string, string> PalatalLaterals = new() { ["ñ"] = "ll", ["ny"] = "ly", ["nh"] = "lh" };
     //Guarani and Polish y, Romanian î, or the IPA letter
     public static IReadOnlyList<string> CloseCentralOptions { get; } = ["y", "î", "ɨ"];
 
@@ -229,6 +243,11 @@ public record OrthographicStyle(
             : phoneme == Consonant.ʔ ? GlottalStop
             : phoneme == Consonant.ɲ ? PalatalNasal
             : phoneme == Consonant.c ? PalatalStop
+            : phoneme == Consonant.ɟ ? VoicedPalatalStops[PalatalStop]
+            : phoneme == Consonant.ʎ ? PalatalLaterals[PalatalNasal]
+            : phoneme == Consonant.ç ? PalatalFricative
+            : phoneme == Consonant.ɣ ? VoicedVelarFricative
+            : phoneme == Consonant.β ? BilabialFricative
             : phoneme == Vowel.ɨ ? CloseCentral
             : phoneme == Consonant.ŋ ? VelarNasal
             : phoneme == Consonant.x ? VelarFricative
@@ -240,6 +259,6 @@ public record OrthographicStyle(
         phoneme == Consonant.k ? VelarStop : phoneme == Consonant.j ? PalatalGlide : phoneme.IpaSymbol;
 
     public override string ToString() =>
-        $"{Postalveolars} postalveolars, {LongVowels} long vowels, {MidVowels} mid vowels, {DentalFricatives} dental fricatives, schwa {Schwa}, æ {NearOpenFront}, k {VelarStop}, j {PalatalGlide}, ŋ {VelarNasal}, x {VelarFricative}, "
+        $"{Postalveolars} postalveolars, {LongVowels} long vowels, {MidVowels} mid vowels, {DentalFricatives} dental fricatives, schwa {Schwa}, æ {NearOpenFront}, k {VelarStop}, j {PalatalGlide}, ŋ {VelarNasal}, x {VelarFricative}, ɣ {VoicedVelarFricative}, β {BilabialFricative}, ç {PalatalFricative}, "
         + $"{DentalAffricates} dental affricates, {Aspiration} aspirates, ʔ {GlottalStop}, ɲ {PalatalNasal}, c {PalatalStop}, ɨ {CloseCentral}";
 }

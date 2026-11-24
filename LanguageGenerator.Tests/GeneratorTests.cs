@@ -160,6 +160,7 @@ public class GeneratorTests
     [InlineData("gʷ", "kʷ")]
     [InlineData("ʣ", "ʦ")]
     [InlineData("q", "k")]
+    [InlineData("ʎ", "l")]
     public void GenerateConsonants_ManyDraws_NeverHaveAMarkedSoundWithoutTheOneItImplies(string marked, string implied)
     {
         Assert.All(ConsonantDraws.Value, c =>
