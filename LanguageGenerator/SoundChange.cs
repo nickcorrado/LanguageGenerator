@@ -172,12 +172,17 @@ public sealed class SoundChange(string name, Func<Site, bool> when, Func<Site, P
     //what each stop weakens to, the likeliest first, of what the language has
     private static readonly Dictionary<Phoneme, Consonant[]> Lenited = new()
     {
+        //b and g weaken to the fricatives at their own place, as Spanish's do, and failing those to
+        //the nearest sounds there are, v and w
         [Consonant.p] = [Consonant.f],
-        [Consonant.b] = [Consonant.v],
+        [Consonant.b] = [Consonant.β, Consonant.v],
         [Consonant.t] = [Consonant.θ, Consonant.s],
         [Consonant.d] = [Consonant.ð, Consonant.z],
         [Consonant.k] = [Consonant.x],
-        [Consonant.g] = [Consonant.w],
+        [Consonant.g] = [Consonant.ɣ, Consonant.w],
+        //and the palatal stops to a fricative and a glide, as Spanish's ɟ is often just j
+        [Consonant.c] = [Consonant.ç],
+        [Consonant.ɟ] = [Consonant.j],
         [Consonant.ʧ] = [Consonant.ʃ],
         [Consonant.ʤ] = [Consonant.ʒ],
         [Consonant.ʦ] = [Consonant.s],
@@ -191,7 +196,7 @@ public sealed class SoundChange(string name, Func<Site, bool> when, Func<Site, P
     };
 
     /// <summary>A stop between vowels weakens to a continuant, as in Spanish or Tuscan.</summary>
-    //after voicing where a language has both, so that p can weaken all the way to v
+    //after voicing where a language has both, so that p can weaken all the way to β, or v without it
     public static SoundChange Lenition { get; } = new("lenition (apa → afa)",
         site => site.BetweenVowels && Lenited.ContainsKey(site.Sound),
         (site, phonology) => Lenited[site.Sound].FirstOrDefault(phonology.Consonants.Contains) ?? site.Sound);

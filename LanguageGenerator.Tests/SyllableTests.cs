@@ -82,6 +82,8 @@ public class SyllableTests
     [InlineData("s", "h", false)]
     [InlineData("s", "ʔ", false)]
     [InlineData("t", "k", false)]
+    [InlineData("p", "ʎ", false)]
+    [InlineData("ç", "j", true)]
     public void CanPrecede_FollowsSonorityAndTheCommonGaps(string first, string second, bool expected)
     {
         Consonant Sound(string ipa) => Consonant.All.Single(c => c.IpaSymbol == ipa);

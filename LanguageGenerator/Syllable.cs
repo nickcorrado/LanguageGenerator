@@ -200,14 +200,15 @@ public class SyllableRule
       nasals, liquids and glides, and before a liquid, by at least two steps, the commonest minimum
       distance, or before a glide by one. So pl, fr, mj, lj and kw, but not nr or nl. On top of that,
       the commonest gaps:
-      labials before w and coronal stops before l, which English, Spanish and Greek all lack, and
-      no glottal stop or labialized consonant leading a cluster. Before anything else, only a
+      labials before w and coronal stops before l, which English, Spanish and Greek all lack, ʎ
+      after anything, as Italian and Spanish have no pʎ, and no glottal stop or labialized
+      consonant leading a cluster. Before anything else, only a
       sibilant can stand, as in st, sk or sn, and only before a plain voiceless stop or m or n:
       English has no sth or sŋ, and its sp, st and sk are never aspirated
      */
     public static bool CanPrecede(Consonant first, Consonant second)
     {
-        if (first == Consonant.ʔ || first.Labialized)
+        if (first == Consonant.ʔ || first.Labialized || second == Consonant.ʎ)
         {
             return false;
         }

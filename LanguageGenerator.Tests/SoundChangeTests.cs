@@ -9,13 +9,15 @@ public class SoundChangeTests
 
     [Theory]
     [InlineData("p", "f")]
-    [InlineData("b", "v")]
+    [InlineData("b", "β")]
     [InlineData("t", "θ")]
     [InlineData("d", "ð")]
     [InlineData("k", "x")]
-    [InlineData("g", "w")]
+    [InlineData("g", "ɣ")]
     [InlineData("ʧ", "ʃ")]
     [InlineData("ʤ", "ʒ")]
+    [InlineData("c", "ç")]
+    [InlineData("ɟ", "j")]
     public void Lenition_BetweenVowels_WeakensAStop(string stop, string weakened)
     {
         var consonant = Consonant.All.Single(c => c.IpaSymbol == stop);
@@ -67,6 +69,19 @@ public class SoundChangeTests
             var roots = l.Lexicon.Where(x => !x.Root.Form.Zip(x.Root.Form.Skip(1)).Any(pair => IsNasal(pair.First) && IsNasal(pair.Second)));
             Assert.All(roots, x => Assert.Equal(Nasals(without.Realize(new Word([x.Root]))), Nasals(l.Phonology.Realize(new Word([x.Root])))));
         });
+    }
+
+    [Theory]
+    [InlineData("b", "β", "v")]
+    [InlineData("g", "ɣ", "w")]
+    public void Lenition_WithoutTheFricativeAtItsPlace_TakesTheNearestSound(string stop, string fricative, string weakened)
+    {
+        Consonant Sound(string ipa) => Consonant.All.Single(c => c.IpaSymbol == ipa);
+        List<Consonant> without = [.. Consonant.All.Where(c => c != Sound(fricative))];
+
+        var surface = TestData.Phonology(SyllableTemplates.CV, ClusterRepair.Epenthesis, without, SoundChange.Lenition).Realize(TestData.Word([Vowel.a, Sound(stop), Vowel.a]));
+
+        Assert.Equal($"a{weakened}a", string.Concat(surface.Phonemes.Select(p => p.IpaSymbol)));
     }
 
     [Fact]
@@ -230,7 +245,7 @@ public class SoundChangeTests
     {
         var phonology = TestData.Phonology(SyllableTemplates.CV, ClusterRepair.Epenthesis, SoundChange.IntervocalicVoicing, SoundChange.Lenition);
 
-        Assert.Equal("ava", string.Concat(phonology.Realize(TestData.Word([Vowel.a, Consonant.p, Vowel.a])).Phonemes.Select(p => p.IpaSymbol)));
+        Assert.Equal("aβa", string.Concat(phonology.Realize(TestData.Word([Vowel.a, Consonant.p, Vowel.a])).Phonemes.Select(p => p.IpaSymbol)));
     }
 
     [Fact]
