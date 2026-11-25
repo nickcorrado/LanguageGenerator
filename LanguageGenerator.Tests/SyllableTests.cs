@@ -8,13 +8,13 @@ public class SyllableTests
     {
         var rule = new SyllableRule(template, TestData.Vowels, consonants);
         var rand = new Random(1);
-        return [.. Enumerable.Range(0, count).Select(_ => Generator.GenerateSyllable(rand, rule, new Dropoff(0.15), needsOnset: false))];
+        return [.. Enumerable.Range(0, count).Select(_ => Generator.GenerateSyllable(rand, rule, new Dropoff(0.15), needsOnset: false, codaCluster: true))];
     }
 
     [Fact]
     public void Name_OfEachTemplate_ComesFromItsSlots()
     {
-        Assert.Equal(["CV", "CVF", "CLV", "CLVF", "CGV", "CGVF", "SCV", "SCVF", "SCLVF"], SyllableTemplates.All.Select(t => t.Name));
+        Assert.Equal(["CV", "CVF", "CLV", "CLVF", "CGV", "CGVF", "SCV", "SCVF", "SCLVF", "CVFF", "CLVFF", "SCLVFF"], SyllableTemplates.All.Select(t => t.Name));
         Assert.Equal("VF", Templates.Onsetless.Name);
     }
 
@@ -31,9 +31,9 @@ public class SyllableTests
     }
 
     [Fact]
-    public void Constructor_WithTwoCodaSlots_Throws()
+    public void Constructor_WithThreeCodaSlots_Throws()
     {
-        Assert.Throws<ArgumentException>(() => new SyllableTemplate(Slot.Vowel, Slot.Final, Slot.Final));
+        Assert.Throws<ArgumentException>(() => new SyllableTemplate(Slot.Vowel, Slot.Final, Slot.Final, Slot.Final));
     }
 
     [Theory]
@@ -47,16 +47,19 @@ public class SyllableTests
     [InlineData("SCV")]
     [InlineData("SCVF")]
     [InlineData("SCLVF")]
+    [InlineData("CVFF")]
+    [InlineData("CLVFF")]
+    [InlineData("SCLVFF")]
     public void GenerateSyllable_AnyTemplate_StaysWithinItsSlots(string name)
     {
         var template = Template(name);
         var onsetSlots = template.Slots.TakeWhile(s => s is not Slot.Vowel).Count();
-        var hasCoda = template.Slots.Any(s => s is Slot.Final);
+        var codaSlots = template.Slots.Count(s => s is Slot.Final);
 
         var syllables = Generate(template, TestData.Consonants, 2000);
 
         Assert.All(syllables, s => Assert.True(s.Onset.Count <= onsetSlots));
-        Assert.All(syllables, s => Assert.True(hasCoda || s.Coda is null));
+        Assert.All(syllables, s => Assert.True(s.Coda.Count <= codaSlots));
     }
 
     [Theory]
@@ -165,11 +168,70 @@ public class SyllableTests
     [InlineData("CVF", "ks", false)]
     [InlineData("CV", "k", false)]
     [InlineData("CV", "", true)]
-    public void IsLegalCoda_AllowsAtMostTheFinalSlot(string template, string coda, bool legal)
+    [InlineData("CVFF", "nt", true)]
+    [InlineData("CVFF", "t", true)]
+    [InlineData("CVFF", "tn", false)]
+    [InlineData("CVFF", "ntk", false)]
+    public void IsLegalCoda_AllowsAtMostTheFinalSlots(string template, string coda, bool legal)
     {
         var rule = new SyllableRule(Template(template), TestData.Vowels, TestData.Consonants);
 
         Assert.Equal(legal, rule.IsLegalCoda(Consonants(coda)));
+    }
+
+    [Theory]
+    [InlineData("n", "t", true)]
+    [InlineData("m", "p", true)]
+    [InlineData("ŋ", "k", true)]
+    [InlineData("n", "ʧ", true)]
+    [InlineData("m", "k", false)]
+    [InlineData("n", "s", true)]
+    [InlineData("l", "t", true)]
+    [InlineData("r", "n", true)]
+    [InlineData("j", "t", true)]
+    [InlineData("s", "t", true)]
+    [InlineData("f", "t", true)]
+    [InlineData("z", "d", false)]
+    [InlineData("s", "ʦ", false)]
+    [InlineData("t", "s", false)]
+    [InlineData("t", "n", false)]
+    [InlineData("l", "r", false)]
+    [InlineData("n", "n", false)]
+    [InlineData("ʎ", "t", false)]
+    [InlineData("n", "ʔ", false)]
+    public void CanPrecedeInCoda_FallsInSonority(string first, string second, bool allowed) =>
+        Assert.Equal(allowed, SyllableRule.CanPrecedeInCoda(Consonants(first)[0], Consonants(second)[0]));
+
+    [Fact]
+    public void GenerateSyllable_InCVFF_ClosesSomeSyllablesWithLegalClusters()
+    {
+        var rule = new SyllableRule(SyllableTemplates.CVFF, TestData.Vowels, TestData.Consonants);
+
+        var clusters = Generate(SyllableTemplates.CVFF, TestData.Consonants, 2000).Where(s => s.Coda.Count == 2).ToList();
+
+        Assert.NotEmpty(clusters);
+        Assert.All(clusters, s => Assert.True(rule.IsLegalCoda(s.Coda), s.Spell(Orthography.Ipa)));
+    }
+
+    [Fact]
+    public void GenerateSyllable_WithoutCodaCluster_ClosesWithOneConsonantAtMost()
+    {
+        var rule = new SyllableRule(SyllableTemplates.CVFF, TestData.Vowels, TestData.Consonants);
+        var rand = new Random(1);
+
+        var syllables = Enumerable.Range(0, 2000).Select(_ => Generator.GenerateSyllable(rand, rule, new Dropoff(0.15), needsOnset: false, codaCluster: false)).ToList();
+
+        Assert.Contains(syllables, s => s.Closed);
+        Assert.All(syllables, s => Assert.True(s.Coda.Count <= 1));
+    }
+
+    //a template's second coda slot is only ever a cluster, so it doesn't close more syllables than one slot would
+    [Fact]
+    public void GenerateSyllable_InCVFF_ClosesAsManySyllablesAsCVF()
+    {
+        double Closed(SyllableTemplate template) => Generate(template, TestData.Consonants, 4000).Count(s => s.Closed) / 4000.0;
+
+        Assert.InRange(Closed(SyllableTemplates.CVFF) - Closed(SyllableTemplates.CVF), -0.05, 0.05);
     }
 
     [Theory]
@@ -197,7 +259,7 @@ public class SyllableTests
         var rule = new SyllableRule(SyllableTemplates.CVF, TestData.Vowels, TestData.Consonants, codas);
         var rand = new Random(1);
 
-        var codaConsonants = Enumerable.Range(0, 5000).Select(_ => Generator.GenerateSyllable(rand, rule, new Dropoff(0.15), needsOnset: false).Coda).OfType<Consonant>().ToList();
+        var codaConsonants = Enumerable.Range(0, 5000).Select(_ => Generator.GenerateSyllable(rand, rule, new Dropoff(0.15), needsOnset: false, codaCluster: false).Coda).SelectMany(c => c).ToList();
 
         Assert.NotEmpty(codaConsonants);
         Assert.All(codaConsonants, c => Assert.True(rule.IsLegalCoda([c]), $"{c.IpaSymbol} isn't a legal {codas} coda"));
@@ -220,7 +282,7 @@ public class SyllableTests
         var rule = new SyllableRule(SyllableTemplates.CVF, TestData.Vowels, noNasals, CodaRestriction.Nasals);
         var rand = new Random(1);
 
-        Assert.All(Enumerable.Range(0, 2000).Select(_ => Generator.GenerateSyllable(rand, rule, new Dropoff(0.15), needsOnset: false)), s => Assert.Null(s.Coda));
+        Assert.All(Enumerable.Range(0, 2000).Select(_ => Generator.GenerateSyllable(rand, rule, new Dropoff(0.15), needsOnset: false, codaCluster: false)), s => Assert.Empty(s.Coda));
         Assert.All(noNasals, c => Assert.False(rule.IsLegalCoda([c])));
     }
 
@@ -229,8 +291,8 @@ public class SyllableTests
     {
         var rand = new Random(1);
         var rules = Enumerable.Range(0, 2000).Select(_ => Generator.SelectSyllableShape(rand)).ToList();
-        //only templates with a coda get a restriction, and every template has an onset
-        var withCodas = rules.Where(r => r.Template.Slots.Any(s => s is Slot.Final)).ToList();
+        //only templates with one coda consonant get a restriction, and every template has an onset
+        var withCodas = rules.Where(r => r.Template.Slots.Count(s => s is Slot.Final) == 1).ToList();
 
         Assert.All(rules.Except(withCodas), r => Assert.Equal(CodaRestriction.Any, r.Codas));
         Assert.All(rules, r => Assert.NotEqual(Slot.Vowel, r.Template.Slots[0]));

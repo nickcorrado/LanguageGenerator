@@ -497,9 +497,18 @@ public sealed class SoundChange(string name, Func<Site, bool> when, Func<Site, P
         site => Unstressed(site) && Raised.ContainsKey(site.Sound),
         (site, phonology) => phonology.Vowels.Contains(Raised[site.Sound]) ? Raised[site.Sound] : site.Sound);
 
-    //a coda and the onset consonant right after it, as they met before this change
+    //a coda and the onset consonant right after it, as they met before this change. In a coda of
+    //two, only the second meets the onset
     private static (Consonant Coda, Consonant Onset)? ContactAfter(Site site) =>
-        site is { Place.Position: SyllablePosition.Coda, Sound: Consonant coda, Next.Phoneme: Consonant onset } ? (coda, onset) : null;
+        site is { Place.Position: SyllablePosition.Coda, Sound: Consonant coda, Next.Phoneme: Consonant onset }
+            && site.Places![site.Index + 1].Position == SyllablePosition.Onset
+            ? (coda, onset)
+            : null;
+
+    //whether the coda ending here would still be legal with this consonant in place of the last one
+    private static bool IsLegalCodaWith(Site site, Consonant last, Phonology phonology) =>
+        phonology.SyllableRule.IsLegalCoda([.. Enumerable.Range(0, site.Index).Reverse().TakeWhile(i => site.Places![i].Position == SyllablePosition.Coda)
+            .Reverse().Select(i => (Consonant)site.Word[i].Phoneme), last]);
 
     private static (Consonant Coda, Consonant Onset)? ContactBefore(Site site) =>
         site is { Place.Position: SyllablePosition.Onset, Sound: Consonant onset, Before: Consonant coda }
@@ -520,7 +529,7 @@ public sealed class SoundChange(string name, Func<Site, bool> when, Func<Site, P
     public static SoundChange CodaNasalization { get; } = new("coda nasalization (ak.ma → aŋ.ma)",
         site => ContactAfter(site) is ({ IsObstruent: true }, { Manner: ConsonantManner.Nasal }),
         (site, phonology) => ContactAfter(site) is (var coda, var onset) && !phonology.SyllableContact.Allows(coda, onset)
-            && phonology.Counterpart(coda, manner: ConsonantManner.Nasal, voiced: true) is { } nasal && phonology.SyllableRule.IsLegalCoda([nasal])
+            && phonology.Counterpart(coda, manner: ConsonantManner.Nasal, voiced: true) is { } nasal && IsLegalCodaWith(site, nasal, phonology)
                 ? nasal
                 : site.Sound);
 
@@ -543,7 +552,7 @@ public sealed class SoundChange(string name, Func<Site, bool> when, Func<Site, P
     public static SoundChange CodaAssimilation { get; } = new("coda assimilation (an.la → al.la)",
         site => ContactAfter(site) is not null,
         (site, phonology) => ContactAfter(site) is (var coda, var onset) && !phonology.SyllableContact.Allows(coda, onset)
-            && phonology.SyllableRule.IsLegalCoda([onset])
+            && IsLegalCodaWith(site, onset, phonology)
                 ? onset
                 : site.Sound);
 

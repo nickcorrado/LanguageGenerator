@@ -75,7 +75,7 @@ public static partial class Generator
             kind = RelativizerKind.Particle;
         }
         var forms = new DistinctForms();
-        var relativizerForm = forms.Draw(() => kind == RelativizerKind.Affix ? MarkerForm(rand, true, phonology) : [.. GenerateSyllable(rand, phonology.SyllableRule, phonology.Dropoff, needsOnset: false).Phonemes]);
+        var relativizerForm = forms.Draw(() => kind == RelativizerKind.Affix ? MarkerForm(rand, true, phonology) : [.. GenerateSyllable(rand, phonology.SyllableRule, phonology.Dropoff, needsOnset: false, codaCluster: false).Phonemes]);
         var relativizer = new Relativizer(kind, relativizerForm, CoinAffixAccent(rand, phonology, relativizerForm),
             rand.NextDouble() < PrefixChance(morphology) ? ExponentPosition.Prefix : ExponentPosition.Suffix);
         var fromQuestionWords = rand.NextDouble() < PronounFromQuestionWordsChance;

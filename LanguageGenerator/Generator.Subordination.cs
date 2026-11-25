@@ -75,7 +75,7 @@ public static partial class Generator
                 position = ExponentPosition.FollowingParticle;
             }
             var affix = position == ExponentPosition.Suffix;
-            var form = forms.Draw(() => affix ? MarkerForm(rand, true, phonology) : [.. GenerateSyllable(rand, phonology.SyllableRule, phonology.Dropoff, needsOnset: false).Phonemes]);
+            var form = forms.Draw(() => affix ? MarkerForm(rand, true, phonology) : [.. GenerateSyllable(rand, phonology.SyllableRule, phonology.Dropoff, needsOnset: false, codaCluster: false).Phonemes]);
             foreach (var subordinator in region)
             {
                 List<Grammeme> meaning = [Linkage.For(subordinator)];

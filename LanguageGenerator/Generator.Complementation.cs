@@ -98,7 +98,7 @@ public static partial class Generator
         var isolating = morphology.Fusion == Fusion.Isolating;
         var forms = new DistinctForms();
         List<Phoneme> Form(bool affix) =>
-            forms.Draw(() => affix ? MarkerForm(rand, true, phonology) : [.. GenerateSyllable(rand, phonology.SyllableRule, phonology.Dropoff, needsOnset: false).Phonemes]);
+            forms.Draw(() => affix ? MarkerForm(rand, true, phonology) : [.. GenerateSyllable(rand, phonology.SyllableRule, phonology.Dropoff, needsOnset: false, codaCluster: false).Phonemes]);
         ComplementizerPosition Position(ComplementKind kind) => Sampling.Categorical(rand, ComplementizerOdds(kind, objectFirst)) is var position
             && position == ComplementizerPosition.Suffix && isolating ? ComplementizerPosition.Final : position;
 

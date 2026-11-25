@@ -149,7 +149,7 @@ public static partial class Generator
             var bare = position is ExponentPosition.Prefix or ExponentPosition.Suffix && rand.NextDouble() < 0.3;
             var form = forms.Draw(() => bare
                 ? [phonology.Consonants[Sampling.TruncatedGeometric(rand, phonology.Consonants.Count, phonology.Dropoff.Value)]]
-                : [.. GenerateSyllable(rand, phonology.SyllableRule, phonology.Dropoff, needsOnset: false).Phonemes]);
+                : [.. GenerateSyllable(rand, phonology.SyllableRule, phonology.Dropoff, needsOnset: false, codaCluster: false).Phonemes]);
             Morpheme exponent = position is ExponentPosition.Prefix or ExponentPosition.Suffix ? CoinAffix(rand, phonology, form, values) : new Particle(form, values);
             exponents.Add((values, exponent));
         }

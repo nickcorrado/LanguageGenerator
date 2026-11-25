@@ -20,9 +20,19 @@ public class SyllableContactTests
     public void Allows_FollowsTheSonorityRise(SyllableContact contact, string coda, string onset, bool allowed) =>
         Assert.Equal(allowed, contact.Allows(C(coda), C(onset)));
 
-    private static string Surface(SyllableContact contact, SoundChange change, params Phoneme[][] morphemes) => string.Concat(
-        (TestData.Phonology(SyllableTemplates.CVF, ClusterRepair.Epenthesis) with { SyllableContact = contact, SyllableChanges = [change] })
+    private static string Surface(SyllableContact contact, SoundChange change, params Phoneme[][] morphemes) =>
+        Surface(SyllableTemplates.CVF, contact, change, morphemes);
+
+    private static string Surface(SyllableTemplate template, SyllableContact contact, SoundChange change, params Phoneme[][] morphemes) => string.Concat(
+        (TestData.Phonology(template, ClusterRepair.Epenthesis) with { SyllableContact = contact, SyllableChanges = [change] })
             .Realize(TestData.Word(morphemes)).Phonemes.Select(p => p.IpaSymbol));
+
+    //only the second of two coda consonants meets the onset, and the coda has to stay legal with the nasal
+    [Theory]
+    [InlineData("l", "alŋma")]
+    [InlineData("s", "askma")]
+    public void CodaNasalization_InACodaOfTwo_KeepsTheCodaLegal(string first, string expected) =>
+        Assert.Equal(expected, Surface(SyllableTemplates.CVFF, SyllableContact.NoRise, SoundChange.CodaNasalization, [Vowel.a, C(first), Consonant.k], [Consonant.m, Vowel.a]));
 
     private static readonly Phoneme[] La = [Consonant.l, Vowel.a];
 
@@ -70,7 +80,7 @@ public class SyllableContactTests
             var syllables = phonology.Realize(new Word([new Root(Generator.GenerateForm(rand, phonology, 2), "dog", null)])).Syllables;
             foreach (var (first, second) in syllables.Zip(syllables.Skip(1)))
             {
-                if (first.Coda is { } coda && second.Onset.Count > 0)
+                if (first.Closed && first.Coda[^1] is var coda && second.Onset.Count > 0)
                 {
                     Assert.True(contact.Allows(coda, second.Onset[0]), $"{coda.IpaSymbol}.{second.Onset[0].IpaSymbol}");
                 }

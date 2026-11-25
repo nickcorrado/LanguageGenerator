@@ -7,10 +7,10 @@ public class StressTests
     [
         .. pattern.Select(c => c switch
         {
-            'L' => new Syllable([Consonant.t], Vowel.a, null),
-            'H' => new Syllable([Consonant.t], Vowel.a, Consonant.k),
-            'V' => new Syllable([Consonant.t], Vowel.aː, null),
-            'D' => new Syllable([Consonant.t], Vowel.ai, null),
+            'L' => new Syllable([Consonant.t], Vowel.a, []),
+            'H' => new Syllable([Consonant.t], Vowel.a, [Consonant.k]),
+            'V' => new Syllable([Consonant.t], Vowel.aː, []),
+            'D' => new Syllable([Consonant.t], Vowel.ai, []),
             _ => throw new ArgumentOutOfRangeException(nameof(pattern)),
         }),
     ];

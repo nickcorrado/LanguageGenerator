@@ -24,6 +24,25 @@ public class PhonologyTests
         Assert.Equal("ka.bas", surface.Syllabified(Orthography.Ipa));
     }
 
+    //kabak-s ends in ks, a stop before s, which no coda allows; kaban-t ends in nt, which CVFF does
+    [Fact]
+    public void Realize_FinalClusterInCVFF_StaysOnlyIfItFalls()
+    {
+        var phonology = TestData.Phonology(SyllableTemplates.CVFF, ClusterRepair.Epenthesis);
+
+        Assert.Equal("ka.ba.kəs", phonology.Realize(TestData.Word(Kabak, S)).Syllabified(Orthography.Ipa));
+        Assert.Equal("ka.bant", phonology.Realize(TestData.Word([.. Kaba, Consonant.n], [Consonant.t])).Syllabified(Orthography.Ipa));
+    }
+
+    //between vowels, the onset takes as much of a cluster as it can, so nt-a is n.ta
+    [Fact]
+    public void Realize_CodaClusterBeforeAVowel_GivesTheOnsetItsLastConsonant()
+    {
+        var phonology = TestData.Phonology(SyllableTemplates.CVFF, ClusterRepair.Epenthesis);
+
+        Assert.Equal("ka.ban.ta", phonology.Realize(TestData.Word([.. Kaba, Consonant.n, Consonant.t], [Vowel.a])).Syllabified(Orthography.Ipa));
+    }
+
     [Fact]
     public void Realize_FinalConsonantInLanguageWithoutCodas_AddsAVowelAfterIt()
     {
@@ -202,7 +221,7 @@ public class PhonologyTests
                 Assert.All(surface.Syllables, s =>
                 {
                     Assert.True(rule.IsLegalOnset(s.Onset), $"{surface.Syllabified(Orthography.Ipa)} has an illegal onset under {rule}");
-                    Assert.True(rule.IsLegalCoda(s.Coda is null ? [] : [s.Coda]), $"{surface.Syllabified(Orthography.Ipa)} has an illegal coda under {rule}");
+                    Assert.True(rule.IsLegalCoda(s.Coda), $"{surface.Syllabified(Orthography.Ipa)} has an illegal coda under {rule}");
                 });
             }
         }

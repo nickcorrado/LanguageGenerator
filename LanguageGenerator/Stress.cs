@@ -54,7 +54,7 @@ public static class StressExtensions
             var last = syllables.Count - 1;
             int FromEnd(int back) => Math.Max(0, last - back);
             int FromStart(int index) => Math.Min(last, index);
-            bool Heavy(int index) => index >= 0 && index <= last && (syllables[index].Coda is not null || syllables[index].Nucleus.Heavy);
+            bool Heavy(int index) => index >= 0 && index <= last && (syllables[index].Closed || syllables[index].Nucleus.Heavy);
 
             return stress switch
             {
