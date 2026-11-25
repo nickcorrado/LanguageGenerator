@@ -62,7 +62,7 @@ public class RandomSpecTests
     }
 
     //a few settings, each fixed to one value or two, an inventory to a random handful of its sounds in
-    //random order, and the dropoff to a random number
+    //random order, and the dropoffs to random numbers
     private static LanguageSpec RandomSpec(Random rand)
     {
         var spec = LanguageSpec.Free;

@@ -94,7 +94,9 @@ public static class Sampling
 }
 
 /// <summary>
-/// How steeply sounds get rarer down an inventory, which is ordered commonest first: each is
-/// (1 - Value) times as likely as the one before it.
+/// How steeply sounds get rarer down an inventory, which is ordered commonest first: each consonant
+/// is (1 - Consonants) times as likely as the one before it, and each vowel (1 - Vowels) times.
 /// </summary>
-public record Dropoff(double Value);
+//apart, because real languages lean on their commonest vowels far harder than on their commonest
+//consonants: one or two vowels make up most of a word's, while consonants spread out
+public record Dropoff(double Consonants, double Vowels);

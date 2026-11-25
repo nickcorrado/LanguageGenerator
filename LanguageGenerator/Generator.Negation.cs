@@ -55,6 +55,6 @@ public static partial class Generator
     //a frequent, short morpheme: a syllable, or for an affix sometimes just a consonant, the way the
     //generator makes other affixes
     private static List<Phoneme> MarkerForm(Random rand, bool affix, Phonology phonology) => affix && rand.NextDouble() < 0.3
-        ? [phonology.Consonants[Sampling.TruncatedGeometric(rand, phonology.Consonants.Count, phonology.Dropoff.Value)]]
+        ? [phonology.Consonants[Sampling.TruncatedGeometric(rand, phonology.Consonants.Count, phonology.Dropoff.Consonants)]]
         : [.. GenerateSyllable(rand, phonology.SyllableRule, phonology.Dropoff, needsOnset: false, codaCluster: false).Phonemes];
 }

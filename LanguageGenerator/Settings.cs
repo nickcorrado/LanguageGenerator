@@ -93,11 +93,15 @@ public static class Settings
 
     public static Stage<Dropoff> DropoffStage { get; } = new("dropoff", l => l.Phonology.Dropoff, null);
     /// <summary>
-    /// How steeply sounds get rarer down an inventory: each is (1 - dropoff) times as likely as the
-    /// one before it, so a higher dropoff favors the first few more. Nothing draws it; it's 0.15
-    /// unless a spec says otherwise.
+    /// How steeply consonants get rarer down the inventory: each is (1 - dropoff) times as likely
+    /// as the one before it, so a higher dropoff favors the first few more. Nothing draws it; it's
+    /// fixed unless a spec says otherwise.
     /// </summary>
-    public static Setting<Dropoff, double> Dropoff { get; } = DropoffStage.Declare("dropoff", Sounds, d => d.Value, (_, d) => new(d), new Between(0, 1));
+    public static Setting<Dropoff, double> ConsonantDropoff { get; } = DropoffStage.Declare("consonant-dropoff", Sounds,
+        d => d.Consonants, (d, c) => d with { Consonants = c }, new Between(0, 1));
+    /// <summary>How steeply vowels get rarer down the inventory, as consonant-dropoff does for consonants.</summary>
+    public static Setting<Dropoff, double> VowelDropoff { get; } = DropoffStage.Declare("vowel-dropoff", Sounds,
+        d => d.Vowels, (d, v) => d with { Vowels = v }, new Between(0, 1));
 
     //sound changes, which apply in a fixed order, so a spec says only which a language has
 

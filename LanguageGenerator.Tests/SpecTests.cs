@@ -87,14 +87,14 @@ public class SpecTests
     public void Generate_FirstSoundInTheInventory_IsTheCommonest()
     {
         /*
-          with no codas, which a coda restriction can fill with one sound, and a steep dropoff, since
-          at the usual 0.15 each sound is 0.85 times as likely as the one before, too close to tell
+          with no codas, which a coda restriction can fill with one sound, and a steep consonant dropoff, since
+          at the usual one each sound is nearly as likely as the one before, too close to tell
           apart in a small lexicon
          */
         var language = Generator.Generate(3, LanguageSpec.Free
             .Fix(Settings.Consonants, [Consonant.ʃ, Consonant.t, Consonant.k, Consonant.n, Consonant.m])
             .Fix(Settings.SyllableTemplate, SyllableTemplates.CV)
-            .Fix(Settings.Dropoff, 0.5));
+            .Fix(Settings.ConsonantDropoff, 0.5));
         var counts = language.Lexicon.SelectMany(l => l.Root.Form).OfType<Consonant>().GroupBy(c => c).ToDictionary(g => g.Key, g => g.Count());
 
         Assert.Equal(Consonant.ʃ, counts.MaxBy(kv => kv.Value).Key);
@@ -103,8 +103,7 @@ public class SpecTests
     [Fact]
     public void Generate_FixedDropoff_IsTheLanguages()
     {
-        Assert.Equal(0.15, Generator.Generate(1, LanguageSpec.Free).Phonology.Dropoff.Value);
-        Assert.Equal(0.4, Generator.Generate(1, LanguageSpec.Free.Fix(Settings.Dropoff, 0.4)).Phonology.Dropoff.Value);
+        Assert.Equal(new Dropoff(0.4, 0.2), Generator.Generate(1, LanguageSpec.Free.Fix(Settings.ConsonantDropoff, 0.4).Fix(Settings.VowelDropoff, 0.2)).Phonology.Dropoff);
     }
 
     public static TheoryData<string, string> Impossible => new()
@@ -114,7 +113,7 @@ public class SpecTests
         { """{ "constituent-order": "SVO", "oblique-position": "BetweenObjectAndVerb" }""", "between the object and the verb" },
         { """{ "consonants": [] }""", "at least one sound" },
         { """{ "vowels": ["a", "i", "a"] }""", "more than once" },
-        { """{ "dropoff": 1.5 }""", "isn't between" },
+        { """{ "vowel-dropoff": 1.5 }""", "isn't between" },
     };
 
     [Theory]
@@ -142,7 +141,7 @@ public class SpecTests
     [InlineData("""{ "constituent-order": [] }""", "allows nothing")]
     [InlineData("""{ "consonants": ["p", "ts"] }""", "can't have 'ts'")]
     [InlineData("""{ "consonants": "p t k" }""", "array of IPA symbols")]
-    [InlineData("""{ "dropoff": "steep" }""", "is a number")]
+    [InlineData("""{ "consonant-dropoff": "steep" }""", "is a number")]
     [InlineData("""[ "SOV" ]""", "JSON object")]
     [InlineData("""{ "constituent-order": "SOV" """, "isn't valid JSON")]
     public void Parse_BadSpec_SaysWhy(string json, string message) =>
@@ -158,7 +157,7 @@ public class SpecTests
               "adpositions": ["Prepositions", "Postpositions"],
               "consonants": ["t", "k", "n", "s", "m"],
               "mirrors-adjectives": true,
-              "dropoff": 0.3,
+              "consonant-dropoff": 0.3,
             }
             """);
 
@@ -166,7 +165,7 @@ public class SpecTests
         Assert.Equal<object>([HeadDirectionality.Initial, HeadDirectionality.Final], spec.Allowed(Settings.AdpositionOrder)!);
         Assert.Equal<Consonant>([Consonant.t, Consonant.k, Consonant.n, Consonant.s, Consonant.m], (IReadOnlyList<Consonant>)Assert.Single(spec.Allowed(Settings.Consonants)!));
         Assert.Equal<object>([true], spec.Allowed(Settings.MirrorsAdjectives)!);
-        Assert.Equal<object>([0.3], spec.Allowed(Settings.Dropoff)!);
+        Assert.Equal<object>([0.3], spec.Allowed(Settings.ConsonantDropoff)!);
     }
 
     [Theory]
