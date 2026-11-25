@@ -6,7 +6,14 @@
 /// Accented marks a vowel a morpheme's accent falls on, where stress is free: a root's or affix's
 /// own, or the one before an affix that stresses it.
 /// </summary>
-public record Segment(Phoneme Phoneme, Morpheme Morpheme, bool Accented);
+/*
+  Phoneme is the sound as it's said, and Realizes the phoneme it's said for: the same, unless a
+  sound change made it an allophone, a sound the language has only as a form of one of its
+  phonemes, as Spanish says the b of lobo as β. A sound change that makes another of the
+  language's phonemes merges the two, so the sound realizes that one. Spelling and syllables go by
+  the phoneme, so an allophone is written as its phoneme is and fills the slots its phoneme does
+ */
+public record Segment(Phoneme Phoneme, Phoneme Realizes, Morpheme Morpheme, bool Accented);
 
 /// <summary>What a language does with a consonant cluster its syllables can't hold.</summary>
 public enum ClusterRepair
@@ -44,15 +51,52 @@ public record Phonology
     /// word and affix is coined.
     /// </summary>
     public required Dropoff Dropoff { get; init; }
+    /// <summary>
+    /// The sounds outside the inventory its sound changes may make, as allophones of its phonemes:
+    /// those the spec doesn't forbid, and those no language has as phonemes.
+    /// </summary>
+    public required IReadOnlyList<Phoneme> Allophones { get; init; }
+
+    /// <summary>Whether a sound change may make this sound, as a phoneme or an allophone.</summary>
+    public bool CanSay(Phoneme sound) => sound switch
+    {
+        Vowel vowel => Vowels.Contains(vowel) || Allophones.Contains(vowel),
+        Consonant consonant => Consonants.Contains(consonant) || Allophones.Contains(consonant),
+    };
 
     /// <summary>
-    /// The consonant in this inventory with these features, and the given one's for any not given.
+    /// The consonant with these features, and the given one's for any not given, that a sound change
+    /// may make: a phoneme if there is one, and otherwise an allophone.
     /// </summary>
     //aspiration and labialization always carry over, so a pʰ has no voiced counterpart unless the
-    //language has a voiced aspirate, and never turns into a plain b
+    //language may say a voiced aspirate, and never turns into a plain b
     public Consonant? Counterpart(Consonant consonant, ConsonantPlace? place = null, ConsonantManner? manner = null, bool? voiced = null) =>
-        Consonants.FirstOrDefault(c => c.Place == (place ?? consonant.Place) && c.Manner == (manner ?? consonant.Manner) && c.Voiced == (voiced ?? consonant.Voiced)
-            && c.Aspirated == consonant.Aspirated && c.Labialized == consonant.Labialized);
+        Consonants.Concat(Allophones.OfType<Consonant>()).FirstOrDefault(c => c.Place == (place ?? consonant.Place) && c.Manner == (manner ?? consonant.Manner)
+            && c.Voiced == (voiced ?? consonant.Voiced) && c.Aspirated == consonant.Aspirated && c.Labialized == consonant.Labialized);
+
+    /// <summary>
+    /// A segment said as this sound instead: merged into that phoneme if the language has it, and
+    /// otherwise an allophone of the phoneme it already realized.
+    /// </summary>
+    public Segment Changed(Segment segment, Phoneme sound)
+    {
+        if (IsPhoneme(sound))
+        {
+            return segment with { Phoneme = sound, Realizes = sound };
+        }
+        if (!CanSay(sound) || sound.GetType() != segment.Realizes.GetType())
+        {
+            throw new ArgumentException($"/{segment.Realizes.IpaSymbol}/ can't be said as [{sound.IpaSymbol}].", nameof(sound));
+        }
+        return segment with { Phoneme = sound };
+    }
+
+    /// <summary>Whether this sound is one of the language's phonemes.</summary>
+    public bool IsPhoneme(Phoneme sound) => sound switch
+    {
+        Vowel vowel => Vowels.Contains(vowel),
+        Consonant consonant => Consonants.Contains(consonant),
+    };
 
     /*
       underlying morphemes, run together → sound changes → cluster repair → syllables and stress →
@@ -80,7 +124,7 @@ public record Phonology
             var vowels = 0;
             foreach (var phoneme in morpheme.Form)
             {
-                segments.Add(new Segment(phoneme, morpheme, phoneme is Vowel && vowels++ == accent));
+                segments.Add(new Segment(phoneme, phoneme, morpheme, phoneme is Vowel && vowels++ == accent));
             }
         }
         foreach (var change in SoundChanges)
@@ -145,7 +189,9 @@ public record Phonology
     /*
       every vowel is a nucleus. Consonants before the first vowel are its onset and those after the
       last are the final coda; between two vowels, the onset takes as many as it legally can and the
-      coda the rest. Returns null, with the offending cluster's [Start, End), when that's impossible
+      coda the rest. Returns null, with the offending cluster's [Start, End), when that's impossible.
+      Syllables are made of the phonemes the sounds realize, since an allophone fills the slots its
+      phoneme does
      */
     private List<Syllable>? Syllabify(List<Segment> segments, out (int Start, int End) badCluster)
     {
@@ -156,7 +202,7 @@ public record Phonology
             throw new InvalidOperationException("A word needs at least one vowel to be syllabified.");
         }
 
-        List<Consonant> ConsonantsBetween(int start, int end) => [.. segments[start..end].Select(s => (Consonant)s.Phoneme)];
+        List<Consonant> ConsonantsBetween(int start, int end) => [.. segments[start..end].Select(s => (Consonant)s.Realizes)];
 
         var onsets = new List<Consonant>[nuclei.Count];
         var codas = new List<Consonant>[nuclei.Count];
@@ -187,7 +233,7 @@ public record Phonology
             return null;
         }
 
-        return [.. nuclei.Select((n, k) => new Syllable([.. onsets[k]], (Vowel)segments[n].Phoneme, [.. codas[k]]))];
+        return [.. nuclei.Select((n, k) => new Syllable([.. onsets[k]], (Vowel)segments[n].Realizes, [.. codas[k]]))];
     }
 
     /*
@@ -208,7 +254,7 @@ public record Phonology
             {
                 //an inserted vowel belongs with the morpheme after it, or the last one at the end of a word
                 var neighbor = at < segments.Count ? segments[at] : segments[^1];
-                candidates.Add(([.. segments[..at], neighbor with { Phoneme = EpentheticVowel, Accented = false }, .. segments[at..]], cluster.End + 1));
+                candidates.Add(([.. segments[..at], neighbor with { Phoneme = EpentheticVowel, Realizes = EpentheticVowel, Accented = false }, .. segments[at..]], cluster.End + 1));
             }
         }
         //deletion, or the only fix left for a consonant no vowel can save
@@ -228,9 +274,14 @@ public record Phonology
 }
 
 /// <summary>A word as it's actually pronounced.</summary>
+//its syllables are made of the phonemes its sounds realize, so they spell as the word does
 public record SurfaceForm(Word Word, IReadOnlyList<Segment> Segments, IReadOnlyList<Syllable> Syllables)
 {
+    /// <summary>The sounds as they're said, allophones and all.</summary>
     public IEnumerable<Phoneme> Phonemes => Segments.Select(s => s.Phoneme);
+
+    /// <summary>The phonemes the sounds realize.</summary>
+    public IEnumerable<Phoneme> Realized => Segments.Select(s => s.Realizes);
 
     /// <summary>The index of the stressed syllable, or null for a word with no stress.</summary>
     public required int? StressedSyllable { get; init; }
@@ -253,15 +304,23 @@ public record SurfaceForm(Word Word, IReadOnlyList<Segment> Segments, IReadOnlyL
         : -1;
 
     private string Spell(Orthography orthography, int index) =>
-        index == MarkedVowel ? orthography.SpellStressed((Vowel)Segments[index].Phoneme) : orthography.Spell(Segments[index].Phoneme);
+        index == MarkedVowel ? orthography.SpellStressed((Vowel)Segments[index].Realizes) : orthography.Spell(Segments[index].Realizes);
 
     /// <summary>
-    /// The IPA by syllable, with ˈ before the stressed one in place of the dot, as in [paˈta.ma]. A
-    /// word of one syllable needs no mark, and one with no stress has none.
+    /// The IPA of the sounds as they're said, by syllable, with ˈ before the stressed one in place of
+    /// the dot, as in [paˈta.ma]. A word of one syllable needs no mark, and one with no stress has none.
     /// </summary>
-    public string Transcribed() => Syllables.Count == 1
-        ? Syllables[0].Spell(Orthography.Ipa)
-        : string.Concat(Syllables.Select((s, i) => (i == StressedSyllable ? "ˈ" : i == 0 ? "" : ".") + s.Spell(Orthography.Ipa)));
+    public string Transcribed()
+    {
+        var start = 0;
+        var said = new List<string>();
+        foreach (var syllable in Syllables)
+        {
+            said.Add(string.Concat(Segments.Skip(start).Take(syllable.Phonemes.Count()).Select(s => s.Phoneme.IpaSymbol)));
+            start += syllable.Phonemes.Count();
+        }
+        return said.Count == 1 ? said[0] : string.Concat(said.Select((s, i) => (i == StressedSyllable ? "ˈ" : i == 0 ? "" : ".") + s));
+    }
 
     //the surface form split back into its morphemes, lining up with Gloss. A morpheme that lost
     //all of its sounds to a sound change or cluster repair shows as ∅

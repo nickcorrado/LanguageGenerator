@@ -78,7 +78,8 @@ public class SpecTests
             var language = Generator.Generate(seed, spec);
             Assert.Equal(consonants, language.Phonology.Consonants);
             Assert.Equal(vowels, language.Phonology.Vowels);
-            Assert.All(GeneratedLanguages.AllWords(language).SelectMany(w => language.Phonology.Realize(w).Phonemes),
+            //the sounds may be allophones, but the phonemes they're said for are the inventory's
+            Assert.All(GeneratedLanguages.AllWords(language).SelectMany(w => language.Phonology.Realize(w).Realized),
                 p => Assert.True(p is Consonant c ? consonants.Contains(c) : vowels.Contains((Vowel)p), $"{p.IpaSymbol} isn't in the inventory."));
         });
     }
@@ -104,6 +105,28 @@ public class SpecTests
     public void Generate_FixedDropoff_IsTheLanguages()
     {
         Assert.Equal(new Dropoff(0.4, 0.2), Generator.Generate(1, LanguageSpec.Free.Fix(Settings.ConsonantDropoff, 0.4).Fix(Settings.VowelDropoff, 0.2)).Phonology.Dropoff);
+    }
+
+    //a language may say every sound it lacks as an allophone, unless the spec forbids it
+    [Fact]
+    public void Generate_ForbiddenAllophone_IsNeverSaid()
+    {
+        var spec = SpecFile.Parse("""{ "consonants": { "forbid": ["θ"] }, "allophones": { "forbid": ["θ"] }, "lenition": true }""");
+
+        var language = Generator.Generate(1, spec);
+
+        Assert.DoesNotContain(Consonant.θ, language.Phonology.Allophones);
+        Assert.Contains(Consonant.ɸ, language.Phonology.Allophones);
+        Assert.DoesNotContain(language.Lexicon, l => language.Phonology.Realize(new Word([l.Root])).Phonemes.Contains(Consonant.θ));
+    }
+
+    //forbidding a sound as a phoneme leaves it free as an allophone
+    [Fact]
+    public void Generate_SoundForbiddenAsAPhoneme_CanStillBeAnAllophone()
+    {
+        var language = Generator.Generate(1, SpecFile.Parse("""{ "consonants": { "forbid": ["θ"] } }"""));
+
+        Assert.Contains(Consonant.θ, language.Phonology.Allophones);
     }
 
     public static TheoryData<string, string> Impossible => new()

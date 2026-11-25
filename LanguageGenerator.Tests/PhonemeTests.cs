@@ -7,7 +7,8 @@ namespace LanguageGenerator.Tests;
   the static phonemes are named by their IPA symbols, which the compiler checks only in the
   property name, not in the IpaSymbol string beside it. These catch the two drifting apart,
   lookalike characters (Greek ε for IPA ɛ, ASCII g for IPA ɡ), decomposed diacritics, and
-  phonemes left out of their class's All list
+  phonemes left out of their class's lists, All or, for a sound that's only ever an allophone,
+  AllophonesOnly
  */
 public class PhonemeTests
 {
@@ -52,26 +53,29 @@ public class PhonemeTests
 
     [Theory]
     [MemberData(nameof(Phonemes))]
-    public void StaticPhoneme_IsInItsClassesAllList(string id)
+    public void StaticPhoneme_IsInItsClassesLists(string id)
     {
         var (_, phoneme) = Find(id);
 
-        Assert.Contains(phoneme, phoneme is Vowel ? Vowel.All : Consonant.All);
+        Assert.Contains(phoneme, phoneme is Vowel ? (List<Phoneme>)[.. Vowel.All, .. Vowel.AllophonesOnly] : [.. Consonant.All, .. Consonant.AllophonesOnly]);
     }
 
     [Fact]
-    public void All_ListsEveryStaticPhonemeExactlyOnce()
+    public void Lists_HaveEveryStaticPhonemeExactlyOnce()
     {
-        Assert.Equal(StaticPhonemes(typeof(Vowel)).Count(), Vowel.All.Distinct().Count());
-        Assert.Equal(Vowel.All.Count, Vowel.All.Distinct().Count());
-        Assert.Equal(StaticPhonemes(typeof(Consonant)).Count(), Consonant.All.Distinct().Count());
-        Assert.Equal(Consonant.All.Count, Consonant.All.Distinct().Count());
+        List<Vowel> vowels = [.. Vowel.All, .. Vowel.AllophonesOnly];
+        List<Consonant> consonants = [.. Consonant.All, .. Consonant.AllophonesOnly];
+
+        Assert.Equal(StaticPhonemes(typeof(Vowel)).Count(), vowels.Distinct().Count());
+        Assert.Equal(vowels.Count, vowels.Distinct().Count());
+        Assert.Equal(StaticPhonemes(typeof(Consonant)).Count(), consonants.Distinct().Count());
+        Assert.Equal(consonants.Count, consonants.Distinct().Count());
     }
 
     [Fact]
     public void IpaSymbols_AreUniqueAcrossAllPhonemes()
     {
-        var symbols = Vowel.All.Select(v => v.IpaSymbol).Concat(Consonant.All.Select(c => c.IpaSymbol)).ToList();
+        var symbols = Phoneme.Every.Select(p => p.IpaSymbol).ToList();
 
         Assert.Equal(symbols.Count, symbols.Distinct(StringComparer.Ordinal).Count());
     }

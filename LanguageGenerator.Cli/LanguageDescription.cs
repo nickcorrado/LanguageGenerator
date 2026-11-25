@@ -31,6 +31,15 @@ public static class LanguageDescription
         var phonology = lang.Phonology;
         output.WriteLine(phonology.SyllableRule);
         output.WriteLine($"Sound changes: {(phonology.SoundChanges.Count + phonology.SyllableChanges.Count == 0 ? "none" : string.Join(", ", phonology.SoundChanges.Concat(phonology.SyllableChanges)))}");
+        //the allophones the roots are said with, under each phoneme they're said for, in the inventory's order
+        List<Phoneme> inventory = [.. phonology.Vowels, .. phonology.Consonants];
+        var allophones = lang.Lexicon.SelectMany(l => phonology.Realize(new Word([l.Root])).Segments).Where(s => s.Phoneme != s.Realizes)
+            .GroupBy(s => s.Realizes).OrderBy(g => inventory.IndexOf(g.Key))
+            .Select(g => $"/{g.Key.IpaSymbol}/ [{string.Join(" ", g.Select(s => s.Phoneme.IpaSymbol).Distinct())}]").ToList();
+        if (allophones.Count > 0)
+        {
+            output.WriteLine($"Allophones: {string.Join(", ", allophones)}");
+        }
         var repair = phonology.ClusterRepair == ClusterRepair.Epenthesis ? $"epenthesis of {phonology.EpentheticVowel.IpaSymbol}" : "deletion";
         output.WriteLine($"Illegal clusters: {repair}");
         output.WriteLine($"Stress: {phonology.Stress.Description}");

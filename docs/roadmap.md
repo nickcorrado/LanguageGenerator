@@ -59,7 +59,7 @@ Roughly in the order to build them, since the later ones lean on the earlier one
 - **Clitics.** Words without a root have no stress, but they don't lean on a host either. A clitic and its host would make one word for stress, which Latin *-que* moves (*virúmque*) and Spanish enclitics don't (*dígamelo*), which means realizing words in groups. Adpositions and conjunctions are roots, so they're stressed, though they're often unstressed in real languages.
 - **More diphthongs.** Falling diphthongs are single vowels that end on *i* or *u*. Rising ones (*ia*, *ua*) are a glide and a vowel, which is fine for most languages, and there are no triphthongs or diphthongs ending on other vowels, like English *ɪə*. Diphthongs only ever come from the inventory or from vowels meeting; breaking, as Spanish *e* became *ie* under the stress (*tierra*), and monophthongization under the stress too, would let one language's diphthongs come from another's vowels.
 - **Inventory sizes against real ones.** Inventories should have the size spread real ones have when counted over the sounds generated here, which PHOIBLE's inventories can check.
-- **More sound changes.** Allophones that aren't phonemes of the language, and changes across word boundaries, like French liaison.
+- **More sound changes.** Changes across word boundaries, like French liaison, and allophones of the kinds still missing: palatalized consonants before front vowels, nasalized vowels before nasals, and dark *l*.
 
 ## Beyond one language
 
