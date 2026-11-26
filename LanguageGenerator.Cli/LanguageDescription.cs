@@ -393,7 +393,7 @@ public static class LanguageDescription
         var pronouns = lang.Pronouns;
         /*
           each paradigm, shown on the first lexeme that uses it, and the pronouns' on 1SG. Spelled surface
-          forms come first, with the underlying form after them in IPA wherever sandhi or cluster repair
+          forms come first, with the underlying form after them in IPA wherever a sound change or cluster repair
           changed something. Where stress is free, each form's transcription shows where its stress
           falls, on the first lexeme whose root stores no accent, if any, so its affixes' accents decide
          */

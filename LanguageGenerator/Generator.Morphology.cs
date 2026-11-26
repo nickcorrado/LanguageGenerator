@@ -144,7 +144,7 @@ public static partial class Generator
                 exponents.Add((values, position is ExponentPosition.Prefix or ExponentPosition.Suffix ? new Affix([], values, AffixAccent.None) : new Particle([], values)));
                 continue;
             }
-            //affixes are often a bare consonant (English -s, -t), which is what gives sandhi and cluster
+            //affixes are often a bare consonant (English -s, -t), which is what gives sound changes and cluster
             //repair work to do; particles are words of their own, so they're always a whole syllable
             var bare = position is ExponentPosition.Prefix or ExponentPosition.Suffix && rand.NextDouble() < 0.3;
             var form = forms.Draw(() => bare

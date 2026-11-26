@@ -69,8 +69,8 @@ public readonly record struct Site(Segment Segment, Segment? Previous, Segment? 
 }
 
 /// <summary>
-/// A regular change from underlying to surface sounds, like a rule of sandhi, the changes sounds
-/// undergo where they meet: which sounds it applies to, in what surroundings, and what they become.
+/// A regular change from a word's underlying sounds to its surface ones: which sounds it applies
+/// to, in what surroundings, and what they become.
 /// </summary>
 /*
   each change is applied across a whole word, left to right, so it sees morpheme boundaries, and a

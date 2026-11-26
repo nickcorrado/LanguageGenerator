@@ -9,7 +9,7 @@ public enum CliticStress
     Host,
 }
 
-/// <summary>What happens to sounds where words meet in a sentence.</summary>
+/// <summary>What happens to sounds where words meet in a sentence: external sandhi.</summary>
 /*
   AcrossWords are those of the language's own sound changes that also apply where one word ends and
   the next begins, as Spanish lenition does in la boca, said laβoka. They change only how a sound is

@@ -1,6 +1,6 @@
 ﻿namespace LanguageGenerator;
 
-//inventories, syllables, sandhi and spelling
+//inventories, syllables, sound changes, what happens where words meet, and spelling
 public static partial class Generator
 {
     /*
