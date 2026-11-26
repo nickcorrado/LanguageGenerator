@@ -423,18 +423,10 @@ public static class Syntax
       'want' is a verb, or what's wanted isn't an event its subject would do, or can't take a marker
       on its verb, as a comparison or a clause with a modal can't
      */
-    private static (Clause Wanted, Modal Want)? Desired(Language language, Clause clause)
-    {
-        if (clause is not { Predicate.Value: Doing { Verb: "want", Object: { Value: ComplementClause { Kind: ComplementKind.Event } wanted } }, Force.Value: Declarative stated }
-            || language.Complementation.DesiderativeMarking is not { } marking
-            || !(wanted.SharesSubject || SubjectOf(wanted.Clause).Equals(stated.Subject)))
-        {
-            return null;
-        }
-        return wanted.Clause.Value is Clause { Force.Value: Declarative } c
-            ? (c with { Force = stated, Obliques = [.. c.Obliques, .. clause.Obliques], Adverbs = [.. c.Adverbs, .. clause.Adverbs] }, new Modal(marking, clause.Negative))
+    private static (Clause Wanted, Modal Want)? Desired(Language language, Clause clause) =>
+        Embedded(clause) is ("want", var wanted) && language.Complementation.DesiderativeMarking is { } marking
+            ? (wanted, new Modal(marking, clause.Negative))
             : null;
-    }
 
     /*
       what's begun or stopped, with the language's inceptive or cessative on its verb in place of
@@ -445,19 +437,29 @@ public static class Syntax
       caring' is, or is said with be, or begins, stops or wants something itself, which keeps its
       verbs
      */
-    private static (Clause Begun, AspectMarking Phase)? Phased(Language language, Clause clause)
+    //only an active verb begins or wants something itself, so a passive passes both
+    private static (Clause Begun, AspectMarking Phase)? Phased(Language language, Clause clause) =>
+        Embedded(clause) is (var verb, { Predicate.Value: Doing or Done, Negative: false } begun)
+            && Aspects.PhaseOf(verb) is { } phase && language.Aspects.MarkingOf(phase) is { } marking
+            && Phased(language, begun) is null && Desired(language, begun) is null
+            ? (begun with { Negative = clause.Negative }, marking)
+            : null;
+
+    /*
+      what a clause's verb takes as an event its own subject does, as 'want' and 'begin' take one,
+      with that verb: the event as a clause that states something, timed as this one is, in its tense
+      and aspect and with its subject, and with this one's modifiers after its own. Null for a clause
+      that takes no such event
+     */
+    private static (string Verb, Clause Event)? Embedded(Clause clause)
     {
-        if (clause is not { Predicate.Value: Doing { Object: { Value: ComplementClause { Kind: ComplementKind.Event } begun } } doing, Force.Value: Declarative stated }
-            || Aspects.PhaseOf(doing.Verb) is not { } phase || language.Aspects.MarkingOf(phase) is not { } marking
-            || !(begun.SharesSubject || SubjectOf(begun.Clause).Equals(stated.Subject)))
+        if (clause is not { Predicate.Value: Doing { Object: { Value: ComplementClause { Kind: ComplementKind.Event } embedded } } doing, Force.Value: Declarative stated }
+            || !(embedded.SharesSubject || SubjectOf(embedded.Clause).Equals(stated.Subject))
+            || embedded.Clause.Value is not Clause { Force.Value: Declarative } inner)
         {
             return null;
         }
-        //only an active verb begins or wants something itself, so a passive passes both
-        return begun.Clause.Value is Clause { Force.Value: Declarative, Predicate.Value: Doing or Done } c
-            && !c.Negative && Phased(language, c) is null && Desired(language, c) is null
-            ? (c with { Force = stated, Negative = clause.Negative, Obliques = [.. c.Obliques, .. clause.Obliques], Adverbs = [.. c.Adverbs, .. clause.Adverbs] }, marking)
-            : null;
+        return (doing.Verb, inner with { Force = stated, Obliques = [.. inner.Obliques, .. clause.Obliques], Adverbs = [.. inner.Adverbs, .. clause.Adverbs] });
     }
 
     //whether a clause's copula can be dropped: not with a modal or an aspect's marker, which go with
