@@ -7,7 +7,7 @@ public class ObliqueTests
     //only the basic meanings, since coining new ones would add to the shared sample's lexicons
 
     private static Sentence Walk(Language language, params Oblique[] obliques) =>
-        Syntax.Realize(language, new Clause("walk", Tense.Past, Aspect.Perfective, new NounPhrase("dog", Number.Singular), Obliques: [.. obliques]) { Adverbs = [] }, "x");
+        Syntax.Realize(language, new Clause(new Doing("walk", null), new Declarative(Tense.Past, Aspect.Perfective, new NounPhrase("dog", Number.Singular)), false, [.. obliques], []), "x");
 
     private static Oblique Stone(Role role) => new(role, new NounPhrase("stone", Number.Singular), Configuration.At);
 
@@ -110,8 +110,7 @@ public class ObliqueTests
         foreach (var language in GeneratedLanguages.Sample)
         {
             var order = language.WordOrder;
-            var transitive = Syntax.Realize(language, new Clause("see", Tense.Past, Aspect.Perfective, new NounPhrase("dog", Number.Singular),
-                new NounPhrase("cat", Number.Singular), Obliques: [Stone(Role.Location)]) { Adverbs = [] }, "x");
+            var transitive = Syntax.Realize(language, new Clause(new Doing("see", new NounPhrase("cat", Number.Singular)), new Declarative(Tense.Past, Aspect.Perfective, new NounPhrase("dog", Number.Singular)), false, [Stone(Role.Location)], []), "x");
             var (s, v, o, x) = (IndexOf(transitive, "dog"), IndexOf(transitive, "see"), IndexOf(transitive, "cat"), IndexOf(transitive, "stone"));
 
             //the core constituents keep their order

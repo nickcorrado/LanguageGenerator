@@ -1,3 +1,4 @@
+using static LanguageGenerator.Tests.Clauses;
 using static LanguageGenerator.Tests.Sentences;
 
 namespace LanguageGenerator.Tests;
@@ -8,7 +9,7 @@ public class CoordinationTests
 
     private static ClauseFormatException Error(string text) => Assert.Throws<ClauseFormatException>(() => ClauseFile.Parse(text));
 
-    private static Argument SubjectOf(Statement statement) => Assert.IsType<Clause>(statement.Value).Subject;
+    private static Argument SubjectOf(Statement statement) => ForceOf<Declarative>(statement).Subject;
 
     [Fact]
     public void Parse_NounsJoined_AreACoordinationInOrder()
@@ -22,7 +23,7 @@ public class CoordinationTests
     [Fact]
     public void Parse_Conjuncts_CanBeAnythingARoleTakes()
     {
-        var @object = Assert.IsType<Clause>(Parsed("carry  subject:3SG.F  object:(or (purse.NDF empty) 1SG (and dog cat))").Value).Object!.Value;
+        var @object = PredicateOf<Doing>(Parsed("carry  subject:3SG.F  object:(or (purse.NDF empty) 1SG (and dog cat))")).Object!.Value;
         var items = Assert.IsType<Coordination>(@object.Value).Items;
 
         Assert.Equal(["empty"], Assert.IsType<NounPhrase>(items[0].Value).Adjectives.Select(a => a.Meaning));
@@ -33,7 +34,7 @@ public class CoordinationTests
     [Fact]
     public void Parse_AdjectivesJoined_AreSaidTogether()
     {
-        var clause = Assert.IsType<CopularClause>(Parsed("be  subject:inn.DEF  adjective:(and warm crowded)").Value);
+        var clause = PredicateOf<Being>(Parsed("be  subject:inn.DEF  adjective:(and warm crowded)"));
 
         Assert.Equal(new AdjectiveCoordination(Conjunction.And, [new("warm", false), new("crowded", false)]), clause.Complement.Value);
     }
@@ -51,8 +52,8 @@ public class CoordinationTests
         var outer = Assert.IsType<Coordinated>(entry.Statement.Value);
         Assert.Equal(Conjunction.But, outer.Conjunction);
         var inner = Assert.IsType<Coordinated>(outer.First.Value);
-        Assert.Equal(("sit", "argue"), (Assert.IsType<Clause>(inner.First.Value).Verb, Assert.IsType<Clause>(inner.Second.Value).Verb));
-        Assert.Equal("sleep", Assert.IsType<Clause>(outer.Second.Value).Verb);
+        Assert.Equal(("sit", "argue"), (PredicateOf<Doing>(inner.First).Verb, PredicateOf<Doing>(inner.Second).Verb));
+        Assert.Equal("sleep", PredicateOf<Doing>(outer.Second).Verb);
     }
 
     [Fact]
@@ -95,7 +96,7 @@ public class CoordinationTests
     private static readonly NounPhrase Cat = new("cat", Number.Singular);
     private static readonly NounPhrase Birds = new("bird", Number.Plural);
 
-    private static Sentence Saw(Language l, Argument subject) => Syntax.Realize(l, new Clause("see", Tense.Past, Aspect.Perfective, subject, Birds) { Adverbs = [] }, "x");
+    private static Sentence Saw(Language l, Argument subject) => Syntax.Realize(l, new Clause(new Doing("see", Birds), new Declarative(Tense.Past, Aspect.Perfective, subject), false, [], []), "x");
 
     private static string VerbGloss(Sentence sentence) => sentence.Words[IndexOf(sentence, "see")].Gloss;
 
@@ -176,8 +177,8 @@ public class CoordinationTests
     [Fact]
     public void Realize_ClausesJoined_AreEachAsTheyWouldBeAloneWithTheConjunctionBetween()
     {
-        var first = new Clause("sleep", Tense.Past, Aspect.Imperfective, Dog) { Adverbs = [] };
-        var second = new Clause("sleep", Tense.Past, Aspect.Imperfective, Cat) { Adverbs = [] };
+        var first = new Clause(new Doing("sleep", null), new Declarative(Tense.Past, Aspect.Imperfective, Dog), false, [], []);
+        var second = new Clause(new Doing("sleep", null), new Declarative(Tense.Past, Aspect.Imperfective, Cat), false, [], []);
 
         Assert.All(GeneratedLanguages.Sample, l =>
         {
@@ -197,7 +198,7 @@ public class CoordinationTests
     {
         Assert.All(GeneratedLanguages.Sample, l =>
         {
-            var sentence = Syntax.Realize(l, new CopularClause(new AdjectiveCoordination(Conjunction.And, [new("big", false), new("old", false)]), Tense.Present, Aspect.Imperfective, Dog) { Obliques = [], Adverbs = [] }, "x");
+            var sentence = Syntax.Realize(l, new Clause(new Being(new AdjectiveCoordination(Conjunction.And, [new("big", false), new("old", false)])), new Declarative(Tense.Present, Aspect.Imperfective, Dog), false, [], []), "x");
 
             Assert.True(IndexOf(sentence, "big") >= 0 && IndexOf(sentence, "old") > IndexOf(sentence, "big"));
         });

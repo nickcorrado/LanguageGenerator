@@ -1,4 +1,5 @@
-﻿namespace LanguageGenerator.Tests;
+﻿using static LanguageGenerator.Tests.Clauses;
+namespace LanguageGenerator.Tests;
 
 public class ClauseFileTests
 {
@@ -14,19 +15,19 @@ public class ClauseFileTests
     {
         var entry = Single("drink the wine\n  drink.IMP  object:wine  location:house");
 
-        Assert.Equal(new Command("drink", Number.Singular, new NounPhrase("wine", Number.Singular), Obliques: [new(Role.Location, new NounPhrase("house", Number.Singular), Configuration.At)]) { Adverbs = [] }, entry.Statement.Value);
+        Assert.Equal(new Clause(new Doing("drink", new NounPhrase("wine", Number.Singular)), new Directive(Number.Singular), false, [new(Role.Location, new NounPhrase("house", Number.Singular), Configuration.At)], []), entry.Statement.Value);
     }
 
     [Fact]
     public void Parse_NegativeCommand_IsNegative()
     {
-        Assert.Equal(new Command("go", Number.Singular, Negative: true) { Adverbs = [] }, Single("don't go\n  go.IMP.NEG").Statement.Value);
+        Assert.Equal(new Clause(new Doing("go", null), new Directive(Number.Singular), true, [], []), Single("don't go\n  go.IMP.NEG").Statement.Value);
     }
 
     [Fact]
     public void Parse_CommandToSeveralPeople_TakesTheirNumber()
     {
-        Assert.Equal(new Command("go", Number.Plural) { Adverbs = [] }, Single("go, all of you\n  go.IMP  subject:2PL").Statement.Value);
+        Assert.Equal(new Clause(new Doing("go", null), new Directive(Number.Plural), false, [], []), Single("go, all of you\n  go.IMP  subject:2PL").Statement.Value);
     }
 
     [Theory]
@@ -57,7 +58,7 @@ public class ClauseFileTests
         var entry = Single("the dog saw the cats\n  see.PST.PFV  subject:dog  object:cat.PL\n");
 
         Assert.Equal("the dog saw the cats", entry.Translation);
-        Assert.Equal(new Clause("see", Tense.Past, Aspect.Perfective, new NounPhrase("dog", Number.Singular), new NounPhrase("cat", Number.Plural)) { Adverbs = [] }, Verbal(entry));
+        Assert.Equal(new Clause(new Doing("see", new NounPhrase("cat", Number.Plural)), new Declarative(Tense.Past, Aspect.Perfective, new NounPhrase("dog", Number.Singular)), false, [], []), Verbal(entry));
         Assert.Equal(2, entry.Line);
     }
 
@@ -66,12 +67,11 @@ public class ClauseFileTests
     {
         var clause = Verbal(Single("we went from the village to the river with you\n  walk.PST  source:village  subject:1PL  goal:(river big)  companion:2SG"));
 
-        Assert.Equal(new Clause("walk", Tense.Past, Aspect.Imperfective, new Pronoun(Person.First, Number.Plural), Obliques:
-        [
+        Assert.Equal(new Clause(new Doing("walk", null), new Declarative(Tense.Past, Aspect.Imperfective, new Pronoun(Person.First, Number.Plural)), false, [
             new(Role.Source, new NounPhrase("village", Number.Singular), Configuration.At),
             new(Role.Goal, new NounPhrase("river", Number.Singular, [new("big", false)]), Configuration.At),
             new(Role.Companion, new Pronoun(Person.Second, Number.Singular), Configuration.At),
-        ]) { Adverbs = [] }, clause);
+        ], []), clause);
         Assert.NotEqual(clause with { Obliques = [.. clause.Obliques.Reverse()] }, clause);
     }
 
@@ -92,9 +92,9 @@ public class ClauseFileTests
     {
         var clause = Verbal(Single("the king's old dogs saw her cat\n  see.PST  subject:(dog.PL old possessor:king)  object:(cat possessor:3SG.F)"));
 
-        Assert.Equal(new NounPhrase("dog", Number.Plural, [new("old", false)], Possessor: new NounPhrase("king", Number.Singular)), clause.Subject.Value);
-        Assert.Equal(new NounPhrase("cat", Number.Singular, [], Possessor: new Pronoun(Person.Third, Number.Singular, Gender: Gender.Feminine)), clause.Object.GetValueOrDefault().Value);
-        Assert.NotEqual(new NounPhrase("cat", Number.Singular, [], Possessor: new NounPhrase("king", Number.Singular)), clause.Object.GetValueOrDefault().Value);
+        Assert.Equal(new NounPhrase("dog", Number.Plural, [new("old", false)], Possessor: new NounPhrase("king", Number.Singular)), clause.Force.Subject.Value);
+        Assert.Equal(new NounPhrase("cat", Number.Singular, [], Possessor: new Pronoun(Person.Third, Number.Singular, Gender: Gender.Feminine)), PredicateOf<Doing>(clause).Object.GetValueOrDefault().Value);
+        Assert.NotEqual(new NounPhrase("cat", Number.Singular, [], Possessor: new NounPhrase("king", Number.Singular)), PredicateOf<Doing>(clause).Object.GetValueOrDefault().Value);
     }
 
     [Theory]
@@ -105,7 +105,7 @@ public class ClauseFileTests
     [InlineData("(wolf.PL 2)", 2, "Plural")]
     public void Parse_Number_CountsTheNounAndGivesItANumber(string phrase, int count, string number)
     {
-        var subject = Assert.IsType<NounPhrase>(Verbal(Single($"x\n  sleep subject:{phrase}")).Subject.Value);
+        var subject = Assert.IsType<NounPhrase>(Verbal(Single($"x\n  sleep subject:{phrase}")).Force.Subject.Value);
 
         Assert.Equal(count, subject.Count);
         Assert.Equal(number, subject.Number.Name);
@@ -128,7 +128,7 @@ public class ClauseFileTests
     [InlineData("dog", null)]
     public void Parse_Definiteness_IsKept(string phrase, string? definiteness)
     {
-        var subject = Assert.IsType<NounPhrase>(Verbal(Single($"x\n  sleep subject:{phrase}")).Subject.Value);
+        var subject = Assert.IsType<NounPhrase>(Verbal(Single($"x\n  sleep subject:{phrase}")).Force.Subject.Value);
 
         Assert.Equal(definiteness, subject.Definiteness?.Name);
     }
@@ -143,7 +143,7 @@ public class ClauseFileTests
     [InlineData("(door 21st)", 21, "Singular")]
     public void Parse_Ordinal_LeavesTheNounsNumberAlone(string phrase, int ordinal, string number)
     {
-        var subject = Assert.IsType<NounPhrase>(Verbal(Single($"x\n  sleep subject:{phrase}")).Subject.Value);
+        var subject = Assert.IsType<NounPhrase>(Verbal(Single($"x\n  sleep subject:{phrase}")).Force.Subject.Value);
 
         Assert.Equal(ordinal, subject.Ordinal);
         Assert.Null(subject.Count);
@@ -153,7 +153,7 @@ public class ClauseFileTests
     [Fact]
     public void Parse_OrdinalAndNumber_BothCount()
     {
-        var subject = Assert.IsType<NounPhrase>(Verbal(Single("x\n  sleep subject:(wolf 1st 3)")).Subject.Value);
+        var subject = Assert.IsType<NounPhrase>(Verbal(Single("x\n  sleep subject:(wolf 1st 3)")).Force.Subject.Value);
 
         Assert.Equal((1, 3), (subject.Ordinal, subject.Count));
     }
@@ -178,16 +178,16 @@ public class ClauseFileTests
     [Fact]
     public void Parse_Be_IsACopularClause()
     {
-        Assert.Equal(new CopularClause(new Adjective("locked", false), Tense.Past, Aspect.Imperfective, new NounPhrase("gate", Number.Singular)) { Obliques = [], Adverbs = [] },
+        Assert.Equal(new Clause(new Being(new Adjective("locked", false)), new Declarative(Tense.Past, Aspect.Imperfective, new NounPhrase("gate", Number.Singular)), false, [], []),
             Single("the gate was locked\n  be.PST subject:gate adjective:locked").Statement.Value);
-        Assert.Equal(new CopularClause(new NounPhrase("fool", Number.Plural), Tense.Present, Aspect.Imperfective, new Pronoun(Person.Second, Number.Plural), Negative: true) { Obliques = [], Adverbs = [] },
+        Assert.Equal(new Clause(new Being(new NounPhrase("fool", Number.Plural)), new Declarative(Tense.Present, Aspect.Imperfective, new Pronoun(Person.Second, Number.Plural)), true, [], []),
             Single("you aren't fools\n  be.NEG subject:2PL noun:fool.PL").Statement.Value);
     }
 
     [Fact]
     public void Parse_BeWithALocation_SaysWhereItsSubjectIs()
     {
-        Assert.Equal(new CopularClause(new Oblique(Role.Location, new NounPhrase("house", Number.Singular, [new("big", false)]), Configuration.At), Tense.Past, Aspect.Imperfective, new NounPhrase("dog", Number.Singular), Negative: true) { Obliques = [], Adverbs = [] },
+        Assert.Equal(new Clause(new Being(new Oblique(Role.Location, new NounPhrase("house", Number.Singular, [new("big", false)]), Configuration.At)), new Declarative(Tense.Past, Aspect.Imperfective, new NounPhrase("dog", Number.Singular)), true, [], []),
             Single("the dog wasn't in the big house\n  be.PST.NEG location:(house big) subject:dog").Statement.Value);
     }
 
@@ -210,8 +210,8 @@ public class ClauseFileTests
     {
         var clause = Verbal(Single("the big old dogs saw the cat\n  see.PST  subject:(dog.PL big old)  object:(cat)"));
 
-        Assert.Equal(new NounPhrase("dog", Number.Plural, [new("big", false), new("old", false)]), clause.Subject.Value);
-        Assert.Equal(new NounPhrase("cat", Number.Singular), clause.Object!.Value.Value);
+        Assert.Equal(new NounPhrase("dog", Number.Plural, [new("big", false), new("old", false)]), clause.Force.Subject.Value);
+        Assert.Equal(new NounPhrase("cat", Number.Singular), PredicateOf<Doing>(clause).Object!.Value.Value);
     }
 
     [Theory]
@@ -233,7 +233,7 @@ public class ClauseFileTests
     [Fact]
     public void Parse_PossessorOfAPossessor_Nests()
     {
-        var subject = Assert.IsType<NounPhrase>(Verbal(Single("my sister's son came home\n  walk.PST  subject:(son possessor:(sister possessor:1SG))")).Subject.Value);
+        var subject = Assert.IsType<NounPhrase>(Verbal(Single("my sister's son came home\n  walk.PST  subject:(son possessor:(sister possessor:1SG))")).Force.Subject.Value);
 
         var sister = Assert.IsType<NounPhrase>(subject.Possessor!.Value.Value);
         Assert.Equal("sister", sister.Noun);
@@ -245,7 +245,7 @@ public class ClauseFileTests
     {
         var entry = Single("the bird sleeps\n  sleep subject:bird");
 
-        Assert.Equal(new Clause("sleep", Tense.Present, Aspect.Imperfective, new NounPhrase("bird", Number.Singular)) { Adverbs = [] }, Verbal(entry));
+        Assert.Equal(new Clause(new Doing("sleep", null), new Declarative(Tense.Present, Aspect.Imperfective, new NounPhrase("bird", Number.Singular)), false, [], []), Verbal(entry));
     }
 
     [Fact]
@@ -259,7 +259,7 @@ public class ClauseFileTests
     {
         var entries = ClauseFile.Parse("# a scene\r\n\r\nthe dog sleeps\r\n  # not this\r\n  sleep subject:dog\r\n\r\nthe cat sleeps\r\n\tsleep subject:cat\r\n");
 
-        Assert.Equal(["dog", "cat"], entries.Select(e => Verbal(e).Subject.Value is NounPhrase n ? n.Noun : null));
+        Assert.Equal(["dog", "cat"], entries.Select(e => Verbal(e).Force.Subject.Value is NounPhrase n ? n.Noun : null));
     }
 
     [Theory]
@@ -297,8 +297,8 @@ public class ClauseFileTests
     {
         var entry = Single("we see you\n  see subject:1PL.INCL object:2SG");
 
-        Assert.Equal(new Pronoun(Person.First, Number.Plural, Clusivity.Inclusive), Verbal(entry).Subject.Value);
-        Assert.Equal(new Pronoun(Person.Second, Number.Singular), Verbal(entry).Object!.Value.Value);
+        Assert.Equal(new Pronoun(Person.First, Number.Plural, Clusivity.Inclusive), Verbal(entry).Force.Subject.Value);
+        Assert.Equal(new Pronoun(Person.Second, Number.Singular), PredicateOf<Doing>(Verbal(entry)).Object!.Value.Value);
     }
 
     [Theory]
@@ -317,7 +317,7 @@ public class ClauseFileTests
     [Fact]
     public void Parse_GenderedPronoun_KeepsItsGender()
     {
-        Assert.Equal(new Pronoun(Person.Third, Number.Singular, Gender: Gender.Feminine), Verbal(Single("she sleeps\n  sleep subject:3SG.F")).Subject.Value);
+        Assert.Equal(new Pronoun(Person.Third, Number.Singular, Gender: Gender.Feminine), Verbal(Single("she sleeps\n  sleep subject:3SG.F")).Force.Subject.Value);
     }
 
     [Theory]
@@ -342,7 +342,7 @@ public class ClauseFileTests
         Assert.All(values, value =>
         {
             var clause = Verbal(Single(value is Number ? $"x\n  sleep subject:dog.{value.Gloss}" : $"x\n  sleep.{value.Gloss} subject:dog"));
-            Assert.Contains(value, (Grammeme[])[clause.Tense, clause.Aspect, ((NounPhrase)clause.Subject.Value!).Number]);
+            Assert.Contains(value, (Grammeme[])[ForceOf<Declarative>(clause).Tense, ForceOf<Declarative>(clause).Aspect, ((NounPhrase)clause.Force.Subject.Value!).Number]);
         });
     }
 
@@ -378,9 +378,9 @@ public class ClauseFileTests
     [Fact]
     public void Parse_SubjectWrittenAfterAClauseThatSharesIt_IsShared()
     {
-        var complement = Assert.IsType<ComplementClause>(Verbal(Single("x\n  want  object:[to  go  goal:home]  subject:3PL")).Object.GetValueOrDefault().Value);
+        var complement = Assert.IsType<ComplementClause>(PredicateOf<Doing>(Verbal(Single("x\n  want  object:[to  go  goal:home]  subject:3PL"))).Object.GetValueOrDefault().Value);
 
-        Assert.Equal(new Pronoun(Person.Third, Number.Plural), Assert.IsType<Clause>(complement.Clause.Value).Subject.Value);
+        Assert.Equal(new Pronoun(Person.Third, Number.Plural), ForceOf<Declarative>(complement.Clause).Subject.Value);
     }
 
     [Fact]

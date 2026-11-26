@@ -1,3 +1,4 @@
+using static LanguageGenerator.Tests.Clauses;
 using static LanguageGenerator.Tests.Sentences;
 
 namespace LanguageGenerator.Tests;
@@ -9,7 +10,7 @@ public class PassiveTests
     //only the basic meanings, since coining new ones would add to the shared sample's lexicons
     private static readonly NounPhrase Fish = new("fish", Number.Singular);
     private static readonly NounPhrase Cat = new("cat", Number.Singular);
-    private static PassiveClause EatenBy(Argument? agent) => new("eat", Tense.Past, Aspect.Perfective, Fish, agent, false, []) { Adverbs = [] };
+    private static Clause EatenBy(Argument? agent) => new Clause(new Done("eat", agent), new Declarative(Tense.Past, Aspect.Perfective, Fish), false, [], []);
 
     private static IEnumerable<string> Glosses(Sentence sentence) => sentence.Words.Select(w => w.Gloss);
 
@@ -35,16 +36,16 @@ public class PassiveTests
     [Fact]
     public void Parse_Passive_HasItsPatientAsSubjectAndAnAgent()
     {
-        var clause = Assert.IsType<PassiveClause>(Parsed("carry.PASS.PST  subject:light.DEF  agent:(figure.NDF small)").Value);
+        var clause = Parsed("carry.PASS.PST  subject:light.DEF  agent:(figure.NDF small)");
 
-        Assert.Equal(new NounPhrase("light", Number.Singular, Definiteness: Definiteness.Definite), clause.Patient.Value);
-        Assert.Equal("figure", Assert.IsType<NounPhrase>(clause.Agent!.Value.Value).Noun);
-        Assert.Equal(Tense.Past, clause.Tense);
+        Assert.Equal(new NounPhrase("light", Number.Singular, Definiteness: Definiteness.Definite), ForceOf<Declarative>(clause).Subject.Value);
+        Assert.Equal("figure", Assert.IsType<NounPhrase>(PredicateOf<Done>(clause).Agent!.Value.Value).Noun);
+        Assert.Equal(Tense.Past, ForceOf<Declarative>(clause).Tense);
     }
 
     [Fact]
     public void Parse_PassiveWithoutAnAgent_HasNone() =>
-        Assert.Null(Assert.IsType<PassiveClause>(Parsed("take.PASS.PST  subject:child.PL.DEF").Value).Agent);
+        Assert.Null(PredicateOf<Done>(Parsed("take.PASS.PST  subject:child.PL.DEF")).Agent);
 
     [Theory]
     [InlineData("carry  subject:light  agent:figure", "Only a passive verb takes an agent:")]
@@ -60,7 +61,7 @@ public class PassiveTests
         Assert.All(GeneratedLanguages.Sample.Where(l => l.Passive is not null), l =>
         {
             var passive = Syntax.Realize(l, EatenBy(null), "x");
-            var intransitive = Syntax.Realize(l, new Clause("sleep", Tense.Past, Aspect.Perfective, Fish) { Adverbs = [] }, "x");
+            var intransitive = Syntax.Realize(l, new Clause(new Doing("sleep", null), new Declarative(Tense.Past, Aspect.Perfective, Fish), false, [], []), "x");
 
             Assert.Contains(passive.Words.SelectMany(w => w.Word.Morphemes), m => m.Value is Affix { Grammemes: [Voice] } or Particle { Grammemes: [Voice] });
             Assert.Equal(intransitive.Words[IndexOf(intransitive, "fish")].Gloss, passive.Words[IndexOf(passive, "fish")].Gloss);
@@ -89,8 +90,8 @@ public class PassiveTests
     {
         Assert.All(GeneratedLanguages.Sample.Where(l => l.Passive is null), l =>
         {
-            Assert.Equal(Glosses(Syntax.Realize(l, new Clause("eat", Tense.Past, Aspect.Perfective, Cat, Fish) { Adverbs = [] }, "x")), Glosses(Syntax.Realize(l, EatenBy(Cat), "x")));
-            Assert.Equal(Glosses(Syntax.Realize(l, new Clause("eat", Tense.Past, Aspect.Perfective, new Pronoun(Person.Third, Number.Plural), Fish) { Adverbs = [] }, "x")),
+            Assert.Equal(Glosses(Syntax.Realize(l, new Clause(new Doing("eat", Fish), new Declarative(Tense.Past, Aspect.Perfective, Cat), false, [], []), "x")), Glosses(Syntax.Realize(l, EatenBy(Cat), "x")));
+            Assert.Equal(Glosses(Syntax.Realize(l, new Clause(new Doing("eat", Fish), new Declarative(Tense.Past, Aspect.Perfective, new Pronoun(Person.Third, Number.Plural)), false, [], []), "x")),
                 Glosses(Syntax.Realize(l, EatenBy(null), "x")));
         });
     }

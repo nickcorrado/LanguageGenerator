@@ -6,7 +6,7 @@ public class PossessionTests
 {
     //only the basic meanings, since coining new ones would add to the shared sample's lexicons
     private static Sentence Slept(Language l, Argument possessor, Number? number = null) =>
-        Syntax.Realize(l, new Clause("sleep", Tense.Past, Aspect.Perfective, new NounPhrase("dog", number ?? Number.Singular, Possessor: possessor)) { Adverbs = [] }, "x");
+        Syntax.Realize(l, new Clause(new Doing("sleep", null), new Declarative(Tense.Past, Aspect.Perfective, new NounPhrase("dog", number ?? Number.Singular, Possessor: possessor)), false, [], []), "x");
 
     private static readonly NounPhrase ThePerson = new("person", Number.Singular);
     private static readonly Pronoun Me = new(Person.First, Number.Singular);

@@ -1,4 +1,5 @@
-﻿using static LanguageGenerator.Tests.Sentences;
+﻿using static LanguageGenerator.Tests.Clauses;
+using static LanguageGenerator.Tests.Sentences;
 
 namespace LanguageGenerator.Tests;
 
@@ -13,9 +14,9 @@ public class SubordinationTests
     {
         var subordinated = Assert.IsType<Subordinated>(Parsed("x\n  cover.IMP  object:ear.PL\n  if  hear  subject:2SG  object:song.DEF").Value);
 
-        Assert.IsType<Command>(subordinated.Main.Value);
+        ForceOf<Directive>(subordinated.Main);
         Assert.Equal(Subordinator.If, subordinated.Subordinator);
-        Assert.Equal("hear", Assert.IsType<Clause>(subordinated.Clause.Value).Verb);
+        Assert.Equal("hear", PredicateOf<Doing>(subordinated.Clause).Verb);
         Assert.False(subordinated.SharesSubject);
     }
 
@@ -25,7 +26,7 @@ public class SubordinationTests
         var subordinated = Assert.IsType<Subordinated>(Parsed("x\n  need  subject:2SG  object:rope.NDF\n  purpose  cross  object:river.DEF").Value);
 
         Assert.True(subordinated.SharesSubject);
-        Assert.Equal(new Pronoun(Person.Second, Number.Singular), Assert.IsType<Clause>(subordinated.Clause.Value).Subject.Value);
+        Assert.Equal(new Pronoun(Person.Second, Number.Singular), ForceOf<Declarative>(subordinated.Clause).Subject.Value);
     }
 
     [Fact]
@@ -114,7 +115,7 @@ public class SubordinationTests
     [Fact]
     public void Realize_DerankedClauseMarkedLikeARole_TakesItsCaseOrAdposition()
     {
-        var dogEats = CatEats with { Subject = new NounPhrase("dog", Number.Singular) };
+        var dogEats = CatEats with { Force = new Declarative(Tense.Present, Aspect.Imperfective, new NounPhrase("dog", Number.Singular)) };
         var marked = GeneratedLanguages.Sample.Where(l => l.Subordination.Markers[Subordinator.Purpose] is { Balance: not Balance.Balanced, MarkedAs: not null }).ToList();
 
         Assert.NotEmpty(marked);
@@ -143,8 +144,8 @@ public class SubordinationTests
             l => Assert.DoesNotContain(l.Subordination.Markers.Values, m => m.Position == ExponentPosition.Suffix));
 
     //only the basic meanings, since coining new ones would add to the shared sample's lexicons
-    private static readonly Clause CatEats = new("eat", Tense.Present, Aspect.Imperfective, new NounPhrase("cat", Number.Singular), new NounPhrase("fish", Number.Singular)) { Adverbs = [] };
-    private static readonly Clause DogSleeps = new("sleep", Tense.Present, Aspect.Imperfective, new NounPhrase("dog", Number.Singular)) { Adverbs = [] };
+    private static readonly Clause CatEats = new Clause(new Doing("eat", new NounPhrase("fish", Number.Singular)), new Declarative(Tense.Present, Aspect.Imperfective, new NounPhrase("cat", Number.Singular)), false, [], []);
+    private static readonly Clause DogSleeps = new Clause(new Doing("sleep", null), new Declarative(Tense.Present, Aspect.Imperfective, new NounPhrase("dog", Number.Singular)), false, [], []);
 
     private static bool IsMarker(Morpheme m) => m.Value is Affix { Grammemes: [Linkage] } or Particle { Grammemes: [Linkage] };
 
@@ -194,7 +195,7 @@ public class SubordinationTests
     [Fact]
     public void Realize_SharedSubject_IsSaidOnlyOnce()
     {
-        var dogEats = CatEats with { Subject = new NounPhrase("dog", Number.Singular) };
+        var dogEats = CatEats with { Force = new Declarative(Tense.Present, Aspect.Imperfective, new NounPhrase("dog", Number.Singular)) };
 
         Assert.All(GeneratedLanguages.Sample, l =>
         {

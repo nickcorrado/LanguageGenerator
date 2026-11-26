@@ -430,166 +430,161 @@ public static class LanguageDescription
         NounPhrase Phrase(string noun, Number number) => new(noun, number, Definiteness: Definiteness.Definite);
         (Statement Clause, string Translation)[] examples =
         [
-            (new Clause("see", Tense.Past, Aspect.Perfective, Phrase("dog", Number.Singular), Phrase("cat", Number.Singular)) { Adverbs = [] }, "the dog saw the cat"),
-            (new Clause("sleep", Tense.Present, Aspect.Imperfective, Phrase("bird", Number.Plural)) { Adverbs = [] }, "the birds are sleeping"),
-            (new Clause("see", Tense.Past, Aspect.Perfective, new NounPhrase("dog", Number.Singular, Definiteness: Definiteness.Indefinite), new NounPhrase("cat", Number.Plural)) { Adverbs = [] }, "a dog saw cats"),
-            (new Clause("see", Tense.Present, Aspect.Imperfective, Phrase("person", Number.Singular), Phrase("dog", Number.Plural)) { Adverbs = [] }, "the person sees the dogs"),
-            (new Clause("see", Tense.Present, Aspect.Imperfective, new Pronoun(Person.First, Number.Singular), new Pronoun(Person.Second, Number.Singular)) { Adverbs = [] }, "I see you"),
-            (new Clause("sleep", Tense.Past, Aspect.Imperfective, new Pronoun(Person.First, Number.Plural)) { Adverbs = [] }, "we were sleeping"),
-            (new Clause("see", Tense.Past, Aspect.Perfective, Phrase("dog", Number.Singular), Phrase("cat", Number.Singular), Negative: true) { Adverbs = [] }, "the dog didn't see the cat"),
-            (new Clause("see", Tense.Past, Aspect.Perfective, new NounPhrase("dog", Number.Singular, [new("big", false)], Definiteness: Definiteness.Definite), new NounPhrase("cat", Number.Plural, [new("small", false)], Definiteness: Definiteness.Definite)) { Adverbs = [] }, "the big dog saw the small cats"),
-            (new Clause("see", Tense.Past, Aspect.Perfective, new NounPhrase("woman", Number.Singular, [new("old", false)], Definiteness: Definiteness.Definite), new NounPhrase("sun", Number.Singular, [new("big", false)], Definiteness: Definiteness.Definite)) { Adverbs = [] }, "the old woman saw the big sun"),
-            (new Clause("sleep", Tense.Past, Aspect.Imperfective, Phrase("dog", Number.Singular), Obliques: [new(Role.Location, new NounPhrase("house", Number.Singular, [new("big", false)], Definiteness: Definiteness.Definite), Configuration.In)]) { Adverbs = [] }, "the dog was sleeping in the big house"),
-            (new Clause("give", Tense.Past, Aspect.Perfective, Phrase("person", Number.Singular), Phrase("fish", Number.Singular), Obliques: [new(Role.Recipient, Phrase("cat", Number.Plural), Configuration.At)]) { Adverbs = [] }, "the person gave the fish to the cats"),
-            (new Clause("walk", Tense.Past, Aspect.Perfective, new Pronoun(Person.First, Number.Singular), Obliques: [new(Role.Source, Phrase("tree", Number.Singular), Configuration.At), new(Role.Goal, Phrase("water", Number.Singular), Configuration.At), new(Role.Companion, new Pronoun(Person.Second, Number.Singular), Configuration.At)]) { Adverbs = [] }, "I walked from the tree to the water with you"),
-            (new Clause("see", Tense.Past, Aspect.Perfective, Phrase("person", Number.Singular), new NounPhrase("dog", ClauseFile.NumberFor(3), [new("big", false)], Count: 3)) { Adverbs = [] }, "the person saw three big dogs"),
-            (new Clause("sleep", Tense.Past, Aspect.Imperfective, new NounPhrase("dog", Number.Singular, Ordinal: 3, Definiteness: Definiteness.Definite), Obliques: [new(Role.Location, new NounPhrase("house", Number.Singular, Ordinal: 1, Definiteness: Definiteness.Definite), Configuration.In)]) { Adverbs = [] }, "the third dog was sleeping in the first house"),
-            (new Clause("walk", Tense.Past, Aspect.Perfective, Phrase("cat", Number.Singular), Obliques: [new(Role.Source, Phrase("house", Number.Singular), Configuration.In), new(Role.Route, Phrase("water", Number.Singular), Configuration.Over)]) { Adverbs = [] }, "the cat walked out of the house over the water"),
-            (new CopularClause(new Oblique(Role.Location, Phrase("tree", Number.Singular), Configuration.Under), Tense.Present, Aspect.Imperfective, Phrase("bird", Number.Singular)) { Obliques = [], Adverbs = [] }, "the bird is under the tree"),
-            (new Clause("see", Tense.Past, Aspect.Perfective, new NounPhrase("dog", Number.Singular, Possessor: Phrase("person", Number.Singular)), new NounPhrase("cat", Number.Plural, Possessor: new Pronoun(Person.First, Number.Singular))) { Adverbs = [] }, "the person's dog saw my cats"),
+            (new Clause(new Doing("see", Phrase("cat", Number.Singular)), new Declarative(Tense.Past, Aspect.Perfective, Phrase("dog", Number.Singular)), false, [], []), "the dog saw the cat"),
+            (new Clause(new Doing("sleep", null), new Declarative(Tense.Present, Aspect.Imperfective, Phrase("bird", Number.Plural)), false, [], []), "the birds are sleeping"),
+            (new Clause(new Doing("see", new NounPhrase("cat", Number.Plural)), new Declarative(Tense.Past, Aspect.Perfective, new NounPhrase("dog", Number.Singular, Definiteness: Definiteness.Indefinite)), false, [], []), "a dog saw cats"),
+            (new Clause(new Doing("see", Phrase("dog", Number.Plural)), new Declarative(Tense.Present, Aspect.Imperfective, Phrase("person", Number.Singular)), false, [], []), "the person sees the dogs"),
+            (new Clause(new Doing("see", new Pronoun(Person.Second, Number.Singular)), new Declarative(Tense.Present, Aspect.Imperfective, new Pronoun(Person.First, Number.Singular)), false, [], []), "I see you"),
+            (new Clause(new Doing("sleep", null), new Declarative(Tense.Past, Aspect.Imperfective, new Pronoun(Person.First, Number.Plural)), false, [], []), "we were sleeping"),
+            (new Clause(new Doing("see", Phrase("cat", Number.Singular)), new Declarative(Tense.Past, Aspect.Perfective, Phrase("dog", Number.Singular)), true, [], []), "the dog didn't see the cat"),
+            (new Clause(new Doing("see", new NounPhrase("cat", Number.Plural, [new("small", false)], Definiteness: Definiteness.Definite)), new Declarative(Tense.Past, Aspect.Perfective, new NounPhrase("dog", Number.Singular, [new("big", false)], Definiteness: Definiteness.Definite)), false, [], []), "the big dog saw the small cats"),
+            (new Clause(new Doing("see", new NounPhrase("sun", Number.Singular, [new("big", false)], Definiteness: Definiteness.Definite)), new Declarative(Tense.Past, Aspect.Perfective, new NounPhrase("woman", Number.Singular, [new("old", false)], Definiteness: Definiteness.Definite)), false, [], []), "the old woman saw the big sun"),
+            (new Clause(new Doing("sleep", null), new Declarative(Tense.Past, Aspect.Imperfective, Phrase("dog", Number.Singular)), false, [new(Role.Location, new NounPhrase("house", Number.Singular, [new("big", false)], Definiteness: Definiteness.Definite), Configuration.In)], []), "the dog was sleeping in the big house"),
+            (new Clause(new Doing("give", Phrase("fish", Number.Singular)), new Declarative(Tense.Past, Aspect.Perfective, Phrase("person", Number.Singular)), false, [new(Role.Recipient, Phrase("cat", Number.Plural), Configuration.At)], []), "the person gave the fish to the cats"),
+            (new Clause(new Doing("walk", null), new Declarative(Tense.Past, Aspect.Perfective, new Pronoun(Person.First, Number.Singular)), false, [new(Role.Source, Phrase("tree", Number.Singular), Configuration.At), new(Role.Goal, Phrase("water", Number.Singular), Configuration.At), new(Role.Companion, new Pronoun(Person.Second, Number.Singular), Configuration.At)], []), "I walked from the tree to the water with you"),
+            (new Clause(new Doing("see", new NounPhrase("dog", ClauseFile.NumberFor(3), [new("big", false)], Count: 3)), new Declarative(Tense.Past, Aspect.Perfective, Phrase("person", Number.Singular)), false, [], []), "the person saw three big dogs"),
+            (new Clause(new Doing("sleep", null), new Declarative(Tense.Past, Aspect.Imperfective, new NounPhrase("dog", Number.Singular, Ordinal: 3, Definiteness: Definiteness.Definite)), false, [new(Role.Location, new NounPhrase("house", Number.Singular, Ordinal: 1, Definiteness: Definiteness.Definite), Configuration.In)], []), "the third dog was sleeping in the first house"),
+            (new Clause(new Doing("walk", null), new Declarative(Tense.Past, Aspect.Perfective, Phrase("cat", Number.Singular)), false, [new(Role.Source, Phrase("house", Number.Singular), Configuration.In), new(Role.Route, Phrase("water", Number.Singular), Configuration.Over)], []), "the cat walked out of the house over the water"),
+            (new Clause(new Being(new Oblique(Role.Location, Phrase("tree", Number.Singular), Configuration.Under)), new Declarative(Tense.Present, Aspect.Imperfective, Phrase("bird", Number.Singular)), false, [], []), "the bird is under the tree"),
+            (new Clause(new Doing("see", new NounPhrase("cat", Number.Plural, Possessor: new Pronoun(Person.First, Number.Singular))), new Declarative(Tense.Past, Aspect.Perfective, new NounPhrase("dog", Number.Singular, Possessor: Phrase("person", Number.Singular))), false, [], []), "the person's dog saw my cats"),
         ];
         (Statement Clause, string Translation)[] copular =
         [
-            (new CopularClause(new Adjective("big", false), Tense.Present, Aspect.Imperfective, Phrase("dog", Number.Singular)) { Obliques = [], Adverbs = [] }, "the dog is big"),
-            (new CopularClause(new NounPhrase("bird", Number.Singular, Definiteness: Definiteness.Indefinite), Tense.Present, Aspect.Imperfective, new Pronoun(Person.Second, Number.Singular)) { Obliques = [], Adverbs = [] }, "you are a bird"),
-            (new CopularClause(new Oblique(Role.Location, Phrase("house", Number.Singular), Configuration.In), Tense.Present, Aspect.Imperfective, Phrase("dog", Number.Singular)) { Obliques = [], Adverbs = [] }, "the dog is in the house"),
+            (new Clause(new Being(new Adjective("big", false)), new Declarative(Tense.Present, Aspect.Imperfective, Phrase("dog", Number.Singular)), false, [], []), "the dog is big"),
+            (new Clause(new Being(new NounPhrase("bird", Number.Singular, Definiteness: Definiteness.Indefinite)), new Declarative(Tense.Present, Aspect.Imperfective, new Pronoun(Person.Second, Number.Singular)), false, [], []), "you are a bird"),
+            (new Clause(new Being(new Oblique(Role.Location, Phrase("house", Number.Singular), Configuration.In)), new Declarative(Tense.Present, Aspect.Imperfective, Phrase("dog", Number.Singular)), false, [], []), "the dog is in the house"),
         ];
         (Statement Clause, string Translation)[] commands =
         [
-            (new Command("eat", Number.Singular, Phrase("fish", Number.Singular)) { Adverbs = [] }, "eat the fish"),
-            (new Command("walk", Number.Plural, Obliques: [new(Role.Goal, Phrase("house", Number.Singular), Configuration.At)]) { Adverbs = [] }, "go to the house, all of you"),
-            (new Command("eat", Number.Singular, Phrase("fish", Number.Singular), Negative: true) { Adverbs = [] }, "don't eat the fish"),
+            (new Clause(new Doing("eat", Phrase("fish", Number.Singular)), new Directive(Number.Singular), false, [], []), "eat the fish"),
+            (new Clause(new Doing("walk", null), new Directive(Number.Plural), false, [new(Role.Goal, Phrase("house", Number.Singular), Configuration.At)], []), "go to the house, all of you"),
+            (new Clause(new Doing("eat", Phrase("fish", Number.Singular)), new Directive(Number.Singular), true, [], []), "don't eat the fish"),
         ];
         (Statement Clause, string Translation)[] copularCommands =
         [
-            (new CopularCommand(new Adjective("good", false), Number.Singular, false) { Obliques = [], Adverbs = [] }, "be good"),
+            (new Clause(new Being(new Adjective("good", false)), new Directive(Number.Singular), false, [], []), "be good"),
         ];
         (Statement Clause, string Translation)[] addressed =
         [
-            (new Addressed(new CopularClause(new Oblique(Role.Location, Phrase("house", Number.Singular), Configuration.In), Tense.Present, Aspect.Imperfective, Phrase("dog", Number.Singular)) { Obliques = [], Adverbs = [] },
+            (new Addressed(new Clause(new Being(new Oblique(Role.Location, Phrase("house", Number.Singular), Configuration.In)), new Declarative(Tense.Present, Aspect.Imperfective, Phrase("dog", Number.Singular)), false, [], []),
                 new NounPhrase("woman", Number.Singular, [new("old", false)])), "old woman, the dog is in the house"),
-            (new Addressed(new Command("walk", Number.Plural, Obliques: [new(Role.Goal, Phrase("water", Number.Singular), Configuration.At)]) { Adverbs = [] }, new NounPhrase("person", Number.Plural)),
+            (new Addressed(new Clause(new Doing("walk", null), new Directive(Number.Plural), false, [new(Role.Goal, Phrase("water", Number.Singular), Configuration.At)], []), new NounPhrase("person", Number.Plural)),
                 "people, go to the water"),
         ];
         (Statement Clause, string Translation)[] coordinated =
         [
-            (new Clause("see", Tense.Past, Aspect.Perfective, new Coordination(Conjunction.And, [Phrase("dog", Number.Singular), Phrase("cat", Number.Singular)]), Phrase("bird", Number.Plural)) { Adverbs = [] },
+            (new Clause(new Doing("see", Phrase("bird", Number.Plural)), new Declarative(Tense.Past, Aspect.Perfective, new Coordination(Conjunction.And, [Phrase("dog", Number.Singular), Phrase("cat", Number.Singular)])), false, [], []),
                 "the dog and the cat saw the birds"),
-            (new Coordinated(Conjunction.But, new Clause("sleep", Tense.Past, Aspect.Imperfective, Phrase("dog", Number.Singular)) { Adverbs = [] },
-                new Clause("eat", Tense.Past, Aspect.Imperfective, Phrase("cat", Number.Singular), Phrase("fish", Number.Singular)) { Adverbs = [] }), "the dog was sleeping, but the cat was eating the fish"),
-            (new CopularClause(new AdjectiveCoordination(Conjunction.And, [new("big", false), new("old", false)]), Tense.Present, Aspect.Imperfective, Phrase("house", Number.Singular)) { Obliques = [], Adverbs = [] },
+            (new Coordinated(Conjunction.But, new Clause(new Doing("sleep", null), new Declarative(Tense.Past, Aspect.Imperfective, Phrase("dog", Number.Singular)), false, [], []),
+                new Clause(new Doing("eat", Phrase("fish", Number.Singular)), new Declarative(Tense.Past, Aspect.Imperfective, Phrase("cat", Number.Singular)), false, [], [])), "the dog was sleeping, but the cat was eating the fish"),
+            (new Clause(new Being(new AdjectiveCoordination(Conjunction.And, [new("big", false), new("old", false)])), new Declarative(Tense.Present, Aspect.Imperfective, Phrase("house", Number.Singular)), false, [], []),
                 "the house is big and old"),
         ];
         (Statement Clause, string Translation)[] subordinated =
         [
-            (new Subordinated(new Clause("eat", Tense.Present, Aspect.Imperfective, Phrase("cat", Number.Singular), Phrase("fish", Number.Singular)) { Adverbs = [] }, Subordinator.If,
-                new Clause("sleep", Tense.Present, Aspect.Imperfective, Phrase("dog", Number.Singular)) { Adverbs = [] }, false), "if the dog sleeps, the cat eats the fish"),
-            (new Subordinated(new Clause("walk", Tense.Past, Aspect.Perfective, Phrase("dog", Number.Singular), Obliques: [new(Role.Goal, Phrase("water", Number.Singular), Configuration.At)]) { Adverbs = [] },
-                Subordinator.Purpose, new Clause("drink", Tense.Past, Aspect.Perfective, Phrase("dog", Number.Singular)) { Adverbs = [] }, true), "the dog walked to the water to drink"),
-            (new Subordinated(new Clause("sleep", Tense.Past, Aspect.Perfective, Phrase("cat", Number.Singular)) { Adverbs = [] }, Subordinator.Because,
-                new CopularClause(new Adjective("big", false), Tense.Past, Aspect.Imperfective, Phrase("dog", Number.Singular)) { Obliques = [], Adverbs = [] }, false), "the cat slept because the dog was big"),
+            (new Subordinated(new Clause(new Doing("eat", Phrase("fish", Number.Singular)), new Declarative(Tense.Present, Aspect.Imperfective, Phrase("cat", Number.Singular)), false, [], []), Subordinator.If,
+                new Clause(new Doing("sleep", null), new Declarative(Tense.Present, Aspect.Imperfective, Phrase("dog", Number.Singular)), false, [], []), false), "if the dog sleeps, the cat eats the fish"),
+            (new Subordinated(new Clause(new Doing("walk", null), new Declarative(Tense.Past, Aspect.Perfective, Phrase("dog", Number.Singular)), false, [new(Role.Goal, Phrase("water", Number.Singular), Configuration.At)], []),
+                Subordinator.Purpose, new Clause(new Doing("drink", null), new Declarative(Tense.Past, Aspect.Perfective, Phrase("dog", Number.Singular)), false, [], []), true), "the dog walked to the water to drink"),
+            (new Subordinated(new Clause(new Doing("sleep", null), new Declarative(Tense.Past, Aspect.Perfective, Phrase("cat", Number.Singular)), false, [], []), Subordinator.Because,
+                new Clause(new Being(new Adjective("big", false)), new Declarative(Tense.Past, Aspect.Imperfective, Phrase("dog", Number.Singular)), false, [], []), false), "the cat slept because the dog was big"),
         ];
         (Statement Clause, string Translation)[] passives =
         [
-            (new PassiveClause("eat", Tense.Past, Aspect.Perfective, Phrase("fish", Number.Singular), Phrase("cat", Number.Singular), false, []) { Adverbs = [] }, "the fish was eaten by the cat"),
-            (new PassiveClause("see", Tense.Past, Aspect.Perfective, Phrase("dog", Number.Plural), null, false, []) { Adverbs = [] }, "the dogs were seen"),
+            (new Clause(new Done("eat", Phrase("cat", Number.Singular)), new Declarative(Tense.Past, Aspect.Perfective, Phrase("fish", Number.Singular)), false, [], []), "the fish was eaten by the cat"),
+            (new Clause(new Done("see", null), new Declarative(Tense.Past, Aspect.Perfective, Phrase("dog", Number.Plural)), false, [], []), "the dogs were seen"),
         ];
         (Statement Clause, string Translation)[] comparatives =
         [
-            (new Comparative(new CopularClause(new Adjective("big", false), Tense.Present, Aspect.Imperfective, Phrase("dog", Number.Singular)) { Obliques = [], Adverbs = [] }, Phrase("cat", Number.Plural)),
+            (new Comparative(new Clause(new Being(new Adjective("big", false)), new Declarative(Tense.Present, Aspect.Imperfective, Phrase("dog", Number.Singular)), false, [], []), Phrase("cat", Number.Plural)),
                 "the dog is bigger than the cats"),
-            (new Comparative(new CopularClause(new Adjective("big", false), Tense.Present, Aspect.Imperfective, Phrase("cat", Number.Singular)) { Obliques = [], Adverbs = [] }, null), "the cat is bigger"),
-            (new Clause("sleep", Tense.Present, Aspect.Imperfective, Phrase("cat", Number.Singular), Obliques: [new(Role.Similative, Phrase("dog", Number.Singular), Configuration.At)]) { Adverbs = [] },
+            (new Comparative(new Clause(new Being(new Adjective("big", false)), new Declarative(Tense.Present, Aspect.Imperfective, Phrase("cat", Number.Singular)), false, [], []), null), "the cat is bigger"),
+            (new Clause(new Doing("sleep", null), new Declarative(Tense.Present, Aspect.Imperfective, Phrase("cat", Number.Singular)), false, [new(Role.Similative, Phrase("dog", Number.Singular), Configuration.At)], []),
                 "the cat sleeps like the dog"),
         ];
         (Statement Clause, string Translation)[] modalized =
         [
-            (new Modalized(new Clause("drink", Tense.Present, Aspect.Imperfective, Phrase("dog", Number.Singular), Phrase("water", Number.Singular)) { Adverbs = [] }, Modality.Ability, true),
+            (new Modalized(new Clause(new Doing("drink", Phrase("water", Number.Singular)), new Declarative(Tense.Present, Aspect.Imperfective, Phrase("dog", Number.Singular)), false, [], []), Modality.Ability, true),
                 "the dog can't drink the water"),
-            (new Modalized(new Clause("sleep", Tense.Present, Aspect.Imperfective, Phrase("cat", Number.Singular)) { Adverbs = [] }, Modality.Permission, false), "the cat may sleep"),
-            (new Modalized(new Clause("eat", Tense.Present, Aspect.Imperfective, Phrase("dog", Number.Plural), Phrase("fish", Number.Singular), true) { Adverbs = [] }, Modality.Obligation, false),
+            (new Modalized(new Clause(new Doing("sleep", null), new Declarative(Tense.Present, Aspect.Imperfective, Phrase("cat", Number.Singular)), false, [], []), Modality.Permission, false), "the cat may sleep"),
+            (new Modalized(new Clause(new Doing("eat", Phrase("fish", Number.Singular)), new Declarative(Tense.Present, Aspect.Imperfective, Phrase("dog", Number.Plural)), true, [], []), Modality.Obligation, false),
                 "the dogs must not eat the fish"),
-            (new Modalized(new Clause("eat", Tense.Present, Aspect.Perfect, Phrase("cat", Number.Singular), Phrase("fish", Number.Singular)) { Adverbs = [] }, Modality.Presumptive, false),
+            (new Modalized(new Clause(new Doing("eat", Phrase("fish", Number.Singular)), new Declarative(Tense.Present, Aspect.Perfect, Phrase("cat", Number.Singular)), false, [], []), Modality.Presumptive, false),
                 "the cat must have eaten the fish"),
-            (new Modalized(new Clause("sleep", Tense.Present, Aspect.Progressive, Phrase("dog", Number.Singular)) { Adverbs = [] }, Modality.Dubitative, false), "the dog might be sleeping"),
+            (new Modalized(new Clause(new Doing("sleep", null), new Declarative(Tense.Present, Aspect.Progressive, Phrase("dog", Number.Singular)), false, [], []), Modality.Dubitative, false), "the dog might be sleeping"),
         ];
         (Statement Clause, string Translation)[] aspects =
         [
-            (new Clause("eat", Tense.Present, Aspect.Perfect, Phrase("cat", Number.Singular), Phrase("fish", Number.Singular)) { Adverbs = [] }, "the cat has eaten the fish"),
-            (new Clause("see", Tense.Past, Aspect.Perfect, Phrase("dog", Number.Singular), Phrase("bird", Number.Plural), Negative: true) { Adverbs = [] }, "the dog hadn't seen the birds"),
-            (new Clause("sleep", Tense.Present, Aspect.Progressive, Phrase("dog", Number.Plural)) { Adverbs = [] }, "the dogs are sleeping"),
-            (new Question(new Clause("eat", Tense.Past, Aspect.Progressive, Phrase("cat", Number.Singular), Phrase("fish", Number.Singular)) { Adverbs = [] }, null),
+            (new Clause(new Doing("eat", Phrase("fish", Number.Singular)), new Declarative(Tense.Present, Aspect.Perfect, Phrase("cat", Number.Singular)), false, [], []), "the cat has eaten the fish"),
+            (new Clause(new Doing("see", Phrase("bird", Number.Plural)), new Declarative(Tense.Past, Aspect.Perfect, Phrase("dog", Number.Singular)), true, [], []), "the dog hadn't seen the birds"),
+            (new Clause(new Doing("sleep", null), new Declarative(Tense.Present, Aspect.Progressive, Phrase("dog", Number.Plural)), false, [], []), "the dogs are sleeping"),
+            (new Question(new Clause(new Doing("eat", Phrase("fish", Number.Singular)), new Declarative(Tense.Past, Aspect.Progressive, Phrase("cat", Number.Singular)), false, [], []), null),
                 "was the cat eating the fish?"),
-            (new Clause("eat", Tense.Past, Aspect.Habitual, Phrase("dog", Number.Plural), new NounPhrase("fish", Number.Singular)) { Adverbs = [] }, "the dogs used to eat fish"),
-            (new Clause("begin", Tense.Past, Aspect.Perfective, Phrase("cat", Number.Singular),
-                new ComplementClause(ComplementKind.Event, new Clause("sleep", Tense.Present, Aspect.Imperfective, Phrase("cat", Number.Singular)) { Adverbs = [] }, SharesSubject: true)) { Adverbs = [] },
+            (new Clause(new Doing("eat", new NounPhrase("fish", Number.Singular)), new Declarative(Tense.Past, Aspect.Habitual, Phrase("dog", Number.Plural)), false, [], []), "the dogs used to eat fish"),
+            (new Clause(new Doing("begin", new ComplementClause(ComplementKind.Event, new Clause(new Doing("sleep", null), new Declarative(Tense.Present, Aspect.Imperfective, Phrase("cat", Number.Singular)), false, [], []), SharesSubject: true)), new Declarative(Tense.Past, Aspect.Perfective, Phrase("cat", Number.Singular)), false, [], []),
                 "the cat began to sleep"),
-            (new Clause("stop", Tense.Present, Aspect.Imperfective, Phrase("dog", Number.Singular),
-                new ComplementClause(ComplementKind.Event, new Clause("eat", Tense.Present, Aspect.Imperfective, Phrase("dog", Number.Singular), Phrase("fish", Number.Singular)) { Adverbs = [] }, SharesSubject: true)) { Adverbs = [] },
+            (new Clause(new Doing("stop", new ComplementClause(ComplementKind.Event, new Clause(new Doing("eat", Phrase("fish", Number.Singular)), new Declarative(Tense.Present, Aspect.Imperfective, Phrase("dog", Number.Singular)), false, [], []), SharesSubject: true)), new Declarative(Tense.Present, Aspect.Imperfective, Phrase("dog", Number.Singular)), false, [], []),
                 "the dog stops eating the fish"),
         ];
         (Statement Clause, string Translation)[] questions =
         [
-            (new Question(new Clause("see", Tense.Past, Aspect.Perfective, Phrase("dog", Number.Singular), Phrase("cat", Number.Plural)) { Adverbs = [] }, null), "did the dog see the cats?"),
-            (new Question(new Clause("eat", Tense.Present, Aspect.Imperfective, new QuestionWord(Interrogative.Who), Phrase("fish", Number.Singular)) { Adverbs = [] }, null), "who eats the fish?"),
-            (new Question(new Clause("eat", Tense.Past, Aspect.Perfective, Phrase("dog", Number.Singular), new QuestionWord(Interrogative.What)) { Adverbs = [] }, null), "what did the dog eat?"),
-            (new Question(new CopularClause(new Oblique(Role.Location, new QuestionWord(Interrogative.Where), Configuration.At), Tense.Present, Aspect.Imperfective, Phrase("cat", Number.Singular)) { Obliques = [], Adverbs = [] }, null),
+            (new Question(new Clause(new Doing("see", Phrase("cat", Number.Plural)), new Declarative(Tense.Past, Aspect.Perfective, Phrase("dog", Number.Singular)), false, [], []), null), "did the dog see the cats?"),
+            (new Question(new Clause(new Doing("eat", Phrase("fish", Number.Singular)), new Declarative(Tense.Present, Aspect.Imperfective, new QuestionWord(Interrogative.Who)), false, [], []), null), "who eats the fish?"),
+            (new Question(new Clause(new Doing("eat", new QuestionWord(Interrogative.What)), new Declarative(Tense.Past, Aspect.Perfective, Phrase("dog", Number.Singular)), false, [], []), null), "what did the dog eat?"),
+            (new Question(new Clause(new Being(new Oblique(Role.Location, new QuestionWord(Interrogative.Where), Configuration.At)), new Declarative(Tense.Present, Aspect.Imperfective, Phrase("cat", Number.Singular)), false, [], []), null),
                 "where is the cat?"),
-            (new Question(new Clause("sleep", Tense.Present, Aspect.Imperfective, Phrase("dog", Number.Singular), Negative: true) { Adverbs = [] }, QuestionAdverb.Why), "why doesn't the dog sleep?"),
-            (new Question(new Clause("walk", Tense.Past, Aspect.Perfective, Phrase("bird", Number.Singular), Obliques: [new(Role.Time, new QuestionWord(Interrogative.When), Configuration.At)]) { Adverbs = [] }, null),
+            (new Question(new Clause(new Doing("sleep", null), new Declarative(Tense.Present, Aspect.Imperfective, Phrase("dog", Number.Singular)), true, [], []), QuestionAdverb.Why), "why doesn't the dog sleep?"),
+            (new Question(new Clause(new Doing("walk", null), new Declarative(Tense.Past, Aspect.Perfective, Phrase("bird", Number.Singular)), false, [new(Role.Time, new QuestionWord(Interrogative.When), Configuration.At)], []), null),
                 "when did the bird walk?"),
-            (new Question(new Clause("eat", Tense.Past, Aspect.Perfective, Phrase("cat", Number.Singular), Phrase("fish", Number.Singular)) { Adverbs = [] }, QuestionAdverb.How), "how did the cat eat the fish?"),
+            (new Question(new Clause(new Doing("eat", Phrase("fish", Number.Singular)), new Declarative(Tense.Past, Aspect.Perfective, Phrase("cat", Number.Singular)), false, [], []), QuestionAdverb.How), "how did the cat eat the fish?"),
         ];
         (Statement Clause, string Translation)[] complements =
         [
-            (new Clause("say", Tense.Past, Aspect.Perfective, Phrase("person", Number.Singular), new ComplementClause(ComplementKind.Proposition,
-                new Clause("sleep", Tense.Past, Aspect.Imperfective, Phrase("dog", Number.Singular)) { Adverbs = [] }, false)) { Adverbs = [] }, "the person said that the dog was sleeping"),
-            (new Clause("want", Tense.Present, Aspect.Imperfective, Phrase("cat", Number.Singular), new ComplementClause(ComplementKind.Event,
-                new Clause("eat", Tense.Present, Aspect.Imperfective, Phrase("cat", Number.Singular), Phrase("fish", Number.Singular)) { Adverbs = [] }, true)) { Adverbs = [] }, "the cat wants to eat the fish"),
-            (new Clause("say", Tense.Past, Aspect.Perfective, Phrase("bird", Number.Singular), new Quotation(new Command("walk", Number.Singular,
-                Obliques: [new(Role.Goal, Phrase("house", Number.Singular), Configuration.At)]) { Adverbs = [] })) { Adverbs = [] }, "the bird said, \"go to the house\""),
+            (new Clause(new Doing("say", new ComplementClause(ComplementKind.Proposition,
+                new Clause(new Doing("sleep", null), new Declarative(Tense.Past, Aspect.Imperfective, Phrase("dog", Number.Singular)), false, [], []), false)), new Declarative(Tense.Past, Aspect.Perfective, Phrase("person", Number.Singular)), false, [], []), "the person said that the dog was sleeping"),
+            (new Clause(new Doing("want", new ComplementClause(ComplementKind.Event,
+                new Clause(new Doing("eat", Phrase("fish", Number.Singular)), new Declarative(Tense.Present, Aspect.Imperfective, Phrase("cat", Number.Singular)), false, [], []), true)), new Declarative(Tense.Present, Aspect.Imperfective, Phrase("cat", Number.Singular)), false, [], []), "the cat wants to eat the fish"),
+            (new Clause(new Doing("say", new Quotation(new Clause(new Doing("walk", null), new Directive(Number.Singular), false, [new(Role.Goal, Phrase("house", Number.Singular), Configuration.At)], []))), new Declarative(Tense.Past, Aspect.Perfective, Phrase("bird", Number.Singular)), false, [], []), "the bird said, \"go to the house\""),
         ];
         Clause Gapped(string verb, Argument subject, Argument? @object = null, ValueList<Oblique> obliques = default) =>
-            new(verb, Tense.Past, Aspect.Perfective, subject, @object, Obliques: obliques) { Adverbs = [] };
+            new Clause(new Doing(verb, @object), new Declarative(Tense.Past, Aspect.Perfective, subject), false, obliques, []);
         (Statement Clause, string Translation)[] relatives =
         [
-            (new Clause("sleep", Tense.Present, Aspect.Imperfective, Phrase("dog", Number.Singular) with { Relative = Gapped("see", new Gap(null), Phrase("cat", Number.Plural)) }) { Adverbs = [] },
+            (new Clause(new Doing("sleep", null), new Declarative(Tense.Present, Aspect.Imperfective, Phrase("dog", Number.Singular) with { Relative = Gapped("see", new Gap(null), Phrase("cat", Number.Plural)) }), false, [], []),
                 "the dog that saw the cats sleeps"),
-            (new Clause("see", Tense.Present, Aspect.Imperfective, Phrase("cat", Number.Singular), Phrase("fish", Number.Singular) with { Relative = Gapped("eat", Phrase("dog", Number.Singular), new Gap(null)) }) { Adverbs = [] },
+            (new Clause(new Doing("see", Phrase("fish", Number.Singular) with { Relative = Gapped("eat", Phrase("dog", Number.Singular), new Gap(null)) }), new Declarative(Tense.Present, Aspect.Imperfective, Phrase("cat", Number.Singular)), false, [], []),
                 "the cat sees the fish that the dog ate"),
-            (new Clause("walk", Tense.Past, Aspect.Perfective, Phrase("person", Number.Singular),
-                Obliques: [new(Role.Goal, Phrase("house", Number.Singular) with { Relative = Gapped("sleep", Phrase("bird", Number.Plural), obliques: [new(Role.Location, new Gap(null), Configuration.In)]) }, Configuration.At)]) { Adverbs = [] },
+            (new Clause(new Doing("walk", null), new Declarative(Tense.Past, Aspect.Perfective, Phrase("person", Number.Singular)), false, [new(Role.Goal, Phrase("house", Number.Singular) with { Relative = Gapped("sleep", Phrase("bird", Number.Plural), obliques: [new(Role.Location, new Gap(null), Configuration.In)]) }, Configuration.At)], []),
                 "the person walked to the house that the birds slept in"),
         ];
         (Statement Clause, string Translation)[] demonstrated =
         [
-            (new Clause("sleep", Tense.Present, Aspect.Imperfective, new NounPhrase("dog", Number.Singular, Demonstrative: Distance.Proximal)) { Adverbs = [] }, "this dog sleeps"),
-            (new Clause("see", Tense.Present, Aspect.Imperfective, Phrase("cat", Number.Singular), new NounPhrase("bird", Number.Plural, Demonstrative: Distance.Distal)) { Adverbs = [] },
+            (new Clause(new Doing("sleep", null), new Declarative(Tense.Present, Aspect.Imperfective, new NounPhrase("dog", Number.Singular, Demonstrative: Distance.Proximal)), false, [], []), "this dog sleeps"),
+            (new Clause(new Doing("see", new NounPhrase("bird", Number.Plural, Demonstrative: Distance.Distal)), new Declarative(Tense.Present, Aspect.Imperfective, Phrase("cat", Number.Singular)), false, [], []),
                 "the cat sees those birds"),
-            (new Clause("eat", Tense.Past, Aspect.Perfective, Phrase("dog", Number.Singular), new DemonstrativePronoun(Distance.Distal, Number.Singular)) { Adverbs = [] }, "the dog ate that"),
-            (new Clause("sleep", Tense.Present, Aspect.Imperfective, Phrase("cat", Number.Plural), Obliques: [new(Role.Location, new DemonstrativePlace(Distance.Proximal), Configuration.At)]) { Adverbs = [] },
+            (new Clause(new Doing("eat", new DemonstrativePronoun(Distance.Distal, Number.Singular)), new Declarative(Tense.Past, Aspect.Perfective, Phrase("dog", Number.Singular)), false, [], []), "the dog ate that"),
+            (new Clause(new Doing("sleep", null), new Declarative(Tense.Present, Aspect.Imperfective, Phrase("cat", Number.Plural)), false, [new(Role.Location, new DemonstrativePlace(Distance.Proximal), Configuration.At)], []),
                 "the cats sleep here"),
         ];
         (Statement Clause, string Translation)[] quantified =
         [
-            (new Clause("see", Tense.Present, Aspect.Imperfective, Indefinites.Pronoun(Quantifier.Some, Ontology.Person), Phrase("dog", Number.Singular)) { Adverbs = [] }, "someone sees the dog"),
-            (new Clause("eat", Tense.Past, Aspect.Perfective, Phrase("cat", Number.Singular), Indefinites.Pronoun(Quantifier.No, Ontology.Thing)) { Adverbs = [] }, "the cat ate nothing"),
-            (new Clause("sleep", Tense.Present, Aspect.Imperfective, Phrase("dog", Number.Singular), Obliques: [new(Role.Time, Indefinites.Pronoun(Quantifier.No, Ontology.Time), Configuration.At)]) { Adverbs = [] },
+            (new Clause(new Doing("see", Phrase("dog", Number.Singular)), new Declarative(Tense.Present, Aspect.Imperfective, Indefinites.Pronoun(Quantifier.Some, Ontology.Person)), false, [], []), "someone sees the dog"),
+            (new Clause(new Doing("eat", Indefinites.Pronoun(Quantifier.No, Ontology.Thing)), new Declarative(Tense.Past, Aspect.Perfective, Phrase("cat", Number.Singular)), false, [], []), "the cat ate nothing"),
+            (new Clause(new Doing("sleep", null), new Declarative(Tense.Present, Aspect.Imperfective, Phrase("dog", Number.Singular)), false, [new(Role.Time, Indefinites.Pronoun(Quantifier.No, Ontology.Time), Configuration.At)], []),
                 "the dog never sleeps"),
-            (new Clause("sleep", Tense.Present, Aspect.Imperfective, Phrase("dog", Number.Plural) with { Quantifier = Quantifier.All }) { Adverbs = [] }, "all the dogs sleep"),
-            (new Clause("see", Tense.Past, Aspect.Perfective, new NounPhrase("bird", Number.Plural, Quantifier: Quantifier.Few), Phrase("fish", Number.Singular)) { Adverbs = [] },
+            (new Clause(new Doing("sleep", null), new Declarative(Tense.Present, Aspect.Imperfective, Phrase("dog", Number.Plural) with { Quantifier = Quantifier.All }), false, [], []), "all the dogs sleep"),
+            (new Clause(new Doing("see", Phrase("fish", Number.Singular)), new Declarative(Tense.Past, Aspect.Perfective, new NounPhrase("bird", Number.Plural, Quantifier: Quantifier.Few)), false, [], []),
                 "few birds saw the fish"),
         ];
         (Statement Clause, string Translation)[] adverbs =
         [
-            (new Clause("sleep", Tense.Present, Aspect.Imperfective, Phrase("dog", Number.Singular)) { Adverbs = [new Adverb("now", AdverbKind.When)] }, "the dog is sleeping now"),
-            (new Clause("walk", Tense.Past, Aspect.Perfective, Phrase("person", Number.Singular)) { Adverbs = [new Manner(new Adjective("slow", true))] },
+            (new Clause(new Doing("sleep", null), new Declarative(Tense.Present, Aspect.Imperfective, Phrase("dog", Number.Singular)), false, [], [new Adverb("now", AdverbKind.When)]), "the dog is sleeping now"),
+            (new Clause(new Doing("walk", null), new Declarative(Tense.Past, Aspect.Perfective, Phrase("person", Number.Singular)), false, [], [new Manner(new Adjective("slow", true))]),
                 "the person walked very slowly"),
-            (new CopularClause(new Adjective("big", true), Tense.Present, Aspect.Imperfective, Phrase("dog", Number.Singular)) { Obliques = [], Adverbs = [] }, "the dog is very big"),
-            (new Clause("sleep", Tense.Present, Aspect.Imperfective, Phrase("cat", Number.Plural), Obliques: [new(Role.Time, new NounPhrase("night", Number.Singular), Configuration.At)]) { Adverbs = [] },
+            (new Clause(new Being(new Adjective("big", true)), new Declarative(Tense.Present, Aspect.Imperfective, Phrase("dog", Number.Singular)), false, [], []), "the dog is very big"),
+            (new Clause(new Doing("sleep", null), new Declarative(Tense.Present, Aspect.Imperfective, Phrase("cat", Number.Plural)), false, [new(Role.Time, new NounPhrase("night", Number.Singular), Configuration.At)], []),
                 "the cats sleep at night"),
-            (new Clause("sleep", Tense.Past, Aspect.Perfective, Phrase("bird", Number.Singular), Obliques: [new(Role.Duration, new NounPhrase("year", ClauseFile.NumberFor(3), Count: 3), Configuration.At)])
-                { Adverbs = [] }, "the bird slept for three years"),
+            (new Clause(new Doing("sleep", null), new Declarative(Tense.Past, Aspect.Perfective, Phrase("bird", Number.Singular)), false, [new(Role.Duration, new NounPhrase("year", ClauseFile.NumberFor(3), Count: 3), Configuration.At)], []), "the bird slept for three years"),
         ];
         (Statement Clause, string Translation)[] all =
             [.. examples, .. copular, .. commands, .. copularCommands, .. coordinated, .. subordinated, .. passives, .. comparatives, .. addressed, .. modalized, .. aspects, .. questions,

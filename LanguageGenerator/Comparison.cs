@@ -86,5 +86,5 @@ public union Similative(SimilativeWord, SimilativeAffix);
 /// taller than the men', or with no standard, more of it than something already known, as in
 /// 'Marta is taller'.
 /// </summary>
-//the clause's complement is always an adjective
-public record Comparative(CopularClause Clause, Argument? Standard);
+//the clause is always declarative, and says its subject is an adjective
+public record Comparative(Clause Clause, Argument? Standard);
