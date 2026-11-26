@@ -88,8 +88,8 @@ public static partial class Generator
     private const double SharedComplementizerChance = 0.3;
 
     /*
-      a complementizer for each kind of complement, coined even where it goes unsaid, and how a
-      quotation and 'want' are marked. An isolating language puts a word at the clause's end where
+      a complementizer for each kind of complement, where it has one, and how a quotation and 'want'
+      are marked. An isolating language puts a word at the clause's end where
       another would use a suffix, and a particle for 'want' where another would use an affix
      */
     public static Complementation GenerateComplementation(Random rand, MorphologicalProfile morphology, WordOrder wordOrder, Phonology phonology)
@@ -109,18 +109,25 @@ public static partial class Generator
         var eventBalance = wantVerb == WantComplement.Overt ? Balance.Balanced
             : rand.NextDouble() < ImplicitAlwaysDeranked ? Balance.Deranked : Balance.Either;
 
+        Exponent? Coined(ComplementizerPosition position)
+        {
+            if (position == ComplementizerPosition.None)
+            {
+                return null;
+            }
+            var form = Form(position == ComplementizerPosition.Suffix);
+            return Complementizer(form, position, CoinAffixAccent(rand, phonology, form));
+        }
         var propositionPosition = Position(ComplementKind.Proposition);
-        var propositionForm = Form(propositionPosition == ComplementizerPosition.Suffix);
-        var propositionAccent = CoinAffixAccent(rand, phonology, propositionForm);
-        var proposition = new ComplementMarking(ComplementizerMarker(propositionForm, propositionPosition, propositionAccent), propositionPosition,
-            Sampling.Categorical(rand, PropositionBalance), Sampling.Categorical(rand, MarkedAsOdds(ComplementKind.Proposition)));
+        var proposition = new ComplementMarking(Coined(propositionPosition), Sampling.Categorical(rand, PropositionBalance),
+            Sampling.Categorical(rand, MarkedAsOdds(ComplementKind.Proposition)));
         var eventPosition = Position(ComplementKind.Event);
-        var eventForm = rand.NextDouble() < SharedComplementizerChance && (eventPosition == ComplementizerPosition.Suffix) == (propositionPosition == ComplementizerPosition.Suffix)
-            ? propositionForm
-            : Form(eventPosition == ComplementizerPosition.Suffix);
         //a complementizer the two share is one morpheme, accent and all
-        var eventAccent = ReferenceEquals(eventForm, propositionForm) ? propositionAccent : CoinAffixAccent(rand, phonology, eventForm);
-        var @event = new ComplementMarking(ComplementizerMarker(eventForm, eventPosition, eventAccent), eventPosition, eventBalance, Sampling.Categorical(rand, MarkedAsOdds(ComplementKind.Event)));
+        var eventMarker = proposition.Marker is { } shared && eventPosition != ComplementizerPosition.None
+            && (eventPosition == ComplementizerPosition.Suffix) == (propositionPosition == ComplementizerPosition.Suffix) && rand.NextDouble() < SharedComplementizerChance
+            ? Complementizer(shared.Marker.Form, eventPosition, shared.Value is Bound b ? b.Affix.Accent : AffixAccent.None)
+            : Coined(eventPosition);
+        var @event = new ComplementMarking(eventMarker, eventBalance, Sampling.Categorical(rand, MarkedAsOdds(ComplementKind.Event)));
 
         var quotativeKind = Sampling.Categorical(rand, QuotativeOdds(objectFirst));
         if (quotativeKind == QuotativeKind.Complementizer && propositionPosition == ComplementizerPosition.None)
@@ -146,8 +153,13 @@ public static partial class Generator
         return new Complementation(proposition, @event, quotative, last, desiderative);
     }
 
-    //a complementizer's morpheme: an affix with this accent if it's a suffix, and otherwise a word, said or not
-    public static Morpheme ComplementizerMarker(IReadOnlyList<Phoneme> form, ComplementizerPosition position, AffixAccent accent) => position == ComplementizerPosition.Suffix
-        ? new Affix(form, [Linkage.Complementizer], accent)
-        : new Particle(form, [Linkage.Complementizer]);
+    //a complementizer in this position: a suffix with this accent, a word at the clause's start or end, or none
+    public static Exponent? Complementizer(IReadOnlyList<Phoneme> form, ComplementizerPosition position, AffixAccent accent) => position switch
+    {
+        ComplementizerPosition.None => null,
+        ComplementizerPosition.Initial => new Free(new Particle(form, [Linkage.Complementizer]), Side.Before),
+        ComplementizerPosition.Final => new Free(new Particle(form, [Linkage.Complementizer]), Side.After),
+        ComplementizerPosition.Suffix => new Bound(new Affix(form, [Linkage.Complementizer], accent), Side.After),
+        _ => throw new ArgumentOutOfRangeException(nameof(position), position, null),
+    };
 }

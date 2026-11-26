@@ -427,7 +427,7 @@ public static class Syntax
         var clause = deranked ?? Words(language, complement.SharesSubject
             ? WithSubject(complement.Clause, Pronominal(language, subject ?? throw new ArgumentException("A complement that shares its subject needs the main clause's.", nameof(subject))))
             : complement.Clause);
-        var marked = Complementation.PositionOf(marking.Position) is { } position ? Subordinate(clause, marking.Marker, position) : clause.Words;
+        var marked = marking.Marker is { } complementizer ? Subordinate(clause, complementizer.Marker, complementizer.Position) : clause.Words;
         return (marked, deranked is null);
     }
 

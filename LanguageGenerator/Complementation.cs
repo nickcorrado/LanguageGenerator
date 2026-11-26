@@ -32,13 +32,22 @@ public enum ComplementizerPosition
 }
 
 /// <summary>
-/// How a language marks one kind of complement clause: its complementizer and where it goes,
-/// whether its verb is deranked, and the role, if any, whose case or adposition marks it in place of
-/// the complementizer when it's deranked, as Turkish puts a nominalized complement in the
-/// accusative and English marks 'to go' like a goal.
+/// How a language marks one kind of complement clause: its complementizer, a word at its start or
+/// end or a suffix on its verb, or none, whether its verb is deranked, and the role, if any, whose
+/// case or adposition marks it in place of the complementizer when it's deranked, as Turkish puts a
+/// nominalized complement in the accusative and English marks 'to go' like a goal.
 /// </summary>
-//the marker is coined even where Position is None, so that a spec can write one in
-public record ComplementMarking(Morpheme Marker, ComplementizerPosition Position, Balance Balance, Role? MarkedAs);
+public record ComplementMarking(Exponent? Marker, Balance Balance, Role? MarkedAs)
+{
+    /// <summary>Where the complementizer goes, as a spec names it.</summary>
+    public ComplementizerPosition Position => Marker switch
+    {
+        null => ComplementizerPosition.None,
+        Bound => ComplementizerPosition.Suffix,
+        Free { Side: Side.Before } => ComplementizerPosition.Initial,
+        Free => ComplementizerPosition.Final,
+    };
+}
 
 /// <summary>How a language marks a quotation, as a spec names it.</summary>
 public enum QuotativeKind
@@ -119,23 +128,12 @@ public record Complementation(ComplementMarking Proposition, ComplementMarking E
     public (Morpheme Marker, ExponentPosition Position)? QuotativeMarker => Quotative is not { } quotative ? null : quotative switch
     {
         Free word => (word.Particle, ((Exponent)word).Position),
-        QuotativeComplementizer => Proposition.Position switch
+        QuotativeComplementizer => Proposition.Marker switch
         {
-            ComplementizerPosition.Suffix => (new Affix(Proposition.Marker.Form, [Linkage.Quotative], Proposition.Marker.Value is Affix a ? a.Accent : AffixAccent.None), ExponentPosition.Suffix),
-            ComplementizerPosition.Initial => (new Particle(Proposition.Marker.Form, [Linkage.Quotative]), ExponentPosition.PrecedingParticle),
-            ComplementizerPosition.Final => (new Particle(Proposition.Marker.Form, [Linkage.Quotative]), ExponentPosition.FollowingParticle),
-            _ => throw new InvalidOperationException("A quotation can only be marked with the complementizer where a proposition has one."),
+            Bound b => (new Affix(b.Affix.Form, [Linkage.Quotative], b.Affix.Accent), ExponentPosition.Suffix),
+            Free f => (new Particle(f.Particle.Form, [Linkage.Quotative]), ((Exponent)f).Position),
+            null => throw new InvalidOperationException("A quotation can only be marked with the complementizer where a proposition has one."),
         },
-    };
-
-    /// <summary>Where a complementizer in this position goes, as an exponent does.</summary>
-    public static ExponentPosition? PositionOf(ComplementizerPosition position) => position switch
-    {
-        ComplementizerPosition.None => null,
-        ComplementizerPosition.Initial => ExponentPosition.PrecedingParticle,
-        ComplementizerPosition.Final => ExponentPosition.FollowingParticle,
-        ComplementizerPosition.Suffix => ExponentPosition.Suffix,
-        _ => throw new ArgumentOutOfRangeException(nameof(position), position, null),
     };
 }
 

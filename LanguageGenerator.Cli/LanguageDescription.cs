@@ -251,13 +251,11 @@ public static class LanguageDescription
         string Complements(ComplementKind kind)
         {
             var marking = complementation.MarkingOf(kind);
-            var marker = marking.Marker.Spell(orthography);
-            var form = marking.Position switch
+            var form = marking.Marker is not { } complementizer ? "unmarked" : complementizer.Position switch
             {
-                ComplementizerPosition.None => "unmarked",
-                ComplementizerPosition.Suffix => $"-{marker}",
-                ComplementizerPosition.Initial => $"{marker} …",
-                _ => $"… {marker}",
+                ExponentPosition.Suffix => $"-{complementizer.Marker.Spell(orthography)}",
+                ExponentPosition.PrecedingParticle => $"{complementizer.Marker.Spell(orthography)} …",
+                _ => $"… {complementizer.Marker.Spell(orthography)}",
             };
             var balance = marking.Balance switch { Balance.Deranked => ", bare verb", Balance.Either => ", bare verb if the subject is shared", _ => "" };
             var role = marking.MarkedAs is { } r && marking.Balance != Balance.Balanced ? $", marked like the {(r == Role.DirectObject ? "object" : r.ToString().ToLowerInvariant())} when bare" : "";

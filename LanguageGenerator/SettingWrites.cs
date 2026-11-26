@@ -280,13 +280,25 @@ internal static class SettingWrites
         {
             return drawn;
         }
-        var kept = drawn.MarkingOf(kind);
-        marking = marking with { Marker = Generator.ComplementizerMarker(marking.Marker.Form, position, AccentOf(marking.Marker)), Position = position };
-        var written = kind == ComplementKind.Proposition ? drawn with { Proposition = marking } : drawn with { Event = marking };
-        return kind == ComplementKind.Proposition && position == ComplementizerPosition.None && drawn.QuotativeKind == QuotativeKind.Complementizer
-            ? written with { Quotative = new Free(new Particle(kept.Marker.Form, [Linkage.Quotative]), kept.Position == ComplementizerPosition.Initial ? Side.Before : Side.After) }
+        /*
+          a complementizer keeps its form wherever it goes. One said where the draw left it unsaid
+          takes the other kind's, as Romance que serves both, or else the quotative word's, as words
+          for 'say' so often become complementizers, and with neither the draw is passed over
+         */
+        var other = drawn.MarkingOf(kind == ComplementKind.Proposition ? ComplementKind.Event : ComplementKind.Proposition).Marker;
+        var source = marking.Marker?.Marker ?? other?.Marker ?? (drawn.Quotative is { Value: Free word } ? (Morpheme?)word.Particle : null);
+        var marker = position == ComplementizerPosition.None ? null
+            : source is { } kept ? Generator.Complementizer(kept.Form, position, AccentOf(kept))
+            : throw NoForm($"A complementizer for {(kind == ComplementKind.Proposition ? "a proposition" : "an event")}");
+        var written = kind == ComplementKind.Proposition ? drawn with { Proposition = marking with { Marker = marker } } : drawn with { Event = marking with { Marker = marker } };
+        return kind == ComplementKind.Proposition && marker is null && drawn.QuotativeKind == QuotativeKind.Complementizer && marking.Marker is { } unsaid
+            ? written with { Quotative = QuotativeWord(unsaid) }
             : written;
     }
+
+    //a quotative word made from a complementizer, on its side of the clause
+    private static Free QuotativeWord(Exponent complementizer) =>
+        new(new Particle(complementizer.Marker.Form, [Linkage.Quotative]), complementizer.Value is Free { Side: Side.Before } ? Side.Before : Side.After);
 
     /*
       a quotation marked with the complementizer needs one that's said, so a proposition's unsaid one
@@ -303,11 +315,12 @@ internal static class SettingWrites
         return kind switch
         {
             QuotativeKind.None => drawn with { Quotative = null },
-            QuotativeKind.Word when drawn.QuotativeKind == QuotativeKind.Complementizer =>
-                drawn with { Quotative = new Free(new Particle(proposition.Marker.Form, [Linkage.Quotative]), proposition.Position == ComplementizerPosition.Initial ? Side.Before : Side.After) },
+            QuotativeKind.Word when drawn.QuotativeKind == QuotativeKind.Complementizer && proposition.Marker is { } complementizer =>
+                drawn with { Quotative = QuotativeWord(complementizer) },
             QuotativeKind.Word => throw NoForm("A quotative word"),
+            //written before the quotative changes, so that a quotative word's form can be the complementizer's
             QuotativeKind.Complementizer when proposition.Position == ComplementizerPosition.None =>
-                WithComplementizer(drawn with { Quotative = new QuotativeComplementizer() }, ComplementKind.Proposition, ComplementizerPosition.Initial),
+                WithComplementizer(drawn, ComplementKind.Proposition, ComplementizerPosition.Initial) with { Quotative = new QuotativeComplementizer() },
             QuotativeKind.Complementizer => drawn with { Quotative = new QuotativeComplementizer() },
             _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
         };
