@@ -45,12 +45,17 @@ public enum RelativizerKind
 public union Relativizer(Bound, Particle);
 
 /// <summary>
-/// A language's relative pronoun: its question words for 'who', 'what' and 'where', as
-/// questions so often become relative pronouns, or a word of its own, glossed REL, as German der
-/// came from a demonstrative.
+/// A language's relative pronoun: its question words for 'who', 'what' and 'where', as questions so
+/// often become relative pronouns, or a word of its own, glossed REL, as German der came from a
+/// demonstrative.
 /// </summary>
-//the word of its own is coined either way
-public record RelativePronoun(bool FromQuestionWords, Lexeme Own);
+public union RelativePronoun(RelativeFromQuestionWords, OwnRelativePronoun);
+
+/// <summary>The question words as relative pronouns, as English who and where are.</summary>
+public record RelativeFromQuestionWords;
+
+/// <summary>A relative pronoun of its own, glossed REL.</summary>
+public record OwnRelativePronoun(Lexeme Word);
 
 /// <summary>
 /// How a language makes relative clauses: before or after their noun, how each role the noun can

@@ -349,10 +349,9 @@ public static class Syntax
     //'who' or 'what', as its noun names a person or not, or the language's word of its own
     private static Lexeme RelativePronounFor(Language language, Nominal head, Role role)
     {
-        var pronoun = language.Relativization.Pronoun;
-        if (!pronoun.FromQuestionWords)
+        if (language.Relativization.Pronoun.Value is OwnRelativePronoun own)
         {
-            return pronoun.Own;
+            return own.Word;
         }
         var words = language.Questions.Words;
         return role is Role.Location or Role.Goal or Role.Source ? words[Interrogative.Where]

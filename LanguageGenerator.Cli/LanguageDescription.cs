@@ -289,7 +289,7 @@ public static class LanguageDescription
             Particle particle => $"marked by {((Morpheme)particle).Spell(orthography)} beside the noun",
             _ => "unmarked",
         };
-        var relativePronoun = relativization.Pronoun.FromQuestionWords ? "the question words" : SpelledWord(relativization.Pronoun.Own);
+        var relativePronoun = relativization.Pronoun.Value is OwnRelativePronoun own ? SpelledWord(own.Word) : "the question words";
         output.WriteLine($"Relative clauses: {(relativization.BeforeNoun ? "before" : "after")} the noun, {marked}; subjects by {Strategy(relativization.Subject)}, " +
             $"objects by {Strategy(relativization.Object)}, obliques by {Strategy(relativization.Oblique)}; relative pronoun {relativePronoun}");
         output.WriteLine("Comparison: " + lang.Comparison switch

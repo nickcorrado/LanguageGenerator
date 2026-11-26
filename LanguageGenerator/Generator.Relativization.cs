@@ -84,8 +84,9 @@ public static partial class Generator
                 [Linkage.Relative]),
             _ => throw new InvalidOperationException($"{kind} isn't a relativizer."),
         };
-        var fromQuestionWords = rand.NextDouble() < PronounFromQuestionWordsChance;
-        var own = new Lexeme(CoinRoot(rand, phonology, forms.Draw(() => GenerateForm(rand, phonology, 0, maxSyllables: 1)), "REL"), PartOfSpeech.Noun);
-        return new Relativization(beforeNoun, subject, @object, oblique, relativizer, new RelativePronoun(fromQuestionWords, own));
+        RelativePronoun pronoun = rand.NextDouble() < PronounFromQuestionWordsChance
+            ? new RelativeFromQuestionWords()
+            : new OwnRelativePronoun(new Lexeme(CoinRoot(rand, phonology, forms.Draw(() => GenerateForm(rand, phonology, 0, maxSyllables: 1)), "REL"), PartOfSpeech.Noun));
+        return new Relativization(beforeNoun, subject, @object, oblique, relativizer, pronoun);
     }
 }
