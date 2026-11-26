@@ -8,7 +8,7 @@ public class SyllableTests
     {
         var rule = new SyllableRule(template, TestData.Vowels, consonants);
         var rand = new Random(1);
-        return [.. Enumerable.Range(0, count).Select(_ => Generator.GenerateSyllable(rand, rule, new Dropoff(0.15), needsOnset: false, codaCluster: true))];
+        return [.. Enumerable.Range(0, count).Select(_ => Generator.GenerateSyllable(rand, rule, new Dropoff(0.15, 0.15), needsOnset: false, codaCluster: true))];
     }
 
     [Fact]
@@ -219,7 +219,7 @@ public class SyllableTests
         var rule = new SyllableRule(SyllableTemplates.CVFF, TestData.Vowels, TestData.Consonants);
         var rand = new Random(1);
 
-        var syllables = Enumerable.Range(0, 2000).Select(_ => Generator.GenerateSyllable(rand, rule, new Dropoff(0.15), needsOnset: false, codaCluster: false)).ToList();
+        var syllables = Enumerable.Range(0, 2000).Select(_ => Generator.GenerateSyllable(rand, rule, new Dropoff(0.15, 0.15), needsOnset: false, codaCluster: false)).ToList();
 
         Assert.Contains(syllables, s => s.Closed);
         Assert.All(syllables, s => Assert.True(s.Coda.Count <= 1));
@@ -259,7 +259,7 @@ public class SyllableTests
         var rule = new SyllableRule(SyllableTemplates.CVF, TestData.Vowels, TestData.Consonants, codas);
         var rand = new Random(1);
 
-        var codaConsonants = Enumerable.Range(0, 5000).Select(_ => Generator.GenerateSyllable(rand, rule, new Dropoff(0.15), needsOnset: false, codaCluster: false).Coda).SelectMany(c => c).ToList();
+        var codaConsonants = Enumerable.Range(0, 5000).Select(_ => Generator.GenerateSyllable(rand, rule, new Dropoff(0.15, 0.15), needsOnset: false, codaCluster: false).Coda).SelectMany(c => c).ToList();
 
         Assert.NotEmpty(codaConsonants);
         Assert.All(codaConsonants, c => Assert.True(rule.IsLegalCoda([c]), $"{c.IpaSymbol} isn't a legal {codas} coda"));
@@ -282,7 +282,7 @@ public class SyllableTests
         var rule = new SyllableRule(SyllableTemplates.CVF, TestData.Vowels, noNasals, CodaRestriction.Nasals);
         var rand = new Random(1);
 
-        Assert.All(Enumerable.Range(0, 2000).Select(_ => Generator.GenerateSyllable(rand, rule, new Dropoff(0.15), needsOnset: false, codaCluster: false)), s => Assert.Empty(s.Coda));
+        Assert.All(Enumerable.Range(0, 2000).Select(_ => Generator.GenerateSyllable(rand, rule, new Dropoff(0.15, 0.15), needsOnset: false, codaCluster: false)), s => Assert.Empty(s.Coda));
         Assert.All(noNasals, c => Assert.False(rule.IsLegalCoda([c])));
     }
 

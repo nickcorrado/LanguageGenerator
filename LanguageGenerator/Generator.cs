@@ -8,6 +8,18 @@
 public static partial class Generator
 {
     /*
+      how steeply sounds get rarer down the inventory, set so that generated root lexicons use their
+      sounds about as unevenly as the 107 word lists of NorthEuraLex (Dellert et al. 2020) do. Fitting
+      a dropoff to each list's ranked sound counts gives a median of about 0.125 for consonants and
+      0.3 for vowels: one or two vowels make up most of a word's, while consonants spread out. The
+      consonants' is set lower than its fit, because the slots that only a few sounds can fill, like
+      the s of s-clusters or a nasal-only coda, lean on those few, and sound changes on the commonest;
+      at 0.09, lexicons fit about 0.12 and use as many consonants' worth as real ones of their size
+     */
+    private const double ConsonantDropoff = 0.09;
+    private const double VowelDropoff = 0.3;
+
+    /*
       each stage draws from its own Random, so it doesn't matter what order they run in, or how much
       any of them draws. They're in this order only because each needs what's above it. A stage with
       settings is drawn to match the spec, which fixes nothing for LanguageSpec.Free
@@ -21,7 +33,7 @@ public static partial class Generator
             throw new SpecException(string.Join(Environment.NewLine, problems));
         }
         var stages = new Stages(seed, implied);
-        var syllableDropoff = stages.Draw(Settings.DropoffStage, _ => new Dropoff(0.15));
+        var syllableDropoff = stages.Draw(Settings.DropoffStage, _ => new Dropoff(ConsonantDropoff, VowelDropoff));
 
         var vowels = stages.Draw(Settings.VowelStage, rand => GenerateVowels(rand));
         var consonants = stages.Draw(Settings.ConsonantStage, rand => GenerateConsonants(rand));
@@ -439,6 +451,6 @@ public static partial class Generator
 
     //a short affix: a lone vowel 30% of the time, and otherwise a syllable
     private static List<Phoneme> VowelOrSyllable(Random rand, Phonology phonology) => rand.NextDouble() < 0.3
-        ? [phonology.Vowels[Sampling.TruncatedGeometric(rand, phonology.Vowels.Count, phonology.Dropoff.Value)]]
+        ? [phonology.Vowels[Sampling.TruncatedGeometric(rand, phonology.Vowels.Count, phonology.Dropoff.Vowels)]]
         : [.. GenerateSyllable(rand, phonology.SyllableRule, phonology.Dropoff, needsOnset: false, codaCluster: false).Phonemes];
 }

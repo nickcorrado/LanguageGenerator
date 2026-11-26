@@ -12,7 +12,7 @@ namespace LanguageGenerator;
     "adpositions": ["Prepositions", "Postpositions"],
     "consonants": ["t", "k", "n", "s", "m"],
     "mirrors-adjectives": true,
-    "dropoff": 0.3
+    "consonant-dropoff": 0.3
   }
  */
 public static class SpecFile

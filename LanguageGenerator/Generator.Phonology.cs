@@ -388,31 +388,31 @@ public static partial class Generator
             if (slot is Slot.Vowel)
             {
                 if (needsOnset && onset.Count == 0 && rule.Template.Slots.Contains(Slot.Consonant)
-                    && Pick(rand, rule.Resolve(Slot.Consonant), 1, dropoff) is { } forced)
+                    && Pick(rand, rule.Resolve(Slot.Consonant), 1, dropoff.Consonants) is { } forced)
                 {
                     onset.Add(forced);
                 }
-                nucleus = Pick(rand, rule.Vowels, 1, dropoff) ?? throw new InvalidOperationException("The inventory has no vowels.");
+                nucleus = Pick(rand, rule.Vowels, 1, dropoff.Vowels) ?? throw new InvalidOperationException("The inventory has no vowels.");
             }
             //an onset consonant has to be able to follow the one before it, so pl but not nl
             else if (nucleus is null)
             {
                 if (Pick(rand, onset.Count > 0 ? new NaturalClass<Consonant>(rule.Resolve(slot).Where(c => SyllableRule.CanPrecede(onset[^1], c))) : rule.Resolve(slot),
-                    FillChance(rule.Template, slot), dropoff) is { } consonant)
+                    FillChance(rule.Template, slot), dropoff.Consonants) is { } consonant)
                 {
                     onset.Add(consonant);
                 }
             }
             else if (codaSlots++ == 0)
             {
-                if (Pick(rand, rule.Resolve(slot), FillChance(rule.Template, slot), dropoff) is { } consonant)
+                if (Pick(rand, rule.Resolve(slot), FillChance(rule.Template, slot), dropoff.Consonants) is { } consonant)
                 {
                     coda.Add(consonant);
                 }
             }
             //a second coda consonant only ever follows a first, which it has to be able to follow, so nt but not tn
             else if (codaCluster && coda.Count > 0
-                && Pick(rand, new NaturalClass<Consonant>(rule.Resolve(slot).Where(c => SyllableRule.CanPrecedeInCoda(coda[^1], c))), SecondCodaChance, dropoff) is { } second)
+                && Pick(rand, new NaturalClass<Consonant>(rule.Resolve(slot).Where(c => SyllableRule.CanPrecedeInCoda(coda[^1], c))), SecondCodaChance, dropoff.Consonants) is { } second)
             {
                 coda.Add(second);
             }
@@ -447,14 +447,14 @@ public static partial class Generator
         };
     }
 
-    private static T? Pick<T>(Random rand, NaturalClass<T> phonemes, double chance, Dropoff dropoff) where T : Phoneme
+    private static T? Pick<T>(Random rand, NaturalClass<T> phonemes, double chance, double dropoff) where T : Phoneme
     {
         //an inventory can lack a slot's whole class (say, sibilants); then the slot just goes unfilled
         if (!phonemes.Any() || rand.NextDouble() >= chance)
         {
             return null;
         }
-        return phonemes[Sampling.TruncatedGeometric(rand, phonemes.Count, dropoff.Value)];
+        return phonemes[Sampling.TruncatedGeometric(rand, phonemes.Count, dropoff)];
     }
 
     //the inventory isn't drawn here, so that a spec can fix the shape apart from the sounds that fill it

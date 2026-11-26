@@ -132,19 +132,22 @@ public class CoordinationTests
             Assert.Equal(VerbGloss(Saw(l, new NounPhrase("dog", Number.Dual))), VerbGloss(Saw(l, new Coordination(Conjunction.And, [Dog, Cat])))));
     }
 
+    //a king and a woman, whose genders differ in every language with masculine and feminine, which assign people by sex.
+    //They're new words, so the languages are its own rather than the shared sample's
     [Fact]
     public void Realize_NounsOfDifferentGendersJoinedByAnd_TakeTheMasculine()
     {
-        var mixed = GeneratedLanguages.Sample.Where(l => l.Genders.VerbsAgree && l.Genders.Values.Contains(Gender.Masculine)
-            && new[] { "dog", "cat" }.Select(n => l.GenderOf(l.Lexicon.Noun(n))).Distinct().Count() == 2).ToList();
+        var mixed = Enumerable.Range(0, 60).Select(seed => Generator.Generate(seed, LanguageSpec.Free.Fix(Settings.Genders, NounGenders.MasculineFeminine)))
+            .Where(l => l.Genders.VerbsAgree).ToList();
+        mixed.ForEach(l => l.Lexicon.Classify(TestNouns.All));
 
         Assert.NotEmpty(mixed);
         Assert.All(mixed, l =>
         {
-            var masculine = new[] { "dog", "cat" }.FirstOrDefault(n => l.GenderOf(l.Lexicon.Noun(n)) == Gender.Masculine);
+            var masculine = new[] { "king", "woman" }.FirstOrDefault(n => l.GenderOf(l.Lexicon.Noun(n)) == Gender.Masculine);
             if (masculine is not null)
             {
-                Assert.Equal(VerbGloss(Saw(l, new NounPhrase(masculine, Number.Dual))), VerbGloss(Saw(l, new Coordination(Conjunction.And, [Dog, Cat]))));
+                Assert.Equal(VerbGloss(Saw(l, new NounPhrase(masculine, Number.Dual))), VerbGloss(Saw(l, new Coordination(Conjunction.And, [new NounPhrase("king", Number.Singular), new NounPhrase("woman", Number.Singular)]))));
             }
         });
     }

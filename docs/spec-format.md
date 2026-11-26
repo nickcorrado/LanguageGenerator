@@ -18,7 +18,7 @@ A spec is a JSON object naming each setting it fixes:
   "consonants": ["t", "k", "n", "s", "m", "l", "p"],
   "vowels": ["a", "i", "u"],
   "mirrors-adjectives": true,
-  "dropoff": 0.3
+  "consonant-dropoff": 0.3
 }
 ```
 
@@ -52,15 +52,15 @@ Rules keep a value written in from contradicting what was drawn before it: a spa
 - Possessive affixes can only be prefixes where possession is marked on the possessed noun.
 - An inventory needs at least one sound, and each sound once, so not every vowel or every consonant can be forbidden.
 - A count has to leave room for the sounds the spec requires and its sound changes need, can't be more than the sounds it doesn't forbid, and has to match an exact inventory.
-- The dropoff is between 0 and 1.
+- A dropoff is between 0 and 1.
 
 A setting that does nothing in the language is accepted, like affixation in an isolating language, whose markers are all words of their own.
 
-A spec and a seed give the same language only on the same version of the generator, though an older spec still fits a newer generator, whose new settings are just free.
+A spec and a seed give the same language only on the same version of the generator, and an older spec usually still fits a newer generator, whose new settings are just free. A setting that's renamed or split doesn't carry over: `dropoff` is now `consonant-dropoff` and `vowel-dropoff`.
 
 ## Inventories
 
-`vowels` and `consonants` are arrays of IPA symbols, commonest first: the order is how often each sound turns up, the first the most, as in Mark Rosenfelder's generators. `dropoff` says how steeply: each sound is (1 − dropoff) times as likely as the one before it, so the usual 0.15 is gentle, and 0.5 makes each sound half as likely as the last.
+`vowels` and `consonants` are arrays of IPA symbols, commonest first: the order is how often each sound turns up, the first the most, as in Mark Rosenfelder's generators. `consonant-dropoff` and `vowel-dropoff` say how steeply: each sound is (1 − dropoff) times as likely as the one before it, so the usual 0.09 for consonants is gentle, the usual 0.3 for vowels steep, and 0.5 makes each sound half as likely as the last. Both are set so that generated words use their sounds about as unevenly as NorthEuraLex's word lists do, where one or two vowels make up most of a word's but consonants spread out.
 
 A fixed inventory needn't look like a real one: z without s, which a drawn inventory never has, is fine. With six consonants or fewer, or two vowels or fewer, the command line warns that many more words will sound alike than usual.
 
@@ -85,7 +85,7 @@ The symbols are the generator's 64 phonemes, given exactly, so `ʦ` and not `ts`
 | --- | --- |
 | `vowels`, `consonants` | An array of IPA symbols, commonest first, or `{ "require": [...], "forbid": [...] }` |
 | `vowel-count`, `consonant-count` | A number of sounds from 1 to 21 vowels or 43 consonants, an array of them, or `{ "min": ..., "max": ... }` |
-| `dropoff` | A number between 0 and 1; 0.15 if free |
+| `consonant-dropoff`, `vowel-dropoff` | A number between 0 and 1; 0.09 for consonants and 0.3 for vowels if free |
 | `syllable-template` | `CV`, `CVF`, `CLV`, `CLVF`, `CGV`, `CGVF`, `SCV`, `SCVF`, `SCLVF`, `CVFF`, `CLVFF`, `SCLVFF`, where C is a consonant, V a vowel, F a final consonant (two of them a falling cluster, like nt or st, only at the end of a root), L a liquid or glide after the first consonant, G only a glide there, j or w, and S a sibilant before it |
 | `coda-restriction` | `Any`, `Sonorants`, `Nasals`, `SingleNasal` |
 | `stress` | `Initial`, `Second`, `Third`, `Antepenultimate`, `Penultimate`, `Ultimate`, `UltimateIfHeavy`, `PenultimateIfHeavy`, `InitialIfHeavy`, `LastHeavy`, where the rule puts stress, which free stress keeps for roots that store none |

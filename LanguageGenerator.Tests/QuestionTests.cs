@@ -147,9 +147,12 @@ public class QuestionTests
             //'when' takes the time's case or adposition as any noun there would, so it says as many words
             Assert.Equal(night.Words.Count, when.Words.Count);
             Assert.Equal(night.Words[IndexOf(night, "sun")].Gloss.Replace("sun", "X"), when.Words[IndexOf(when, word)].Gloss.Replace("when", "X"));
+            //fronted, it brings its whole phrase, as many words of adposition, case and article as the time has before it
             if (l.Questions.FrontsQuestionWords)
             {
-                Assert.InRange(IndexOf(when, word), 0, 2);
+                var before = IndexOf(when, word);
+                var sun = IndexOf(night, "sun");
+                Assert.Equal(night.Words.Skip(sun - before).Take(before).Select(w => w.Gloss), when.Words.Take(before).Select(w => w.Gloss));
             }
         });
     }
