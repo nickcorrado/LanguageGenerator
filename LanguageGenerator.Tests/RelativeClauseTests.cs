@@ -84,7 +84,7 @@ public class RelativeClauseTests
 
     [Fact]
     public void GenerateRelativization_IsolatingLanguage_UsesNoAffix() =>
-        Assert.All(Draws(s => s.Fix(Settings.Fusion, Fusion.Isolating)), r => Assert.NotEqual(RelativizerKind.Affix, r.Relativizer.Kind));
+        Assert.All(Draws(s => s.Fix(Settings.Fusion, Fusion.Isolating)), r => Assert.NotEqual(RelativizerKind.Affix, r.RelativizerKind));
 
     private static NounPhrase Head(string noun, Number number, Statement relative) => new(noun, number, Definiteness: Definiteness.Definite, Relative: relative);
 
@@ -192,7 +192,7 @@ public class RelativeClauseTests
         Assert.All(Enumerable.Range(0, 10).Select(seed => Generator.Generate(seed, spec)), l =>
         {
             var r = l.Relativization;
-            Assert.True(r is { BeforeNoun: true, Subject: RelativeStrategy.Pronoun, Object: RelativeStrategy.Resumptive, Oblique: RelativeStrategy.Gap, Relativizer.Kind: RelativizerKind.Affix });
+            Assert.True(r is { BeforeNoun: true, Subject: RelativeStrategy.Pronoun, Object: RelativeStrategy.Resumptive, Oblique: RelativeStrategy.Gap, RelativizerKind: RelativizerKind.Affix });
             Assert.NotEqual(Fusion.Isolating, l.MorphologicalProfile.Fusion);
             RelatedStageTests.AssertKeepsTheRules(l);
         });

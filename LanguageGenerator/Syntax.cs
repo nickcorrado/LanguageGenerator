@@ -219,9 +219,9 @@ public static class Syntax
             var strategy => throw new ArgumentOutOfRangeException(nameof(clause), strategy, null),
         };
         var filled = Filled(clause, filler);
-        var relativizer = relativization.Relativizer;
-        var words = relativizer.Kind == RelativizerKind.Affix
-            ? Subordinate(Deranked(language, filled, dropSubject: false, markedAs: null) ?? Spoken(language, filled), relativizer.Marker, relativizer.AffixPosition)
+        var relativizer = relativization.Relativizer?.Value;
+        var words = relativizer is Bound affix
+            ? Subordinate(Deranked(language, filled, dropSubject: false, markedAs: null) ?? Spoken(language, filled), affix.Affix, ((Exponent)affix).Position)
             : Words(language, filled);
         if (filler.Value is RelativeWord word)
         {
@@ -230,9 +230,9 @@ public static class Syntax
                 : Inflect(language, filler, role);
             words = TakePhrase(words, word.Word.Root, phrase) is var (taken, rest) ? [.. taken, .. rest] : words;
         }
-        return relativizer.Kind != RelativizerKind.Particle ? words
-            : relativization.BeforeNoun ? [.. words, Word.Marker(relativizer.Marker, Lean.Back)]
-            : [Word.Marker(relativizer.Marker, Lean.Forward), .. words];
+        return relativizer is not Particle particle ? words
+            : relativization.BeforeNoun ? [.. words, Word.Marker(particle, Lean.Back)]
+            : [Word.Marker(particle, Lean.Forward), .. words];
     }
 
     //the role a relative clause's gap is in, as the language says the clause, and the oblique it's
@@ -384,7 +384,7 @@ public static class Syntax
      */
     private static (Statement Wanted, Modal Want)? Desired(Language language, Clause clause)
     {
-        if (clause.Verb != "want" || language.Complementation.Desiderative.Marking is not { } marking || !clause.Object.HasValue
+        if (clause.Verb != "want" || language.Complementation.DesiderativeMarking is not { } marking || !clause.Object.HasValue
             || clause.Object.GetValueOrDefault().Value is not ComplementClause { Kind: ComplementKind.Event } wanted
             || !(wanted.SharesSubject || SubjectOf(wanted.Clause).Equals(clause.Subject)))
         {

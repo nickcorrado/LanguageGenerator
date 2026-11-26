@@ -80,20 +80,28 @@ public static partial class Generator
     {
         var before = wordOrder.VerbPhraseDirectionality == HeadDirectionality.Initial;
         var forms = new DistinctForms();
-        AspectMarker Marker((AspectKind Value, int Languages)[] counts)
+        //the marking of an aspect or phase, glossed as it
+        AspectMarking? Marker((AspectKind Value, int Languages)[] counts, Grammeme meaning)
         {
             var kind = Sampling.Categorical(rand, counts);
             if (kind == AspectKind.Affix && morphology.Fusion == Fusion.Isolating)
             {
                 kind = AspectKind.Particle;
             }
-            var form = forms.Draw(() => MarkerForm(rand, kind == AspectKind.Affix, phonology));
-            return new AspectMarker(kind, form, CoinAffixAccent(rand, phonology, form), rand.NextDouble() < PrefixChance(morphology) ? ExponentPosition.Prefix : ExponentPosition.Suffix, before);
+            return kind switch
+            {
+                AspectKind.None => null,
+                AspectKind.Affix => new Bound(CoinAffix(rand, phonology, forms.Draw(() => MarkerForm(rand, true, phonology)), [meaning]),
+                    rand.NextDouble() < PrefixChance(morphology) ? Side.Before : Side.After),
+                AspectKind.Particle => new Free(new Particle(forms.Draw(() => MarkerForm(rand, false, phonology)), [meaning]), before ? Side.Before : Side.After),
+                AspectKind.Have or AspectKind.Be or AspectKind.Finish or AspectKind.Sit => AspectAuxiliary.Of(Aspects.VerbOf(kind)!.Value, before),
+                _ => throw new ArgumentOutOfRangeException(nameof(counts), kind, null),
+            };
         }
-        var perfect = Marker(PerfectCounts);
-        var progressive = Marker(ProgressiveCounts);
-        var habitual = Marker(HabitualCounts);
-        var inceptive = Marker(InceptiveCounts);
-        return new Aspects(perfect, progressive, habitual, inceptive, Marker(CessativeCounts));
+        var perfect = Marker(PerfectCounts, Aspect.Perfect);
+        var progressive = Marker(ProgressiveCounts, Aspect.Progressive);
+        var habitual = Marker(HabitualCounts, Aspect.Habitual);
+        var inceptive = Marker(InceptiveCounts, Phase.Inceptive);
+        return new Aspects(perfect, progressive, habitual, inceptive, Marker(CessativeCounts, Phase.Cessative));
     }
 }

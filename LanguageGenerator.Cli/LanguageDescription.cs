@@ -266,7 +266,7 @@ public static class LanguageDescription
         var quotative = complementation.QuotativeMarker is var (quote, at)
             ? at switch { ExponentPosition.Suffix => $"-{quote.Spell(orthography)}", ExponentPosition.PrecedingParticle => $"{quote.Spell(orthography)} …", _ => $"… {quote.Spell(orthography)}" }
             : "unmarked";
-        var want = complementation.Desiderative.Marking?.Value switch
+        var want = complementation.Desiderative?.Value switch
         {
             Bound b => $"'want' is {OnVerb(b)} on the verb",
             Free f => $"'want' is {OnVerb(f)}",
@@ -281,12 +281,11 @@ public static class LanguageDescription
             RelativeStrategy.Pronoun => "a relative pronoun",
             _ => "a resumptive pronoun",
         };
-        var relativizer = relativization.Relativizer;
-        var marked = relativizer.Kind switch
+        var marked = relativization.Relativizer?.Value switch
         {
-            RelativizerKind.None => "unmarked",
-            RelativizerKind.Affix => $"{Spelled(relativizer.AffixPosition, relativizer.Marker)} on a participle",
-            _ => $"marked by {relativizer.Marker.Spell(orthography)} beside the noun",
+            Bound affix => $"{Spelled(((Exponent)affix).Position, affix.Affix)} on a participle",
+            Particle particle => $"marked by {((Morpheme)particle).Spell(orthography)} beside the noun",
+            _ => "unmarked",
         };
         var relativePronoun = relativization.Pronoun.FromQuestionWords ? "the question words" : SpelledWord(relativization.Pronoun.Own);
         output.WriteLine($"Relative clauses: {(relativization.BeforeNoun ? "before" : "after")} the noun, {marked}; subjects by {Strategy(relativization.Subject)}, " +
@@ -333,9 +332,9 @@ public static class LanguageDescription
             AspectAuxiliary x when aspect is Aspect auxiliaryOf => $"the verb {SpelledWord(lang.AuxiliaryVerb(x, auxiliaryOf))} {(x.BeforeVerb ? "before" : "after")} the bare verb",
             _ => throw new InvalidOperationException(),
         };
-        output.WriteLine($"Perfect: {Aspectual(Aspect.Perfect, lang.Aspects.Perfect.MarkingOf(Aspect.Perfect), "none, so it's said as a perfective past")}");
-        output.WriteLine($"Progressive: {Aspectual(Aspect.Progressive, lang.Aspects.Progressive.MarkingOf(Aspect.Progressive), "none, so it's said as an imperfective")}");
-        output.WriteLine($"Habitual: {Aspectual(Aspect.Habitual, lang.Aspects.Habitual.MarkingOf(Aspect.Habitual), "none, so it's said as an imperfective")}");
+        output.WriteLine($"Perfect: {Aspectual(Aspect.Perfect, lang.Aspects.Perfect, "none, so it's said as a perfective past")}");
+        output.WriteLine($"Progressive: {Aspectual(Aspect.Progressive, lang.Aspects.Progressive, "none, so it's said as an imperfective")}");
+        output.WriteLine($"Habitual: {Aspectual(Aspect.Habitual, lang.Aspects.Habitual, "none, so it's said as an imperfective")}");
         output.WriteLine($"Inceptive: {Aspectual(Phase.Inceptive, lang.Aspects.MarkingOf(Phase.Inceptive), "none, so it's said with a verb for 'begin'")}");
         output.WriteLine($"Cessative: {Aspectual(Phase.Cessative, lang.Aspects.MarkingOf(Phase.Cessative), "none, so it's said with a verb for 'stop'")}");
         var questions = lang.Questions;

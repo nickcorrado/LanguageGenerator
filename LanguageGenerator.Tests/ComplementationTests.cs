@@ -99,7 +99,7 @@ public class ComplementationTests
     [Fact]
     public void GenerateComplementation_DesiderativeMarker_SaysVolition()
     {
-        Assert.All(Draws(s => s.Inflecting()), c => Assert.True(c.Desiderative.Marking?.Value is null or Bound { Affix.Grammemes: [Volition] } or Free { Particle.Grammemes: [Volition] }));
+        Assert.All(Draws(s => s.Inflecting()), c => Assert.True(c.Desiderative?.Value is null or Bound { Affix.Grammemes: [Volition] } or Free { Particle.Grammemes: [Volition] }));
     }
 
     [Theory]
@@ -115,7 +115,7 @@ public class ComplementationTests
 
     [Fact]
     public void GenerateComplementation_ManyDraws_MarkQuotationsWithTheComplementizerOnlyWhereThereIsOne() =>
-        Assert.All(Draws(s => s), c => Assert.False(c.Quotative.Kind == QuotativeKind.Complementizer && c.Proposition.Position == ComplementizerPosition.None));
+        Assert.All(Draws(s => s), c => Assert.False(c.QuotativeKind == QuotativeKind.Complementizer && c.Proposition.Position == ComplementizerPosition.None));
 
     [Fact]
     public void GenerateComplementation_IsolatingLanguage_UsesNoAffixes() =>
@@ -123,7 +123,7 @@ public class ComplementationTests
         {
             Assert.NotEqual(ComplementizerPosition.Suffix, c.Proposition.Position);
             Assert.NotEqual(ComplementizerPosition.Suffix, c.Event.Position);
-            Assert.NotEqual(DesiderativeKind.Affix, c.Desiderative.Kind);
+            Assert.NotEqual(DesiderativeKind.Affix, c.DesiderativeKind);
         });
 
     private static readonly Clause CatEats = new("eat", Tense.Present, Aspect.Imperfective, new NounPhrase("cat", Number.Singular), new NounPhrase("fish", Number.Singular)) { Adverbs = [] };
@@ -256,9 +256,9 @@ public class ComplementationTests
             var c = l.Complementation;
             Assert.True(c.Proposition is { Position: ComplementizerPosition.Final, Marker.Value: Particle, Balance: Balance.Either });
             Assert.True(c.Event is { Position: ComplementizerPosition.Suffix, Marker.Value: Affix, Balance: Balance.Balanced });
-            Assert.Equal(QuotativeKind.Complementizer, c.Quotative.Kind);
+            Assert.Equal(QuotativeKind.Complementizer, c.QuotativeKind);
             Assert.False(c.Last);
-            Assert.IsType<Free>(c.Desiderative.Marking?.Value);
+            Assert.IsType<Free>(c.Desiderative?.Value);
             Assert.NotEqual(Fusion.Isolating, l.MorphologicalProfile.Fusion);
             RelatedStageTests.AssertKeepsTheRules(l);
         });

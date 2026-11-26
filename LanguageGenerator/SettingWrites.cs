@@ -268,8 +268,11 @@ internal static class SettingWrites
     public static Subordination WithBalance(Subordination drawn, IReadOnlyList<Subordinator> subordinators, Balance balance) =>
         drawn with { Markers = drawn.Markers.ToDictionary(m => m.Key, m => subordinators.Contains(m.Key) ? m.Value with { Balance = balance } : m.Value) };
 
-    //a complementizer keeps its form in its new position. One that goes unsaid can't mark a quotation,
-    //which takes the word of its own instead, coined for this
+    /*
+      a complementizer keeps its form in its new position. One that goes unsaid can't mark a
+      quotation, which keeps the complementizer's word as a word of its own on the side it was on,
+      as Ewe bé marks a quotation where it's no complementizer
+     */
     public static Complementation WithComplementizer(Complementation drawn, ComplementKind kind, ComplementizerPosition position)
     {
         var marking = drawn.MarkingOf(kind);
@@ -277,22 +280,63 @@ internal static class SettingWrites
         {
             return drawn;
         }
+        var kept = drawn.MarkingOf(kind);
         marking = marking with { Marker = Generator.ComplementizerMarker(marking.Marker.Form, position, AccentOf(marking.Marker)), Position = position };
         var written = kind == ComplementKind.Proposition ? drawn with { Proposition = marking } : drawn with { Event = marking };
-        return kind == ComplementKind.Proposition && position == ComplementizerPosition.None && drawn.Quotative.Kind == QuotativeKind.Complementizer
-            ? written with { Quotative = written.Quotative with { Kind = QuotativeKind.Word } }
+        return kind == ComplementKind.Proposition && position == ComplementizerPosition.None && drawn.QuotativeKind == QuotativeKind.Complementizer
+            ? written with { Quotative = new Free(new Particle(kept.Marker.Form, [Linkage.Quotative]), kept.Position == ComplementizerPosition.Initial ? Side.Before : Side.After) }
             : written;
     }
 
-    //a quotation marked with the complementizer needs one that's said, so a proposition's unsaid one
-    //is said at the clause's start, as most are
+    /*
+      a quotation marked with the complementizer needs one that's said, so a proposition's unsaid one
+      is said at the clause's start, as most are. A word of its own is the complementizer's, where the
+      quotation was marked with that, on its side, and there's none to give it otherwise
+     */
     public static Complementation WithQuotative(Complementation drawn, QuotativeKind kind)
     {
-        var written = drawn with { Quotative = drawn.Quotative with { Kind = kind } };
-        return kind == QuotativeKind.Complementizer && drawn.Proposition.Position == ComplementizerPosition.None
-            ? WithComplementizer(written, ComplementKind.Proposition, ComplementizerPosition.Initial)
-            : written;
+        if (drawn.QuotativeKind == kind)
+        {
+            return drawn;
+        }
+        var proposition = drawn.Proposition;
+        return kind switch
+        {
+            QuotativeKind.None => drawn with { Quotative = null },
+            QuotativeKind.Word when drawn.QuotativeKind == QuotativeKind.Complementizer =>
+                drawn with { Quotative = new Free(new Particle(proposition.Marker.Form, [Linkage.Quotative]), proposition.Position == ComplementizerPosition.Initial ? Side.Before : Side.After) },
+            QuotativeKind.Word => throw NoForm("A quotative word"),
+            QuotativeKind.Complementizer when proposition.Position == ComplementizerPosition.None =>
+                WithComplementizer(drawn with { Quotative = new QuotativeComplementizer() }, ComplementKind.Proposition, ComplementizerPosition.Initial),
+            QuotativeKind.Complementizer => drawn with { Quotative = new QuotativeComplementizer() },
+            _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
+        };
     }
+
+    //a relativizer keeps its form between an affix and a word; an affix made from a word is a suffix, as most are
+    public static Relativization WithRelativizer(Relativization drawn, RelativizerKind kind) => drawn.RelativizerKind == kind ? drawn : drawn with
+    {
+        Relativizer = (kind, drawn.Relativizer?.Value) switch
+        {
+            (RelativizerKind.None, _) => null,
+            (RelativizerKind.Affix, Particle p) => new Bound(new Affix(p.Form, [Linkage.Relative], AffixAccent.None), Side.After),
+            (RelativizerKind.Particle, Bound b) => new Particle(b.Affix.Form, [Linkage.Relative]),
+            (RelativizerKind.Affix or RelativizerKind.Particle, _) => throw NoForm($"A relativizer {kind.ToString().ToLowerInvariant()}"),
+            _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
+        },
+    };
+
+    //'want' keeps its marker's form and side between an affix and a word of its own; a verb has no form to give either
+    public static Complementation WithDesiderative(Complementation drawn, DesiderativeKind kind) => drawn.DesiderativeKind == kind ? drawn : drawn with
+    {
+        Desiderative = kind switch
+        {
+            DesiderativeKind.Verb => null,
+            DesiderativeKind.Affix => AsAffix(drawn.Desiderative, [Volition.Desiderative], "A desiderative affix"),
+            DesiderativeKind.Particle => AsParticle(drawn.Desiderative, [Volition.Desiderative], "A desiderative particle"),
+            _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
+        },
+    };
 
 
     private static NoFormException NoForm(string value) =>
@@ -442,6 +486,58 @@ internal static class SettingWrites
     };
 
     public static Passive? WithPassive(Passive? drawn, bool has) => has ? drawn ?? throw NoForm("A passive") : null;
+
+    //a marker as an affix, keeping the form and side of the word it was, if it was one
+    private static Bound AsAffix(Exponent? drawn, IReadOnlyList<Grammeme> grammemes, string value) => drawn?.Value switch
+    {
+        Bound b => b with { Affix = b.Affix with { Grammemes = grammemes } },
+        Free f => new Bound(new Affix(f.Particle.Form, grammemes, AffixAccent.None), f.Side),
+        _ => throw NoForm(value),
+    };
+
+    //a marker as a word of its own, keeping the form and side of the affix it was, if it was one
+    private static Free AsParticle(Exponent? drawn, IReadOnlyList<Grammeme> grammemes, string value) => drawn?.Value switch
+    {
+        Free f => f with { Particle = f.Particle with { Grammemes = grammemes } },
+        Bound b => new Free(new Particle(b.Affix.Form, grammemes), b.Side),
+        _ => throw NoForm(value),
+    };
+
+    /*
+      an aspect's marker keeps its form and side between an affix and a word of its own. An
+      auxiliary, which has no form to keep, goes on the side of the verb its marker was on, or else
+      where the language's other aspects' words go, 'finish' aside, which always follows. A marker
+      that was none has no form to give an affix or a word
+     */
+    public static AspectMarking? WithAspectKind(Aspects aspects, AspectMarking? drawn, Grammeme meaning, AspectKind kind)
+    {
+        if (Aspects.KindOf(drawn) == kind)
+        {
+            return drawn;
+        }
+        Exponent? exponent = drawn?.Value switch
+        {
+            Bound b => b,
+            Free f => f,
+            _ => null,
+        };
+        var value = $"The {meaning.Name.ToLowerInvariant()} as {kind.ToString().ToLowerInvariant()}";
+        static Side? WordSide(AspectMarking? marking) => marking?.Value switch
+        {
+            Free f => f.Side,
+            AspectAuxiliary { Verb: not AspectVerb.Finish } a => a.BeforeVerb ? Side.Before : Side.After,
+            _ => null,
+        };
+        return kind switch
+        {
+            AspectKind.None => null,
+            AspectKind.Affix => AsAffix(exponent, [meaning], value),
+            AspectKind.Particle => AsParticle(exponent, [meaning], value),
+            AspectKind.Have or AspectKind.Be or AspectKind.Finish or AspectKind.Sit => AspectAuxiliary.Of(Aspects.VerbOf(kind)!.Value,
+                (exponent?.Side ?? WordSide(drawn) ?? aspects.All.Select(WordSide).FirstOrDefault(s => s is not null) ?? throw NoForm(value)) == Side.Before),
+            _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
+        };
+    }
 
     public static ModalKind KindOf(ModalMarking marking) => marking switch
     {

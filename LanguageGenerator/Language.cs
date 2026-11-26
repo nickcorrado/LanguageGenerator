@@ -57,22 +57,21 @@ public class Language
     /// one that says what.
     /// </summary>
     //the lexicon's verbs are coined when the language is generated, so that a frozen lexicon has them
-    public Lexeme AuxiliaryVerb(AspectAuxiliary auxiliary, Aspect aspect) => auxiliary.Kind switch
+    public Lexeme AuxiliaryVerb(AspectAuxiliary auxiliary, Aspect aspect) => auxiliary.Verb switch
     {
-        AspectKind.Have or AspectKind.Finish or AspectKind.Sit => Lexicon.Verb(AuxiliaryMeaning(auxiliary.Kind)!),
-        AspectKind.Be => Predication.CopulaFor(locational: aspect == Aspect.Progressive),
-        AspectKind.None or AspectKind.Affix or AspectKind.Particle => throw new ArgumentException($"{auxiliary.Kind} isn't an auxiliary.", nameof(auxiliary)),
-        _ => throw new ArgumentOutOfRangeException(nameof(auxiliary), auxiliary.Kind, null),
+        AspectVerb.Have or AspectVerb.Finish or AspectVerb.Sit => Lexicon.Verb(AuxiliaryMeaning(auxiliary.Verb)!),
+        AspectVerb.Be => Predication.CopulaFor(locational: aspect == Aspect.Progressive),
+        _ => throw new ArgumentOutOfRangeException(nameof(auxiliary), auxiliary.Verb, null),
     };
 
-    /// <summary>The meaning of the lexicon's verb an auxiliary is, or null for one that's the copula or no verb.</summary>
-    public static string? AuxiliaryMeaning(AspectKind kind) => kind switch
+    /// <summary>The meaning of the lexicon's verb an auxiliary is, or null for the copula.</summary>
+    public static string? AuxiliaryMeaning(AspectVerb verb) => verb switch
     {
-        AspectKind.Have => "have",
-        AspectKind.Finish => "finish",
-        AspectKind.Sit => "sit",
-        AspectKind.None or AspectKind.Affix or AspectKind.Particle or AspectKind.Be => null,
-        _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
+        AspectVerb.Have => "have",
+        AspectVerb.Finish => "finish",
+        AspectVerb.Sit => "sit",
+        AspectVerb.Be => null,
+        _ => throw new ArgumentOutOfRangeException(nameof(verb), verb, null),
     };
 
     public Gender? GenderOf(Lexeme noun) => Genders.Of(noun, Lexicon.ClassOf(noun.Root.Meaning));

@@ -24,42 +24,32 @@ public enum AspectKind
     Sit,
 }
 
+/// <summary>The verb an aspect's auxiliary is, as AspectKind describes each.</summary>
+public enum AspectVerb
+{
+    Have,
+    Be,
+    Finish,
+    Sit,
+}
+
 /// <summary>
 /// An aspect as an auxiliary verb, which takes the clause's tense, agreement and negation, with the
-/// clause's verb bare beside it, as modal verbs do. Kind is Have, Be, Finish or Sit, and says which
-/// verb it is.
+/// clause's verb bare beside it, as modal verbs do.
 /// </summary>
-public record AspectAuxiliary(AspectKind Kind, bool BeforeVerb);
+public record AspectAuxiliary(AspectVerb Verb, bool BeforeVerb)
+{
+    /// <summary>The auxiliary for this verb, on the side of the verb the language puts its words, but for 'finish'.</summary>
+    //a completive 'finish' follows its verb in VO and OV languages alike, as Thai kin lɛ́ɛw 'eat
+    //finish' and Japanese tabe-te shimau 'eat-CONV finish' do
+    public static AspectAuxiliary Of(AspectVerb verb, bool beforeVerb) => new(verb, verb != AspectVerb.Finish && beforeVerb);
+}
 
 /// <summary>
-/// How a language marks an aspect: an affix next to the verb's root, outside only a passive, a
-/// word of its own beside the verb, as Mandarin zài is, or an auxiliary.
+/// How a language marks an aspect: an affix next to the verb's root, outside only a passive, glossed
+/// as the aspect, a word of its own beside the verb, as Mandarin zài is, or an auxiliary.
 /// </summary>
 public union AspectMarking(Bound, Free, AspectAuxiliary);
-
-/// <summary>
-/// How a language marks one aspect: its kind, the form of its affix or particle, which side of the
-/// root the affix goes on, and which side of the verb a particle or auxiliary goes on.
-/// </summary>
-//the form is coined whatever the kind, so that a spec can write one in, as the desiderative's is
-public record AspectMarker(AspectKind Kind, IReadOnlyList<Phoneme> Form, AffixAccent Accent, ExponentPosition AffixPosition, bool BeforeVerb)
-{
-    /// <summary>
-    /// The marking of this aspect or phase, glossed as it, or null where the language doesn't mark
-    /// it.
-    /// </summary>
-    public AspectMarking? MarkingOf(Grammeme aspect) => Kind switch
-    {
-        AspectKind.None => null,
-        AspectKind.Affix => new Bound(new Affix(Form, [aspect], Accent), AffixPosition == ExponentPosition.Prefix ? Side.Before : Side.After),
-        AspectKind.Particle => new Free(new Particle(Form, [aspect]), BeforeVerb ? Side.Before : Side.After),
-        //a completive 'finish' follows its verb in VO and OV languages alike, as Thai kin lɛ́ɛw 'eat
-        //finish' and Japanese tabe-te shimau 'eat-CONV finish' do
-        AspectKind.Finish => new AspectAuxiliary(Kind, BeforeVerb: false),
-        AspectKind.Have or AspectKind.Be or AspectKind.Sit => new AspectAuxiliary(Kind, BeforeVerb),
-        _ => throw new ArgumentOutOfRangeException(nameof(Kind), Kind, null),
-    };
-}
 
 /// <summary>
 /// How a language marks the perfect, as in 'nobody has repaired it', the progressive, as in 'a
@@ -69,7 +59,8 @@ public record AspectMarker(AspectKind Kind, IReadOnlyList<Phoneme> Form, AffixAc
 /// imperfective, as Russian does, and beginning and ceasing with verbs of their own, as English
 /// does.
 /// </summary>
-public record Aspects(AspectMarker Perfect, AspectMarker Progressive, AspectMarker Habitual, AspectMarker Inceptive, AspectMarker Cessative)
+//each is null where the language doesn't mark it
+public record Aspects(AspectMarking? Perfect, AspectMarking? Progressive, AspectMarking? Habitual, AspectMarking? Inceptive, AspectMarking? Cessative)
 {
     /// <summary>The kinds a perfect can be.</summary>
     public static IReadOnlyList<AspectKind> PerfectKinds { get; } = [AspectKind.None, AspectKind.Affix, AspectKind.Particle, AspectKind.Have, AspectKind.Be, AspectKind.Finish];
@@ -83,6 +74,32 @@ public record Aspects(AspectMarker Perfect, AspectMarker Progressive, AspectMark
     /// </summary>
     public static IReadOnlyList<AspectKind> PhaseKinds { get; } = [AspectKind.None, AspectKind.Affix, AspectKind.Particle];
 
+    /// <summary>The verb an auxiliary of this kind is, or null for a kind that isn't one.</summary>
+    public static AspectVerb? VerbOf(AspectKind kind) => kind switch
+    {
+        AspectKind.Have => AspectVerb.Have,
+        AspectKind.Be => AspectVerb.Be,
+        AspectKind.Finish => AspectVerb.Finish,
+        AspectKind.Sit => AspectVerb.Sit,
+        AspectKind.None or AspectKind.Affix or AspectKind.Particle => null,
+        _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
+    };
+
+    /// <summary>The kind a marking is, as a spec names it.</summary>
+    public static AspectKind KindOf(AspectMarking? marking) => marking is not { } m ? AspectKind.None : m switch
+    {
+        Bound => AspectKind.Affix,
+        Free => AspectKind.Particle,
+        AspectAuxiliary { Verb: AspectVerb.Have } => AspectKind.Have,
+        AspectAuxiliary { Verb: AspectVerb.Be } => AspectKind.Be,
+        AspectAuxiliary { Verb: AspectVerb.Finish } => AspectKind.Finish,
+        AspectAuxiliary { Verb: AspectVerb.Sit } => AspectKind.Sit,
+        AspectAuxiliary a => throw new ArgumentOutOfRangeException(nameof(marking), a.Verb, null),
+    };
+
+    /// <summary>Each aspect's and phase's marking, in the order of the settings for them.</summary>
+    public IReadOnlyList<AspectMarking?> All => [Perfect, Progressive, Habitual, Inceptive, Cessative];
+
     /// <summary>
     /// How a clause's tense and aspect are said: the tense and aspect its verb inflects for, and the
     /// marker of a perfect, progressive or habitual beside them, if the language has one. A perfect
@@ -94,24 +111,23 @@ public record Aspects(AspectMarker Perfect, AspectMarker Progressive, AspectMark
     {
         if (aspect == Aspect.Perfect)
         {
-            var perfect = Perfect.MarkingOf(Aspect.Perfect);
-            return (perfect is null && tense == Tense.Present ? Tense.Past : tense, Aspect.Perfective, perfect);
+            return (Perfect is null && tense == Tense.Present ? Tense.Past : tense, Aspect.Perfective, Perfect);
         }
         if (aspect == Aspect.Progressive)
         {
-            return (tense, Aspect.Imperfective, Progressive.MarkingOf(Aspect.Progressive));
+            return (tense, Aspect.Imperfective, Progressive);
         }
         if (aspect == Aspect.Habitual)
         {
-            return (tense, Aspect.Imperfective, Habitual.MarkingOf(Aspect.Habitual));
+            return (tense, Aspect.Imperfective, Habitual);
         }
         return (tense, aspect, null);
     }
 
     /// <summary>The marking of beginning or ceasing on the verb, or null where the language says it with a verb.</summary>
     public AspectMarking? MarkingOf(Phase phase) =>
-        phase == Phase.Inceptive ? Inceptive.MarkingOf(phase)
-        : phase == Phase.Cessative ? Cessative.MarkingOf(phase)
+        phase == Phase.Inceptive ? Inceptive
+        : phase == Phase.Cessative ? Cessative
         : throw new ArgumentOutOfRangeException(nameof(phase), phase, null);
 
     /// <summary>The phase a verb says, begin the inceptive and stop the cessative, or null for any other verb.</summary>
