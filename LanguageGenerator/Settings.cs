@@ -423,10 +423,10 @@ public static class Settings
 
     public static Stage<Possession> PossessionStage { get; } = new("possession", l => l.Possession, null);
     public static Setting<Possession, PossessiveMarking> PossessiveMarking { get; } = PossessionStage.Declare("possession", Nouns,
-        p => p.Marking, SettingWrites.WithPossession, Choice<PossessiveMarking>.Of(Enum.GetValues<PossessiveMarking>()));
+        SettingWrites.MarkingOf, SettingWrites.WithPossession, Choice<PossessiveMarking>.Of(Enum.GetValues<PossessiveMarking>()));
     /// <summary>Which side of the possessed noun its affix agreeing with the possessor goes on, where there's one.</summary>
     public static Setting<Possession, ExponentPosition> PossessiveAffixes { get; } = PossessionStage.Declare("possessive-affixes", Nouns,
-        p => p.AffixPosition, (p, position) => p with { AffixPosition = position },
+        SettingWrites.PossessiveAffixesOf, SettingWrites.WithPossessiveAffixes,
         new Choice<ExponentPosition>([("Prefix", ExponentPosition.Prefix), ("Suffix", ExponentPosition.Suffix)]));
 
     public static Stage<GenderSystem> GenderStage { get; } = new("genders", l => l.Genders, null);
@@ -444,7 +444,7 @@ public static class Settings
         n => n.BeforeNoun, (n, before) => n with { BeforeNoun = before }, YesNo);
     /// <summary>How 'first', 'second' and the rest are said.</summary>
     public static Setting<NumeralSystem, OrdinalType> Ordinals { get; } = NumeralStage.Declare("ordinals", Nouns,
-        n => n.Ordinals.Type, SettingWrites.Unwritable<NumeralSystem, OrdinalType>("Ordinals of another type"), Choice<OrdinalType>.Of(Enum.GetValues<OrdinalType>()));
+        n => SettingWrites.TypeOf(n.Ordinals), SettingWrites.Unwritable<NumeralSystem, OrdinalType>("Ordinals of another type"), Choice<OrdinalType>.Of(Enum.GetValues<OrdinalType>()));
 
     public static Stage<Demonstratives> DemonstrativeStage { get; } = new("demonstratives", l => l.Demonstratives, null);
     /// <summary>How many distances demonstratives tell apart, as WALS 41A has it.</summary>

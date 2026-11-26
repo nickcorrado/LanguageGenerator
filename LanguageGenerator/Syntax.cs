@@ -1498,14 +1498,14 @@ public static class Syntax
         var possessor = noun.Possessor.GetValueOrDefault();
         var possession = language.Possession;
         List<Word> possessed = [.. words];
-        if (possession.MarksPossessed)
+        if (possession.Agreement is { } agreement)
         {
             var root = language.Lexicon.Noun(noun.Meaning).Root;
             var at = possessed.FindIndex(w => w.Root == root);
             var (person, number) = AgreementOf(language, possessor);
-            possessed[at] = possession.Agree(possessed[at], person, number);
+            possessed[at] = agreement.Agree(possessed[at], person, number);
         }
-        if (possession.Marking == PossessiveMarking.Head && possessor.Value is Pronoun)
+        if (!possession.MarksPossessor && possession.MarksPossessed && possessor.Value is Pronoun)
         {
             return possessed;
         }

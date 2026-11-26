@@ -7,11 +7,10 @@ public class NumeralTests
 {
     private static Lexeme Formless(string meaning) => new(new Root([], meaning, null), PartOfSpeech.Numeral);
 
-    private static readonly Ordinals CardinalOrdinals = new(OrdinalType.Cardinal, null, null, null);
 
     //formless words glossed with their number, enough for any base
     private static NumeralSystem System(NumeralBase numeralBase, bool largestFirst = true, int limit = NumeralSystem.Largest) =>
-        System(numeralBase, CardinalOrdinals, largestFirst, limit);
+        System(numeralBase, new CardinalOrdinals(), largestFirst, limit);
 
     private static NumeralSystem System(NumeralBase numeralBase, Ordinals ordinals, bool largestFirst = true, int limit = NumeralSystem.Largest) => new(
         numeralBase, limit,
@@ -145,7 +144,7 @@ public class NumeralTests
     [InlineData(37, "3 10 7-ORD")]
     public void SayOrdinal_FirstSecondThenSuffix_IsSuppletiveOnlyAlone(int n, string words) =>
         Assert.Equal(words, SayOrdinal(System(NumeralBase.Decimal,
-            new Ordinals(OrdinalType.FirstSecondThenDerived, Formless("first"), Formless("second"), (ExponentPosition.Suffix, OrdinalSuffix))), n));
+            new FirstSecondThenDerivedOrdinals(Formless("first"), Formless("second"), new Bound(OrdinalSuffix, Side.After))), n));
 
     [Theory]
     [InlineData(ExponentPosition.Prefix, "ORD-3 10 7")]
@@ -154,8 +153,15 @@ public class NumeralTests
     [InlineData(ExponentPosition.FollowingParticle, "3 10 7 ORD")]
     public void SayOrdinal_Derived_MarksTheWholeNumeral(ExponentPosition position, string words)
     {
-        Morpheme marker = position is ExponentPosition.Prefix or ExponentPosition.Suffix ? OrdinalSuffix : OrdinalParticle;
-        var system = System(NumeralBase.Decimal, new Ordinals(OrdinalType.Derived, null, null, (position, marker)));
+        Exponent marker = position switch
+        {
+            ExponentPosition.Prefix => new Bound(OrdinalSuffix, Side.Before),
+            ExponentPosition.Suffix => new Bound(OrdinalSuffix, Side.After),
+            ExponentPosition.PrecedingParticle => new Free(OrdinalParticle, Side.Before),
+            ExponentPosition.FollowingParticle => new Free(OrdinalParticle, Side.After),
+            _ => throw new ArgumentOutOfRangeException(nameof(position), position, null),
+        };
+        var system = System(NumeralBase.Decimal, new DerivedOrdinals(marker));
 
         Assert.Equal(words, SayOrdinal(system, 37));
         Assert.Equal(words.Replace("3 10 7", "1"), SayOrdinal(system, 1));
@@ -166,13 +172,13 @@ public class NumeralTests
     {
         Assert.Equal("1", SayOrdinal(System(NumeralBase.Decimal), 1));
         Assert.Equal("3 10 7", SayOrdinal(System(NumeralBase.Decimal), 37));
-        var firstOnly = System(NumeralBase.Decimal, new Ordinals(OrdinalType.FirstThenCardinal, Formless("first"), null, null));
+        var firstOnly = System(NumeralBase.Decimal, new FirstThenCardinalOrdinals(Formless("first")));
         Assert.Equal("first", SayOrdinal(firstOnly, 1));
         Assert.Equal("2", SayOrdinal(firstOnly, 2));
     }
 
     [Fact]
-    public void GenerateNumerals_Ordinals_HaveTheWordsAndMarkingTheirTypeNeeds()
+    public void GenerateNumerals_OrdinalMarkers_AreAffixesWhereWordsTakeThem()
     {
         var phonology = GeneratedLanguages.Sample[0].Phonology;
         var morphology = GeneratedLanguages.With(s => s.Inflecting()).MorphologicalProfile;
@@ -180,20 +186,14 @@ public class NumeralTests
 
         var drawn = Enumerable.Range(0, 1000).Select(_ => Generator.GenerateNumerals(rand, morphology, phonology).Ordinals).ToList();
 
-        Assert.All(drawn, o =>
-        {
-            Assert.Equal(o.Type is not (OrdinalType.Cardinal or OrdinalType.Derived), o.First is not null);
-            Assert.Equal(o.Type == OrdinalType.FirstSecondThenDerived, o.Second is not null);
-            Assert.Equal(o.Type is OrdinalType.Derived or OrdinalType.FirstThenDerived or OrdinalType.FirstSecondThenDerived, o.Marking is not null);
-            Assert.True(o.Marking is null or (ExponentPosition.Prefix or ExponentPosition.Suffix, Affix));
-        });
+        Assert.All(drawn, o => Assert.True(o.Marker is null or { Value: Bound }));
     }
 
     [Fact]
     public void Generate_IsolatingLanguages_MarkOrdinalsWithWords()
     {
-        Assert.All(GeneratedLanguages.Sample.Where(l => l.MorphologicalProfile.Fusion == Fusion.Isolating && l.Numerals.Ordinals.Marking is not null),
-            l => Assert.True(l.Numerals.Ordinals.Marking is (ExponentPosition.PrecedingParticle or ExponentPosition.FollowingParticle, Particle)));
+        Assert.All(GeneratedLanguages.Sample.Where(l => l.MorphologicalProfile.Fusion == Fusion.Isolating && l.Numerals.Ordinals.Marker is not null),
+            l => Assert.True(l.Numerals.Ordinals.Marker is { Value: Free }));
     }
 
     [Fact]

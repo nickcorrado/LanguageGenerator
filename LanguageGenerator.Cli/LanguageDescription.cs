@@ -360,32 +360,29 @@ public static class LanguageDescription
         output.WriteLine($"Numerals ({counting}; {(numerals.BeforeNoun ? "before" : "after")} the noun{(numerals.NounStaysSingular ? ", which stays singular" : "")}):");
         output.WriteLine("  " + string.Join(", ", ((int[])[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 20, 37, 100]).Select(n => $"{n} {Say(n)}")));
         var ordinals = numerals.Ordinals;
-        var marking = ordinals.Marking switch
+        var marking = ordinals.Marker switch
         {
-            (ExponentPosition.Prefix, var marker) => $"{marker.Spell(orthography)}- before the numeral",
-            (ExponentPosition.Suffix, var marker) => $"-{marker.Spell(orthography)} after the numeral",
-            (ExponentPosition.PrecedingParticle, var marker) => $"{marker.Spell(orthography)} before the numeral",
-            (ExponentPosition.FollowingParticle, var marker) => $"{marker.Spell(orthography)} after the numeral",
+            { Position: ExponentPosition.Prefix } m => $"{m.Marker.Spell(orthography)}- before the numeral",
+            { Position: ExponentPosition.Suffix } m => $"-{m.Marker.Spell(orthography)} after the numeral",
+            { Position: ExponentPosition.PrecedingParticle } m => $"{m.Marker.Spell(orthography)} before the numeral",
+            { Position: ExponentPosition.FollowingParticle } m => $"{m.Marker.Spell(orthography)} after the numeral",
             _ => "the cardinal",
         };
         string SayOrdinal(int n) => string.Join(" ", numerals.SayOrdinal(n).Select(w => phonology.Realize(w).Spell(orthography)));
-        var suppletive = ordinals.Type switch
-        {
-            OrdinalType.FirstThenCardinal or OrdinalType.FirstThenDerived => "a word for 'first', then ",
-            OrdinalType.FirstSecondThenDerived => "words for 'first' and 'second', then ",
-            _ => "",
-        };
+        var suppletive = ordinals.Second is not null ? "words for 'first' and 'second', then "
+            : ordinals.First is not null ? "a word for 'first', then "
+            : "";
         output.WriteLine($"Ordinals ({suppletive}{marking}):");
         output.WriteLine("  " + string.Join(", ", ((int[])[1, 2, 3, 4, 10, 37]).Select(n => $"{n}{OrdinalEnding(n)} {SayOrdinal(n)}")));
         var possession = lang.Possession;
-        var possessedMarkers = possession.Affixes is null ? ""
-            : $" ({string.Join(", ", possession.Affixes.Select(a => $"{Grammeme.JoinGlosses(a.Value.Grammemes)} {(possession.AffixPosition == ExponentPosition.Prefix ? $"{((Morpheme)a.Value).Spell(orthography)}-" : $"-{((Morpheme)a.Value).Spell(orthography)}")}"))})";
-        output.WriteLine($"Possessors go {(possession.PossessorFirst ? "before" : "after")} the noun, " + possession.Marking switch
+        var possessedMarkers = possession.Agreement is not { } agreement ? ""
+            : $" ({string.Join(", ", agreement.Affixes.Select(a => $"{Grammeme.JoinGlosses(a.Value.Grammemes)} {(agreement.Side == Side.Before ? $"{((Morpheme)a.Value).Spell(orthography)}-" : $"-{((Morpheme)a.Value).Spell(orthography)}")}"))})";
+        output.WriteLine($"Possessors go {(possession.PossessorFirst ? "before" : "after")} the noun, " + (possession.MarksPossessor, possession.MarksPossessed) switch
         {
-            PossessiveMarking.Dependent => $"marked {lang.RoleMarkers[Role.Possessor]}",
-            PossessiveMarking.Head => $"and the noun agrees with them{possessedMarkers}",
-            PossessiveMarking.Double => $"marked {lang.RoleMarkers[Role.Possessor]}, and the noun agrees with them{possessedMarkers}",
-            _ => "unmarked",
+            (true, false) => $"marked {lang.RoleMarkers[Role.Possessor]}",
+            (false, true) => $"and the noun agrees with them{possessedMarkers}",
+            (true, true) => $"marked {lang.RoleMarkers[Role.Possessor]}, and the noun agrees with them{possessedMarkers}",
+            (false, false) => "unmarked",
         });
     }
 

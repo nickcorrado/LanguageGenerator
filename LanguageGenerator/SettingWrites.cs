@@ -362,12 +362,45 @@ internal static class SettingWrites
         })]);
     }
 
-    //marking only the possessor, or nothing, has no affixes, and keeps the suffix position the
-    //generator gives it
+    /// <summary>The type ordinals are, as a spec names it.</summary>
+    public static OrdinalType TypeOf(Ordinals ordinals) => ordinals switch
+    {
+        CardinalOrdinals => OrdinalType.Cardinal,
+        FirstThenCardinalOrdinals => OrdinalType.FirstThenCardinal,
+        DerivedOrdinals => OrdinalType.Derived,
+        FirstThenDerivedOrdinals => OrdinalType.FirstThenDerived,
+        FirstSecondThenDerivedOrdinals => OrdinalType.FirstSecondThenDerived,
+    };
+
+    /// <summary>Which noun possession is marked on, as a spec names it.</summary>
+    public static PossessiveMarking MarkingOf(Possession possession) => (possession.MarksPossessor, possession.MarksPossessed) switch
+    {
+        (true, false) => PossessiveMarking.Dependent,
+        (false, true) => PossessiveMarking.Head,
+        (true, true) => PossessiveMarking.Double,
+        (false, false) => PossessiveMarking.None,
+    };
+
+    //marking the possessed noun needs the affixes it was drawn with, and marking only the possessor,
+    //or nothing, has none
     public static Possession WithPossession(Possession drawn, PossessiveMarking marking) => marking switch
     {
-        PossessiveMarking.Head or PossessiveMarking.Double => drawn.Affixes is null ? throw NoForm($"{marking} possession") : drawn with { Marking = marking },
-        _ => drawn with { Marking = marking, Affixes = null, AffixPosition = ExponentPosition.Suffix },
+        PossessiveMarking.Head or PossessiveMarking.Double when drawn.Agreement is null => throw NoForm($"{marking} possession"),
+        PossessiveMarking.Head or PossessiveMarking.Double => drawn with { MarksPossessor = marking == PossessiveMarking.Double },
+        PossessiveMarking.Dependent or PossessiveMarking.None => drawn with { MarksPossessor = marking == PossessiveMarking.Dependent, Agreement = null },
+        _ => throw new ArgumentOutOfRangeException(nameof(marking), marking, null),
+    };
+
+    //the side of the possessed noun its affixes go on, which is a suffix's where it has none
+    public static ExponentPosition PossessiveAffixesOf(Possession possession) =>
+        possession.Agreement is { Side: Side.Before } ? ExponentPosition.Prefix : ExponentPosition.Suffix;
+
+    public static Possession WithPossessiveAffixes(Possession drawn, ExponentPosition position) => (drawn.Agreement, position) switch
+    {
+        ({ } agreement, ExponentPosition.Prefix or ExponentPosition.Suffix) => drawn with { Agreement = agreement with { Side = position == ExponentPosition.Prefix ? Side.Before : Side.After } },
+        (null, ExponentPosition.Suffix) => drawn,
+        (null, ExponentPosition.Prefix) => throw NoForm("A possessive prefix"),
+        _ => throw new ArgumentOutOfRangeException(nameof(position), position, null),
     };
 
     //a gender system's first gender has no marker, and the rest reuse the drawn markers' forms in

@@ -26,12 +26,13 @@ public static partial class Generator
             marking = PossessiveMarking.Dependent;
         }
         var possessorFirst = wordOrder.AdpositionalPhraseDirectionality == HeadDirectionality.Final;
+        var marksPossessor = marking is PossessiveMarking.Dependent or PossessiveMarking.Double;
         if (marking is not (PossessiveMarking.Head or PossessiveMarking.Double))
         {
-            return new Possession(marking, possessorFirst, null, ExponentPosition.Suffix);
+            return new Possession(possessorFirst, marksPossessor, null);
         }
 
-        var position = rand.NextDouble() < PrefixChance(morphology) ? ExponentPosition.Prefix : ExponentPosition.Suffix;
+        var side = rand.NextDouble() < PrefixChance(morphology) ? Side.Before : Side.After;
         var affixes = new Dictionary<(Person, Number), Affix>();
         var forms = new DistinctForms();
         foreach (var person in new[] { Person.First, Person.Second, Person.Third })
@@ -42,6 +43,6 @@ public static partial class Generator
                 affixes[(person, number)] = CoinAffix(rand, phonology, form, [person, number, Possessive.Possessed]);
             }
         }
-        return new Possession(marking, possessorFirst, affixes, position);
+        return new Possession(possessorFirst, marksPossessor, new PossessedAgreement(affixes, side));
     }
 }

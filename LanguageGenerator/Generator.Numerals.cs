@@ -63,22 +63,23 @@ public static partial class Generator
      */
     private static Ordinals GenerateOrdinals(Random rand, MorphologicalProfile morphology, Phonology phonology, Func<string, Lexeme> word)
     {
-        var type = Sampling.Categorical(rand, OrdinalCounts);
-        var first = type is OrdinalType.Cardinal or OrdinalType.Derived ? null : word("first");
-        var second = type == OrdinalType.FirstSecondThenDerived ? word("second") : null;
-        if (type is OrdinalType.Cardinal or OrdinalType.FirstThenCardinal)
+        Exponent Marker()
         {
-            return new Ordinals(type, first, second, null);
+            var side = rand.NextDouble() < PrefixChance(morphology) ? Side.Before : Side.After;
+            var affix = morphology.Fusion != Fusion.Isolating;
+            var form = MarkerForm(rand, affix, phonology);
+            return affix ? new Bound(CoinAffix(rand, phonology, form, [Ordinality.Ordinal]), side) : new Free(new Particle(form, [Ordinality.Ordinal]), side);
         }
-
-        var before = rand.NextDouble() < PrefixChance(morphology);
-        var position = morphology.Fusion == Fusion.Isolating
-            ? (before ? ExponentPosition.PrecedingParticle : ExponentPosition.FollowingParticle)
-            : (before ? ExponentPosition.Prefix : ExponentPosition.Suffix);
-        var affix = position is ExponentPosition.Prefix or ExponentPosition.Suffix;
-        var form = MarkerForm(rand, affix, phonology);
-        Morpheme marker = affix ? CoinAffix(rand, phonology, form, [Ordinality.Ordinal]) : new Particle(form, [Ordinality.Ordinal]);
-        return new Ordinals(type, first, second, (position, marker));
+        //each word is coined before the marker, 'first' before 'second'
+        return Sampling.Categorical(rand, OrdinalCounts) switch
+        {
+            OrdinalType.Cardinal => new CardinalOrdinals(),
+            OrdinalType.FirstThenCardinal => new FirstThenCardinalOrdinals(word("first")),
+            OrdinalType.Derived => new DerivedOrdinals(Marker()),
+            OrdinalType.FirstThenDerived => new FirstThenDerivedOrdinals(word("first"), Marker()),
+            OrdinalType.FirstSecondThenDerived => new FirstSecondThenDerivedOrdinals(word("first"), word("second"), Marker()),
+            var type => throw new ArgumentOutOfRangeException(nameof(type), type, null),
+        };
     }
 
     //each numeral word's gloss
