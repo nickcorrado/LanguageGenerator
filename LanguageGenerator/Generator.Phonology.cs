@@ -369,13 +369,19 @@ public static partial class Generator
     //how likely each stress mark is, by a guess
     private static readonly (StressSpelling Value, int Weight)[] StressMarks = [(StressSpelling.Acute, 3), (StressSpelling.Grave, 1)];
 
-    //needsOnset fills the C slot if the onset would otherwise be empty, for a syllable that follows
-    //another inside a root
-    public static Syllable GenerateSyllable(Random rand, SyllableRule rule, Dropoff dropoff, bool needsOnset)
+    /*
+      needsOnset fills the C slot if the onset would otherwise be empty, for a syllable that follows
+      another inside a root. codaCluster lets a second consonant close it, which only a root's last
+      syllable gets: inside a root, a coda cluster meets the next onset in three or four consonants
+      in a row, as in English pumpkin, hard to say and rare in the languages that allow them at the
+      end
+     */
+    public static Syllable GenerateSyllable(Random rand, SyllableRule rule, Dropoff dropoff, bool needsOnset, bool codaCluster)
     {
         var onset = new List<Consonant>();
         Vowel? nucleus = null;
-        Consonant? coda = null;
+        var coda = new List<Consonant>();
+        var codaSlots = 0;
 
         foreach (var slot in rule.Template.Slots)
         {
@@ -389,25 +395,36 @@ public static partial class Generator
                 nucleus = Pick(rand, rule.Vowels, 1, dropoff) ?? throw new InvalidOperationException("The inventory has no vowels.");
             }
             //an onset consonant has to be able to follow the one before it, so pl but not nl
-            else if (Pick(rand, nucleus is null && onset.Count > 0
-                    ? new NaturalClass<Consonant>(rule.Resolve(slot).Where(c => SyllableRule.CanPrecede(onset[^1], c)))
-                    : rule.Resolve(slot),
-                FillChance(rule.Template, slot), dropoff) is { } consonant)
+            else if (nucleus is null)
             {
-                if (nucleus is null)
+                if (Pick(rand, onset.Count > 0 ? new NaturalClass<Consonant>(rule.Resolve(slot).Where(c => SyllableRule.CanPrecede(onset[^1], c))) : rule.Resolve(slot),
+                    FillChance(rule.Template, slot), dropoff) is { } consonant)
                 {
                     onset.Add(consonant);
                 }
-                else
+            }
+            else if (codaSlots++ == 0)
+            {
+                if (Pick(rand, rule.Resolve(slot), FillChance(rule.Template, slot), dropoff) is { } consonant)
                 {
-                    coda = consonant;
+                    coda.Add(consonant);
                 }
+            }
+            //a second coda consonant only ever follows a first, which it has to be able to follow, so nt but not tn
+            else if (codaCluster && coda.Count > 0
+                && Pick(rand, new NaturalClass<Consonant>(rule.Resolve(slot).Where(c => SyllableRule.CanPrecedeInCoda(coda[^1], c))), SecondCodaChance, dropoff) is { } second)
+            {
+                coda.Add(second);
             }
         }
 
         //the template guarantees exactly one vowel slot
-        return new Syllable([.. onset], nucleus!, coda);
+        return new Syllable([.. onset], nucleus!, [.. coda]);
     }
+
+    //how often a closed syllable that may take a second coda consonant does. A guess: English hand,
+    //felt and best are common, but far from most of its closed syllables
+    private const double SecondCodaChance = 0.4;
 
     /*
       how often a consonantal slot is filled. Every language has syllables with onsets, and most
@@ -444,8 +461,12 @@ public static partial class Generator
     public static SyllableShape SelectSyllableShape(Random rand)
     {
         var template = Sampling.Categorical(rand, Sampling.Categorical(rand, SyllableComplexityBands));
-        //a restriction only matters for templates with a coda
-        var codas = template.Slots.Any(s => s is Slot.Final) ? Sampling.Categorical(rand, CodaRestrictionWeights) : CodaRestriction.Any;
+        /*
+          a restriction only matters for templates with a coda, and isn't drawn for one with two: a
+          language that allows nt and lk at the end of a syllable doesn't allow only nasals there,
+          which would leave it no clusters at all
+         */
+        var codas = template.Slots.Count(s => s is Slot.Final) == 1 ? Sampling.Categorical(rand, CodaRestrictionWeights) : CodaRestriction.Any;
         return new SyllableShape(template, codas);
     }
 
@@ -455,9 +476,10 @@ public static partial class Generator
     /*
       WALS 12A sorts 486 languages by their largest syllable: 61 simple, at most CV; 274 moderately
       complex, with one coda or an onset of a consonant and a liquid or glide, or both; and 151
-      complex, with freer clusters, like the s-clusters of English. Within each band, which template
-      is a guess: one coda is commoner than an onset cluster, and English-like SCLVF the commonest
-      of the complex ones. WALS counts a liquid and a glide alike after the first consonant, so how
+      complex, with freer clusters, like the s-clusters of English or two consonants closing a
+      syllable, as in English hand. Within each band, which template is a guess: one coda is
+      commoner than an onset cluster, and English-like SCLVF and SCLVFF the commonest of the complex
+      ones. WALS counts a liquid and a glide alike after the first consonant, so how
       many languages allow only a glide there, as Korean, Mandarin and the Bantu languages do, is a
       guess too
      */
@@ -474,9 +496,12 @@ public static partial class Generator
 
     private static readonly (SyllableTemplate Template, int Weight)[] ComplexSyllables =
     [
-        (SyllableTemplates.SCV, 20),
-        (SyllableTemplates.SCVF, 30),
-        (SyllableTemplates.SCLVF, 50),
+        (SyllableTemplates.SCV, 15),
+        (SyllableTemplates.SCVF, 20),
+        (SyllableTemplates.SCLVF, 25),
+        (SyllableTemplates.CVFF, 10),
+        (SyllableTemplates.CLVFF, 10),
+        (SyllableTemplates.SCLVFF, 20),
     ];
 
     private static readonly ((SyllableTemplate Template, int Weight)[] Templates, int Weight)[] SyllableComplexityBands =

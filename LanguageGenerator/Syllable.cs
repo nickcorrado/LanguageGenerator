@@ -2,8 +2,10 @@
 
 namespace LanguageGenerator;
 
-public record Syllable(ValueList<Consonant> Onset, Vowel Nucleus, Consonant? Coda)
+public record Syllable(ValueList<Consonant> Onset, Vowel Nucleus, ValueList<Consonant> Coda)
 {
+    public bool Closed => Coda.Count > 0;
+
     public string Spell(Orthography orthography) => orthography.Spell(Phonemes);
 
     public IEnumerable<Phoneme> Phonemes
@@ -15,9 +17,9 @@ public record Syllable(ValueList<Consonant> Onset, Vowel Nucleus, Consonant? Cod
                 yield return consonant;
             }
             yield return Nucleus;
-            if (Coda is not null)
+            foreach (var consonant in Coda)
             {
-                yield return Coda;
+                yield return consonant;
             }
         }
     }
@@ -84,7 +86,7 @@ public static class SlotExtensions
 }
 
 /// <summary>
-/// A syllable's shape, like CLVF. Slots before the vowel make up the onset, and at most one slot
+/// A syllable's shape, like CLVF. Slots before the vowel make up the onset, and at most two slots
 /// may follow it, as the coda.
 /// </summary>
 public class SyllableTemplate
@@ -103,9 +105,9 @@ public class SyllableTemplate
         }
 
         var codaSlots = Slots.Count - Slots.ToList().FindIndex(s => s is Slot.Vowel) - 1;
-        if (codaSlots > 1)
+        if (codaSlots > 2)
         {
-            throw new ArgumentException($"{Name} has {codaSlots} slots after the vowel, but a syllable only has room for one coda.", nameof(slots));
+            throw new ArgumentException($"{Name} has {codaSlots} slots after the vowel, but a coda has room for at most two consonants.", nameof(slots));
         }
     }
 
@@ -125,8 +127,12 @@ public static class SyllableTemplates
     public static SyllableTemplate SCV { get; } = new(Slot.Sibilant, Slot.Consonant, Slot.Vowel);
     public static SyllableTemplate SCVF { get; } = new(Slot.Sibilant, Slot.Consonant, Slot.Vowel, Slot.Final);
     public static SyllableTemplate SCLVF { get; } = new(Slot.Sibilant, Slot.Consonant, Slot.Liquid, Slot.Vowel, Slot.Final);
+    //two consonants closing a syllable, as in English hand, felt or best
+    public static SyllableTemplate CVFF { get; } = new(Slot.Consonant, Slot.Vowel, Slot.Final, Slot.Final);
+    public static SyllableTemplate CLVFF { get; } = new(Slot.Consonant, Slot.Liquid, Slot.Vowel, Slot.Final, Slot.Final);
+    public static SyllableTemplate SCLVFF { get; } = new(Slot.Sibilant, Slot.Consonant, Slot.Liquid, Slot.Vowel, Slot.Final, Slot.Final);
 
-    public static IReadOnlyList<SyllableTemplate> All { get; } = [CV, CVF, CLV, CLVF, CGV, CGVF, SCV, SCVF, SCLVF];
+    public static IReadOnlyList<SyllableTemplate> All { get; } = [CV, CVF, CLV, CLVF, CGV, CGVF, SCV, SCVF, SCLVF, CVFF, CLVFF, SCLVFF];
 }
 
 /// <summary>Which consonants may close a syllable.</summary>
@@ -237,7 +243,41 @@ public class SyllableRule
         _ => throw new ArgumentOutOfRangeException(nameof(consonant), consonant.Manner, null),
     };
     public bool IsLegalCoda(IReadOnlyList<Consonant> consonants) =>
-        Fits(consonants, [.. Template.Slots.SkipWhile(s => s is not Slot.Vowel).Skip(1)]);
+        Fits(consonants, [.. Template.Slots.SkipWhile(s => s is not Slot.Vowel).Skip(1)])
+        && consonants.Zip(consonants.Skip(1)).All(pair => CanPrecedeInCoda(pair.First, pair.Second));
+
+    /// <summary>Whether one consonant can come right before another in a coda.</summary>
+    /*
+      the mirror of an onset: sounds grow less vowel-like away from the vowel, so lt, rn, ns and jt but
+      not tl, nr or sn. Only the clusters most languages that have any agree on, which are easy to say:
+      a nasal before a stop takes its place, as in mp, nt and ŋk but not mk, a fricative before a stop
+      is voiceless, and so is the stop, as in st, ft and xt, and neither ʎ nor a glottal stop is in
+      one. A stop before s, as in English cats, rises in sonority, and is left out, so ts never sounds
+      like ʦ without being it
+     */
+    public static bool CanPrecedeInCoda(Consonant first, Consonant second)
+    {
+        if (first == Consonant.ʔ || second == Consonant.ʔ || first == Consonant.ʎ || second == Consonant.ʎ
+            || Sonority(first) <= Sonority(second))
+        {
+            return false;
+        }
+        if (second.Manner is ConsonantManner.Plosive or ConsonantManner.Affricate)
+        {
+            return first.Manner switch
+            {
+                ConsonantManner.Nasal => first.Place == second.Place || IsCoronal(first.Place) && IsCoronal(second.Place),
+                ConsonantManner.Fricative or ConsonantManner.Sibilant => !first.Voiced && !second.Voiced && second.Manner == ConsonantManner.Plosive,
+                ConsonantManner.Approximant or ConsonantManner.LateralApproximant or ConsonantManner.Trill or ConsonantManner.Flap => true,
+                ConsonantManner.Plosive or ConsonantManner.Affricate => throw new InvalidOperationException("A stop is never more sonorous than a stop."),
+                _ => throw new ArgumentOutOfRangeException(nameof(first), first.Manner, null),
+            };
+        }
+        return true;
+    }
+
+    //n before ʧ, as in English lunch, shares its place as much as m before p does
+    private static bool IsCoronal(ConsonantPlace place) => place is ConsonantPlace.Dental or ConsonantPlace.PostAlveolar or ConsonantPlace.Retroflex;
 
     //every slot is optional, so the consonants only have to fill some of the slots, in order
     private bool Fits(IReadOnlyList<Consonant> consonants, IReadOnlyList<Slot> slots)

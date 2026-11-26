@@ -67,6 +67,7 @@ public static class Settings
         [
             ("CV", SyllableTemplates.CV), ("CVF", SyllableTemplates.CVF), ("CLV", SyllableTemplates.CLV), ("CLVF", SyllableTemplates.CLVF), ("CGV", SyllableTemplates.CGV), ("CGVF", SyllableTemplates.CGVF),
             ("SCV", SyllableTemplates.SCV), ("SCVF", SyllableTemplates.SCVF), ("SCLVF", SyllableTemplates.SCLVF),
+            ("CVFF", SyllableTemplates.CVFF), ("CLVFF", SyllableTemplates.CLVFF), ("SCLVFF", SyllableTemplates.SCLVFF),
         ]));
     /// <summary>Which consonants can close a syllable, where the template lets one.</summary>
     public static Setting<SyllableShape, CodaRestriction> CodaRestriction { get; } = SyllableStage.Declare("coda-restriction", Sounds,

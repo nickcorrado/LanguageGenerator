@@ -440,5 +440,5 @@ public static partial class Generator
     //a short affix: a lone vowel 30% of the time, and otherwise a syllable
     private static List<Phoneme> VowelOrSyllable(Random rand, Phonology phonology) => rand.NextDouble() < 0.3
         ? [phonology.Vowels[Sampling.TruncatedGeometric(rand, phonology.Vowels.Count, phonology.Dropoff.Value)]]
-        : [.. GenerateSyllable(rand, phonology.SyllableRule, phonology.Dropoff, needsOnset: false).Phonemes];
+        : [.. GenerateSyllable(rand, phonology.SyllableRule, phonology.Dropoff, needsOnset: false, codaCluster: false).Phonemes];
 }

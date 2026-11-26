@@ -134,11 +134,11 @@ public record Phonology
     [
         .. syllables.SelectMany((syllable, index) =>
         {
-            var closed = syllable.Coda is not null;
+            var closed = syllable.Closed;
             var isStressed = index == stressed;
             return syllable.Onset.Select(_ => new SyllablePlace(SyllablePosition.Onset, closed, isStressed))
                 .Append(new SyllablePlace(SyllablePosition.Nucleus, closed, isStressed))
-                .Concat(closed ? [new SyllablePlace(SyllablePosition.Coda, closed, isStressed)] : []);
+                .Concat(syllable.Coda.Select(_ => new SyllablePlace(SyllablePosition.Coda, closed, isStressed)));
         }),
     ];
 
@@ -187,8 +187,7 @@ public record Phonology
             return null;
         }
 
-        //templates allow at most one coda consonant, which legality has already checked
-        return [.. nuclei.Select((n, k) => new Syllable([.. onsets[k]], (Vowel)segments[n].Phoneme, codas[k].SingleOrDefault()))];
+        return [.. nuclei.Select((n, k) => new Syllable([.. onsets[k]], (Vowel)segments[n].Phoneme, [.. codas[k]]))];
     }
 
     /*
@@ -245,7 +244,7 @@ public record SurfaceForm(Word Word, IReadOnlyList<Segment> Segments, IReadOnlyL
     public string Spell(Orthography orthography) => string.Concat(Segments.Select((_, i) => Spell(orthography, i)));
 
     public string Syllabified(Orthography orthography) => string.Join(".", Syllables.Select((s, i) => i == StressedSyllable && StressMarked
-        ? orthography.Spell(s.Onset) + orthography.SpellStressed(s.Nucleus) + (s.Coda is { } coda ? orthography.Spell(coda) : "")
+        ? orthography.Spell(s.Onset) + orthography.SpellStressed(s.Nucleus) + orthography.Spell(s.Coda)
         : s.Spell(orthography)));
 
     //the index among the segments of the vowel that carries a stress mark, or -1 if none does

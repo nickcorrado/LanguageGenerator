@@ -108,14 +108,15 @@ public static partial class Generator
         Consonant? coda = null;
         for (int i = 0; i < numberOfSyllables; i++)
         {
-            var syllable = GenerateSyllable(rand, phonology.SyllableRule, phonology.Dropoff, needsOnset: i > 0);
+            var last = i == numberOfSyllables - 1;
+            var syllable = GenerateSyllable(rand, phonology.SyllableRule, phonology.Dropoff, needsOnset: i > 0, codaCluster: last);
             for (int draw = 1; draw < ContactDraws && coda is not null && syllable.Onset.Count > 0
                 && !phonology.SyllableContact.Allows(coda, syllable.Onset[0]); draw++)
             {
-                syllable = GenerateSyllable(rand, phonology.SyllableRule, phonology.Dropoff, needsOnset: true);
+                syllable = GenerateSyllable(rand, phonology.SyllableRule, phonology.Dropoff, needsOnset: true, codaCluster: last);
             }
             form.AddRange(syllable.Phonemes);
-            coda = syllable.Coda;
+            coda = syllable.Closed ? syllable.Coda[^1] : null;
         }
         return form;
     }

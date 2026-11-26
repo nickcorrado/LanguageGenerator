@@ -442,7 +442,7 @@ public class SoundChangeTests
     {
         var form = Syllabic(SoundChange.CodaDevoicing, Consonant.t, Vowel.a, Consonant.g, Consonant.m, Vowel.a);
 
-        Assert.Equal(Consonant.k, form.Syllables[0].Coda);
+        Assert.Equal([Consonant.k], form.Syllables[0].Coda);
         Assert.Equal("tak.ma", form.Syllabified(Orthography.Ipa));
     }
 
