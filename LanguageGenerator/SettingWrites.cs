@@ -116,7 +116,8 @@ internal static class SettingWrites
 
     /*
       a demonstrative moves between a word and an affix keeping its forms, which are a syllable
-      either way, and an affix can't stand alone, so its pronouns take the stems of their own
+      either way, and an affix can't stand alone, so its pronouns need stems of their own, and a
+      draw without them is passed over
      */
     public static Demonstratives WithDemonstrativePosition(Demonstratives drawn, ExponentPosition position)
     {
@@ -125,7 +126,7 @@ internal static class SettingWrites
         {
             Position = position,
             Forms = drawn.Forms.ToDictionary(f => f.Key, f => affix ? (Morpheme)new Affix(f.Value.Form, Glosses(f.Value), AccentOf(f.Value)) : new Particle(f.Value.Form, Glosses(f.Value))),
-            Pronouns = affix ? drawn.Pronouns with { OwnStem = true } : drawn.Pronouns,
+            Pronouns = affix && drawn.Pronouns.Value is SharedStems ? throw NoForm("A demonstrative affix, whose pronouns need stems of their own") : drawn.Pronouns,
         };
 
         static IReadOnlyList<Grammeme> Glosses(Morpheme m) => m.Value switch
@@ -135,6 +136,13 @@ internal static class SettingWrites
             _ => throw new ArgumentException("A demonstrative is an affix or a word.", nameof(m)),
         };
     }
+
+    //a demonstrative's pronouns and words for places are what was drawn, as each has its own words or none
+    public static Demonstratives WithOwnStems(Demonstratives drawn, bool own) => own == drawn.Pronouns.Value is OwnStems ? drawn
+        : throw NoForm(own ? "Demonstrative pronouns with stems of their own" : "Demonstrative pronouns that are the words beside a noun");
+
+    public static Demonstratives WithPlacesFromDemonstratives(Demonstratives drawn, bool from) => from ? drawn with { Places = new SharedPlaces() }
+        : drawn.Places.Value is OwnPlaces ? drawn : throw NoForm("Words of their own for 'here' and 'there'");
 
     //a demonstrative stops agreeing in gender by keeping its first gender's forms for every noun,
     //which are the forms its pronouns' stems were taken from

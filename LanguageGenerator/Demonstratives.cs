@@ -28,19 +28,33 @@ public record DemonstrativePlace(Distance Distance);
 /// standing as a noun itself, as English this is both, or a stem of its own, as Hungarian has
 /// adnominal ez a ház 'this the house' beside a pronoun inflected like a noun.
 /// </summary>
-//both are made either way, so that a spec can choose
-public record PronominalDemonstratives(bool OwnStem, IReadOnlyDictionary<Distance, Lexeme> Adnominal, IReadOnlyDictionary<Distance, Lexeme> Own)
+public union PronominalDemonstratives(SharedStems, OwnStems)
 {
-    public Lexeme For(Distance distance) => (OwnStem ? Own : Adnominal)[distance];
+    public Lexeme For(Distance distance) => this switch
+    {
+        SharedStems shared => shared.Stems[distance],
+        OwnStems own => own.Stems[distance],
+    };
 }
+
+/// <summary>The words that go beside a noun, each standing as a noun itself, as English this is both.</summary>
+public record SharedStems(IReadOnlyDictionary<Distance, Lexeme> Stems);
+
+/// <summary>A stem of its own for each distance, inflected like a noun.</summary>
+public record OwnStems(IReadOnlyDictionary<Distance, Lexeme> Stems);
 
 /// <summary>
 /// What a language's words for 'here' and 'there' are: its demonstratives standing alone, marked as
 /// a place is, as Japanese koko-ni and Turkish bura-da are 'this place' in the locative, or words of
 /// their own, as English here and there are.
 /// </summary>
-//the words of their own are made either way, so that a spec can choose
-public record PlaceDemonstratives(bool FromDemonstratives, IReadOnlyDictionary<Distance, Lexeme> Own);
+public union PlaceDemonstratives(SharedPlaces, OwnPlaces);
+
+/// <summary>Places said with the demonstratives standing alone, marked as a place is.</summary>
+public record SharedPlaces;
+
+/// <summary>A word of its own for the place at each distance, as English here and there.</summary>
+public record OwnPlaces(IReadOnlyDictionary<Distance, Lexeme> Words);
 
 /// <summary>
 /// A language's demonstratives: how many distances they tell apart, and for each a word at the edge
@@ -85,7 +99,11 @@ public record Demonstratives(DistanceContrast Contrast, ExponentPosition Positio
     public Lexeme Pronoun(Distance distance) => Pronouns.For(Nearest(distance));
 
     /// <summary>The word for a place at this distance, as 'here' is for the proximal.</summary>
-    public Lexeme Place(Distance distance) => Places.FromDemonstratives ? Pronoun(distance) : Places.Own[Nearest(distance)];
+    public Lexeme Place(Distance distance) => Places switch
+    {
+        SharedPlaces => Pronoun(distance),
+        OwnPlaces own => own.Words[Nearest(distance)],
+    };
 
     /// <summary>
     /// A noun phrase's words with its demonstrative, agreeing with the noun: an affix goes on the

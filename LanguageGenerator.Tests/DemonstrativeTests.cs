@@ -85,7 +85,7 @@ public class DemonstrativeTests
         var affixes = Draws(s => s.Inflecting()).Where(d => d.IsAffix).ToList();
 
         Assert.NotEmpty(affixes);
-        Assert.All(affixes, d => Assert.True(d.Pronouns.OwnStem));
+        Assert.All(affixes, d => Assert.IsType<OwnStems>(d.Pronouns.Value));
     }
 
     [Fact]
@@ -98,8 +98,8 @@ public class DemonstrativeTests
         Assert.All(drawn, d =>
         {
             Assert.Equal(d.Distances.Count * (d.AgreesInGender ? language.Genders.Values.Count : 1) * (d.AgreesInNumber ? 2 : 1), d.Forms.Count);
-            Assert.All(d.Distances, distance => Assert.Contains(distance, d.Pronouns.Own.Keys));
-            Assert.All(d.Distances, distance => Assert.Contains(distance, d.Places.Own.Keys));
+            Assert.All(d.Distances, distance => Assert.Equal(distance.Gloss, d.Pronoun(distance).Root.Meaning));
+            Assert.All(d.Distances, distance => Assert.NotNull(d.Place(distance)));
         });
     }
 
@@ -242,7 +242,7 @@ public class DemonstrativeTests
         Assert.All(Enumerable.Range(0, 10).Select(seed => Generator.Generate(seed, spec)), l =>
         {
             var d = l.Demonstratives;
-            Assert.True(d is { Contrast: DistanceContrast.ThreeWay, Position: ExponentPosition.Prefix, AgreesInGender: true, Places.FromDemonstratives: false, Pronouns.OwnStem: true });
+            Assert.True(d is { Contrast: DistanceContrast.ThreeWay, Position: ExponentPosition.Prefix, AgreesInGender: true, Places.Value: OwnPlaces, Pronouns.Value: OwnStems });
             Assert.True(l.Articles.WithDemonstrative);
             Assert.NotEqual(Fusion.Isolating, l.MorphologicalProfile.Fusion);
             Assert.NotEmpty(l.Genders.Values);

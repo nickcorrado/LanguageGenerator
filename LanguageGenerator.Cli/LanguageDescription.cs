@@ -113,10 +113,10 @@ public static class LanguageDescription
             ExponentPosition.FollowingParticle => "after the noun",
             _ => "on the noun",
         };
-        var standing = demonstratives.Pronouns.OwnStem
+        var standing = demonstratives.Pronouns.Value is OwnStems
             ? $"stems of their own standing alone ({string.Join(", ", demonstratives.Distances.Select(d => $"{d.Gloss} {Stem(demonstratives.Pronoun(d))}"))})"
             : "the same standing alone";
-        var places = demonstratives.Places.FromDemonstratives ? "made from the demonstratives"
+        var places = demonstratives.Places.Value is SharedPlaces ? "made from the demonstratives"
             : $"words of their own ({string.Join(", ", demonstratives.Distances.Select(d => $"{demonstratives.Place(d).Root.Meaning} {Stem(demonstratives.Place(d))}"))})";
         output.WriteLine($"Demonstratives: {demonstratives.Contrast}, {adnominal}, {where}; {standing}; 'here' and 'there' {places}");
 

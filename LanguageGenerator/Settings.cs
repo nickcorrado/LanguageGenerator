@@ -461,10 +461,10 @@ public static class Settings
         d => d.AgreesInGender, SettingWrites.WithDemonstrativeGenderAgreement, YesNo);
     /// <summary>Whether a demonstrative standing alone has a stem of its own, rather than being the one beside a noun, as WALS 42A has it.</summary>
     public static Setting<Demonstratives, bool> DemonstrativePronounsOwnStem { get; } = DemonstrativeStage.Declare("demonstrative-pronouns-own-stem", Nouns,
-        d => d.Pronouns.OwnStem, (d, own) => d with { Pronouns = d.Pronouns with { OwnStem = own } }, YesNo);
+        d => d.Pronouns.Value is OwnStems, SettingWrites.WithOwnStems, YesNo);
     /// <summary>Whether 'here' and 'there' are the demonstratives standing alone, marked as a place is, rather than words of their own.</summary>
     public static Setting<Demonstratives, bool> PlacesFromDemonstratives { get; } = DemonstrativeStage.Declare("here-from-demonstratives", Nouns,
-        d => d.Places.FromDemonstratives, (d, from) => d with { Places = d.Places with { FromDemonstratives = from } }, YesNo);
+        d => d.Places.Value is SharedPlaces, SettingWrites.WithPlacesFromDemonstratives, YesNo);
 
     public static Stage<Articles> ArticleStage { get; } = new("articles", l => l.Articles, null);
     public static Setting<Articles, DefiniteArticle> DefiniteArticle { get; } = ArticleStage.Declare("definite-article", Nouns,
