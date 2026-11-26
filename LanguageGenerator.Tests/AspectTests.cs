@@ -1,3 +1,4 @@
+using static LanguageGenerator.Tests.Phrases;
 using static LanguageGenerator.Tests.Clauses;
 using static LanguageGenerator.Tests.Sentences;
 
@@ -7,8 +8,8 @@ public class AspectTests
 {
     private static Statement Parsed(string gloss) => Assert.Single(ClauseFile.Parse($"x\n  {gloss}")).Statement;
 
-    private static readonly NounPhrase Dog = new("dog", Number.Singular);
-    private static readonly NounPhrase Fish = new("fish", Number.Singular);
+    private static readonly NounPhrase Dog = BareNoun("dog", Number.Singular);
+    private static readonly NounPhrase Fish = BareNoun("fish", Number.Singular);
     private static Clause DogEatsFish(Tense tense, Aspect aspect, bool negative = false) => new Clause(new Doing("eat", Fish), new Declarative(tense, aspect, Dog), negative, [], []);
 
     private static Sentence Realized(Language language, Statement statement) => Syntax.Realize(language, statement, "x");
@@ -149,7 +150,7 @@ public class AspectTests
     public void Realize_PerfectAuxiliaryUnderASuffix_PutsTheSuffixOnTheAuxiliary() =>
         Assert.All(Languages(AspectKind.Have, AspectKind.None, s => s.Fix(Settings.SubordinatorOf(Subordinator.If), ExponentPosition.Suffix).Fix(Settings.TemporalBalance, Balance.Balanced)), l =>
         {
-            var main = new Clause(new Doing("sleep", null), new Declarative(Tense.Present, Aspect.Imperfective, new NounPhrase("cat", Number.Singular)), false, [], []);
+            var main = new Clause(new Doing("sleep", null), new Declarative(Tense.Present, Aspect.Imperfective, BareNoun("cat", Number.Singular)), false, [], []);
             var sentence = Realized(l, new Subordinated(main, Subordinator.If, DogEatsFish(Tense.Present, Aspect.Perfect), false));
 
             Assert.Contains(l.Subordination.Markers[Subordinator.If].Marker, sentence.Words[IndexOf(sentence, "have")].Word.Morphemes);

@@ -153,8 +153,8 @@ public static class ClauseFile
     private static IEnumerable<string> NounsIn(Argument argument) => argument switch
     {
         //an indefinite pronoun's noun is the language's to say, and no noun of the text's
-        NounPhrase { Indefinite: not null } n => n.Relative is { } relative ? ArgumentsOf(relative).SelectMany(NounsIn) : [],
-        NounPhrase n => [n.Noun, .. Given(n.Possessor).SelectMany(NounsIn), .. n.Relative is { } relative ? ArgumentsOf(relative).SelectMany(NounsIn) : []],
+        NounPhrase { Head.Value: IndefinitePronoun } n => n.Relative is { } relative ? ArgumentsOf(relative).SelectMany(NounsIn) : [],
+        NounPhrase { Head.Value: Noun noun } n => [noun.Meaning, .. Given(noun.Possessor).SelectMany(NounsIn), .. n.Relative is { } relative ? ArgumentsOf(relative).SelectMany(NounsIn) : []],
         Pronoun => [],
         QuestionWord or DemonstrativePronoun or DemonstrativePlace => [],
         Coordination c => c.Items.SelectMany(NounsIn),
@@ -173,7 +173,7 @@ public static class ClauseFile
     private static int Gaps(Argument argument) => argument switch
     {
         Gap => 1,
-        NounPhrase n => n.Possessor is { } possessor ? Gaps(possessor) : 0,
+        NounPhrase n => n.Head.Value is Noun { Possessor: { } possessor } ? Gaps(possessor) : 0,
         Coordination c => c.Items.Sum(Gaps),
         ComplementClause { SharesSubject: true } c => Gaps(c.Clause) - (Syntax.SubjectOf(c.Clause).Value is Gap ? 1 : 0),
         ComplementClause c => Gaps(c.Clause),
@@ -421,9 +421,11 @@ public static class ClauseFile
     //who a clause is said to: a noun phrase, bare, since vocatives take no article
     private static NounPhrase ToAddressee(Argument argument, int number) => argument.Value switch
     {
-        NounPhrase { Definiteness: { } } noun => throw new ClauseFormatException($"An addressee takes no article: write addressee:{noun.Noun}, not {noun.Definiteness.Gloss}.", number),
-        NounPhrase { Demonstrative: { } } noun => throw new ClauseFormatException($"An addressee takes no demonstrative yet: write addressee:{noun.Noun}, not {noun.Demonstrative.Gloss}.", number),
-        NounPhrase noun => noun,
+        NounPhrase { Head.Value: Noun { Determiner: { Value: Definiteness article } } noun } =>
+            throw new ClauseFormatException($"An addressee takes no article: write addressee:{noun.Meaning}, not {article.Gloss}.", number),
+        NounPhrase { Head.Value: Noun { Determiner: { Value: Distance demonstrative } } noun } =>
+            throw new ClauseFormatException($"An addressee takes no demonstrative yet: write addressee:{noun.Meaning}, not {demonstrative.Gloss}.", number),
+        NounPhrase phrase => phrase,
         _ => throw new ClauseFormatException("An addressee is a noun, as in addressee:marta. A clause said to 'you' needs none.", number),
     };
 
@@ -628,7 +630,7 @@ public static class ClauseFile
             return said.Value is Pronoun { Person: var person, Number: var count } && person == Person.Second ? count
                 : throw new ClauseFormatException("A command is said to 'you', so its subject can only be 2SG or 2PL, as in subject:2PL.", number);
         }
-        return addressee is { Number: var called } && called != Number.Singular ? Number.Plural : Number.Singular;
+        return addressee?.Head.Value is Noun { Number: var called } && called != Number.Singular ? Number.Plural : Number.Singular;
     }
 
     //a clause in brackets anywhere but an object: or quote:, which can come up wherever a value is
@@ -778,9 +780,9 @@ public static class ClauseFile
         {
             throw new ClauseFormatException($"Noun phrases can't have {A(item.Role!)} yet, only adjectives, a number, an ordinal, a quantifier, a possessor and a relative clause.", number);
         }
-        var noun = ParseArgument(items[0].Value, number).Value as NounPhrase
+        var parsed = ParseArgument(items[0].Value, number).Value as NounPhrase
             ?? throw new ClauseFormatException($"{head} can't take adjectives, a number or a possessor yet.", number);
-        if (noun.Indefinite is not null && items.Skip(1).FirstOrDefault(i => i.Role != "relative") is { } extra)
+        if (parsed.Head.Value is IndefinitePronoun && items.Skip(1).FirstOrDefault(i => i.Role != "relative") is { } extra)
         {
             throw new ClauseFormatException($"{head} takes only a relative clause, not '{extra.Text}'.", number);
         }
@@ -867,16 +869,21 @@ public static class ClauseFile
           and every and no pick out no particular one, so they can't be definite either, though 'all
           the dogs' and 'most of the men' are. Only all goes with a number, as in 'all three dogs'
          */
+        //an indefinite pronoun takes nothing but its relative clause
+        if (parsed.Head.Value is not Noun noun)
+        {
+            return parsed with { Relative = relative };
+        }
         if (quantifier is { } said)
         {
             var name = said.ToString().ToLowerInvariant();
-            if (noun.Definiteness == Definiteness.Indefinite)
+            if (noun.Determiner is { Value: Definiteness article } && article == Definiteness.Indefinite)
             {
                 throw new ClauseFormatException($"'{head}' takes {name} or NDF, not both: write ({head.Split('.')[0]} {name}).", number);
             }
-            if (said is Quantifier.Every or Quantifier.No && (noun.Definiteness is not null || noun.Demonstrative is not null))
+            if (said is Quantifier.Every or Quantifier.No && noun.Determiner is { Value: Grammeme determiner })
             {
-                throw new ClauseFormatException($"{name} can't go with {(noun.Definiteness?.Gloss ?? noun.Demonstrative!.Gloss)}: it picks out no particular one.", number);
+                throw new ClauseFormatException($"{name} can't go with {determiner.Gloss}: it picks out no particular one.", number);
             }
             if (count is not null && said != Quantifier.All)
             {
@@ -885,16 +892,15 @@ public static class ClauseFile
         }
         //a number gives the noun its number unless the noun has one already
         var given = ParseWord(head, number).Features.OfType<Number>().Any();
-        return noun with
+        return new NounPhrase(noun with
         {
             Adjectives = [.. adjectives],
             Count = count,
             Ordinal = ordinal,
             Possessor = possessor,
-            Relative = relative,
-            Quantifier = quantifier ?? noun.Quantifier,
+            Quantifier = quantifier,
             Number = given || count is not { } n ? noun.Number : NumberFor(n),
-        };
+        }, relative);
     }
 
     //one is singular, two dual, a few paucal and more plural, each falling back as the language needs
@@ -1055,7 +1061,7 @@ public static class ClauseFile
     public static IReadOnlyList<string> QuantifierNames => [.. QuantifierWords.Keys];
 
     //an indefinite pronoun, which takes no glosses, or null if the word isn't one
-    private static NounPhrase? ParseIndefinite(string meaning, IReadOnlyList<Grammeme> features, int number)
+    private static IndefinitePronoun? ParseIndefinite(string meaning, IReadOnlyList<Grammeme> features, int number)
     {
         if (IndefiniteSpellings.TryGetValue(meaning, out var instead))
         {
@@ -1065,7 +1071,7 @@ public static class ClauseFile
         {
             return null;
         }
-        return features.Count == 0 ? Indefinites.Pronoun(indefinite.Series, indefinite.Kind)
+        return features.Count == 0 ? new IndefinitePronoun(indefinite.Series, indefinite.Kind)
             : throw new ClauseFormatException($"{meaning} can't take {features[0].Gloss}: an indefinite pronoun takes no glosses.", number);
     }
 
@@ -1097,7 +1103,7 @@ public static class ClauseFile
         }
         if (restricted)
         {
-            return ParseIndefinite(meaning, features, number)!;
+            return new NounPhrase(ParseIndefinite(meaning, features, number)!, null);
         }
         return features switch
         {
@@ -1231,8 +1237,8 @@ public static class ClauseFile
         }
         if (ParseIndefinite(noun, features, number) is { } indefinite)
         {
-            return indefinite.Indefinite is not { } kind || Indefinites.RolesOf(kind) is null ? indefinite
-                : throw new ClauseFormatException($"{Placed(noun, kind)}, on its own.", number);
+            return Indefinites.RolesOf(indefinite.Kind) is null ? new NounPhrase(indefinite, null)
+                : throw new ClauseFormatException($"{Placed(noun, indefinite.Kind)}, on its own.", number);
         }
         if (QuestionWords.TryGetValue(noun, out var asked))
         {
@@ -1274,7 +1280,8 @@ public static class ClauseFile
                     throw new ClauseFormatException($"'{noun}' can't take {feature.Gloss} ({feature.Name}) yet: nouns have only number, definiteness and a demonstrative.", number);
             }
         }
-        return new NounPhrase(noun, count ?? Number.Singular, Definiteness: definiteness, Demonstrative: distance);
+        Determiner? determiner = distance is not null ? distance : definiteness is not null ? definiteness : (Determiner?)null;
+        return new NounPhrase(new Noun(noun, count ?? Number.Singular, [], null, null, null, determiner, null), null);
     }
 
     //a person and number, as in 3PL, and maybe a clusivity after them. Null if it isn't a pronoun

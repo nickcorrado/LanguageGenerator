@@ -1,3 +1,4 @@
+using static LanguageGenerator.Tests.Phrases;
 using static LanguageGenerator.Tests.Clauses;
 using static LanguageGenerator.Tests.Sentences;
 
@@ -129,10 +130,10 @@ public class ComplementationTests
             Assert.NotEqual(DesiderativeKind.Affix, c.DesiderativeKind);
         });
 
-    private static readonly Clause CatEats = new Clause(new Doing("eat", new NounPhrase("fish", Number.Singular)), new Declarative(Tense.Present, Aspect.Imperfective, new NounPhrase("cat", Number.Singular)), false, [], []);
-    private static readonly Clause DogSleeps = new Clause(new Doing("sleep", null), new Declarative(Tense.Past, Aspect.Imperfective, new NounPhrase("dog", Number.Singular)), false, [], []);
+    private static readonly Clause CatEats = new Clause(new Doing("eat", BareNoun("fish", Number.Singular)), new Declarative(Tense.Present, Aspect.Imperfective, BareNoun("cat", Number.Singular)), false, [], []);
+    private static readonly Clause DogSleeps = new Clause(new Doing("sleep", null), new Declarative(Tense.Past, Aspect.Imperfective, BareNoun("dog", Number.Singular)), false, [], []);
 
-    private static Clause Says(Argument said) => new Clause(new Doing("say", said), new Declarative(Tense.Past, Aspect.Perfective, new NounPhrase("woman", Number.Singular)), false, [], []);
+    private static Clause Says(Argument said) => new Clause(new Doing("say", said), new Declarative(Tense.Past, Aspect.Perfective, BareNoun("woman", Number.Singular)), false, [], []);
 
     private static Clause Wants(Argument wanter, Statement wanted, bool shares) =>
         new Clause(new Doing("want", new ComplementClause(ComplementKind.Event, wanted, shares)), new Declarative(Tense.Present, Aspect.Imperfective, wanter), false, [], []);
@@ -168,7 +169,7 @@ public class ComplementationTests
             .Fix(Settings.EventComplementizer, ComplementizerPosition.None).Fix(Settings.ComplementsLast, true));
         var it = new Pronoun(Person.Third, Number.Singular);
         var alone = Syntax.Realize(language, CatEats with { Force = new Declarative(Tense.Present, Aspect.Imperfective, it) }, "x");
-        var wanted = Syntax.Realize(language, Wants(new NounPhrase("cat", Number.Singular), CatEats, true), "x");
+        var wanted = Syntax.Realize(language, Wants(BareNoun("cat", Number.Singular), CatEats, true), "x");
 
         Assert.Equal(alone.Words[IndexOf(alone, "eat")].Gloss, wanted.Words[IndexOf(wanted, "eat")].Gloss);
     }
@@ -177,7 +178,7 @@ public class ComplementationTests
     public void Realize_DerankedEventSharingTheSubject_LeavesItUnsaid()
     {
         var language = GeneratedLanguages.With(s => s.Fix(Settings.EventBalance, Balance.Deranked).Fix(Settings.Desiderative, DesiderativeKind.Verb));
-        var sentence = Syntax.Realize(language, Wants(new NounPhrase("cat", Number.Singular), CatEats, true), "x");
+        var sentence = Syntax.Realize(language, Wants(BareNoun("cat", Number.Singular), CatEats, true), "x");
 
         Assert.Single(sentence.Words, w => w.Word.Root?.Meaning == "cat");
         Assert.True(IndexOf(sentence, "want") >= 0);
@@ -189,7 +190,7 @@ public class ComplementationTests
     public void Realize_WantAsAMarker_GoesOnTheVerbOfWhatsWanted(DesiderativeKind kind)
     {
         var language = GeneratedLanguages.With(s => s.Inflecting().Fix(Settings.Desiderative, kind));
-        var sentence = Syntax.Realize(language, Wants(new NounPhrase("cat", Number.Singular), CatEats, true), "x");
+        var sentence = Syntax.Realize(language, Wants(BareNoun("cat", Number.Singular), CatEats, true), "x");
 
         Assert.Equal(-1, IndexOf(sentence, "want"));
         Assert.Single(sentence.Words, w => w.Word.Root?.Meaning == "cat");
@@ -207,7 +208,7 @@ public class ComplementationTests
     public void Realize_WantingSomeoneElseToDoIt_NeedsTheVerb()
     {
         var language = GeneratedLanguages.With(s => s.Inflecting().Fix(Settings.Desiderative, DesiderativeKind.Affix));
-        var sentence = Syntax.Realize(language, Wants(new NounPhrase("dog", Number.Singular), CatEats, false), "x");
+        var sentence = Syntax.Realize(language, Wants(BareNoun("dog", Number.Singular), CatEats, false), "x");
 
         Assert.True(IndexOf(sentence, "want") >= 0);
         Assert.DoesNotContain(sentence.Words, w => w.Gloss.Contains("DESID"));
@@ -217,7 +218,7 @@ public class ComplementationTests
     public void Realize_UnmarkedQuotationLast_IsSaidAsItWouldBeAlone()
     {
         var language = GeneratedLanguages.With(s => s.Fix(Settings.Quotative, QuotativeKind.None).Fix(Settings.ComplementsLast, true));
-        var command = new Clause(new Doing("walk", null), new Directive(Number.Singular), false, [new(Role.Goal, new NounPhrase("house", Number.Singular), Configuration.At)], []);
+        var command = new Clause(new Doing("walk", null), new Directive(Number.Singular), false, [new(Role.Goal, BareNoun("house", Number.Singular), Configuration.At)], []);
         var alone = Syntax.Realize(language, command, "x").Words.Select(w => w.Gloss);
         var quoted = Syntax.Realize(language, Says(new Quotation(command)), "x").Words.Select(w => w.Gloss);
 

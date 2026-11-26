@@ -1,4 +1,5 @@
-﻿using static LanguageGenerator.Tests.Sentences;
+﻿using static LanguageGenerator.Tests.Phrases;
+using static LanguageGenerator.Tests.Sentences;
 
 namespace LanguageGenerator.Tests;
 
@@ -7,9 +8,9 @@ public class ObliqueTests
     //only the basic meanings, since coining new ones would add to the shared sample's lexicons
 
     private static Sentence Walk(Language language, params Oblique[] obliques) =>
-        Syntax.Realize(language, new Clause(new Doing("walk", null), new Declarative(Tense.Past, Aspect.Perfective, new NounPhrase("dog", Number.Singular)), false, [.. obliques], []), "x");
+        Syntax.Realize(language, new Clause(new Doing("walk", null), new Declarative(Tense.Past, Aspect.Perfective, BareNoun("dog", Number.Singular)), false, [.. obliques], []), "x");
 
-    private static Oblique Stone(Role role) => new(role, new NounPhrase("stone", Number.Singular), Configuration.At);
+    private static Oblique Stone(Role role) => new(role, BareNoun("stone", Number.Singular), Configuration.At);
 
     [Fact]
     public void GenerateAdpositions_ManyDraws_GiveEachRegionWithoutACaseOneWord()
@@ -110,7 +111,7 @@ public class ObliqueTests
         foreach (var language in GeneratedLanguages.Sample)
         {
             var order = language.WordOrder;
-            var transitive = Syntax.Realize(language, new Clause(new Doing("see", new NounPhrase("cat", Number.Singular)), new Declarative(Tense.Past, Aspect.Perfective, new NounPhrase("dog", Number.Singular)), false, [Stone(Role.Location)], []), "x");
+            var transitive = Syntax.Realize(language, new Clause(new Doing("see", BareNoun("cat", Number.Singular)), new Declarative(Tense.Past, Aspect.Perfective, BareNoun("dog", Number.Singular)), false, [Stone(Role.Location)], []), "x");
             var (s, v, o, x) = (IndexOf(transitive, "dog"), IndexOf(transitive, "see"), IndexOf(transitive, "cat"), IndexOf(transitive, "stone"));
 
             //the core constituents keep their order
@@ -139,7 +140,7 @@ public class ObliqueTests
     {
         Assert.All(GeneratedLanguages.Sample, l =>
         {
-            var sentence = Walk(l, new Oblique(Role.Source, new NounPhrase("tree", Number.Singular), Configuration.At), new Oblique(Role.Goal, new NounPhrase("water", Number.Singular), Configuration.At));
+            var sentence = Walk(l, new Oblique(Role.Source, BareNoun("tree", Number.Singular), Configuration.At), new Oblique(Role.Goal, BareNoun("water", Number.Singular), Configuration.At));
             var (tree, water) = (IndexOf(sentence, "tree"), IndexOf(sentence, "water"));
 
             Assert.True(tree < water);

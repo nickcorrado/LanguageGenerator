@@ -1,4 +1,5 @@
-﻿namespace LanguageGenerator.Tests;
+﻿using static LanguageGenerator.Tests.Phrases;
+namespace LanguageGenerator.Tests;
 
 public class CommandTests
 {
@@ -145,11 +146,11 @@ public class CommandTests
     public void Realize_CommandWithAnObjectAndOblique_MarksThemAsUsual()
     {
         var language = Generator.Generate(3, LanguageSpec.Free);
-        var hunter = new NounPhrase("hunter", Number.Singular);
-        var inn = new NounPhrase("inn", Number.Singular);
+        var hunter = BareNoun("hunter", Number.Singular);
+        var inn = BareNoun("inn", Number.Singular);
 
         var told = Syntax.Realize(language, new Clause(new Doing("give", hunter), new Directive(Number.Singular), false, [new(Role.Goal, inn, Configuration.At)], []), "");
-        var said = Syntax.Realize(language, new Clause(new Doing("give", hunter), new Declarative(Tense.Present, Aspect.Imperfective, new NounPhrase("dog", Number.Singular)), false, [new(Role.Goal, inn, Configuration.At)], []), "");
+        var said = Syntax.Realize(language, new Clause(new Doing("give", hunter), new Declarative(Tense.Present, Aspect.Imperfective, BareNoun("dog", Number.Singular)), false, [new(Role.Goal, inn, Configuration.At)], []), "");
 
         Assert.Equal(said.Words.Single(w => w.Word.Root?.Meaning == "hunter").Gloss, told.Words.Single(w => w.Word.Root?.Meaning == "hunter").Gloss);
         Assert.Equal(said.Words.Single(w => w.Word.Root?.Meaning == "inn").Gloss, told.Words.Single(w => w.Word.Root?.Meaning == "inn").Gloss);
@@ -164,7 +165,7 @@ public class CommandTests
             {
                 foreach (var negative in new[] { false, true })
                 {
-                    Assert.NotEmpty(Syntax.Realize(language, new Clause(new Doing("eat", new NounPhrase("fish", Number.Plural)), new Directive(number), negative, [new(Role.Location, new NounPhrase("house", Number.Singular), Configuration.At)], []), "").Text);
+                    Assert.NotEmpty(Syntax.Realize(language, new Clause(new Doing("eat", BareNoun("fish", Number.Plural)), new Directive(number), negative, [new(Role.Location, BareNoun("house", Number.Singular), Configuration.At)], []), "").Text);
                 }
             }
         }
@@ -176,9 +177,9 @@ public class CommandTests
     public void Parse_CommandWithBe_SaysWhatOrWhereToBe()
     {
         Assert.Equal(new Clause(new Being(new Adjective("careful", false)), new Directive(Number.Singular), false, [], []), Parsed("be.IMP  adjective:careful").Value);
-        Assert.Equal(new Clause(new Being(new NounPhrase("fool", Number.Singular, Definiteness: Definiteness.Indefinite)), new Directive(Number.Plural), true, [], []),
+        Assert.Equal(new Clause(new Being(new NounPhrase(new Noun("fool", Number.Singular, [], null, null, null, Definiteness.Indefinite, null), null)), new Directive(Number.Plural), true, [], []),
             Parsed("be.IMP.NEG  subject:2PL  noun:fool.NDF").Value);
-        Assert.Equal(new Clause(new Being(new Oblique(Role.Location, new NounPhrase("house", Number.Singular, Definiteness: Definiteness.Definite), Configuration.At)), new Directive(Number.Singular), false, [], []),
+        Assert.Equal(new Clause(new Being(new Oblique(Role.Location, new NounPhrase(new Noun("house", Number.Singular, [], null, null, null, Definiteness.Definite, null), null), Configuration.At)), new Directive(Number.Singular), false, [], []),
             Parsed("be.IMP  location:house.DEF").Value);
     }
 
@@ -219,7 +220,7 @@ public class CommandTests
     {
         Assert.All(Sample, l =>
         {
-            var sentence = Syntax.Realize(l, new Clause(new Being(new Oblique(Role.Location, new NounPhrase("house", Number.Singular), Configuration.At)), new Directive(Number.Singular), false, [], []), "");
+            var sentence = Syntax.Realize(l, new Clause(new Being(new Oblique(Role.Location, BareNoun("house", Number.Singular), Configuration.At)), new Directive(Number.Singular), false, [], []), "");
 
             Assert.Contains(l.Predication.CopulaFor(locational: true).Root, sentence.Words.Select(w => w.Word.Root));
         });

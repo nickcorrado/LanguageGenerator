@@ -6,22 +6,49 @@
   language's choices (word order, role markers, paradigms, phonology) come together
  */
 /// <summary>
-/// A noun with any adjectives modifying it, in English order, how many of it there are if a numeral
-/// says, as in 'three wolves', whose it is, as in 'the king's house', which one it is, as in 'the
-/// third', whether it's definite, as 'the dog' is and 'a dog' isn't, a relative clause saying more
-/// of it, as in 'the net she was mending', a demonstrative pointing it out, as in 'this dog', and a
-/// quantifier, as in 'every dog'. One that's indefinite is an indefinite pronoun of that kind, its
-/// noun the kind's and its quantifier its series, so 'nobody' is 'no person', said as the
-/// language says its indefinite pronouns.
+/// A noun or an indefinite pronoun, and a relative clause saying more of it, if it has one, as in
+/// 'the net she was mending' or 'nobody who goes into the forest'.
 /// </summary>
-/*
-  no definiteness is a bare noun, as English has for 'dogs', 'water' or 'my dog'. A demonstrative
-  makes a noun definite, so a phrase with one has no definiteness of its own. An indefinite pronoun
-  is a noun phrase so that it takes a relative clause as one does, as 'nobody who goes into the
-  forest' does. Indefinites.Pronoun makes one, so its noun is always its kind's
- */
-public record NounPhrase(string Noun, Number Number, ValueList<Adjective> Adjectives = default, int? Count = null, Argument? Possessor = null, int? Ordinal = null,
-    Definiteness? Definiteness = null, Statement? Relative = null, Distance? Demonstrative = null, Quantifier? Quantifier = null, Ontology? Indefinite = null);
+public record NounPhrase(Nominal Head, Statement? Relative);
+
+/// <summary>What a noun phrase is of: a noun with what modifies it, or an indefinite pronoun.</summary>
+public union Nominal(Noun, IndefinitePronoun)
+{
+    /// <summary>The noun it's said with and agrees as: its own, or its kind's, as 'somebody' is a person.</summary>
+    public string Meaning => this switch
+    {
+        Noun noun => noun.Meaning,
+        IndefinitePronoun pronoun => pronoun.AsNoun.Meaning,
+    };
+}
+
+/// <summary>
+/// A noun with any adjectives modifying it, in English order, how many of it there are if a numeral
+/// says, as in 'three wolves', which one it is, as in 'the third', a quantifier, as in 'every dog',
+/// an article or a demonstrative, as 'the dog' and 'this dog' have, and whose it is, as in 'the
+/// king's house'.
+/// </summary>
+//no determiner is a bare noun, as English has for 'dogs', 'water' or 'my dog'
+public record Noun(string Meaning, Number Number, ValueList<Adjective> Adjectives, int? Count, int? Ordinal, Quantifier? Quantifier, Determiner? Determiner,
+    Argument? Possessor);
+
+/// <summary>
+/// An indefinite pronoun: a series, as 'some', 'no' or 'every', of a kind, as a person, a thing, a
+/// place or a time, so that 'nobody' is the no series of persons, said as the language says its
+/// indefinite pronouns.
+/// </summary>
+public record IndefinitePronoun(Quantifier Series, Ontology Kind)
+{
+    /// <summary>It as a noun of its kind with its series' quantifier, as 'some person' is 'somebody'.</summary>
+    public Noun AsNoun => new(Indefinites.NounFor(Kind), Number.Singular, [], null, null, Series, null, null);
+}
+
+/// <summary>
+/// What determines a noun: whether it's definite, as 'the dog' is and 'a dog' isn't, or a
+/// demonstrative pointing it out, as in 'this dog', which makes it definite, so a noun has one or
+/// the other.
+/// </summary>
+public union Determiner(Definiteness, Distance);
 /// <summary>
 /// What fills a role: a noun phrase, a pronoun, a demonstrative standing alone, several of them
 /// joined by 'and' or 'or', a question word asking what fills it, 'here' or 'there' saying a
@@ -259,7 +286,7 @@ public static class Syntax
         {
             return words;
         }
-        var relative = RelativeClause(language, clause, phrase with { Relative = null });
+        var relative = RelativeClause(language, clause, phrase.Head);
         return language.Relativization.BeforeNoun ? [.. relative, .. words] : [.. words, .. relative];
     }
 
@@ -270,14 +297,14 @@ public static class Syntax
       on the clause's verb, which it leaves bare of tense and agreement, as a participle is, and one
       that's a word goes at the clause's edge beside its noun
      */
-    private static IReadOnlyList<Word> RelativeClause(Language language, Statement clause, NounPhrase head)
+    private static IReadOnlyList<Word> RelativeClause(Language language, Statement clause, Nominal head)
     {
         var relativization = language.Relativization;
         var (role, oblique) = GapSlot(language, clause);
         Argument filler = relativization.StrategyFor(role) switch
         {
             RelativeStrategy.Gap => new Gap(head),
-            RelativeStrategy.Resumptive => Pronominal(language, head),
+            RelativeStrategy.Resumptive => Pronominal(language, new NounPhrase(head, null)),
             RelativeStrategy.Pronoun => new RelativeWord(RelativePronounFor(language, head, role), head),
             var strategy => throw new ArgumentOutOfRangeException(nameof(clause), strategy, null),
         };
@@ -320,7 +347,7 @@ public static class Syntax
 
     //a relative pronoun: the question word for 'where' in a role saying where, and otherwise for
     //'who' or 'what', as its noun names a person or not, or the language's word of its own
-    private static Lexeme RelativePronounFor(Language language, NounPhrase head, Role role)
+    private static Lexeme RelativePronounFor(Language language, Nominal head, Role role)
     {
         var pronoun = language.Relativization.Pronoun;
         if (!pronoun.FromQuestionWords)
@@ -329,7 +356,8 @@ public static class Syntax
         }
         var words = language.Questions.Words;
         return role is Role.Location or Role.Goal or Role.Source ? words[Interrogative.Where]
-            : head.Indefinite == Ontology.Person || language.Lexicon.ClassOf(head.Noun) is SemanticClass.Male or SemanticClass.Female or SemanticClass.Human ? words[Interrogative.Who]
+            : head.Value is IndefinitePronoun { Kind: Ontology.Person } || language.Lexicon.ClassOf(head.Meaning) is SemanticClass.Male or SemanticClass.Female or SemanticClass.Human
+                ? words[Interrogative.Who]
             : words[Interrogative.What];
     }
 
@@ -764,7 +792,7 @@ public static class Syntax
         switch (marker.Value)
         {
             case RelationalNoun noun:
-                return Marked(language, new NounPhrase(noun.Meaning, Number.Singular, Possessor: place), role);
+                return Marked(language, new NounPhrase(new Noun(noun.Meaning, Number.Singular, [], null, null, null, null, place), null), role);
             case SpatialAdposition adposition:
             {
                 var @case = (path.Adposition is null ? path.Case : adposition.Governs) ?? Citation(language);
@@ -1279,8 +1307,8 @@ public static class Syntax
 
     //the number a noun takes: its own, unless a numeral leaves it singular, as in Turkish üç kurt
     //'three wolf'
-    private static Number NumberOf(Language language, NounPhrase phrase) =>
-        phrase.Count is not null && language.Numerals.NounStaysSingular ? Number.Singular : phrase.Number;
+    private static Number NumberOf(Language language, Noun noun) =>
+        noun.Count is not null && language.Numerals.NounStaysSingular ? Number.Singular : noun.Number;
 
     /*
       what a verb or adjective agrees with: a noun is third person, in the number of its word, so
@@ -1291,7 +1319,7 @@ public static class Syntax
      */
     private static (Person Person, Number Number) AgreementOf(Language language, Argument argument) => argument switch
     {
-        NounPhrase n => (Person.Third, NumberOf(language, n)),
+        NounPhrase n => AgreementOf(language, n.Head),
         Pronoun p => (p.Person, p.Number),
         DemonstrativePronoun d => (Person.Third, d.Number),
         QuestionWord or DemonstrativePlace => (Person.Third, Number.Singular),
@@ -1306,6 +1334,13 @@ public static class Syntax
             c.Items.Count == 2 ? Number.Dual : Number.Plural),
     };
 
+    //an indefinite pronoun is singular, as 'everybody is here' is
+    private static (Person Person, Number Number) AgreementOf(Language language, Nominal nominal) => nominal switch
+    {
+        Noun noun => (Person.Third, NumberOf(language, noun)),
+        IndefinitePronoun => (Person.Third, Number.Singular),
+    };
+
     /*
       the gender something agrees with: a noun's own, or a pronoun's, if the language has that gender.
       A pronoun with no gender given has none to agree with, since what it refers to isn't known
@@ -1314,7 +1349,7 @@ public static class Syntax
      */
     private static Gender? GenderOf(Language language, Argument argument) => argument.Value switch
     {
-        NounPhrase n => language.GenderOf(language.Lexicon.Noun(n.Noun)),
+        NounPhrase n => GenderOf(language, n.Head),
         Pronoun { Gender: { } g } when language.Genders.Values.Contains(g) => g,
         Gap { Head: { } head } => GenderOf(language, head),
         RelativeWord word => GenderOf(language, word.Head),
@@ -1322,6 +1357,8 @@ public static class Syntax
         Coordination c => Resolved([.. c.Items.Select(i => GenderOf(language, i))]),
         _ => null,
     };
+
+    private static Gender? GenderOf(Language language, Nominal nominal) => language.GenderOf(language.Lexicon.Noun(nominal.Meaning));
 
     private static Gender? Resolved(IReadOnlyList<Gender?> genders) =>
         genders.Distinct().Count() == 1 ? genders[0]
@@ -1360,8 +1397,11 @@ public static class Syntax
         var pronouns = language.Pronouns.Paradigm;
         return argument switch
         {
-            NounPhrase { Indefinite: { } kind } phrase => Relativized(language, phrase, Indefinite(language, phrase, kind, @case, localization)),
-            NounPhrase phrase => Relativized(language, phrase, Possessed(language, phrase, Determined(language, phrase, Modified(language, phrase, Features(nouns, [NumberOf(language, phrase), @case, localization]))))),
+            NounPhrase phrase => Relativized(language, phrase, phrase.Head switch
+            {
+                IndefinitePronoun pronoun => Indefinite(language, pronoun, @case, localization),
+                Noun noun => Possessed(language, noun, Determined(language, noun, Modified(language, noun, Features(nouns, [NumberOf(language, noun), @case, localization])))),
+            }),
             Pronoun pronoun => pronouns.Inflect(language.Pronouns.For(pronoun), Features(pronouns, [@case, localization])),
             //a demonstrative standing alone, or 'here' or 'there', inflects as a noun does
             DemonstrativePronoun demonstrative => nouns.Inflect(language.Demonstratives.Pronoun(demonstrative.Distance), Features(nouns, [demonstrative.Number, @case, localization])),
@@ -1371,7 +1411,7 @@ public static class Syntax
             ComplementClause or Quotation => throw new ArgumentException("A clause or a quotation can only be an object, which Object says.", nameof(argument)),
             //a gap says nothing; a relative pronoun inflects as a noun does, in its noun's number
             Gap => [],
-            RelativeWord word => nouns.Inflect(word.Word, Features(nouns, [NumberOf(language, word.Head), @case, localization])),
+            RelativeWord word => nouns.Inflect(word.Word, Features(nouns, [AgreementOf(language, word.Head).Number, @case, localization])),
         };
     }
 
@@ -1381,21 +1421,20 @@ public static class Syntax
       inside its case, as in Japanese dare-ka-ni 'who-INDF-DAT'; or the noun for its kind with its
       series' quantifier, as 'some person'. Each inflects as a singular noun
      */
-    private static IReadOnlyList<Word> Indefinite(Language language, NounPhrase phrase, Ontology kind, Case @case, Localization localization)
+    private static IReadOnlyList<Word> Indefinite(Language language, IndefinitePronoun pronoun, Case @case, Localization localization)
     {
         var indefinites = language.Indefinites;
         var nouns = language.Paradigms.Nouns;
-        var series = phrase.Quantifier ?? throw new ArgumentException("An indefinite pronoun needs its series.", nameof(phrase));
         var features = Features(nouns, [Number.Singular, @case, localization]);
-        switch (indefinites.BaseOf(kind))
+        switch (indefinites.BaseOf(pronoun.Kind))
         {
             case IndefiniteBase.Special:
-                return nouns.Inflect(indefinites.Own[(series, kind)], features);
+                return nouns.Inflect(indefinites.Own[(pronoun.Series, pronoun.Kind)], features);
             case IndefiniteBase.Interrogative:
-                var word = language.Questions.Words[Indefinites.QuestionWordFor(kind)];
-                return Articles.Mark(nouns.Inflect(word, features), word.Root, indefinites.Markers[series], indefinites.MarkerPosition);
+                var word = language.Questions.Words[Indefinites.QuestionWordFor(pronoun.Kind)];
+                return Articles.Mark(nouns.Inflect(word, features), word.Root, indefinites.Markers[pronoun.Series], indefinites.MarkerPosition);
             default:
-                return Modified(language, phrase with { Indefinite = null }, features);
+                return Modified(language, pronoun.AsNoun, features);
         }
     }
 
@@ -1404,16 +1443,16 @@ public static class Syntax
       with how many things there are. A demonstrative makes the phrase definite, so it takes the
       definite article only where the language keeps one beside a demonstrative, outside the article
      */
-    private static IReadOnlyList<Word> Determined(Language language, NounPhrase phrase, IReadOnlyList<Word> words)
+    private static IReadOnlyList<Word> Determined(Language language, Noun noun, IReadOnlyList<Word> words)
     {
-        var noun = language.Lexicon.Noun(phrase.Noun);
-        var gender = language.GenderOf(noun);
-        if (phrase.Demonstrative is not { } distance)
+        var lexeme = language.Lexicon.Noun(noun.Meaning);
+        var gender = language.GenderOf(lexeme);
+        if (noun.Determiner?.Value is not Distance distance)
         {
-            return language.Articles.Apply(words, noun.Root, phrase.Definiteness, phrase.Number, gender);
+            return language.Articles.Apply(words, lexeme.Root, noun.Determiner?.Value as Definiteness, noun.Number, gender);
         }
         var definite = language.Articles.WithDemonstrative ? Definiteness.Definite : null;
-        return language.Demonstratives.Apply(language.Articles.Apply(words, noun.Root, definite, phrase.Number, gender), noun.Root, distance, phrase.Number, gender);
+        return language.Demonstratives.Apply(language.Articles.Apply(words, lexeme.Root, definite, noun.Number, gender), lexeme.Root, distance, noun.Number, gender);
     }
 
     /*
@@ -1442,18 +1481,18 @@ public static class Syntax
       agreeing with the possessor, and where it marks only that, the affix is all a pronoun possessor
       needs, as in Hungarian ház-am 'my house'
      */
-    private static IReadOnlyList<Word> Possessed(Language language, NounPhrase phrase, IReadOnlyList<Word> words)
+    private static IReadOnlyList<Word> Possessed(Language language, Noun noun, IReadOnlyList<Word> words)
     {
-        if (!phrase.Possessor.HasValue)
+        if (!noun.Possessor.HasValue)
         {
             return words;
         }
-        var possessor = phrase.Possessor.GetValueOrDefault();
+        var possessor = noun.Possessor.GetValueOrDefault();
         var possession = language.Possession;
         List<Word> possessed = [.. words];
         if (possession.MarksPossessed)
         {
-            var root = language.Lexicon.Noun(phrase.Noun).Root;
+            var root = language.Lexicon.Noun(noun.Meaning).Root;
             var at = possessed.FindIndex(w => w.Root == root);
             var (person, number) = AgreementOf(language, possessor);
             possessed[at] = possession.Agree(possessed[at], person, number);
@@ -1477,9 +1516,9 @@ public static class Syntax
       quantifiers, as in 'all three wolves', and doesn't agree either. The noun's particles stay
       outside it all
      */
-    private static IReadOnlyList<Word> Modified(Language language, NounPhrase phrase, IReadOnlyList<Grammeme> features)
+    private static IReadOnlyList<Word> Modified(Language language, Noun phrase, IReadOnlyList<Grammeme> features)
     {
-        var nounLexeme = language.Lexicon.Noun(phrase.Noun);
+        var nounLexeme = language.Lexicon.Noun(phrase.Meaning);
         var noun = language.Paradigms.Nouns.Inflect(nounLexeme, features);
         if (phrase.Adjectives.Count == 0 && phrase.Count is null && phrase.Ordinal is null && phrase.Quantifier is null)
         {

@@ -1,3 +1,4 @@
+using static LanguageGenerator.Tests.Phrases;
 using static LanguageGenerator.Tests.Clauses;
 using static LanguageGenerator.Tests.Sentences;
 
@@ -21,7 +22,7 @@ public class RelativeClauseTests
         var relative = Assert.IsType<Clause>(net.Relative?.Value);
         Assert.Equal("mend", PredicateOf<Doing>(relative).Verb);
         Assert.Equal(new Gap(null), PredicateOf<Doing>(relative).Object.GetValueOrDefault().Value);
-        Assert.Equal(Definiteness.Definite, net.Definiteness);
+        Assert.Equal(Definiteness.Definite, NounOf(net).Determiner?.Value);
     }
 
     [Fact]
@@ -87,13 +88,13 @@ public class RelativeClauseTests
     public void GenerateRelativization_IsolatingLanguage_UsesNoAffix() =>
         Assert.All(Draws(s => s.Fix(Settings.Fusion, Fusion.Isolating)), r => Assert.NotEqual(RelativizerKind.Affix, r.RelativizerKind));
 
-    private static NounPhrase Head(string noun, Number number, Statement relative) => new(noun, number, Definiteness: Definiteness.Definite, Relative: relative);
+    private static NounPhrase Head(string noun, Number number, Statement relative) => new NounPhrase(new Noun(noun, number, [], null, null, null, Definiteness.Definite, null), relative);
 
     //'the dogs that sleep sleep', with the gap as the relative clause's subject
     private static readonly Clause Sleeps = new Clause(new Doing("sleep", null), new Declarative(Tense.Present, Aspect.Imperfective, new Gap(null)), false, [], []);
 
     //'the woman sees the fish that the cat ate', with the gap as its object
-    private static Clause SeesWhatTheCatAte() => new Clause(new Doing("see", Head("fish", Number.Singular, new Clause(new Doing("eat", new Gap(null)), new Declarative(Tense.Past, Aspect.Perfective, new NounPhrase("cat", Number.Singular)), false, [], []))), new Declarative(Tense.Present, Aspect.Imperfective, new NounPhrase("woman", Number.Singular)), false, [], []);
+    private static Clause SeesWhatTheCatAte() => new Clause(new Doing("see", Head("fish", Number.Singular, new Clause(new Doing("eat", new Gap(null)), new Declarative(Tense.Past, Aspect.Perfective, BareNoun("cat", Number.Singular)), false, [], []))), new Declarative(Tense.Present, Aspect.Imperfective, BareNoun("woman", Number.Singular)), false, [], []);
 
     [Theory]
     [InlineData(true)]
@@ -110,7 +111,7 @@ public class RelativeClauseTests
     public void Realize_GappedSubject_AgreesWithItsNoun()
     {
         var language = GeneratedLanguages.With(s => s.Fix(Settings.SubjectRelativization, RelativeStrategy.Gap).Fix(Settings.Relativizer, RelativizerKind.None));
-        var dogs = new NounPhrase("dog", Number.Plural, Definiteness: Definiteness.Definite);
+        var dogs = new NounPhrase(new Noun("dog", Number.Plural, [], null, null, null, Definiteness.Definite, null), null);
         var alone = Syntax.Realize(language, Sleeps with { Force = new Declarative(Tense.Present, Aspect.Imperfective, dogs) }, "x");
         var relative = Syntax.Realize(language, new Clause(new Doing("bark", null), new Declarative(Tense.Present, Aspect.Imperfective, Head("dog", Number.Plural, Sleeps)), false, [], []), "x");
 
@@ -167,9 +168,9 @@ public class RelativeClauseTests
     public void Realize_GappedOblique_LeavesNoAdpositionBehind()
     {
         var language = GeneratedLanguages.With(s => s.Fix(Settings.ObliqueRelativization, RelativeStrategy.Gap).Fix(Settings.Relativizer, RelativizerKind.None));
-        var grows = new Clause(new Doing("grow", null), new Declarative(Tense.Present, Aspect.Imperfective, new NounPhrase("tree", Number.Plural)), false, [new(Role.Location, new Gap(null), Configuration.At)], []);
+        var grows = new Clause(new Doing("grow", null), new Declarative(Tense.Present, Aspect.Imperfective, BareNoun("tree", Number.Plural)), false, [new(Role.Location, new Gap(null), Configuration.At)], []);
         var relative = Syntax.Realize(language, new Clause(new Doing("sleep", null), new Declarative(Tense.Present, Aspect.Imperfective, Head("field", Number.Singular, grows)), false, [], []), "x");
-        var main = Syntax.Realize(language, new Clause(new Doing("sleep", null), new Declarative(Tense.Present, Aspect.Imperfective, new NounPhrase("field", Number.Singular, Definiteness: Definiteness.Definite)), false, [], []), "x");
+        var main = Syntax.Realize(language, new Clause(new Doing("sleep", null), new Declarative(Tense.Present, Aspect.Imperfective, new NounPhrase(new Noun("field", Number.Singular, [], null, null, null, Definiteness.Definite, null), null)), false, [], []), "x");
         var placeless = Syntax.Realize(language, grows with { Obliques = [] }, "x");
 
         //the relative clause is the clause without its place, nothing of the oblique left

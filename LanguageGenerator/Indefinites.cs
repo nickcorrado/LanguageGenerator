@@ -91,12 +91,6 @@ public record Indefinites(IndefiniteBase PersonBase, IndefiniteBase ThingBase, E
 
     public static IReadOnlyList<Ontology> Kinds { get; } = Enum.GetValues<Ontology>();
 
-    /// <summary>
-    /// An indefinite pronoun, as a noun phrase of its kind's noun with its series, so that 'nobody' is
-    /// 'no person', said as the language says its indefinite pronouns.
-    /// </summary>
-    public static NounPhrase Pronoun(Quantifier series, Ontology kind) => new(NounFor(kind), Number.Singular, Quantifier: series, Indefinite: kind);
-
     /// <summary>The noun an indefinite of this kind is made from, where it's made from one, as 'some-body' is from a noun for a person.</summary>
     public static string NounFor(Ontology kind) => kind switch
     {
@@ -153,7 +147,7 @@ public record Indefinites(IndefiniteBase PersonBase, IndefiniteBase ThingBase, E
     /// </summary>
     public static bool IsNegative(Argument argument) => argument.Value switch
     {
-        NounPhrase { Quantifier: Quantifier.No } => true,
+        NounPhrase { Head.Value: Noun { Quantifier: Quantifier.No } or IndefinitePronoun { Series: Quantifier.No } } => true,
         Coordination c => c.Items.Any(IsNegative),
         _ => false,
     };

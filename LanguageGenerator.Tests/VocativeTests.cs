@@ -1,4 +1,5 @@
-﻿using static LanguageGenerator.Tests.Clauses;
+﻿using static LanguageGenerator.Tests.Phrases;
+using static LanguageGenerator.Tests.Clauses;
 using static LanguageGenerator.Tests.Sentences;
 
 namespace LanguageGenerator.Tests;
@@ -14,7 +15,7 @@ public class VocativeTests
     {
         var addressed = Assert.IsType<Addressed>(Parse("sleep subject:dog.DEF addressee:marta").Value);
 
-        Assert.Equal(new NounPhrase("marta", Number.Singular), addressed.Addressee);
+        Assert.Equal(BareNoun("marta", Number.Singular), addressed.Addressee);
         Assert.IsType<Clause>(addressed.Statement.Value);
     }
 
@@ -23,8 +24,8 @@ public class VocativeTests
     {
         var addressed = Assert.IsType<Addressed>(Parse("be subject:wolf.PL.DEF location:village.DEF addressee:(man old)").Value);
 
-        Assert.Equal("man", addressed.Addressee.Noun);
-        Assert.Equal(["old"], addressed.Addressee.Adjectives.Select(a => a.Meaning));
+        Assert.Equal("man", NounOf(addressed.Addressee).Meaning);
+        Assert.Equal(["old"], NounOf(addressed.Addressee).Adjectives.Select(a => a.Meaning));
         PredicateOf<Being>(addressed.Statement);
     }
 
@@ -51,8 +52,8 @@ public class VocativeTests
     {
         Assert.All(GeneratedLanguages.Sample, l =>
         {
-            var sentence = Syntax.Realize(l, new Addressed(new Clause(new Doing("sleep", null), new Declarative(Tense.Past, Aspect.Perfective, new NounPhrase("dog", Number.Singular)), false, [], []),
-                new NounPhrase("person", Number.Singular)), "x");
+            var sentence = Syntax.Realize(l, new Addressed(new Clause(new Doing("sleep", null), new Declarative(Tense.Past, Aspect.Perfective, BareNoun("dog", Number.Singular)), false, [], []),
+                BareNoun("person", Number.Singular)), "x");
             var (person, dog, sleep) = (IndexOf(sentence, "person"), IndexOf(sentence, "dog"), IndexOf(sentence, "sleep"));
             var vocative = sentence.Words.Any(w => w.Gloss.Contains("VOC"));
 
@@ -65,9 +66,9 @@ public class VocativeTests
     public void Realize_Addressed_KeepsTheClauseAsItWas()
     {
         var language = GeneratedLanguages.Sample[0];
-        var clause = new Clause(new Doing("sleep", null), new Declarative(Tense.Past, Aspect.Perfective, new NounPhrase("dog", Number.Singular)), false, [], []);
+        var clause = new Clause(new Doing("sleep", null), new Declarative(Tense.Past, Aspect.Perfective, BareNoun("dog", Number.Singular)), false, [], []);
         var plain = Syntax.Realize(language, clause, "x");
-        var addressed = Syntax.Realize(language, new Addressed(clause, new NounPhrase("person", Number.Singular)), "x");
+        var addressed = Syntax.Realize(language, new Addressed(clause, BareNoun("person", Number.Singular)), "x");
 
         Assert.Equal(plain.Words.Select(w => w.Gloss), addressed.Words.Skip(addressed.Words.Count - plain.Words.Count).Select(w => w.Gloss));
     }
