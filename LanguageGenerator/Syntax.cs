@@ -304,7 +304,7 @@ public static class Syntax
         Argument filler = relativization.StrategyFor(role) switch
         {
             RelativeStrategy.Gap => new Gap(head),
-            RelativeStrategy.Resumptive => Pronominal(language, new NounPhrase(head, null)),
+            RelativeStrategy.Resumptive => Pronominal(language, head),
             RelativeStrategy.Pronoun => new RelativeWord(RelativePronounFor(language, head, role), head),
             var strategy => throw new ArgumentOutOfRangeException(nameof(clause), strategy, null),
         };
@@ -536,6 +536,11 @@ public static class Syntax
     private static Pronoun Pronominal(Language language, Argument argument) => argument.Value is Pronoun pronoun
         ? pronoun
         : AgreementOf(language, argument) is var (person, number) ? new Pronoun(person, number, Gender: GenderOf(language, argument)) : throw new InvalidOperationException();
+
+    //the pronoun that refers back to a noun or an indefinite pronoun, as a resumptive one does to its relative clause's
+    private static Pronoun Pronominal(Language language, Nominal nominal) => AgreementOf(language, nominal) is var (person, number)
+        ? new Pronoun(person, number, Gender: GenderOf(language, nominal))
+        : throw new InvalidOperationException();
 
     private static Statement WithSubject(Statement statement, Argument subject) => statement.Value switch
     {
@@ -1433,8 +1438,10 @@ public static class Syntax
             case IndefiniteBase.Interrogative:
                 var word = language.Questions.Words[Indefinites.QuestionWordFor(pronoun.Kind)];
                 return Articles.Mark(nouns.Inflect(word, features), word.Root, indefinites.Markers[pronoun.Series], indefinites.MarkerPosition);
-            default:
+            case IndefiniteBase.GenericNoun:
                 return Modified(language, pronoun.AsNoun, features);
+            case var other:
+                throw new ArgumentOutOfRangeException(nameof(pronoun), other, null);
         }
     }
 
@@ -1447,12 +1454,13 @@ public static class Syntax
     {
         var lexeme = language.Lexicon.Noun(noun.Meaning);
         var gender = language.GenderOf(lexeme);
-        if (noun.Determiner?.Value is not Distance distance)
+        IReadOnlyList<Word> Article(Definiteness? definiteness) => language.Articles.Apply(words, lexeme.Root, definiteness, noun.Number, gender);
+        return noun.Determiner switch
         {
-            return language.Articles.Apply(words, lexeme.Root, noun.Determiner?.Value as Definiteness, noun.Number, gender);
-        }
-        var definite = language.Articles.WithDemonstrative ? Definiteness.Definite : null;
-        return language.Demonstratives.Apply(language.Articles.Apply(words, lexeme.Root, definite, noun.Number, gender), lexeme.Root, distance, noun.Number, gender);
+            null => Article(null),
+            Definiteness definiteness => Article(definiteness),
+            Distance distance => language.Demonstratives.Apply(Article(language.Articles.WithDemonstrative ? Definiteness.Definite : null), lexeme.Root, distance, noun.Number, gender),
+        };
     }
 
     /*
@@ -1516,22 +1524,22 @@ public static class Syntax
       quantifiers, as in 'all three wolves', and doesn't agree either. The noun's particles stay
       outside it all
      */
-    private static IReadOnlyList<Word> Modified(Language language, Noun phrase, IReadOnlyList<Grammeme> features)
+    private static IReadOnlyList<Word> Modified(Language language, Noun noun, IReadOnlyList<Grammeme> features)
     {
-        var nounLexeme = language.Lexicon.Noun(phrase.Meaning);
-        var noun = language.Paradigms.Nouns.Inflect(nounLexeme, features);
-        if (phrase.Adjectives.Count == 0 && phrase.Count is null && phrase.Ordinal is null && phrase.Quantifier is null)
+        var nounLexeme = language.Lexicon.Noun(noun.Meaning);
+        var inflected = language.Paradigms.Nouns.Inflect(nounLexeme, features);
+        if (noun.Adjectives.Count == 0 && noun.Count is null && noun.Ordinal is null && noun.Quantifier is null)
         {
-            return noun;
+            return inflected;
         }
-        var main = noun.ToList().FindIndex(w => w.Root is not null);
-        var head = noun[main];
+        var main = inflected.ToList().FindIndex(w => w.Root is not null);
+        var head = inflected[main];
         var agreement = language.AdjectiveAgreement;
 
         var headFirst = language.WordOrder.NounPhraseDirectionality == HeadDirectionality.Initial;
         //written in English order, which is outermost first before the noun, and so mirrored after
         //it where the language mirrors them
-        var written = headFirst && language.WordOrder.MirrorsAdjectives ? phrase.Adjectives.Reverse() : phrase.Adjectives;
+        var written = headFirst && language.WordOrder.MirrorsAdjectives ? noun.Adjectives.Reverse() : noun.Adjectives;
         var adjectives = written.SelectMany(a =>
         {
             var lexeme = language.Lexicon.Adjective(a.Meaning);
@@ -1540,17 +1548,17 @@ public static class Syntax
                 : new Word([lexeme.Root])], lexeme.Root, a);
         }).ToList();
 
-        IReadOnlyList<Word> ordinal = phrase.Ordinal is { } nth ? language.Numerals.SayOrdinal(nth) : [];
+        IReadOnlyList<Word> ordinal = noun.Ordinal is { } nth ? language.Numerals.SayOrdinal(nth) : [];
         List<Word> words = headFirst ? [head, .. adjectives, .. ordinal] : [.. ordinal, .. adjectives, head];
         var at = headFirst ? 0 : words.Count - 1;
-        if (phrase.Count is { } count)
+        if (noun.Count is { } count)
         {
             var numerals = language.Numerals;
             List<Word> numeral = [.. numerals.Say(count).Select(n => new Word([n.Root]))];
             words = numerals.BeforeNoun ? [.. numeral, .. words] : [.. words, .. numeral];
             at += numerals.BeforeNoun ? numeral.Count : 0;
         }
-        if (phrase.Quantifier is { } quantifier)
+        if (noun.Quantifier is { } quantifier)
         {
             var indefinites = language.Indefinites;
             var word = new Word([indefinites.Quantifiers[quantifier].Root]);
@@ -1567,7 +1575,7 @@ public static class Syntax
             words[0] = words[0] with { Morphemes = [.. prefixes, .. words[0].Morphemes] };
             words[^1] = words[^1] with { Morphemes = [.. words[^1].Morphemes, .. suffixes] };
         }
-        return [.. noun.Take(main), .. words, .. noun.Skip(main + 1)];
+        return [.. inflected.Take(main), .. words, .. inflected.Skip(main + 1)];
     }
 
     //the case a noun takes for a role, which is the plain citation case where the role has none

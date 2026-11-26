@@ -1246,27 +1246,27 @@ public static class ClauseFile
                 : throw new ClauseFormatException($"{noun} can't take {features[0].Gloss}: a question word takes no glosses.", number);
         }
         Number? count = null;
-        Definiteness? definiteness = null;
-        Distance? distance = null;
+        Determiner? determiner = null;
         foreach (var feature in features)
         {
             switch (feature)
             {
-                case Distance when distance is not null:
+                case Distance when determiner?.Value is Distance:
                     throw new ClauseFormatException($"'{noun}' has more than one demonstrative.", number);
-                case Distance when definiteness is not null:
-                case Definiteness when distance is not null:
-                    throw new ClauseFormatException($"'{noun}' takes a demonstrative or {(definiteness ?? feature).Gloss}, not both: a demonstrative already makes it definite.", number);
+                case Distance when determiner?.Value is Definiteness article:
+                    throw BothDeterminers(article);
+                case Definiteness article when determiner?.Value is Distance:
+                    throw BothDeterminers(article);
                 case Distance d:
-                    distance = d;
+                    determiner = d;
                     break;
                 case Number n when count is null:
                     count = n;
                     break;
                 case Number:
                     throw new ClauseFormatException($"'{noun}' has more than one number.", number);
-                case Definiteness d when definiteness is null:
-                    definiteness = d;
+                case Definiteness d when determiner is null:
+                    determiner = d;
                     break;
                 case Definiteness:
                     throw new ClauseFormatException($"'{noun}' is either DEF or NDF, not both.", number);
@@ -1280,8 +1280,10 @@ public static class ClauseFile
                     throw new ClauseFormatException($"'{noun}' can't take {feature.Gloss} ({feature.Name}) yet: nouns have only number, definiteness and a demonstrative.", number);
             }
         }
-        Determiner? determiner = distance is not null ? distance : definiteness is not null ? definiteness : (Determiner?)null;
         return new NounPhrase(new Noun(noun, count ?? Number.Singular, [], null, null, null, determiner, null), null);
+
+        ClauseFormatException BothDeterminers(Definiteness article) =>
+            new($"'{noun}' takes a demonstrative or {article.Gloss}, not both: a demonstrative already makes it definite.", number);
     }
 
     //a person and number, as in 3PL, and maybe a clusivity after them. Null if it isn't a pronoun
