@@ -25,12 +25,12 @@ public static class Settings
     public static Stage<IReadOnlyList<Vowel>> VowelStage { get; } = new("vowels", l => l.Phonology.Vowels, null);
     /// <summary>The vowels, commonest first.</summary>
     public static Setting<IReadOnlyList<Vowel>, IReadOnlyList<Vowel>> Vowels { get; } =
-        VowelStage.Declare("vowels", Sounds, v => v, (_, v) => v, new PhonemeList<Vowel>(Vowel.All));
+        VowelStage.Declare("vowels", Sounds, v => v, (_, v) => v, new PhonemeList<Vowel>(Vowel.All, mayBeEmpty: false));
 
     public static Stage<IReadOnlyList<Consonant>> ConsonantStage { get; } = new("consonants", l => l.Phonology.Consonants, null);
     /// <summary>The consonants, commonest first.</summary>
     public static Setting<IReadOnlyList<Consonant>, IReadOnlyList<Consonant>> Consonants { get; } =
-        ConsonantStage.Declare("consonants", Sounds, c => c, (_, c) => c, new PhonemeList<Consonant>(Consonant.All));
+        ConsonantStage.Declare("consonants", Sounds, c => c, (_, c) => c, new PhonemeList<Consonant>(Consonant.All, mayBeEmpty: false));
 
     /// <summary>
     /// Whether the language has each sound: true requires it and false forbids it, leaving the rest
@@ -50,14 +50,34 @@ public static class Settings
     public static InventorySettings<Vowel> VowelInventory { get; } = new("vowel", VowelStage, Vowels, [.. Vowel.All.Zip(VowelSounds)], VowelCount);
     public static InventorySettings<Consonant> ConsonantInventory { get; } = new("consonant", ConsonantStage, Consonants, [.. Consonant.All.Zip(ConsonantSounds)], ConsonantCount);
 
+    /*
+      the sounds beyond the inventory a language's sound changes may make, as allophones. Nothing is
+      drawn: a language may say every sound it doesn't have as a phoneme, unless a spec forbids it,
+      as "allophones": { "forbid": ["θ"] }. A sound's setting for the inventory says only whether
+      it's a phoneme, so it can't do this, and a locked spec, which sets it for every sound, would
+      otherwise forbid every allophone
+     */
+    public static Stage<IReadOnlyList<Phoneme>> AllophoneStage { get; } = new("allophones", l => l.Phonology.Allophones, null);
+    /// <summary>The sounds the language's sound changes may make that aren't its phonemes.</summary>
+    public static Setting<IReadOnlyList<Phoneme>, IReadOnlyList<Phoneme>> Allophones { get; } =
+        AllophoneStage.Declare("allophones", Sounds, a => a, (_, a) => a, new PhonemeList<Phoneme>(Phoneme.Every, mayBeEmpty: true));
+    /// <summary>Whether the language's sound changes may make each sound, where it isn't a phoneme.</summary>
+    public static IReadOnlyList<(Phoneme Sound, Setting<IReadOnlyList<Phoneme>, bool> Has)> AllophoneSounds { get; } =
+        [.. Phoneme.Every.Select(p => (p, AllophoneStage.Declare($"allophones:{p.IpaSymbol}", Sounds, l => l.Contains(p),
+            (l, on) => on ? (l.Contains(p) ? l : [.. l, p]) : [.. l.Where(a => a != p)], YesNo)))];
+
     /// <summary>The inventory a setting for one sound is part of, or null for any other setting.</summary>
     public static ISetting? InventoryOf(ISetting setting) =>
-        VowelInventory.Sounds.Any(s => s.Has == setting) ? Vowels : ConsonantInventory.Sounds.Any(s => s.Has == setting) ? Consonants : null;
+        VowelInventory.Sounds.Any(s => s.Has == setting) ? Vowels
+        : ConsonantInventory.Sounds.Any(s => s.Has == setting) ? Consonants
+        : AllophoneSounds.Any(s => s.Has == setting) ? Allophones
+        : null;
 
     /// <summary>For an inventory's setting, its sounds and the setting for each.</summary>
     public static IReadOnlyList<(Phoneme Sound, ISetting Has)> SoundsOf(ISetting inventory) =>
         inventory == Vowels ? [.. VowelInventory.Sounds.Select(s => ((Phoneme)s.Sound, (ISetting)s.Has))]
         : inventory == Consonants ? [.. ConsonantInventory.Sounds.Select(s => ((Phoneme)s.Sound, (ISetting)s.Has))]
+        : inventory == Allophones ? [.. AllophoneSounds.Select(s => (s.Sound, (ISetting)s.Has))]
         : [];
 
     public static Stage<SyllableShape> SyllableStage { get; } = new("syllable rule", l => new(l.Phonology.SyllableRule.Template, l.Phonology.SyllableRule.Codas), null);
@@ -554,7 +574,7 @@ public static class Settings
     /// <summary>Every stage with settings, in the order they're declared.</summary>
     public static IReadOnlyList<IStage> Stages { get; } =
     [
-        VowelStage, ConsonantStage, SyllableStage, StressStage, ClusterRepairStage, SyllableContactStage, DropoffStage, SoundChangeStage, SyllableChangeStage, WordOrderStage, MorphologyStage, AlignmentStage,
+        VowelStage, ConsonantStage, AllophoneStage, SyllableStage, StressStage, ClusterRepairStage, SyllableContactStage, DropoffStage, SoundChangeStage, SyllableChangeStage, WordOrderStage, MorphologyStage, AlignmentStage,
         RoleRegionStage, CaseStage, ConfigurationRegionStage, ConfigurationPlanStage, NounParadigmStage, VerbParadigmStage, PronounStage, PredicationStage, LocationalCopulaStage, AdjectiveAgreementStage,
         CommandStage, NegationStage, QuestionStage, PassiveStage, ModalStage, AspectStage, PossessionStage, GenderStage, NumeralStage, DemonstrativeStage, ArticleStage, IndefiniteStage, ConjunctionStage, SubordinationStage, ComplementationStage, RelativizationStage, ComparisonStage, DegreeStage, SimilativeStage,
     ];
@@ -562,7 +582,7 @@ public static class Settings
     /// <summary>Every setting, in the order they're declared.</summary>
     public static IReadOnlyList<ISetting> All { get; } =
     [
-        .. VowelStage.Settings, .. ConsonantStage.Settings, .. SyllableStage.Settings, .. StressStage.Settings, .. ClusterRepairStage.Settings,
+        .. VowelStage.Settings, .. ConsonantStage.Settings, .. AllophoneStage.Settings, .. SyllableStage.Settings, .. StressStage.Settings, .. ClusterRepairStage.Settings,
         .. SyllableContactStage.Settings, .. DropoffStage.Settings, .. SoundChangeStage.Settings, .. SyllableChangeStage.Settings, .. WordOrderStage.Settings, .. MorphologyStage.Settings, .. AlignmentStage.Settings, .. RoleRegionStage.Settings,
         .. CaseStage.Settings, .. ConfigurationRegionStage.Settings, .. ConfigurationPlanStage.Settings, .. NounParadigmStage.Settings,
         .. VerbParadigmStage.Settings, .. PronounStage.Settings, .. PredicationStage.Settings, .. LocationalCopulaStage.Settings, .. AdjectiveAgreementStage.Settings,

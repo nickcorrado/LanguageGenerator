@@ -295,11 +295,15 @@ public class OrthographyTests
     [Fact]
     public void SelectOrthography_GeneratedLanguages_RarelySpellTwoDifferentWordsTheSame()
     {
-        //spellings can run together, so s + h can meet sh, but it should take a rare coincidence of words
+        /*
+          spellings can run together, so s + h can meet sh, but it should take a rare coincidence of
+          words. Spelling goes by phoneme, so words told apart only by allophones, as stress can make
+          them, aren't homographs of the spelling's making
+         */
         bool HasHomographs(Language language) =>
             GeneratedLanguages.AllWords(language).Select(language.Phonology.Realize)
                 .GroupBy(surface => surface.Spell(language.Orthography))
-                .Any(forms => forms.Select(f => string.Join(" ", f.Phonemes.Select(p => p.IpaSymbol))).Distinct().Count() > 1);
+                .Any(forms => forms.Select(f => string.Join(" ", f.Realized.Select(p => p.IpaSymbol))).Distinct().Count() > 1);
 
         var count = GeneratedLanguages.Sample.Count(HasHomographs);
 

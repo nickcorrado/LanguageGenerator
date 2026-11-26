@@ -140,9 +140,10 @@ public sealed class Choice<T>(IReadOnlyList<(string Name, T Value)> values) : IS
 
 /// <summary>
 /// An ordered list of phonemes, written as their IPA symbols, commonest first, as a list is used:
-/// earlier phonemes are drawn more often.
+/// earlier phonemes are drawn more often. An inventory needs a sound, but a list of allophones may
+/// be empty.
 /// </summary>
-public sealed class PhonemeList<T>(IReadOnlyList<T> all) : ISettingValues<IReadOnlyList<T>> where T : Phoneme
+public sealed class PhonemeList<T>(IReadOnlyList<T> all, bool mayBeEmpty) : ISettingValues<IReadOnlyList<T>> where T : Phoneme
 {
     private readonly Dictionary<string, T> bySymbol = all.ToDictionary(p => p.IpaSymbol);
 
@@ -168,8 +169,8 @@ public sealed class PhonemeList<T>(IReadOnlyList<T> all) : ISettingValues<IReadO
     public object? Format(IReadOnlyList<IReadOnlyList<T>> allowed) => allowed[0].Select(p => p.IpaSymbol).ToList();
 
     public string? Problem(IReadOnlyList<T> value) =>
-        value.Count == 0 ? "An inventory needs at least one sound."
-        : value.Distinct().Count() < value.Count ? $"{string.Join(", ", value.GroupBy(p => p).Where(g => g.Count() > 1).Select(g => g.Key.IpaSymbol))} is in the inventory more than once."
+        value.Count == 0 && !mayBeEmpty ? "An inventory needs at least one sound."
+        : value.Distinct().Count() < value.Count ? $"{string.Join(", ", value.GroupBy(p => p).Where(g => g.Count() > 1).Select(g => g.Key.IpaSymbol))} is in the list more than once."
         : null;
 
     public bool Same(IReadOnlyList<T> a, IReadOnlyList<T> b) => a.SequenceEqual(b);

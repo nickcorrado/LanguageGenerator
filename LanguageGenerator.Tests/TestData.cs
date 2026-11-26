@@ -1,6 +1,7 @@
 ﻿namespace LanguageGenerator.Tests;
 
-//builders for hand-made phonologies and words, using the full phoneme inventory
+//builders for hand-made phonologies and words, using the full phoneme inventory. A phonology may say
+//every sound it lacks as an allophone, as a generated language may
 internal static class TestData
 {
     public static List<Vowel> Vowels { get; } = [.. Vowel.All];
@@ -21,6 +22,7 @@ internal static class TestData
         Stress = Stress,
         Dropoff = new Dropoff(0.15, 0.15),
         SyllableContact = SyllableContact.Any,
+        Allophones = Generator.SelectAllophones(Vowels, consonants),
     };
 
     //the first form is a root meaning "dog"; any after it are plural suffixes

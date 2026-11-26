@@ -99,10 +99,15 @@ public static partial class Generator
         (null, 23),
     ];
 
+    //every sound beyond the inventory, which a spec can then forbid
+    public static IReadOnlyList<Phoneme> SelectAllophones(IReadOnlyCollection<Vowel> vowels, IReadOnlyCollection<Consonant> consonants) =>
+        [.. Phoneme.Every.Where(p => p switch { Vowel v => !vowels.Contains(v), Consonant c => !consonants.Contains(c) })];
+
     /*
       changes that depend on syllables, for languages whose syllables can end in a consonant. Devoicing
       and weakening need obstruents in codas, which a coda restriction rules out, and lengthening needs
-      long vowels. The odds are guesses
+      long vowels. What a change needs is among the phonemes, as the spec's rules check it, though
+      the change may then make allophones. The odds are guesses
      */
     public static List<SoundChange> SelectSyllableChanges(Random rand, SyllableRule rule, IReadOnlyCollection<Vowel> vowels, IReadOnlyCollection<Consonant> consonants,
         SyllableContact contact, StressSystem stress)

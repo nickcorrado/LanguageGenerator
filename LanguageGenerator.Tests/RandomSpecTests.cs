@@ -80,6 +80,7 @@ public class RandomSpecTests
                 { AllValues: { } all } => [.. all.OrderBy(_ => rand.Next()).Take(rand.NextDouble() < 0.7 ? 1 : 2)],
                 _ when setting == Settings.Consonants => [(IReadOnlyList<Consonant>)[.. Consonant.All.OrderBy(_ => rand.Next()).Take(rand.Next(1, 15))]],
                 _ when setting == Settings.Vowels => [(IReadOnlyList<Vowel>)[.. Vowel.All.OrderBy(_ => rand.Next()).Take(rand.Next(1, 8))]],
+                _ when setting == Settings.Allophones => [(IReadOnlyList<Phoneme>)[.. Phoneme.Every.OrderBy(_ => rand.Next()).Take(rand.Next(0, 30))]],
                 _ => [0.05 + rand.NextDouble() * 0.6],
             };
             spec = spec.With(setting, values);

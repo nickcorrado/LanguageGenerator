@@ -79,6 +79,16 @@ The symbols are the generator's 64 phonemes, given exactly, so `ʦ` and not `ts`
 - Vowels: a e i æ ɛ ə ɨ ɔ o u iː eː aː oː uː ai au ei ou oi ui
 - Consonants: the error for a symbol the generator doesn't have lists them all.
 
+## Allophones
+
+A sound change can make a sound the language doesn't have as a phoneme, as Spanish says the b of *lobo* as β. Such a sound is an allophone: it's written as the phoneme it's said for, and it fills the same places in a syllable, so it shows only in the IPA. Where the change makes one of the language's own phonemes, the two merge, and the word is spelled with the new one. A language may say any sound it lacks this way, besides three that are never phonemes, the lax vowels ɪ and ʊ and the bilabial ɸ, unless the spec forbids it:
+
+```json
+"allophones": { "forbid": ["θ", "ɸ"] }
+```
+
+Forbidding a sound in `consonants` or `vowels` only keeps it out of the inventory, so a language without θ may still say its t as θ between vowels. To keep a sound out of the language altogether, forbid it in both. `allophones` can also be an exact array of the sounds allowed, which may be empty, for sound changes that make only phonemes.
+
 ## Settings
 
 | Setting | Values |
@@ -86,6 +96,7 @@ The symbols are the generator's 64 phonemes, given exactly, so `ʦ` and not `ts`
 | `vowels`, `consonants` | An array of IPA symbols, commonest first, or `{ "require": [...], "forbid": [...] }` |
 | `vowel-count`, `consonant-count` | A number of sounds from 1 to 21 vowels or 43 consonants, an array of them, or `{ "min": ..., "max": ... }` |
 | `consonant-dropoff`, `vowel-dropoff` | A number between 0 and 1; 0.09 for consonants and 0.3 for vowels if free |
+| `allophones` | An array of IPA symbols a sound change may make beyond the inventory, or `{ "require": [...], "forbid": [...] }`; every sound if free |
 | `syllable-template` | `CV`, `CVF`, `CLV`, `CLVF`, `CGV`, `CGVF`, `SCV`, `SCVF`, `SCLVF`, `CVFF`, `CLVFF`, `SCLVFF`, where C is a consonant, V a vowel, F a final consonant (two of them a falling cluster, like nt or st, only at the end of a root), L a liquid or glide after the first consonant, G only a glide there, j or w, and S a sibilant before it |
 | `coda-restriction` | `Any`, `Sonorants`, `Nasals`, `SingleNasal` |
 | `stress` | `Initial`, `Second`, `Third`, `Antepenultimate`, `Penultimate`, `Ultimate`, `UltimateIfHeavy`, `PenultimateIfHeavy`, `InitialIfHeavy`, `LastHeavy`, where the rule puts stress, which free stress keeps for roots that store none |

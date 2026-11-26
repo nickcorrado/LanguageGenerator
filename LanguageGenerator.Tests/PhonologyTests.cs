@@ -66,6 +66,7 @@ public class PhonologyTests
             Stress = new StressSystem(Stress.Penultimate, false),
             Dropoff = new Dropoff(0.15, 0.15),
             SyllableContact = SyllableContact.Any,
+            Allophones = Generator.SelectAllophones(TestData.Vowels, TestData.Consonants),
         };
 
         //a nasal can close a syllable, but a stop needs a vowel after it, as with Japanese batto 'bat'
@@ -88,6 +89,7 @@ public class PhonologyTests
             Stress = new StressSystem(Stress.Penultimate, false),
             Dropoff = new Dropoff(0.15, 0.15),
             SyllableContact = SyllableContact.Any,
+            Allophones = Generator.SelectAllophones(TestData.Vowels, TestData.Consonants),
         };
 
         Assert.Equal("a.an", phonology.Realize(TestData.Word([Vowel.a, Consonant.t, Vowel.a, Consonant.n])).Syllabified(Orthography.Ipa));
@@ -237,7 +239,7 @@ public class PhonologyTests
             {
                 Assert.Equal(surface.Spell(orthography), surface.Segmented(orthography).Replace("-", "").Replace("∅", ""));
                 Assert.Equal(surface.Spell(orthography), surface.Syllabified(orthography).Replace(".", ""));
-                Assert.Equal(surface.Phonemes, surface.Syllables.SelectMany(s => s.Phonemes));
+                Assert.Equal(surface.Realized, surface.Syllables.SelectMany(s => s.Phonemes));
             }
         }
     }

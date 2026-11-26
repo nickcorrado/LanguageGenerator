@@ -7,8 +7,16 @@ public class SoundChangeTests
     private static string Surface(SyllableTemplate template, SoundChange change, params Phoneme[][] morphemes) =>
         string.Concat(TestData.Phonology(template, ClusterRepair.Epenthesis, change).Realize(TestData.Word(morphemes)).Phonemes.Select(p => p.IpaSymbol));
 
+    //a phonology that can't say these sounds, as phonemes or allophones
+    private static Phonology Without(Phonology phonology, params Phoneme[] sounds) => phonology with
+    {
+        Vowels = [.. phonology.Vowels.Where(v => !sounds.Contains(v))],
+        Consonants = [.. phonology.Consonants.Where(c => !sounds.Contains(c))],
+        Allophones = [.. phonology.Allophones.Where(a => !sounds.Contains(a))],
+    };
+
     [Theory]
-    [InlineData("p", "f")]
+    [InlineData("p", "ɸ")]
     [InlineData("b", "β")]
     [InlineData("t", "θ")]
     [InlineData("d", "ð")]
@@ -26,13 +34,42 @@ public class SoundChangeTests
     }
 
     [Fact]
-    public void Lenition_WithoutTheLikeliestSound_TakesTheNext()
+    public void Lenition_UnableToSayTheLikeliestSound_TakesTheNext()
     {
-        List<Consonant> noθ = [.. Consonant.All.Where(c => c != Consonant.θ)];
+        var phonology = Without(TestData.Phonology(SyllableTemplates.CV, ClusterRepair.Epenthesis, SoundChange.Lenition), Consonant.θ);
 
-        var surface = TestData.Phonology(SyllableTemplates.CV, ClusterRepair.Epenthesis, noθ, SoundChange.Lenition).Realize(TestData.Word([Vowel.a, Consonant.t, Vowel.a]));
+        var surface = phonology.Realize(TestData.Word([Vowel.a, Consonant.t, Vowel.a]));
 
         Assert.Equal("asa", string.Concat(surface.Phonemes.Select(p => p.IpaSymbol)));
+    }
+
+    /*
+      a language without θ says the t of ata as θ, as Tuscan does, but still has a t there, so it
+      writes one, and the θ fills the slot t does
+     */
+    [Fact]
+    public void Lenition_ToASoundTheLanguageLacks_MakesAnAllophone()
+    {
+        List<Consonant> noθ = [.. Consonant.All.Where(c => c != Consonant.θ)];
+        var phonology = TestData.Phonology(SyllableTemplates.CV, ClusterRepair.Epenthesis, noθ, SoundChange.Lenition);
+
+        var surface = phonology.Realize(TestData.Word([Vowel.a, Consonant.t, Vowel.a]));
+
+        Assert.Equal("aθa", string.Concat(surface.Phonemes.Select(p => p.IpaSymbol)));
+        Assert.Equal("ata", string.Concat(surface.Realized.Select(p => p.IpaSymbol)));
+        Assert.Equal("ata", surface.Spell(Orthography.Ipa));
+        Assert.Equal("ˈa.θa", surface.Transcribed());
+        Assert.Equal("a.ta", surface.Syllabified(Orthography.Ipa));
+    }
+
+    //where the language has the sound as a phoneme, the stop merges into it, and is written as it
+    [Fact]
+    public void Lenition_ToAPhoneme_MergesIntoIt()
+    {
+        var surface = TestData.Phonology(SyllableTemplates.CV, ClusterRepair.Epenthesis, SoundChange.Lenition).Realize(TestData.Word([Vowel.a, Consonant.t, Vowel.a]));
+
+        Assert.Equal("aθa", surface.Spell(Orthography.Ipa));
+        Assert.Equal("aθa", string.Concat(surface.Realized.Select(p => p.IpaSymbol)));
     }
 
     [Fact]
@@ -46,14 +83,30 @@ public class SoundChangeTests
     [InlineData(CodaRestriction.Nasals, "kaŋka")]
     public void NasalAssimilation_WhereTheNewNasalCantCloseTheSyllable_KeepsTheOldOne(CodaRestriction codas, string expected)
     {
-        //where only n can close a syllable, n before k stays n rather than becoming a ŋ that
-        //cluster repair would delete, which made kan-ka kaka
+        //where only n can close a syllable, n before k stays n rather than merging into a ŋ phoneme
+        //that cluster repair would delete, which made kan-ka kaka
         var phonology = TestData.Phonology(SyllableTemplates.CVF, ClusterRepair.Deletion, SoundChange.NasalAssimilation) with
         {
             SyllableRule = new SyllableRule(SyllableTemplates.CVF, TestData.Vowels, TestData.Consonants, codas),
         };
 
         Assert.Equal(expected, string.Concat(phonology.Realize(TestData.Word([.. Ka, Consonant.n], Ka)).Phonemes.Select(p => p.IpaSymbol)));
+    }
+
+    //Japanese has no ŋ of its own, but says its n as ŋ before k, which it still writes as n
+    [Fact]
+    public void NasalAssimilation_WhereOnlyNClosesASyllableAndŊIsNoPhoneme_SaysTheNAsŊ()
+    {
+        List<Consonant> noŊ = [.. Consonant.All.Where(c => c != Consonant.ŋ)];
+        var phonology = TestData.Phonology(SyllableTemplates.CVF, ClusterRepair.Deletion, noŊ, SoundChange.NasalAssimilation) with
+        {
+            SyllableRule = new SyllableRule(SyllableTemplates.CVF, TestData.Vowels, noŊ, CodaRestriction.SingleNasal),
+        };
+
+        var surface = phonology.Realize(TestData.Word([.. Ka, Consonant.n], Ka));
+
+        Assert.Equal("kaŋka", string.Concat(surface.Phonemes.Select(p => p.IpaSymbol)));
+        Assert.Equal("kanka", surface.Spell(Orthography.Ipa));
     }
 
     [Fact]
@@ -74,12 +127,12 @@ public class SoundChangeTests
     [Theory]
     [InlineData("b", "β", "v")]
     [InlineData("g", "ɣ", "w")]
-    public void Lenition_WithoutTheFricativeAtItsPlace_TakesTheNearestSound(string stop, string fricative, string weakened)
+    public void Lenition_UnableToSayTheFricativeAtItsPlace_TakesTheNearestSound(string stop, string fricative, string weakened)
     {
         Consonant Sound(string ipa) => Consonant.All.Single(c => c.IpaSymbol == ipa);
-        List<Consonant> without = [.. Consonant.All.Where(c => c != Sound(fricative))];
+        var phonology = Without(TestData.Phonology(SyllableTemplates.CV, ClusterRepair.Epenthesis, SoundChange.Lenition), Sound(fricative));
 
-        var surface = TestData.Phonology(SyllableTemplates.CV, ClusterRepair.Epenthesis, without, SoundChange.Lenition).Realize(TestData.Word([Vowel.a, Sound(stop), Vowel.a]));
+        var surface = phonology.Realize(TestData.Word([Vowel.a, Sound(stop), Vowel.a]));
 
         Assert.Equal($"a{weakened}a", string.Concat(surface.Phonemes.Select(p => p.IpaSymbol)));
     }
@@ -91,11 +144,11 @@ public class SoundChangeTests
     }
 
     [Fact]
-    public void Lenition_WithoutTheSoundInTheInventory_LeavesAStopAlone()
+    public void Lenition_UnableToSayAnySoundItWeakensTo_LeavesAStopAlone()
     {
-        List<Consonant> noF = [.. Consonant.All.Where(c => c != Consonant.f)];
+        var phonology = Without(TestData.Phonology(SyllableTemplates.CV, ClusterRepair.Epenthesis, SoundChange.Lenition), Consonant.ɸ, Consonant.f);
 
-        var surface = TestData.Phonology(SyllableTemplates.CV, ClusterRepair.Epenthesis, noF, SoundChange.Lenition).Realize(TestData.Word([Vowel.a, Consonant.p, Vowel.a]));
+        var surface = phonology.Realize(TestData.Word([Vowel.a, Consonant.p, Vowel.a]));
 
         Assert.Equal("apa", string.Concat(surface.Phonemes.Select(p => p.IpaSymbol)));
     }
@@ -112,7 +165,7 @@ public class SoundChangeTests
 
         var surface = TestData.Phonology(SyllableTemplates.CVF, ClusterRepair.Deletion, SoundChange.VoicingAssimilation);
         Morpheme morpheme = new Root([], "dog", null);
-        var changed = SoundChange.VoicingAssimilation.Apply([new(Vowel.a, morpheme, false), new(Sound(first), morpheme, false), new(Sound(second), morpheme, false), new(Vowel.a, morpheme, false)], surface);
+        var changed = SoundChange.VoicingAssimilation.Apply([new(Vowel.a, Vowel.a, morpheme, false), new(Sound(first), Sound(first), morpheme, false), new(Sound(second), Sound(second), morpheme, false), new(Vowel.a, Vowel.a, morpheme, false)], surface);
 
         Assert.Equal($"a{result}a", string.Concat(changed.Select(s => s.Phoneme.IpaSymbol)));
     }
@@ -412,12 +465,24 @@ public class SoundChangeTests
     }
 
     [Fact]
-    public void CodaWeakening_WithoutH_LeavesTheSAlone()
+    public void CodaWeakening_UnableToSayH_LeavesTheSAlone()
+    {
+        var phonology = Without(TestData.Phonology(SyllableTemplates.CVF, ClusterRepair.Epenthesis) with { SyllableChanges = [SoundChange.CodaWeakening] }, Consonant.h);
+
+        Assert.Equal("pas", Sounds(phonology.Realize(TestData.Word([Consonant.p, Vowel.a, Consonant.s]))));
+    }
+
+    //Andalusian Spanish has no h of its own, but says the s of estas as one
+    [Fact]
+    public void CodaWeakening_WithoutHAsAPhoneme_SaysTheSAsH()
     {
         List<Consonant> noH = [.. Consonant.All.Where(c => c != Consonant.h)];
         var phonology = TestData.Phonology(SyllableTemplates.CVF, ClusterRepair.Epenthesis, noH) with { SyllableChanges = [SoundChange.CodaWeakening] };
 
-        Assert.Equal("pas", Sounds(phonology.Realize(TestData.Word([Consonant.p, Vowel.a, Consonant.s]))));
+        var surface = phonology.Realize(TestData.Word([Consonant.p, Vowel.a, Consonant.s]));
+
+        Assert.Equal("pah", Sounds(surface));
+        Assert.Equal("pas", surface.Spell(Orthography.Ipa));
     }
 
     [Fact]
@@ -428,8 +493,18 @@ public class SoundChangeTests
         Assert.Equal("peta", Sounds(Syllabic(SoundChange.ClosedSyllableLaxing, Consonant.p, Vowel.e, Consonant.t, Vowel.a)));
     }
 
+    //ɪ and ʊ are never phonemes, only what i and u become
     [Fact]
-    public void ClosedSyllableLaxing_WithoutTheOpenVowel_LeavesTheVowelAlone()
+    public void ClosedSyllableLaxing_OpensACloseVowelToOneThatsOnlyAnAllophone()
+    {
+        var form = Syllabic(SoundChange.ClosedSyllableLaxing, Consonant.p, Vowel.i, Consonant.t, Consonant.k, Vowel.u, Consonant.l);
+
+        Assert.Equal("pɪtkʊl", Sounds(form));
+        Assert.Equal("pitkul", form.Spell(Orthography.Ipa));
+    }
+
+    [Fact]
+    public void ClosedSyllableLaxing_UnableToSayTheOpenVowel_LeavesTheVowelAlone()
     {
         var phonology = (TestData.Phonology(SyllableTemplates.CVF, ClusterRepair.Epenthesis) with { Vowels = [Vowel.a, Vowel.e], SyllableChanges = [SoundChange.ClosedSyllableLaxing] });
 

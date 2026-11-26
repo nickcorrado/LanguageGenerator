@@ -42,6 +42,7 @@ public static partial class Generator
         var syllableContact = stages.Draw(Settings.SyllableContactStage, rand => SelectSyllableContact(rand, syllableRule));
         //stress comes before the changes that follow it, which depend on what it is
         var stress = stages.Draw(Settings.StressStage, SelectStress);
+        var allophones = stages.Draw(Settings.AllophoneStage, _ => SelectAllophones(vowels, consonants));
         var phonology = new Phonology
         {
             Vowels = vowels,
@@ -54,6 +55,7 @@ public static partial class Generator
             Stress = stress,
             SyllableContact = syllableContact,
             Dropoff = syllableDropoff,
+            Allophones = allophones,
         };
         var orthography = SelectOrthography(stages.For("orthography"), vowels, consonants, stress);
 

@@ -27,9 +27,9 @@ public class Orthography
         }
     }
 
-    /// <summary>IPA as an orthography, for debugging and for underlying forms.</summary>
+    /// <summary>IPA as an orthography, for debugging, for underlying forms and for transcribing allophones.</summary>
     public static Orthography Ipa { get; } =
-        new(Vowel.All.Concat<Phoneme>(Consonant.All).ToDictionary(p => p, p => p.IpaSymbol), StressSpelling.Unmarked);
+        new(Phoneme.Every.ToDictionary(p => p, p => p.IpaSymbol), StressSpelling.Unmarked);
 
     public string Spell(Phoneme phoneme) => spellings.TryGetValue(phoneme, out var spelling)
         ? spelling

@@ -10,6 +10,9 @@ public closed class Phoneme
 {
     public string IpaSymbol { get; }
 
+    /// <summary>Every sound a word can have, as a phoneme or only as an allophone.</summary>
+    public static IReadOnlyList<Phoneme> Every => [.. Vowel.All, .. Vowel.AllophonesOnly, .. Consonant.All, .. Consonant.AllophonesOnly];
+
     protected Phoneme(string ipaSymbol)
     {
         IpaSymbol = ipaSymbol;
@@ -34,6 +37,9 @@ public class Vowel : Phoneme
     public static Vowel eː { get; } = new("eː", VowelHeight.CloseMid, VowelFrontness.Front, false, true);
     public static Vowel u { get; } = new("u", VowelHeight.Close, VowelFrontness.Back, true, false);
     public static Vowel uː { get; } = new("uː", VowelHeight.Close, VowelFrontness.Back, true, true);
+    //the lax vowels of English bit and put, here only as what i and u become in a closed syllable
+    public static Vowel ɪ { get; } = new("ɪ", VowelHeight.NearClose, VowelFrontness.Front, false, false);
+    public static Vowel ʊ { get; } = new("ʊ", VowelHeight.NearClose, VowelFrontness.Back, true, false);
 
     /*
       falling diphthongs, which glide from one vowel toward a close one in a single syllable, as in
@@ -52,6 +58,12 @@ public class Vowel : Phoneme
     /// <summary>Every vowel a language can have, from which the generator prunes.</summary>
     //declared after the vowels themselves, since static properties initialize in order
     public static IReadOnlyList<Vowel> All { get; } = [a, e, i, æ, ɛ, ə, ɨ, ɔ, o, iː, oː, aː, eː, u, uː, ai, au, ei, ou, oi, ui];
+
+    /// <summary>
+    /// Vowels a language never has as phonemes, only as what its sound changes make of them, so
+    /// a spec can't ask for them.
+    /// </summary>
+    public static IReadOnlyList<Vowel> AllophonesOnly { get; } = [ɪ, ʊ];
 
     /// <summary>Every diphthong, commonest first.</summary>
     public static IReadOnlyList<Vowel> Diphthongs { get; } = [ai, au, ei, ou, oi, ui];
@@ -152,10 +164,18 @@ public class Consonant : Phoneme
     public static Consonant ç { get; } = new("ç", ConsonantPlace.Palatal, ConsonantManner.Fricative, false);
     public static Consonant ʎ { get; } = new("ʎ", ConsonantPlace.Palatal, ConsonantManner.LateralApproximant, true);
     public static Consonant ɟ { get; } = new("ɟ", ConsonantPlace.Palatal, ConsonantManner.Plosive, true);
+    //the f of Japanese fu, made with both lips, here only as what p weakens to, as in Tuscan
+    public static Consonant ɸ { get; } = new("ɸ", ConsonantPlace.Labial, ConsonantManner.Fricative, false);
 
     /// <summary>Every consonant a language can have.</summary>
     public static IReadOnlyList<Consonant> All { get; } =
         [b, d, g, k, m, n, p, s, t, z, ʃ, ʒ, f, v, ɹ, r, ɾ, l, j, w, θ, ð, ŋ, h, x, ʧ, ʤ, ʦ, ʣ, ʔ, ɲ, c, q, pʰ, tʰ, kʰ, kʷ, gʷ, β, ɣ, ç, ʎ, ɟ];
+
+    /// <summary>
+    /// Consonants a language never has as phonemes, only as what its sound changes make of them, so
+    /// a spec can't ask for them.
+    /// </summary>
+    public static IReadOnlyList<Consonant> AllophonesOnly { get; } = [ɸ];
 
     public ConsonantPlace Place { get; }
     public ConsonantManner Manner { get; }

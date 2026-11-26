@@ -74,9 +74,13 @@ public readonly record struct Site(Segment Segment, Segment? Previous, Segment? 
 /// </summary>
 /*
   each change is applied across a whole word, left to right, so it sees morpheme boundaries, and a
-  language applies its changes in order, so one can feed or bleed the next. Changes only ever use
-  phonemes from the language's own inventory; where it has no suitable phoneme, the sound is left
-  alone. A change is a value, so a language's are a list that can be drawn, compared or extended.
+  language applies its changes in order, so one can feed or bleed the next. A change that turns one
+  sound into another may make any sound the language can say: a phoneme of its own, which the sound
+  then merges into, or else an allophone of the phoneme it realizes (see Segment). Changes that
+  merge or insert sounds, or turn a vowel into a consonant or back, make only phonemes, since an
+  allophone has to be said for a phoneme of its own kind that's still there to spell. Where no sound
+  will do, the sound is left alone. A change is a value, so a language's are a list that can be
+  drawn, compared or extended.
   Besides changing or deleting a sound, a change can insert one after it, which belongs to the
   morpheme after it, as an inserted consonant starts the suffix it comes before. Only changes
   that run before syllables can insert, since syllable places are counted by sound. A change can
@@ -101,7 +105,7 @@ public sealed class SoundChange(string name, Func<Site, bool> when, Func<Site, P
         {
             var site = new Site(segments[i], result.LastOrDefault(), i + 1 < segments.Count ? segments[i + 1] : null, segments, i, places?[i], places);
             var kept = !when(site) ? segments[i]
-                : becomes(site, phonology) is { } sound ? segments[i] with { Phoneme = sound }
+                : becomes(site, phonology) is { } sound ? (sound == segments[i].Phoneme ? segments[i] : phonology.Changed(segments[i], sound))
                 : null;
             if (accentForNext && kept?.Phoneme is Vowel)
             {
@@ -131,7 +135,7 @@ public sealed class SoundChange(string name, Func<Site, bool> when, Func<Site, P
             }
             if (places is null && site.Next is { } next && insertsAfter?.Invoke(site, phonology) is { } inserted)
             {
-                result.Add(new Segment(inserted, next.Morpheme, false));
+                result.Add(new Segment(inserted, inserted, next.Morpheme, false));
             }
         }
         return result;
@@ -152,15 +156,15 @@ public sealed class SoundChange(string name, Func<Site, bool> when, Func<Site, P
     /// <summary>A nasal takes the place of articulation of a following stop or nasal.</summary>
     /*
       only where the new nasal can still close its syllable. A language whose codas allow only n, like
-      Japanese, would otherwise turn n before k into a ŋ it can't end a syllable with, and cluster
-      repair would then delete it. Japanese's n does take the next consonant's place, but as one
-      phoneme, which there's no way to say here, so the n stays n
+      Japanese, says n before k as ŋ where it has no ŋ of its own, as Japanese does, since the
+      allophone is still its n. Where it has ŋ, n would merge into a phoneme it can't end a syllable
+      with, and cluster repair would then delete it, so there the n stays n
      */
     public static SoundChange NasalAssimilation { get; } = new("nasal assimilation (np → mp)",
         site => site.Sound is Consonant { Manner: ConsonantManner.Nasal } nasal
             && site.Next?.Phoneme is Consonant { Manner: ConsonantManner.Plosive or ConsonantManner.Nasal } next && next.Place != nasal.Place,
         (site, phonology) => phonology.Counterpart((Consonant)site.Sound, place: ((Consonant)site.Next!.Phoneme).Place) is { } assimilated
-            && phonology.SyllableRule.IsLegalCoda([assimilated])
+            && phonology.SyllableRule.IsLegalCoda([(Consonant)phonology.Changed(site.Segment, assimilated).Realizes])
                 ? assimilated
                 : site.Sound);
 
@@ -169,12 +173,13 @@ public sealed class SoundChange(string name, Func<Site, bool> when, Func<Site, P
         site => site.Sound is Consonant { Voiced: false } && site.BetweenVowels,
         (site, phonology) => phonology.Counterpart((Consonant)site.Sound, voiced: true) ?? site.Sound);
 
-    //what each stop weakens to, the likeliest first, of what the language has
+    //what each stop weakens to, the likeliest first, of what the language can say
     private static readonly Dictionary<Phoneme, Consonant[]> Lenited = new()
     {
+        //p weakens to the ɸ of its own place, as in Tuscan, where the f of other places is no nearer
         //b and g weaken to the fricatives at their own place, as Spanish's do, and failing those to
         //the nearest sounds there are, v and w
-        [Consonant.p] = [Consonant.f],
+        [Consonant.p] = [Consonant.ɸ, Consonant.f],
         [Consonant.b] = [Consonant.β, Consonant.v],
         [Consonant.t] = [Consonant.θ, Consonant.s],
         [Consonant.d] = [Consonant.ð, Consonant.z],
@@ -199,7 +204,7 @@ public sealed class SoundChange(string name, Func<Site, bool> when, Func<Site, P
     //after voicing where a language has both, so that p can weaken all the way to β, or v without it
     public static SoundChange Lenition { get; } = new("lenition (apa → afa)",
         site => site.BetweenVowels && Lenited.ContainsKey(site.Sound),
-        (site, phonology) => Lenited[site.Sound].FirstOrDefault(phonology.Consonants.Contains) ?? site.Sound);
+        (site, phonology) => Lenited[site.Sound].FirstOrDefault(phonology.CanSay) ?? site.Sound);
 
     /// <summary>An obstruent takes the voicing of an obstruent after it, as in Russian.</summary>
     public static SoundChange VoicingAssimilation { get; } = new("voicing assimilation (apda → abda)",
@@ -228,6 +233,7 @@ public sealed class SoundChange(string name, Func<Site, bool> when, Func<Site, P
     public static SoundChange TongueRootHarmony { get; } = Harmony("tongue-root harmony (ke-lɛ → kele)",
         [(Vowel.e, Vowel.ɛ), (Vowel.o, Vowel.ɔ)]);
 
+
     /// <summary>Whether a language has both vowels of any pair this change needs, if it needs any.</summary>
     public bool CanApplyTo(IReadOnlyCollection<Vowel> vowels) => pairs?.Any(p => vowels.Contains(p.First) && vowels.Contains(p.Second)) ?? true;
 
@@ -235,7 +241,8 @@ public sealed class SoundChange(string name, Func<Site, bool> when, Func<Site, P
       harmony spreads from the root both ways, so prefixes agree too, and it reaches the root's own
       vowels, since real languages with harmony have roots that keep it. A vowel with no partner, like
       ə, is neutral: it doesn't change and harmony passes through it. It runs before epenthesis, so an
-      inserted vowel doesn't take part
+      inserted vowel doesn't take part. It makes only phonemes, since an affix's vowel alternates
+      between two of them, as Finnish -ssa and -ssä are written apart
      */
     private static SoundChange Harmony(string name, (Vowel First, Vowel Second)[] pairs)
     {
@@ -267,17 +274,17 @@ public sealed class SoundChange(string name, Func<Site, bool> when, Func<Site, P
     /// </summary>
     public static SoundChange CodaWeakening { get; } = new("coda weakening (kas.ta → kah.ta)",
         site => site.Place?.Position == SyllablePosition.Coda && site.Sound == Consonant.s,
-        (site, phonology) => phonology.Consonants.Contains(Consonant.h) ? Consonant.h : site.Sound);
+        (site, phonology) => phonology.CanSay(Consonant.h) ? Consonant.h : site.Sound);
 
-    private static readonly Dictionary<Phoneme, Vowel> Laxed = new() { [Vowel.e] = Vowel.ɛ, [Vowel.o] = Vowel.ɔ };
+    private static readonly Dictionary<Phoneme, Vowel> Laxed = new() { [Vowel.e] = Vowel.ɛ, [Vowel.o] = Vowel.ɔ, [Vowel.i] = Vowel.ɪ, [Vowel.u] = Vowel.ʊ };
 
     /// <summary>
-    /// A close-mid vowel opens in a syllable that ends in a consonant, as French fête has the open
-    /// vowel that féter lacks.
+    /// A close or close-mid vowel opens in a syllable that ends in a consonant, as French fête has
+    /// the open vowel that féter lacks, and Canadian French says the i of petite as ɪ.
     /// </summary>
     public static SoundChange ClosedSyllableLaxing { get; } = new("closed-syllable laxing (pet → pɛt)",
         site => site is { Place: { Position: SyllablePosition.Nucleus, Closed: true } } && Laxed.ContainsKey(site.Sound),
-        (site, phonology) => phonology.Vowels.Contains(Laxed[site.Sound]) ? Laxed[site.Sound] : site.Sound);
+        (site, phonology) => phonology.CanSay(Laxed[site.Sound]) ? Laxed[site.Sound] : site.Sound);
 
     private static bool Unstressed(Site site) => site.Place is { Position: SyllablePosition.Nucleus, Stressed: false };
 
@@ -379,17 +386,17 @@ public sealed class SoundChange(string name, Func<Site, bool> when, Func<Site, P
     /// </summary>
     public static SoundChange UnstressedShortening { get; } = new("unstressed shortening (paːˈta → paˈta)",
         site => Unstressed(site) && site.Sound is Vowel { Long: true },
-        (site, phonology) => phonology.Vowels.FirstOrDefault(v => !v.Long && v.Lengthened == site.Sound) ?? site.Sound);
+        (site, phonology) => Vowel.All.FirstOrDefault(v => !v.Long && v.Lengthened == site.Sound && phonology.CanSay(v)) ?? site.Sound);
 
     /// <summary>
     /// A diphthong outside the stressed syllable becomes a single vowel, as Latin's ae and oe became
     /// e, and au o, in Romance: ai, ei and oi give e, au and ou give o, and ui gives i.
     /// </summary>
-    //where the language lacks that vowel, the diphthong keeps only the vowel it starts on, and where it
-    //lacks that too, it stays a diphthong
+    //where the language can't say that vowel, the diphthong keeps only the vowel it starts on, and
+    //where it can't say that either, it stays a diphthong
     public static SoundChange UnstressedMonophthongization { get; } = new("unstressed monophthongization (kaiˈta → keˈta)",
         site => Unstressed(site) && site.Sound is Vowel { IsDiphthong: true },
-        (site, phonology) => new[] { Monophthong((Vowel)site.Sound), ((Vowel)site.Sound).Start! }.FirstOrDefault(phonology.Vowels.Contains) ?? site.Sound);
+        (site, phonology) => new[] { Monophthong((Vowel)site.Sound), ((Vowel)site.Sound).Start! }.FirstOrDefault(phonology.CanSay) ?? site.Sound);
 
     private static Vowel Monophthong(Vowel diphthong) =>
         diphthong == Vowel.ai || diphthong == Vowel.ei || diphthong == Vowel.oi ? Vowel.e
@@ -403,7 +410,7 @@ public sealed class SoundChange(string name, Func<Site, bool> when, Func<Site, P
     /// </summary>
     public static SoundChange OpenSyllableLengthening { get; } = new("open-syllable lengthening (ˈpata → ˈpaːta)",
         site => site.Place is { Position: SyllablePosition.Nucleus, Stressed: true, Closed: false } && site.Sound is Vowel { Lengthened: not null },
-        (site, phonology) => phonology.Vowels.Contains(((Vowel)site.Sound).Lengthened!) ? ((Vowel)site.Sound).Lengthened : site.Sound);
+        (site, phonology) => phonology.CanSay(((Vowel)site.Sound).Lengthened!) ? ((Vowel)site.Sound).Lengthened : site.Sound);
 
     /// <summary>
     /// A short vowel right after the stressed syllable is lost between single consonants, as Latin
@@ -421,7 +428,7 @@ public sealed class SoundChange(string name, Func<Site, bool> when, Func<Site, P
             && site.Word[site.Index - 1].Phoneme is Consonant && site.Word[site.Index - 2].Phoneme is Vowel
             && site.Places?[site.Index - 2].Stressed == true
             && site.Word[site.Index + 1].Phoneme is Consonant && site.Word[site.Index + 2].Phoneme is Vowel,
-        (site, phonology) => phonology.SyllableRule.IsLegalCoda([(Consonant)site.Word[site.Index - 1].Phoneme]) ? null : site.Sound);
+        (site, phonology) => phonology.SyllableRule.IsLegalCoda([(Consonant)site.Word[site.Index - 1].Realizes]) ? null : site.Sound);
 
     /// <summary>
     /// A short vowel right before the stressed syllable is lost between single consonants, as Latin
@@ -434,7 +441,7 @@ public sealed class SoundChange(string name, Func<Site, bool> when, Func<Site, P
             && site.Word[site.Index - 1].Phoneme is Consonant && site.Word[site.Index - 2].Phoneme is Vowel
             && site.Word[site.Index + 1].Phoneme is Consonant && site.Word[site.Index + 2].Phoneme is Vowel
             && site.Places?[site.Index + 2].Stressed == true,
-        (site, phonology) => phonology.SyllableRule.IsLegalCoda([(Consonant)site.Word[site.Index - 1].Phoneme]) ? null : site.Sound);
+        (site, phonology) => phonology.SyllableRule.IsLegalCoda([(Consonant)site.Word[site.Index - 1].Realizes]) ? null : site.Sound);
 
     /// <summary>
     /// A short unstressed vowel at the end of a word is lost after a consonant, as Latin mare became
@@ -450,11 +457,11 @@ public sealed class SoundChange(string name, Func<Site, bool> when, Func<Site, P
         site => Unstressed(site) && site.Sound is Vowel { Heavy: false } && site.Index == site.Word.Count - 1 && FinalCluster(site.Word) is { Count: > 0 },
         (site, phonology) => phonology.SyllableRule.IsLegalCoda(FinalCluster(site.Word)!) ? null : site.Sound);
 
-    //the consonants between a word's last two vowels, or null if it has only one
+    //the consonant phonemes between a word's last two vowels, or null if it has only one
     private static List<Consonant>? FinalCluster(IReadOnlyList<Segment> word)
     {
         var previous = word.Take(word.Count - 1).ToList().FindLastIndex(s => s.Phoneme is Vowel);
-        return previous < 0 ? null : [.. word.Skip(previous + 1).Take(word.Count - 2 - previous).Select(s => (Consonant)s.Phoneme)];
+        return previous < 0 ? null : [.. word.Skip(previous + 1).Take(word.Count - 2 - previous).Select(s => (Consonant)s.Realizes)];
     }
 
     /// <summary>
@@ -469,11 +476,11 @@ public sealed class SoundChange(string name, Func<Site, bool> when, Func<Site, P
         site => Unstressed(site) && site.Sound is Vowel { Heavy: false } && site.Index == 0 && InitialCluster(site.Word) is { Count: > 0 },
         (site, phonology) => phonology.SyllableRule.IsLegalOnset(InitialCluster(site.Word)!) ? null : site.Sound);
 
-    //the consonants between a word's first two vowels, or null if it has only one
+    //the consonant phonemes between a word's first two vowels, or null if it has only one
     private static List<Consonant>? InitialCluster(IReadOnlyList<Segment> word)
     {
         var next = word.Skip(1).ToList().FindIndex(s => s.Phoneme is Vowel);
-        return next < 0 ? null : [.. word.Skip(1).Take(next).Select(s => (Consonant)s.Phoneme)];
+        return next < 0 ? null : [.. word.Skip(1).Take(next).Select(s => (Consonant)s.Realizes)];
     }
 
     //how each unstressed vowel weakens
@@ -488,30 +495,33 @@ public sealed class SoundChange(string name, Func<Site, bool> when, Func<Site, P
     //long vowels and diphthongs are left to the changes that shorten them, which come before this
     public static SoundChange UnstressedReduction { get; } = new("unstressed reduction (ˈpata → ˈpatə)",
         site => Unstressed(site) && site.Sound is Vowel { Heavy: false, Height: not VowelHeight.Close } vowel && vowel != Vowel.ə,
-        (site, phonology) => phonology.Vowels.Contains(Vowel.ə) ? Vowel.ə : site.Sound);
+        (site, phonology) => phonology.CanSay(Vowel.ə) ? Vowel.ə : site.Sound);
 
     /// <summary>
     /// An unstressed mid vowel rises to a close one, e to i and o to u, as in Portuguese or Bulgarian.
     /// </summary>
     public static SoundChange UnstressedRaising { get; } = new("unstressed raising (ˈpeto → ˈpetu)",
         site => Unstressed(site) && Raised.ContainsKey(site.Sound),
-        (site, phonology) => phonology.Vowels.Contains(Raised[site.Sound]) ? Raised[site.Sound] : site.Sound);
+        (site, phonology) => phonology.CanSay(Raised[site.Sound]) ? Raised[site.Sound] : site.Sound);
 
-    //a coda and the onset consonant right after it, as they met before this change. In a coda of
-    //two, only the second meets the onset
+    /*
+      a coda and the onset consonant right after it, as they met before this change, as phonemes,
+      since contact is between the phonemes roots keep to, as syllables are. In a coda of two, only
+      the second meets the onset
+     */
     private static (Consonant Coda, Consonant Onset)? ContactAfter(Site site) =>
-        site is { Place.Position: SyllablePosition.Coda, Sound: Consonant coda, Next.Phoneme: Consonant onset }
+        site is { Place.Position: SyllablePosition.Coda, Segment.Realizes: Consonant coda, Next.Realizes: Consonant onset }
             && site.Places![site.Index + 1].Position == SyllablePosition.Onset
             ? (coda, onset)
             : null;
 
-    //whether the coda ending here would still be legal with this consonant in place of the last one
+    //whether the coda ending here would still be legal with its last consonant said as this one
     private static bool IsLegalCodaWith(Site site, Consonant last, Phonology phonology) =>
         phonology.SyllableRule.IsLegalCoda([.. Enumerable.Range(0, site.Index).Reverse().TakeWhile(i => site.Places![i].Position == SyllablePosition.Coda)
-            .Reverse().Select(i => (Consonant)site.Word[i].Phoneme), last]);
+            .Reverse().Select(i => (Consonant)site.Word[i].Realizes), (Consonant)phonology.Changed(site.Segment, last).Realizes]);
 
     private static (Consonant Coda, Consonant Onset)? ContactBefore(Site site) =>
-        site is { Place.Position: SyllablePosition.Onset, Sound: Consonant onset, Before: Consonant coda }
+        site is { Place.Position: SyllablePosition.Onset, Segment.Realizes: Consonant onset } && site.Index > 0 && site.Word[site.Index - 1].Realizes is Consonant coda
             && site.Places![site.Index - 1].Position == SyllablePosition.Coda
             ? (coda, onset)
             : null;
@@ -562,8 +572,11 @@ public sealed class SoundChange(string name, Func<Site, bool> when, Func<Site, P
     /// A coda is lost and the vowel before it lengthens to make up for it, as English car lost its r
     /// and Old French teste its s.
     /// </summary>
-    //both halves apply only where the language has the long vowel, so a coda is never lost for nothing.
-    //It follows coda weakening, which it can feed, and precedes laxing, whose closed syllables it opens
+    /*
+      both halves apply only where the language has the long vowel, so a coda is never lost for
+      nothing, and the long vowel is always a phoneme, since it's said for two. It follows coda
+      weakening, which it can feed, and precedes laxing, whose closed syllables it opens
+     */
     public static SoundChange CompensatoryLengthening { get; } = new("compensatory lengthening (kaɹ → kaː)",
         site => site.Place switch
         {
@@ -624,7 +637,7 @@ public sealed class SoundChange(string name, Func<Site, bool> when, Func<Site, P
 
     private static bool CanStartSyllable(Consonant glide, Site site, SyllableRule rule)
     {
-        var cluster = site.Word.Take(site.Index).Reverse().TakeWhile(s => s.Phoneme is Consonant).Select(s => (Consonant)s.Phoneme).Reverse().ToList();
+        var cluster = site.Word.Take(site.Index).Reverse().TakeWhile(s => s.Realizes is Consonant).Select(s => (Consonant)s.Realizes).Reverse().ToList();
         //a coda needs a vowel before it; at the start of a word, the whole cluster is the onset
         var codaLengths = site.Index > cluster.Count ? Enumerable.Range(0, cluster.Count + 1) : [0];
         return codaLengths.Any(c => rule.IsLegalCoda(cluster[..c]) && rule.IsLegalOnset([.. cluster[c..], glide]));
