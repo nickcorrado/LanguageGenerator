@@ -62,41 +62,6 @@ public union AspectMarking(Bound, Free, AspectAuxiliary);
 //each is null where the language doesn't mark it
 public record Aspects(AspectMarking? Perfect, AspectMarking? Progressive, AspectMarking? Habitual, AspectMarking? Inceptive, AspectMarking? Cessative)
 {
-    /// <summary>The kinds a perfect can be.</summary>
-    public static IReadOnlyList<AspectKind> PerfectKinds { get; } = [AspectKind.None, AspectKind.Affix, AspectKind.Particle, AspectKind.Have, AspectKind.Be, AspectKind.Finish];
-    /// <summary>The kinds a progressive can be.</summary>
-    public static IReadOnlyList<AspectKind> ProgressiveKinds { get; } = [AspectKind.None, AspectKind.Affix, AspectKind.Particle, AspectKind.Be, AspectKind.Sit];
-    /// <summary>The kinds a habitual can be.</summary>
-    public static IReadOnlyList<AspectKind> HabitualKinds { get; } = [AspectKind.None, AspectKind.Affix, AspectKind.Particle, AspectKind.Be];
-    /// <summary>
-    /// The kinds an inceptive or cessative can be: a marker on the verb, or none, where the
-    /// language says it with a verb of its own, as English does with 'begin' or 'stop'.
-    /// </summary>
-    public static IReadOnlyList<AspectKind> PhaseKinds { get; } = [AspectKind.None, AspectKind.Affix, AspectKind.Particle];
-
-    /// <summary>The verb an auxiliary of this kind is, or null for a kind that isn't one.</summary>
-    public static AspectVerb? VerbOf(AspectKind kind) => kind switch
-    {
-        AspectKind.Have => AspectVerb.Have,
-        AspectKind.Be => AspectVerb.Be,
-        AspectKind.Finish => AspectVerb.Finish,
-        AspectKind.Sit => AspectVerb.Sit,
-        AspectKind.None or AspectKind.Affix or AspectKind.Particle => null,
-        _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
-    };
-
-    /// <summary>The kind a marking is, as a spec names it.</summary>
-    public static AspectKind KindOf(AspectMarking? marking) => marking is not { } m ? AspectKind.None : m switch
-    {
-        Bound => AspectKind.Affix,
-        Free => AspectKind.Particle,
-        AspectAuxiliary { Verb: AspectVerb.Have } => AspectKind.Have,
-        AspectAuxiliary { Verb: AspectVerb.Be } => AspectKind.Be,
-        AspectAuxiliary { Verb: AspectVerb.Finish } => AspectKind.Finish,
-        AspectAuxiliary { Verb: AspectVerb.Sit } => AspectKind.Sit,
-        AspectAuxiliary a => throw new ArgumentOutOfRangeException(nameof(marking), a.Verb, null),
-    };
-
     /// <summary>Each aspect's and phase's marking, in the order of the settings for them.</summary>
     public IReadOnlyList<AspectMarking?> All => [Perfect, Progressive, Habitual, Inceptive, Cessative];
 

@@ -511,7 +511,7 @@ internal static class SettingWrites
      */
     public static AspectMarking? WithAspectKind(Aspects aspects, AspectMarking? drawn, Grammeme meaning, AspectKind kind)
     {
-        if (Aspects.KindOf(drawn) == kind)
+        if (KindOf(drawn) == kind)
         {
             return drawn;
         }
@@ -528,16 +528,32 @@ internal static class SettingWrites
             AspectAuxiliary { Verb: not AspectVerb.Finish } a => a.BeforeVerb ? Side.Before : Side.After,
             _ => null,
         };
+        AspectAuxiliary Auxiliary(AspectVerb verb) => AspectAuxiliary.Of(verb,
+            (exponent?.Side ?? WordSide(drawn) ?? aspects.All.Select(WordSide).FirstOrDefault(s => s is not null) ?? throw NoForm(value)) == Side.Before);
         return kind switch
         {
             AspectKind.None => null,
             AspectKind.Affix => AsAffix(exponent, [meaning], value),
             AspectKind.Particle => AsParticle(exponent, [meaning], value),
-            AspectKind.Have or AspectKind.Be or AspectKind.Finish or AspectKind.Sit => AspectAuxiliary.Of(Aspects.VerbOf(kind)!.Value,
-                (exponent?.Side ?? WordSide(drawn) ?? aspects.All.Select(WordSide).FirstOrDefault(s => s is not null) ?? throw NoForm(value)) == Side.Before),
+            AspectKind.Have => Auxiliary(AspectVerb.Have),
+            AspectKind.Be => Auxiliary(AspectVerb.Be),
+            AspectKind.Finish => Auxiliary(AspectVerb.Finish),
+            AspectKind.Sit => Auxiliary(AspectVerb.Sit),
             _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
         };
     }
+
+    /// <summary>The kind a marking is, as a spec names it.</summary>
+    public static AspectKind KindOf(AspectMarking? marking) => marking is not { } m ? AspectKind.None : m switch
+    {
+        Bound => AspectKind.Affix,
+        Free => AspectKind.Particle,
+        AspectAuxiliary { Verb: AspectVerb.Have } => AspectKind.Have,
+        AspectAuxiliary { Verb: AspectVerb.Be } => AspectKind.Be,
+        AspectAuxiliary { Verb: AspectVerb.Finish } => AspectKind.Finish,
+        AspectAuxiliary { Verb: AspectVerb.Sit } => AspectKind.Sit,
+        AspectAuxiliary a => throw new ArgumentOutOfRangeException(nameof(marking), a.Verb, null),
+    };
 
     public static ModalKind KindOf(ModalMarking marking) => marking switch
     {

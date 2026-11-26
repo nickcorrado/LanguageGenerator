@@ -395,21 +395,27 @@ public static class Settings
     ];
 
     public static Stage<Aspects> AspectStage { get; } = new("aspects", l => l.Aspects, null);
+    //the kinds each can be, which are the ways the generator's odds mark it
+    private static readonly AspectKind[] PerfectKinds = [AspectKind.None, AspectKind.Affix, AspectKind.Particle, AspectKind.Have, AspectKind.Be, AspectKind.Finish];
+    private static readonly AspectKind[] ProgressiveKinds = [AspectKind.None, AspectKind.Affix, AspectKind.Particle, AspectKind.Be, AspectKind.Sit];
+    private static readonly AspectKind[] HabitualKinds = [AspectKind.None, AspectKind.Affix, AspectKind.Particle, AspectKind.Be];
+    //a marker on the verb, or none, where the language says it with a verb of its own, as English does with 'begin' or 'stop'
+    private static readonly AspectKind[] PhaseKinds = [AspectKind.None, AspectKind.Affix, AspectKind.Particle];
     /// <summary>How the perfect is marked: not at all, by an affix, a particle, or an auxiliary 'have', 'be' or 'finish'.</summary>
     public static Setting<Aspects, AspectKind> Perfect { get; } = AspectStage.Declare("perfect", Clauses,
-        a => LanguageGenerator.Aspects.KindOf(a.Perfect), (a, kind) => a with { Perfect = SettingWrites.WithAspectKind(a, a.Perfect, LanguageGenerator.Aspect.Perfect, kind) }, Choice<AspectKind>.Of([.. LanguageGenerator.Aspects.PerfectKinds]));
+        a => SettingWrites.KindOf(a.Perfect), (a, kind) => a with { Perfect = SettingWrites.WithAspectKind(a, a.Perfect, LanguageGenerator.Aspect.Perfect, kind) }, Choice<AspectKind>.Of(PerfectKinds));
     /// <summary>How the progressive is marked: not at all, by an affix, a particle, or an auxiliary 'be' or 'sit'.</summary>
     public static Setting<Aspects, AspectKind> Progressive { get; } = AspectStage.Declare("progressive", Clauses,
-        a => LanguageGenerator.Aspects.KindOf(a.Progressive), (a, kind) => a with { Progressive = SettingWrites.WithAspectKind(a, a.Progressive, LanguageGenerator.Aspect.Progressive, kind) }, Choice<AspectKind>.Of([.. LanguageGenerator.Aspects.ProgressiveKinds]));
+        a => SettingWrites.KindOf(a.Progressive), (a, kind) => a with { Progressive = SettingWrites.WithAspectKind(a, a.Progressive, LanguageGenerator.Aspect.Progressive, kind) }, Choice<AspectKind>.Of(ProgressiveKinds));
     /// <summary>How the habitual is marked: not at all, by an affix, a particle, or an auxiliary 'be'.</summary>
     public static Setting<Aspects, AspectKind> Habitual { get; } = AspectStage.Declare("habitual", Clauses,
-        a => LanguageGenerator.Aspects.KindOf(a.Habitual), (a, kind) => a with { Habitual = SettingWrites.WithAspectKind(a, a.Habitual, LanguageGenerator.Aspect.Habitual, kind) }, Choice<AspectKind>.Of([.. LanguageGenerator.Aspects.HabitualKinds]));
+        a => SettingWrites.KindOf(a.Habitual), (a, kind) => a with { Habitual = SettingWrites.WithAspectKind(a, a.Habitual, LanguageGenerator.Aspect.Habitual, kind) }, Choice<AspectKind>.Of(HabitualKinds));
     /// <summary>How beginning to do something is marked on the verb: not at all, where it's said with 'begin', by an affix or by a particle.</summary>
     public static Setting<Aspects, AspectKind> Inceptive { get; } = AspectStage.Declare("inceptive", Clauses,
-        a => LanguageGenerator.Aspects.KindOf(a.Inceptive), (a, kind) => a with { Inceptive = SettingWrites.WithAspectKind(a, a.Inceptive, Phase.Inceptive, kind) }, Choice<AspectKind>.Of([.. LanguageGenerator.Aspects.PhaseKinds]));
+        a => SettingWrites.KindOf(a.Inceptive), (a, kind) => a with { Inceptive = SettingWrites.WithAspectKind(a, a.Inceptive, Phase.Inceptive, kind) }, Choice<AspectKind>.Of(PhaseKinds));
     /// <summary>How ceasing to do something is marked on the verb: not at all, where it's said with 'stop', by an affix or by a particle.</summary>
     public static Setting<Aspects, AspectKind> Cessative { get; } = AspectStage.Declare("cessative", Clauses,
-        a => LanguageGenerator.Aspects.KindOf(a.Cessative), (a, kind) => a with { Cessative = SettingWrites.WithAspectKind(a, a.Cessative, Phase.Cessative, kind) }, Choice<AspectKind>.Of([.. LanguageGenerator.Aspects.PhaseKinds]));
+        a => SettingWrites.KindOf(a.Cessative), (a, kind) => a with { Cessative = SettingWrites.WithAspectKind(a, a.Cessative, Phase.Cessative, kind) }, Choice<AspectKind>.Of(PhaseKinds));
     /// <summary>The settings of how each aspect is marked.</summary>
     public static IReadOnlyList<Setting<Aspects, AspectKind>> AspectMarkers { get; } = [Perfect, Progressive, Habitual, Inceptive, Cessative];
 

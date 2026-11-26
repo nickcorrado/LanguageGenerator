@@ -3,6 +3,24 @@ namespace LanguageGenerator;
 //the perfect, the progressive, the habitual, and beginning and ceasing
 public static partial class Generator
 {
+    //what an aspect's marker is drawn from: the language's profile and word order, and the forms its other markers took
+    private sealed record AspectCoining(Random Rand, Phonology Phonology, MorphologicalProfile Morphology, DistinctForms Forms, bool BeforeVerb);
+
+    //one way an aspect can be marked, as the odds below name it, coining its marker, glossed as the aspect
+    private delegate AspectMarking? AspectMarker(AspectCoining coining, Grammeme meaning);
+
+    private static AspectMarking? Unmarked(AspectCoining coining, Grammeme meaning) => null;
+
+    //an isolating language uses a particle in an affix's place
+    private static AspectMarking? AspectAffix(AspectCoining c, Grammeme meaning) => c.Morphology.Fusion == Fusion.Isolating
+        ? AspectParticle(c, meaning)
+        : new Bound(CoinAffix(c.Rand, c.Phonology, c.Forms.Draw(() => MarkerForm(c.Rand, true, c.Phonology)), [meaning]), c.Rand.NextDouble() < PrefixChance(c.Morphology) ? Side.Before : Side.After);
+
+    private static AspectMarking? AspectParticle(AspectCoining c, Grammeme meaning) =>
+        new Free(new Particle(c.Forms.Draw(() => MarkerForm(c.Rand, false, c.Phonology)), [meaning]), c.BeforeVerb ? Side.Before : Side.After);
+
+    private static AspectMarker AspectAuxiliaryOf(AspectVerb verb) => (c, _) => AspectAuxiliary.Of(verb, c.BeforeVerb);
+
     /*
        https://wals.info/feature/68A: of 222 languages, 114 have no perfect, 7 make one from a
       possessive construction, as English 'have' does, 21 from 'finish' or 'already', and 80 some other
@@ -10,14 +28,14 @@ public static partial class Generator
       and the copula, as French est venu has it, is a guess. The 21 are split between an auxiliary
       'finish' and a particle, as 'already' is one, and as Mandarin le, from 'finish', became one
      */
-    private static readonly (AspectKind Value, int Languages)[] PerfectCounts =
+    private static readonly (AspectMarker Value, int Languages)[] PerfectCounts =
     [
-        (AspectKind.None, 114),
-        (AspectKind.Have, 7),
-        (AspectKind.Finish, 11),
-        (AspectKind.Particle, 10 + 20),
-        (AspectKind.Affix, 35),
-        (AspectKind.Be, 25),
+        (Unmarked, 114),
+        (AspectAuxiliaryOf(AspectVerb.Have), 7),
+        (AspectAuxiliaryOf(AspectVerb.Finish), 11),
+        (AspectParticle, 10 + 20),
+        (AspectAffix, 35),
+        (AspectAuxiliaryOf(AspectVerb.Be), 25),
     ];
 
     /*
@@ -26,13 +44,13 @@ public static partial class Generator
       is, 'be at doing', as Spanish estar and Mandarin zài are, then from verbs of posture, 'sit' or
       'stand', as Dutch zitten is. A language without one says it as an imperfective, as Russian does
      */
-    private static readonly (AspectKind Value, int Languages)[] ProgressiveCounts =
+    private static readonly (AspectMarker Value, int Languages)[] ProgressiveCounts =
     [
-        (AspectKind.None, 45),
-        (AspectKind.Be, 25),
-        (AspectKind.Affix, 15),
-        (AspectKind.Particle, 10),
-        (AspectKind.Sit, 5),
+        (Unmarked, 45),
+        (AspectAuxiliaryOf(AspectVerb.Be), 25),
+        (AspectAffix, 15),
+        (AspectParticle, 10),
+        (AspectAuxiliaryOf(AspectVerb.Sit), 5),
     ];
 
     /*
@@ -42,12 +60,12 @@ public static partial class Generator
       hai 'goes, habitually' and Irish bíonn are. Most languages have none, and say a habit as an
       imperfective, as WALS 65A finds theirs covering habituals
      */
-    private static readonly (AspectKind Value, int Languages)[] HabitualCounts =
+    private static readonly (AspectMarker Value, int Languages)[] HabitualCounts =
     [
-        (AspectKind.None, 60),
-        (AspectKind.Affix, 20),
-        (AspectKind.Particle, 12),
-        (AspectKind.Be, 8),
+        (Unmarked, 60),
+        (AspectAffix, 20),
+        (AspectParticle, 12),
+        (AspectAuxiliaryOf(AspectVerb.Be), 8),
     ];
 
     /*
@@ -56,18 +74,18 @@ public static partial class Generator
       verb, as Russian za-pel 'started singing' does with an inceptive. That a cessative on the verb
       is the rarer of the two is a guess as well
      */
-    private static readonly (AspectKind Value, int Languages)[] InceptiveCounts =
+    private static readonly (AspectMarker Value, int Languages)[] InceptiveCounts =
     [
-        (AspectKind.None, 80),
-        (AspectKind.Affix, 12),
-        (AspectKind.Particle, 8),
+        (Unmarked, 80),
+        (AspectAffix, 12),
+        (AspectParticle, 8),
     ];
 
-    private static readonly (AspectKind Value, int Languages)[] CessativeCounts =
+    private static readonly (AspectMarker Value, int Languages)[] CessativeCounts =
     [
-        (AspectKind.None, 88),
-        (AspectKind.Affix, 7),
-        (AspectKind.Particle, 5),
+        (Unmarked, 88),
+        (AspectAffix, 7),
+        (AspectParticle, 5),
     ];
 
     /*
@@ -78,26 +96,8 @@ public static partial class Generator
      */
     public static Aspects GenerateAspects(Random rand, MorphologicalProfile morphology, WordOrder wordOrder, Phonology phonology)
     {
-        var before = wordOrder.VerbPhraseDirectionality == HeadDirectionality.Initial;
-        var forms = new DistinctForms();
-        //the marking of an aspect or phase, glossed as it
-        AspectMarking? Marker((AspectKind Value, int Languages)[] counts, Grammeme meaning)
-        {
-            var kind = Sampling.Categorical(rand, counts);
-            if (kind == AspectKind.Affix && morphology.Fusion == Fusion.Isolating)
-            {
-                kind = AspectKind.Particle;
-            }
-            return kind switch
-            {
-                AspectKind.None => null,
-                AspectKind.Affix => new Bound(CoinAffix(rand, phonology, forms.Draw(() => MarkerForm(rand, true, phonology)), [meaning]),
-                    rand.NextDouble() < PrefixChance(morphology) ? Side.Before : Side.After),
-                AspectKind.Particle => new Free(new Particle(forms.Draw(() => MarkerForm(rand, false, phonology)), [meaning]), before ? Side.Before : Side.After),
-                AspectKind.Have or AspectKind.Be or AspectKind.Finish or AspectKind.Sit => AspectAuxiliary.Of(Aspects.VerbOf(kind)!.Value, before),
-                _ => throw new ArgumentOutOfRangeException(nameof(counts), kind, null),
-            };
-        }
+        var coining = new AspectCoining(rand, phonology, morphology, new DistinctForms(), wordOrder.VerbPhraseDirectionality == HeadDirectionality.Initial);
+        AspectMarking? Marker((AspectMarker Value, int Languages)[] counts, Grammeme meaning) => Sampling.Categorical(rand, counts)(coining, meaning);
         var perfect = Marker(PerfectCounts, Aspect.Perfect);
         var progressive = Marker(ProgressiveCounts, Aspect.Progressive);
         var habitual = Marker(HabitualCounts, Aspect.Habitual);

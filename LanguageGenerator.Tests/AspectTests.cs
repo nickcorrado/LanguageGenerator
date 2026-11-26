@@ -21,7 +21,7 @@ public class AspectTests
     [Fact]
     public void Generate_IsolatingLanguages_HaveNoAspectAffixes() =>
         Assert.All(GeneratedLanguages.Sample.Where(l => l.MorphologicalProfile.Fusion == Fusion.Isolating),
-            l => Assert.DoesNotContain(AspectKind.Affix, l.Aspects.All.Select(Aspects.KindOf)));
+            l => Assert.DoesNotContain(l.Aspects.All, m => m?.Value is Bound));
 
     [Fact]
     public void Generate_PerfectAndProgressiveParticles_SoundDifferent() =>
