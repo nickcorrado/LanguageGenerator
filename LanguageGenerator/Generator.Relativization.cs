@@ -60,8 +60,8 @@ public static partial class Generator
 
     /*
       where relative clauses go, how each role a relative clause's noun fills is said, and what
-      marks a relative clause, with a relativizer and a relative pronoun of its own coined whatever
-      is drawn. An isolating language uses a word where another would use an affix
+      marks a relative clause, with a relativizer, if it has one, and a relative pronoun of its own
+      coined whatever is drawn. An isolating language uses a word where another would use an affix
      */
     public static Relativization GenerateRelativization(Random rand, MorphologicalProfile morphology, WordOrder wordOrder, Phonology phonology)
     {
@@ -75,9 +75,15 @@ public static partial class Generator
             kind = RelativizerKind.Particle;
         }
         var forms = new DistinctForms();
-        var relativizerForm = forms.Draw(() => kind == RelativizerKind.Affix ? MarkerForm(rand, true, phonology) : [.. GenerateSyllable(rand, phonology.SyllableRule, phonology.Dropoff, needsOnset: false, codaCluster: false).Phonemes]);
-        var relativizer = new Relativizer(kind, relativizerForm, CoinAffixAccent(rand, phonology, relativizerForm),
-            rand.NextDouble() < PrefixChance(morphology) ? ExponentPosition.Prefix : ExponentPosition.Suffix);
+        Relativizer? relativizer = kind switch
+        {
+            RelativizerKind.None => null,
+            RelativizerKind.Affix => new Bound(CoinAffix(rand, phonology, forms.Draw(() => MarkerForm(rand, true, phonology)), [Linkage.Relative]),
+                rand.NextDouble() < PrefixChance(morphology) ? Side.Before : Side.After),
+            RelativizerKind.Particle => new Particle(forms.Draw(() => [.. GenerateSyllable(rand, phonology.SyllableRule, phonology.Dropoff, needsOnset: false, codaCluster: false).Phonemes]),
+                [Linkage.Relative]),
+            _ => throw new InvalidOperationException($"{kind} isn't a relativizer."),
+        };
         var fromQuestionWords = rand.NextDouble() < PronounFromQuestionWordsChance;
         var own = new Lexeme(CoinRoot(rand, phonology, forms.Draw(() => GenerateForm(rand, phonology, 0, maxSyllables: 1)), "REL"), PartOfSpeech.Noun);
         return new Relativization(beforeNoun, subject, @object, oblique, relativizer, new RelativePronoun(fromQuestionWords, own));

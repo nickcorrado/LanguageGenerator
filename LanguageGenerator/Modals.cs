@@ -1,16 +1,6 @@
 namespace LanguageGenerator;
 
 /// <summary>
-/// A modal as an affix on the verb, as Turkish -ebil in gid-ebil-ir-im 'I can go', next to its root
-/// and outside only a passive.
-/// </summary>
-//Position is Prefix or Suffix
-public record ModalAffix(Affix Marker, ExponentPosition Position);
-
-/// <summary>A modal as a word of its own beside the verb, as Chukchi mecənkə.</summary>
-public record ModalParticle(Particle Marker, bool BeforeVerb);
-
-/// <summary>
 /// A modal as a verb of its own, as French pouvoir, which takes the clause's tense, agreement and
 /// the modal's negation, with the clause's verb bare beside it.
 /// </summary>
@@ -18,8 +8,12 @@ public record ModalParticle(Particle Marker, bool BeforeVerb);
 //'may' is glossed 'can' in one use and 'may' in the other, as a shared subordinator is
 public record ModalVerb(Lexeme Verb, bool BeforeVerb);
 
-/// <summary>How a language marks one modality.</summary>
-public union ModalMarking(ModalAffix, ModalParticle, ModalVerb);
+/// <summary>
+/// How a language marks one modality: an affix on the verb, as Turkish -ebil in gid-ebil-ir-im 'I
+/// can go', next to its root and outside only a passive, a word of its own beside the verb, as
+/// Chukchi mecənkə, or a verb of its own.
+/// </summary>
+public union ModalMarking(Bound, Free, ModalVerb);
 
 /// <summary>How a modality is marked, as a spec names it.</summary>
 public enum ModalKind

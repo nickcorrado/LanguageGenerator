@@ -39,7 +39,7 @@ public class MorphosyntaxSettingTests
         Assert.All(Enumerable.Range(0, 20).Select(seed => Generator.Generate(seed, spec)), l =>
         {
             Assert.DoesNotContain((Modality.Ability, Modality.Permission), l.Modals.Joined);
-            Assert.IsType<ModalParticle>(l.Modals.Markers[Modality.Ability].Value);
+            Assert.IsType<Free>(l.Modals.Markers[Modality.Ability].Value);
             Assert.IsType<ModalVerb>(l.Modals.Markers[Modality.Permission].Value);
         });
     }
@@ -50,7 +50,7 @@ public class MorphosyntaxSettingTests
         var spec = LanguageSpec.Free.Fix(Settings.ModalityEdge(Modality.Ability, Modality.Permission), true).Fix(Settings.ModalOf(Modality.Ability), ModalKind.Particle);
 
         Assert.All(Enumerable.Range(0, 20).Select(seed => Generator.Generate(seed, spec)), l =>
-            Assert.IsType<ModalParticle>(l.Modals.Markers[Modality.Permission].Value));
+            Assert.IsType<Free>(l.Modals.Markers[Modality.Permission].Value));
     }
 
     [Fact]
@@ -62,7 +62,7 @@ public class MorphosyntaxSettingTests
 
         var written = Settings.ModalOf(Modality.Ability).Write(drawn, [ModalKind.Particle]);
 
-        Assert.All([Modality.Ability, Modality.Permission], m => Assert.Equal(form, Assert.IsType<ModalParticle>(written.Markers[m].Value).Marker.Form));
+        Assert.All([Modality.Ability, Modality.Permission], m => Assert.Equal(form, Assert.IsType<Free>(written.Markers[m].Value).Particle.Form));
     }
 
     [Theory]

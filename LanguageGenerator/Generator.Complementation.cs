@@ -127,19 +127,22 @@ public static partial class Generator
         {
             quotativeKind = rand.NextDouble() < 0.5 ? QuotativeKind.Word : QuotativeKind.None;
         }
-        var quotative = new Quotative(quotativeKind, new Particle(Form(false), [Linkage.Quotative]), rand.NextDouble() < QuotativeBeforeChance(objectFirst));
+        Quotative? quotative = quotativeKind switch
+        {
+            QuotativeKind.None => null,
+            QuotativeKind.Word => new Free(new Particle(Form(false), [Linkage.Quotative]), rand.NextDouble() < QuotativeBeforeChance(objectFirst) ? Side.Before : Side.After),
+            QuotativeKind.Complementizer => new QuotativeComplementizer(),
+            _ => throw new InvalidOperationException($"{quotativeKind} isn't a quotative."),
+        };
 
         var last = rand.NextDouble() < LastChance(objectFirst, propositionPosition);
         var before = wordOrder.VerbPhraseDirectionality == HeadDirectionality.Initial;
-        var wantKind = (want, isolating) switch
+        Exponent? desiderative = (want, isolating) switch
         {
-            (WantComplement.Affix, false) => DesiderativeKind.Affix,
-            (WantComplement.Affix or WantComplement.Particle, _) => DesiderativeKind.Particle,
-            _ => DesiderativeKind.Verb,
+            (WantComplement.Affix, false) => new Bound(CoinAffix(rand, phonology, Form(true), [Volition.Desiderative]), rand.NextDouble() < PrefixChance(morphology) ? Side.Before : Side.After),
+            (WantComplement.Affix or WantComplement.Particle, _) => new Free(new Particle(Form(false), [Volition.Desiderative]), before ? Side.Before : Side.After),
+            _ => null,
         };
-        var wantForm = Form(wantKind == DesiderativeKind.Affix);
-        var desiderative = new Desiderative(wantKind, wantForm, CoinAffixAccent(rand, phonology, wantForm),
-            rand.NextDouble() < PrefixChance(morphology) ? ExponentPosition.Prefix : ExponentPosition.Suffix, before);
         return new Complementation(proposition, @event, quotative, last, desiderative);
     }
 

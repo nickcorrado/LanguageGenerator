@@ -24,13 +24,13 @@ public class PassiveTests
         var passives = Enumerable.Range(0, 1000).Select(_ => Generator.GeneratePassive(rand, alignment, language.MorphologicalProfile, language.Phonology)).OfType<Passive>().ToList();
 
         Assert.NotEmpty(passives);
-        Assert.All(passives, p => Assert.True(p is { Position: ExponentPosition.Prefix or ExponentPosition.Suffix, Marker.Value: Affix }));
+        Assert.All(passives, p => Assert.True(p is { Exponent.Value: Bound }));
     }
 
     [Fact]
     public void Generate_IsolatingLanguages_MarkThePassiveWithAWord() =>
         Assert.All(GeneratedLanguages.Sample.Where(l => l.MorphologicalProfile.Fusion == Fusion.Isolating && l.Passive is not null),
-            l => Assert.True(l.Passive!.Marker.Value is Particle));
+            l => Assert.True(l.Passive!.Exponent.Value is Free));
 
     [Fact]
     public void Parse_Passive_HasItsPatientAsSubjectAndAnAgent()

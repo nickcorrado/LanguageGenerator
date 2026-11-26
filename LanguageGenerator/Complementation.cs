@@ -54,12 +54,14 @@ public enum QuotativeKind
     Word,
 }
 
+/// <summary>A quotation marked with the complementizer of a proposition, glossed QUOT in this use.</summary>
+public record QuotativeComplementizer;
+
 /// <summary>
-/// How a language marks a quotation: not at all, with the complementizer, or with a word of its own
-/// on one side of it.
+/// How a language marks a quotation: with a word of its own on one side of it, or with the
+/// complementizer.
 /// </summary>
-//the word is coined whatever the kind, so that a spec can write one in, and BeforeQuote is only for it
-public record Quotative(QuotativeKind Kind, Particle Word, bool BeforeQuote);
+public union Quotative(Free, QuotativeComplementizer);
 
 /// <summary>How a language says 'want': WALS 124A's types.</summary>
 public enum DesiderativeKind
@@ -73,32 +75,36 @@ public enum DesiderativeKind
 }
 
 /// <summary>
-/// How a language says 'want': as a verb, or as a marker on the verb of what's wanted, which then
-/// takes the tense and agreement, as Japanese tabe-ta-i 'eat-DESID-PRS' is 'wants to eat': an affix
-/// next to the root, on the side AffixPosition says, or a word beside the verb, before it if
-/// BeforeVerb, as modals are.
-/// </summary>
-//the marker's form is coined whatever the kind, so that a spec can write one in
-public record Desiderative(DesiderativeKind Kind, IReadOnlyList<Phoneme> Form, AffixAccent Accent, ExponentPosition AffixPosition, bool BeforeVerb)
-{
-    /// <summary>The marker on the verb of what's wanted, or null where 'want' is a verb.</summary>
-    public ModalMarking? Marking => Kind switch
-    {
-        DesiderativeKind.Verb => null,
-        DesiderativeKind.Affix => new ModalAffix(new Affix(Form, [Volition.Desiderative], Accent), AffixPosition),
-        DesiderativeKind.Particle => new ModalParticle(new Particle(Form, [Volition.Desiderative]), BeforeVerb),
-        _ => throw new InvalidOperationException(),
-    };
-}
-
-/// <summary>
 /// How a language marks complement clauses and quotations: each kind of complement's marking, how
-/// a quotation is marked, whether a complement that keeps its verb goes last in its clause, and
-/// how 'want' is said.
+/// a quotation is marked, or null where it isn't, whether a complement that keeps its verb goes last
+/// in its clause, and how 'want' is said: as a marker on the verb of what's wanted, which then takes
+/// the tense and agreement, as Japanese tabe-ta-i 'eat-DESID-PRS' is 'wants to eat', an affix next
+/// to the root or a word beside the verb, as modals are, or null where 'want' is a verb.
 /// </summary>
 //a deranked complement is a noun phrase, and goes where the object does whatever Last says
-public record Complementation(ComplementMarking Proposition, ComplementMarking Event, Quotative Quotative, bool Last, Desiderative Desiderative)
+public record Complementation(ComplementMarking Proposition, ComplementMarking Event, Quotative? Quotative, bool Last, Exponent? Desiderative)
 {
+    /// <summary>The desiderative as a modal on the verb of what's wanted, or null where 'want' is a verb.</summary>
+    public ModalMarking? DesiderativeMarking => Desiderative is not { } desiderative ? null : desiderative switch
+    {
+        Bound b => b,
+        Free f => f,
+    };
+
+    /// <summary>The kind the desiderative is, as a spec names it.</summary>
+    public DesiderativeKind DesiderativeKind => Desiderative is not { } desiderative ? DesiderativeKind.Verb : desiderative switch
+    {
+        Bound => DesiderativeKind.Affix,
+        Free => DesiderativeKind.Particle,
+    };
+
+    /// <summary>The kind the quotative is, as a spec names it.</summary>
+    public QuotativeKind QuotativeKind => Quotative is not { } quotative ? QuotativeKind.None : quotative switch
+    {
+        Free => QuotativeKind.Word,
+        QuotativeComplementizer => QuotativeKind.Complementizer,
+    };
+
     public ComplementMarking MarkingOf(ComplementKind kind) => kind switch
     {
         ComplementKind.Proposition => Proposition,
@@ -110,18 +116,16 @@ public record Complementation(ComplementMarking Proposition, ComplementMarking E
     /// The marker of a quotation and where it goes, or null where it has none. One that's the
     /// complementizer is glossed QUOT in this use.
     /// </summary>
-    public (Morpheme Marker, ExponentPosition Position)? QuotativeMarker => Quotative.Kind switch
+    public (Morpheme Marker, ExponentPosition Position)? QuotativeMarker => Quotative is not { } quotative ? null : quotative switch
     {
-        QuotativeKind.None => null,
-        QuotativeKind.Word => (Quotative.Word, Quotative.BeforeQuote ? ExponentPosition.PrecedingParticle : ExponentPosition.FollowingParticle),
-        QuotativeKind.Complementizer => Proposition.Position switch
+        Free word => (word.Particle, ((Exponent)word).Position),
+        QuotativeComplementizer => Proposition.Position switch
         {
             ComplementizerPosition.Suffix => (new Affix(Proposition.Marker.Form, [Linkage.Quotative], Proposition.Marker.Value is Affix a ? a.Accent : AffixAccent.None), ExponentPosition.Suffix),
             ComplementizerPosition.Initial => (new Particle(Proposition.Marker.Form, [Linkage.Quotative]), ExponentPosition.PrecedingParticle),
             ComplementizerPosition.Final => (new Particle(Proposition.Marker.Form, [Linkage.Quotative]), ExponentPosition.FollowingParticle),
             _ => throw new InvalidOperationException("A quotation can only be marked with the complementizer where a proposition has one."),
         },
-        _ => throw new InvalidOperationException(),
     };
 
     /// <summary>Where a complementizer in this position goes, as an exponent does.</summary>

@@ -21,12 +21,12 @@ public class AspectTests
     [Fact]
     public void Generate_IsolatingLanguages_HaveNoAspectAffixes() =>
         Assert.All(GeneratedLanguages.Sample.Where(l => l.MorphologicalProfile.Fusion == Fusion.Isolating),
-            l => Assert.DoesNotContain(AspectKind.Affix, (AspectKind[])[l.Aspects.Perfect.Kind, l.Aspects.Progressive.Kind, l.Aspects.Habitual.Kind, l.Aspects.Inceptive.Kind, l.Aspects.Cessative.Kind]));
+            l => Assert.DoesNotContain(l.Aspects.All, m => m?.Value is Bound));
 
     [Fact]
     public void Generate_PerfectAndProgressiveParticles_SoundDifferent() =>
         Assert.All(Languages(AspectKind.Particle, AspectKind.Particle), l =>
-            Assert.False(l.Aspects.Perfect.Form.SequenceEqual(l.Aspects.Progressive.Form)));
+            Assert.False(Assert.IsType<Free>(l.Aspects.Perfect?.Value).Particle.Form.SequenceEqual(Assert.IsType<Free>(l.Aspects.Progressive?.Value).Particle.Form)));
 
     [Fact]
     public void Realize_UnmarkedPerfect_IsAPerfectivePast() =>
@@ -110,15 +110,15 @@ public class AspectTests
     [Fact]
     public void Realize_AspectAffix_GoesNextToTheRootOutsideThePassive()
     {
-        var languages = Languages(AspectKind.Affix, AspectKind.None, s => s.Fix(Settings.HasPassive, true).Inflecting()).Where(l => l.Passive is { Marker.Value: Affix }).ToList();
+        var languages = Languages(AspectKind.Affix, AspectKind.None, s => s.Fix(Settings.HasPassive, true).Inflecting()).Where(l => l.Passive is { Exponent.Value: Bound }).ToList();
         Assert.NotEmpty(languages);
         Assert.All(languages, l =>
         {
             var sentence = Realized(l, new PassiveClause("eat", Tense.Past, Aspect.Perfect, Fish, null, false, []) { Adverbs = [] });
             var morphemes = sentence.Words[IndexOf(sentence, l.Lexicon.Verb("eat").Root)].Word.Morphemes.Select(m => m.Value).ToList();
             var root = morphemes.FindIndex(m => m is Root);
-            var prefix = l.Aspects.Perfect.AffixPosition == ExponentPosition.Prefix;
-            var passivePrefix = l.Passive!.Position == ExponentPosition.Prefix;
+            var prefix = Assert.IsType<Bound>(l.Aspects.Perfect?.Value).Side == Side.Before;
+            var passivePrefix = l.Passive!.Exponent.Side == Side.Before;
 
             var perfect = morphemes.FindIndex(m => m is Affix { Grammemes: [var g] } && g == Aspect.Perfect);
             Assert.Equal(prefix ? root - (passivePrefix ? 2 : 1) : root + (passivePrefix ? 1 : 2), perfect);
@@ -133,7 +133,7 @@ public class AspectTests
             var at = sentence.Words.ToList().FindIndex(w => w.Word.Morphemes.Any(m => m.Value is Particle { Grammemes: [var g] } && g == Aspect.Progressive));
             var eat = IndexOf(sentence, l.Lexicon.Verb("eat").Root);
             Assert.True(at >= 0);
-            Assert.Equal(l.Aspects.Progressive.BeforeVerb ? eat - 1 : eat + 1, at);
+            Assert.Equal(Assert.IsType<Free>(l.Aspects.Progressive?.Value).Side == Side.Before ? eat - 1 : eat + 1, at);
         });
 
     [Fact]

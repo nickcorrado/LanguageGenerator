@@ -81,7 +81,7 @@ public class GeneratorTests
             Assert.Equal(11 + relational.Count + kinds, l.Lexicon.Count(x => x.PartOfSpeech == PartOfSpeech.Noun));
             //with the verb an aspect's auxiliary is, where it's 'have', 'finish' or 'sit'
             var basic = l.Lexicon.Where(x => x.PartOfSpeech == PartOfSpeech.Verb).Select(x => x.Root.Meaning).ToList();
-            var auxiliaries = ((AspectKind[])[l.Aspects.Perfect.Kind, l.Aspects.Progressive.Kind]).Select(Language.AuxiliaryMeaning).OfType<string>().Distinct().ToList();
+            var auxiliaries = ((AspectMarking?[])[l.Aspects.Perfect, l.Aspects.Progressive]).Select(m => m?.Value is AspectAuxiliary a ? Language.AuxiliaryMeaning(a.Verb) : null).OfType<string>().Distinct().ToList();
             Assert.Equal(8 + auxiliaries.Count, basic.Count);
             Assert.All(auxiliaries, a => Assert.Contains(a, basic));
             //every role but the similative, which has a marker of its own

@@ -39,14 +39,10 @@ public enum RelativizerKind
 }
 
 /// <summary>
-/// How a language marks its relative clauses, a word or an affix, glossed REL. An affix goes on the
-/// side AffixPosition says.
+/// How a language marks its relative clauses, glossed REL: an affix on the verb, on its side, or a
+/// word at the clause's edge beside its noun, which is on whichever side the noun is.
 /// </summary>
-//the form is coined whatever the kind, so that a spec can write one in
-public record Relativizer(RelativizerKind Kind, IReadOnlyList<Phoneme> Form, AffixAccent Accent, ExponentPosition AffixPosition)
-{
-    public Morpheme Marker => Kind == RelativizerKind.Affix ? new Affix(Form, [Linkage.Relative], Accent) : new Particle(Form, [Linkage.Relative]);
-}
+public union Relativizer(Bound, Particle);
 
 /// <summary>
 /// A language's relative pronoun: its question words for 'who', 'what' and 'where', as
@@ -62,8 +58,16 @@ public record RelativePronoun(bool FromQuestionWords, Lexeme Own);
 /// </summary>
 //subjects, objects and obliques can each be relativized their own way, as the Accessibility
 //Hierarchy has languages resume the roles lower on it before the higher ones
-public record Relativization(bool BeforeNoun, RelativeStrategy Subject, RelativeStrategy Object, RelativeStrategy Oblique, Relativizer Relativizer, RelativePronoun Pronoun)
+//the relativizer is null where the language doesn't mark them
+public record Relativization(bool BeforeNoun, RelativeStrategy Subject, RelativeStrategy Object, RelativeStrategy Oblique, Relativizer? Relativizer, RelativePronoun Pronoun)
 {
+    /// <summary>The kind the relativizer is, as a spec names it.</summary>
+    public RelativizerKind RelativizerKind => Relativizer is not { } relativizer ? RelativizerKind.None : relativizer switch
+    {
+        Bound => RelativizerKind.Affix,
+        Particle => RelativizerKind.Particle,
+    };
+
     /// <summary>How the noun is said when it fills this role in the relative clause.</summary>
     public RelativeStrategy StrategyFor(Role role) => role switch
     {

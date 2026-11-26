@@ -48,7 +48,7 @@ public class PhaseTests
             {
                 var at = IndexOf(sentence, eat);
                 var marker = sentence.Words.ToList().FindIndex(w => Marks(w.Word, phase));
-                var before = (verb == "begin" ? l.Aspects.Inceptive : l.Aspects.Cessative).BeforeVerb;
+                var before = Assert.IsType<Free>((verb == "begin" ? l.Aspects.Inceptive : l.Aspects.Cessative)?.Value).Side == Side.Before;
                 Assert.Equal(before ? at - 1 : at + 1, marker);
                 Assert.Equal(plain.Words[IndexOf(plain, eat)].Gloss, sentence.Words[at].Gloss);
                 Assert.Equal(plain.Words.Count + 1, sentence.Words.Count);
@@ -96,7 +96,7 @@ public class PhaseTests
     public void Realize_PhaseAffix_GoesInsideTheAspectAndOutsideThePassive()
     {
         var languages = Languages(AspectKind.Affix, AspectKind.None, s => s.Inflecting().Fix(Settings.HasPassive, true).Fix(Settings.Perfect, AspectKind.Affix))
-            .Where(l => l.Passive is { Marker.Value: Affix }).ToList();
+            .Where(l => l.Passive is { Exponent.Value: Bound }).ToList();
         Assert.NotEmpty(languages);
         Assert.All(languages, l =>
         {
@@ -106,11 +106,12 @@ public class PhaseTests
             int Distance(Grammeme grammeme) => Math.Abs(morphemes.FindIndex(m => m is Affix { Grammemes: var g } && g.Contains(grammeme)) - morphemes.FindIndex(m => m is Root));
 
             //each nearer the root than the one before, where they're on the same side of it
-            if (l.Passive!.Position == l.Aspects.Inceptive.AffixPosition)
+            var inceptive = Assert.IsType<Bound>(l.Aspects.Inceptive?.Value).Side;
+            if (l.Passive!.Exponent.Side == inceptive)
             {
                 Assert.True(Distance(Voice.Passive) < Distance(Phase.Inceptive));
             }
-            if (l.Aspects.Inceptive.AffixPosition == l.Aspects.Perfect.AffixPosition)
+            if (inceptive == Assert.IsType<Bound>(l.Aspects.Perfect?.Value).Side)
             {
                 Assert.True(Distance(Phase.Inceptive) < Distance(Aspect.Perfect));
             }

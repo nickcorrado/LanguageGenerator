@@ -395,21 +395,27 @@ public static class Settings
     ];
 
     public static Stage<Aspects> AspectStage { get; } = new("aspects", l => l.Aspects, null);
+    //the kinds each can be, which are the ways the generator's odds mark it
+    private static readonly AspectKind[] PerfectKinds = [AspectKind.None, AspectKind.Affix, AspectKind.Particle, AspectKind.Have, AspectKind.Be, AspectKind.Finish];
+    private static readonly AspectKind[] ProgressiveKinds = [AspectKind.None, AspectKind.Affix, AspectKind.Particle, AspectKind.Be, AspectKind.Sit];
+    private static readonly AspectKind[] HabitualKinds = [AspectKind.None, AspectKind.Affix, AspectKind.Particle, AspectKind.Be];
+    //a marker on the verb, or none, where the language says it with a verb of its own, as English does with 'begin' or 'stop'
+    private static readonly AspectKind[] PhaseKinds = [AspectKind.None, AspectKind.Affix, AspectKind.Particle];
     /// <summary>How the perfect is marked: not at all, by an affix, a particle, or an auxiliary 'have', 'be' or 'finish'.</summary>
     public static Setting<Aspects, AspectKind> Perfect { get; } = AspectStage.Declare("perfect", Clauses,
-        a => a.Perfect.Kind, (a, kind) => a with { Perfect = a.Perfect with { Kind = kind } }, Choice<AspectKind>.Of([.. LanguageGenerator.Aspects.PerfectKinds]));
+        a => SettingWrites.KindOf(a.Perfect), (a, kind) => a with { Perfect = SettingWrites.WithAspectKind(a, a.Perfect, LanguageGenerator.Aspect.Perfect, kind) }, Choice<AspectKind>.Of(PerfectKinds));
     /// <summary>How the progressive is marked: not at all, by an affix, a particle, or an auxiliary 'be' or 'sit'.</summary>
     public static Setting<Aspects, AspectKind> Progressive { get; } = AspectStage.Declare("progressive", Clauses,
-        a => a.Progressive.Kind, (a, kind) => a with { Progressive = a.Progressive with { Kind = kind } }, Choice<AspectKind>.Of([.. LanguageGenerator.Aspects.ProgressiveKinds]));
+        a => SettingWrites.KindOf(a.Progressive), (a, kind) => a with { Progressive = SettingWrites.WithAspectKind(a, a.Progressive, LanguageGenerator.Aspect.Progressive, kind) }, Choice<AspectKind>.Of(ProgressiveKinds));
     /// <summary>How the habitual is marked: not at all, by an affix, a particle, or an auxiliary 'be'.</summary>
     public static Setting<Aspects, AspectKind> Habitual { get; } = AspectStage.Declare("habitual", Clauses,
-        a => a.Habitual.Kind, (a, kind) => a with { Habitual = a.Habitual with { Kind = kind } }, Choice<AspectKind>.Of([.. LanguageGenerator.Aspects.HabitualKinds]));
+        a => SettingWrites.KindOf(a.Habitual), (a, kind) => a with { Habitual = SettingWrites.WithAspectKind(a, a.Habitual, LanguageGenerator.Aspect.Habitual, kind) }, Choice<AspectKind>.Of(HabitualKinds));
     /// <summary>How beginning to do something is marked on the verb: not at all, where it's said with 'begin', by an affix or by a particle.</summary>
     public static Setting<Aspects, AspectKind> Inceptive { get; } = AspectStage.Declare("inceptive", Clauses,
-        a => a.Inceptive.Kind, (a, kind) => a with { Inceptive = a.Inceptive with { Kind = kind } }, Choice<AspectKind>.Of([.. LanguageGenerator.Aspects.PhaseKinds]));
+        a => SettingWrites.KindOf(a.Inceptive), (a, kind) => a with { Inceptive = SettingWrites.WithAspectKind(a, a.Inceptive, Phase.Inceptive, kind) }, Choice<AspectKind>.Of(PhaseKinds));
     /// <summary>How ceasing to do something is marked on the verb: not at all, where it's said with 'stop', by an affix or by a particle.</summary>
     public static Setting<Aspects, AspectKind> Cessative { get; } = AspectStage.Declare("cessative", Clauses,
-        a => a.Cessative.Kind, (a, kind) => a with { Cessative = a.Cessative with { Kind = kind } }, Choice<AspectKind>.Of([.. LanguageGenerator.Aspects.PhaseKinds]));
+        a => SettingWrites.KindOf(a.Cessative), (a, kind) => a with { Cessative = SettingWrites.WithAspectKind(a, a.Cessative, Phase.Cessative, kind) }, Choice<AspectKind>.Of(PhaseKinds));
     /// <summary>The settings of how each aspect is marked.</summary>
     public static IReadOnlyList<Setting<Aspects, AspectKind>> AspectMarkers { get; } = [Perfect, Progressive, Habitual, Inceptive, Cessative];
 
@@ -558,13 +564,13 @@ public static class Settings
         c => c.Event.Balance, (c, balance) => c with { Event = c.Event with { Balance = balance } }, Choice<Balance>.Of(Enum.GetValues<Balance>()));
     /// <summary>How a quotation is marked: not at all, with the complementizer, or with a word of its own.</summary>
     public static Setting<Complementation, QuotativeKind> Quotative { get; } = ComplementationStage.Declare("quotative", Clauses,
-        c => c.Quotative.Kind, SettingWrites.WithQuotative, Choice<QuotativeKind>.Of(Enum.GetValues<QuotativeKind>()));
+        c => c.QuotativeKind, SettingWrites.WithQuotative, Choice<QuotativeKind>.Of(Enum.GetValues<QuotativeKind>()));
     /// <summary>Whether a complement clause that keeps its verb, or a quotation, goes last in its clause.</summary>
     public static Setting<Complementation, bool> ComplementsLast { get; } = ComplementationStage.Declare("complements-last", Clauses,
         c => c.Last, (c, last) => c with { Last = last }, YesNo);
     /// <summary>How 'want' is said: a verb, or an affix or particle on the verb of what's wanted, as WALS 124A has it.</summary>
     public static Setting<Complementation, DesiderativeKind> Desiderative { get; } = ComplementationStage.Declare("desiderative", Clauses,
-        c => c.Desiderative.Kind, (c, kind) => c with { Desiderative = c.Desiderative with { Kind = kind } }, Choice<DesiderativeKind>.Of(Enum.GetValues<DesiderativeKind>()));
+        c => c.DesiderativeKind, SettingWrites.WithDesiderative, Choice<DesiderativeKind>.Of(Enum.GetValues<DesiderativeKind>()));
 
     public static Stage<Relativization> RelativizationStage { get; } = new("relativization", l => l.Relativization, null);
     /// <summary>Whether a relative clause goes before its noun.</summary>
@@ -581,7 +587,7 @@ public static class Settings
         r => r.Oblique, (r, strategy) => r with { Oblique = strategy }, Choice<RelativeStrategy>.Of(Enum.GetValues<RelativeStrategy>()));
     /// <summary>What marks a relative clause: nothing, a word at its edge beside its noun, or an affix on its verb.</summary>
     public static Setting<Relativization, RelativizerKind> Relativizer { get; } = RelativizationStage.Declare("relativizer", Clauses,
-        r => r.Relativizer.Kind, (r, kind) => r with { Relativizer = r.Relativizer with { Kind = kind } }, Choice<RelativizerKind>.Of(Enum.GetValues<RelativizerKind>()));
+        r => r.RelativizerKind, SettingWrites.WithRelativizer, Choice<RelativizerKind>.Of(Enum.GetValues<RelativizerKind>()));
 
     //comparison
 
