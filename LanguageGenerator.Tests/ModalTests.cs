@@ -32,7 +32,7 @@ public class ModalTests
     [Fact]
     public void Generate_IsolatingLanguages_HaveNoModalAffixes() =>
         Assert.All(GeneratedLanguages.Sample.Where(l => l.MorphologicalProfile.Fusion == Fusion.Isolating),
-            l => Assert.DoesNotContain(l.Modals.Markers.Values, m => m.Value is ModalAffix));
+            l => Assert.DoesNotContain(l.Modals.Markers.Values, m => m.Value is Bound));
 
     [Fact]
     public void Generate_ModalVerbs_AreGlossedByWhatTheyMeanInEachUse() =>
@@ -103,15 +103,15 @@ public class ModalTests
     [Fact]
     public void Realize_ModalAffix_GoesNextToTheRootOutsideThePassive()
     {
-        var languages = GeneratedLanguages.Sample.Where(l => l.Modals.Markers[Modality.Ability].Value is ModalAffix && l.Passive is { Marker.Value: Affix }).ToList();
+        var languages = GeneratedLanguages.Sample.Where(l => l.Modals.Markers[Modality.Ability].Value is Bound && l.Passive is { Exponent.Value: Bound }).ToList();
         Assert.NotEmpty(languages);
         Assert.All(languages, l =>
         {
             var sentence = Realized(l, new Modalized(new PassiveClause("eat", Tense.Past, Aspect.Perfective, Fish, null, false, []) { Adverbs = [] }, Modality.Ability, false));
             var morphemes = sentence.Words[ModalAt(sentence)].Word.Morphemes.Select(m => m.Value).ToList();
             var root = morphemes.FindIndex(m => m is Root);
-            var prefix = ((ModalAffix)l.Modals.Markers[Modality.Ability].Value!).Position == ExponentPosition.Prefix;
-            var passivePrefix = l.Passive!.Position == ExponentPosition.Prefix;
+            var prefix = ((Bound)l.Modals.Markers[Modality.Ability].Value!).Side == Side.Before;
+            var passivePrefix = l.Passive!.Exponent.Side == Side.Before;
 
             var modal = morphemes.FindIndex(m => m is Affix { Grammemes: [Modality] });
             Assert.Equal(prefix ? root - (passivePrefix ? 2 : 1) : root + (passivePrefix ? 1 : 2), modal);

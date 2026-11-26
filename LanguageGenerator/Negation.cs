@@ -19,35 +19,11 @@ public enum NegationStrategy
 /// <summary>How a language says not: its markers, each with where it goes.</summary>
 //a prefix or suffix goes outside the verb's other affixes, and a particle outside its other
 //particles
-public record Negation(NegationStrategy Strategy, IReadOnlyList<(ExponentPosition Position, Morpheme Marker)> Markers)
+public record Negation(NegationStrategy Strategy, IReadOnlyList<Exponent> Markers)
 {
     //the verb's words, negated
-    public IReadOnlyList<Word> Apply(IReadOnlyList<Word> verb)
-    {
-        var words = verb.ToList();
-        //the verb itself, as opposed to its particles
-        var main = words.FindIndex(w => w.Root is not null);
-        foreach (var (position, marker) in Markers)
-        {
-            switch (position)
-            {
-                case ExponentPosition.Prefix:
-                    words[main] = words[main] with { Morphemes = [marker, .. words[main].Morphemes] };
-                    break;
-                case ExponentPosition.Suffix:
-                    words[main] = words[main] with { Morphemes = [.. words[main].Morphemes, marker] };
-                    break;
-                case ExponentPosition.PrecedingParticle:
-                    words.Insert(0, Word.Marker(marker, Lean.Forward));
-                    main++;
-                    break;
-                case ExponentPosition.FollowingParticle:
-                    words.Add(Word.Marker(marker, Lean.Back));
-                    break;
-            }
-        }
-        return words;
-    }
+    public IReadOnlyList<Word> Apply(IReadOnlyList<Word> verb) =>
+        Markers.Aggregate(verb, (words, marker) => marker.Place(words, Exponent.Host(words), Reach.Edge));
 
     public override string ToString() => Strategy switch
     {

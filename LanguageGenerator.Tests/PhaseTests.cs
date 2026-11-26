@@ -96,7 +96,7 @@ public class PhaseTests
     public void Realize_PhaseAffix_GoesInsideTheAspectAndOutsideThePassive()
     {
         var languages = Languages(AspectKind.Affix, AspectKind.None, s => s.Inflecting().Fix(Settings.HasPassive, true).Fix(Settings.Perfect, AspectKind.Affix))
-            .Where(l => l.Passive is { Marker.Value: Affix }).ToList();
+            .Where(l => l.Passive is { Exponent.Value: Bound }).ToList();
         Assert.NotEmpty(languages);
         Assert.All(languages, l =>
         {
@@ -106,7 +106,7 @@ public class PhaseTests
             int Distance(Grammeme grammeme) => Math.Abs(morphemes.FindIndex(m => m is Affix { Grammemes: var g } && g.Contains(grammeme)) - morphemes.FindIndex(m => m is Root));
 
             //each nearer the root than the one before, where they're on the same side of it
-            if (l.Passive!.Position == l.Aspects.Inceptive.AffixPosition)
+            if (l.Passive!.Exponent.Position == l.Aspects.Inceptive.AffixPosition)
             {
                 Assert.True(Distance(Voice.Passive) < Distance(Phase.Inceptive));
             }

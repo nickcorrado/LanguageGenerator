@@ -110,7 +110,7 @@ public class AspectTests
     [Fact]
     public void Realize_AspectAffix_GoesNextToTheRootOutsideThePassive()
     {
-        var languages = Languages(AspectKind.Affix, AspectKind.None, s => s.Fix(Settings.HasPassive, true).Inflecting()).Where(l => l.Passive is { Marker.Value: Affix }).ToList();
+        var languages = Languages(AspectKind.Affix, AspectKind.None, s => s.Fix(Settings.HasPassive, true).Inflecting()).Where(l => l.Passive is { Exponent.Value: Bound }).ToList();
         Assert.NotEmpty(languages);
         Assert.All(languages, l =>
         {
@@ -118,7 +118,7 @@ public class AspectTests
             var morphemes = sentence.Words[IndexOf(sentence, l.Lexicon.Verb("eat").Root)].Word.Morphemes.Select(m => m.Value).ToList();
             var root = morphemes.FindIndex(m => m is Root);
             var prefix = l.Aspects.Perfect.AffixPosition == ExponentPosition.Prefix;
-            var passivePrefix = l.Passive!.Position == ExponentPosition.Prefix;
+            var passivePrefix = l.Passive!.Exponent.Side == Side.Before;
 
             var perfect = morphemes.FindIndex(m => m is Affix { Grammemes: [var g] } && g == Aspect.Perfect);
             Assert.Equal(prefix ? root - (passivePrefix ? 2 : 1) : root + (passivePrefix ? 1 : 2), perfect);

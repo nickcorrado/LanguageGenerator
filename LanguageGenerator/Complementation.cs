@@ -85,8 +85,8 @@ public record Desiderative(DesiderativeKind Kind, IReadOnlyList<Phoneme> Form, A
     public ModalMarking? Marking => Kind switch
     {
         DesiderativeKind.Verb => null,
-        DesiderativeKind.Affix => new ModalAffix(new Affix(Form, [Volition.Desiderative], Accent), AffixPosition),
-        DesiderativeKind.Particle => new ModalParticle(new Particle(Form, [Volition.Desiderative]), BeforeVerb),
+        DesiderativeKind.Affix => new Bound(new Affix(Form, [Volition.Desiderative], Accent), AffixPosition == ExponentPosition.Prefix ? Side.Before : Side.After),
+        DesiderativeKind.Particle => new Free(new Particle(Form, [Volition.Desiderative]), BeforeVerb ? Side.Before : Side.After),
         _ => throw new InvalidOperationException(),
     };
 }

@@ -24,13 +24,6 @@ public enum AspectKind
     Sit,
 }
 
-/// <summary>An aspect as an affix next to the verb's root, outside only a passive.</summary>
-//Position is Prefix or Suffix
-public record AspectAffix(Affix Marker, ExponentPosition Position);
-
-/// <summary>An aspect as a word of its own beside the verb, as Mandarin zài is.</summary>
-public record AspectParticle(Particle Marker, bool BeforeVerb);
-
 /// <summary>
 /// An aspect as an auxiliary verb, which takes the clause's tense, agreement and negation, with the
 /// clause's verb bare beside it, as modal verbs do. Kind is Have, Be, Finish or Sit, and says which
@@ -38,8 +31,11 @@ public record AspectParticle(Particle Marker, bool BeforeVerb);
 /// </summary>
 public record AspectAuxiliary(AspectKind Kind, bool BeforeVerb);
 
-/// <summary>How a language marks an aspect.</summary>
-public union AspectMarking(AspectAffix, AspectParticle, AspectAuxiliary);
+/// <summary>
+/// How a language marks an aspect: an affix next to the verb's root, outside only a passive, a
+/// word of its own beside the verb, as Mandarin zài is, or an auxiliary.
+/// </summary>
+public union AspectMarking(Bound, Free, AspectAuxiliary);
 
 /// <summary>
 /// How a language marks one aspect: its kind, the form of its affix or particle, which side of the
@@ -55,8 +51,8 @@ public record AspectMarker(AspectKind Kind, IReadOnlyList<Phoneme> Form, AffixAc
     public AspectMarking? MarkingOf(Grammeme aspect) => Kind switch
     {
         AspectKind.None => null,
-        AspectKind.Affix => new AspectAffix(new Affix(Form, [aspect], Accent), AffixPosition),
-        AspectKind.Particle => new AspectParticle(new Particle(Form, [aspect]), BeforeVerb),
+        AspectKind.Affix => new Bound(new Affix(Form, [aspect], Accent), AffixPosition == ExponentPosition.Prefix ? Side.Before : Side.After),
+        AspectKind.Particle => new Free(new Particle(Form, [aspect]), BeforeVerb ? Side.Before : Side.After),
         //a completive 'finish' follows its verb in VO and OV languages alike, as Thai kin lɛ́ɛw 'eat
         //finish' and Japanese tabe-te shimau 'eat-CONV finish' do
         AspectKind.Finish => new AspectAuxiliary(Kind, BeforeVerb: false),

@@ -99,7 +99,7 @@ public class ComplementationTests
     [Fact]
     public void GenerateComplementation_DesiderativeMarker_SaysVolition()
     {
-        Assert.All(Draws(s => s.Inflecting()), c => Assert.True(c.Desiderative.Marking?.Value is null or ModalAffix { Marker.Grammemes: [Volition] } or ModalParticle { Marker.Grammemes: [Volition] }));
+        Assert.All(Draws(s => s.Inflecting()), c => Assert.True(c.Desiderative.Marking?.Value is null or Bound { Affix.Grammemes: [Volition] } or Free { Particle.Grammemes: [Volition] }));
     }
 
     [Theory]
@@ -258,7 +258,7 @@ public class ComplementationTests
             Assert.True(c.Event is { Position: ComplementizerPosition.Suffix, Marker.Value: Affix, Balance: Balance.Balanced });
             Assert.Equal(QuotativeKind.Complementizer, c.Quotative.Kind);
             Assert.False(c.Last);
-            Assert.IsType<ModalParticle>(c.Desiderative.Marking?.Value);
+            Assert.IsType<Free>(c.Desiderative.Marking?.Value);
             Assert.NotEqual(Fusion.Isolating, l.MorphologicalProfile.Fusion);
             RelatedStageTests.AssertKeepsTheRules(l);
         });

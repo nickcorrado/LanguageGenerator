@@ -23,12 +23,9 @@ public static partial class Generator
         {
             return null;
         }
-        var before = rand.NextDouble() < PrefixChance(morphology);
-        var position = morphology.Fusion == Fusion.Isolating
-            ? (before ? ExponentPosition.PrecedingParticle : ExponentPosition.FollowingParticle)
-            : (before ? ExponentPosition.Prefix : ExponentPosition.Suffix);
-        var affix = position is ExponentPosition.Prefix or ExponentPosition.Suffix;
+        var side = rand.NextDouble() < PrefixChance(morphology) ? Side.Before : Side.After;
+        var affix = morphology.Fusion != Fusion.Isolating;
         var form = MarkerForm(rand, affix, phonology);
-        return new Passive(affix ? CoinAffix(rand, phonology, form, [Voice.Passive]) : new Particle(form, [Voice.Passive]), position);
+        return new Passive(affix ? new Bound(CoinAffix(rand, phonology, form, [Voice.Passive]), side) : new Free(new Particle(form, [Voice.Passive]), side));
     }
 }

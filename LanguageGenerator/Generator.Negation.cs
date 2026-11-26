@@ -35,10 +35,15 @@ public static partial class Generator
         }
         var positions = NegationPositions(strategy);
 
-        Morpheme Marker(ExponentPosition position) => position is ExponentPosition.Prefix or ExponentPosition.Suffix
-            ? CoinAffix(rand, phonology, MarkerForm(rand, true, phonology), grammemes)
-            : new Particle(MarkerForm(rand, false, phonology), grammemes);
-        return new Negation(strategy, [.. positions.Select(p => (p, Marker(p)))]);
+        Exponent Marker(ExponentPosition position) => position switch
+        {
+            ExponentPosition.Prefix => new Bound(CoinAffix(rand, phonology, MarkerForm(rand, true, phonology), grammemes), Side.Before),
+            ExponentPosition.Suffix => new Bound(CoinAffix(rand, phonology, MarkerForm(rand, true, phonology), grammemes), Side.After),
+            ExponentPosition.PrecedingParticle => new Free(new Particle(MarkerForm(rand, false, phonology), grammemes), Side.Before),
+            ExponentPosition.FollowingParticle => new Free(new Particle(MarkerForm(rand, false, phonology), grammemes), Side.After),
+            _ => throw new ArgumentOutOfRangeException(nameof(position), position, null),
+        };
+        return new Negation(strategy, [.. positions.Select(Marker)]);
     }
 
     /// <summary>Where each of a negation strategy's markers goes.</summary>

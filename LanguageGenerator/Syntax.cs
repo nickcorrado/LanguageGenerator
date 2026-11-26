@@ -1172,7 +1172,7 @@ public static class Syntax
                 IReadOnlyList<Word> bare = passive is null ? phased : passive.Apply(phased);
                 return auxiliary.BeforeVerb ? [.. finite, .. bare] : [.. bare, .. finite];
             }
-            case AspectAffix or AspectParticle:
+            case Bound or Free:
                 return Predicate(language, verb, said, inflected, subject, negative, modal, passive, marking, phase);
             default:
                 throw new InvalidOperationException();
@@ -1205,20 +1205,15 @@ public static class Syntax
                 var auxiliary = Verb(language, m.Verb, tense, aspect, subject, modal.Negative);
                 return m.BeforeVerb ? [.. auxiliary, .. bare] : [.. bare, .. auxiliary];
             }
-            case ModalAffix m:
+            case Bound m:
             {
-                var words = Verb(language, verb, tense, aspect, subject, negative: false).ToList();
-                var at = words.FindIndex(w => w.Root is not null);
-                var morphemes = words[at].Morphemes.ToList();
-                var root = morphemes.FindIndex(x => x.Value is Root);
-                morphemes.Insert(m.Position == ExponentPosition.Prefix ? root : root + 1, m.Marker);
-                words[at] = words[at] with { Morphemes = morphemes };
-                return Negated(Voiced(words), negative || modal.Negative);
+                var words = Verb(language, verb, tense, aspect, subject, negative: false);
+                return Negated(Voiced(((Exponent)m).Place(words, Exponent.Host(words), Reach.Root)), negative || modal.Negative);
             }
-            case ModalParticle m:
+            case Free m:
             {
                 var words = Voiced(Verb(language, verb, tense, aspect, subject, negative: false));
-                return Negated(m.BeforeVerb ? [Word.Marker(m.Marker, Lean.Forward), .. words] : [.. words, Word.Marker(m.Marker, Lean.Back)], negative || modal.Negative);
+                return Negated(((Exponent)m).Place(words, Exponent.Host(words), Reach.Edge), negative || modal.Negative);
             }
             default:
                 throw new InvalidOperationException();
@@ -1228,26 +1223,13 @@ public static class Syntax
     //a verb's words with an aspect's affix next to its root, or its particle beside it
     private static IReadOnlyList<Word> Aspectual(IReadOnlyList<Word> verb, AspectMarking marking)
     {
-        List<Word> words = [.. verb];
-        var at = words.FindIndex(w => w.Root is not null);
-        switch (marking.Value)
+        Exponent exponent = marking switch
         {
-            case AspectAffix affix:
-            {
-                var morphemes = words[at].Morphemes.ToList();
-                var root = morphemes.FindIndex(m => m.Value is Root);
-                morphemes.Insert(affix.Position == ExponentPosition.Prefix ? root : root + 1, affix.Marker);
-                words[at] = words[at] with { Morphemes = morphemes };
-                return words;
-            }
-            case AspectParticle particle:
-                words.Insert(particle.BeforeVerb ? at : at + 1, Word.Marker(particle.Marker, particle.BeforeVerb ? Lean.Forward : Lean.Back));
-                return words;
-            case AspectAuxiliary:
-                throw new ArgumentException("An auxiliary isn't marked on the verb.", nameof(marking));
-            default:
-                throw new InvalidOperationException();
-        }
+            Bound b => b,
+            Free f => f,
+            AspectAuxiliary => throw new ArgumentException("An auxiliary isn't marked on the verb.", nameof(marking)),
+        };
+        return exponent.Place(verb, Exponent.Host(verb), Reach.Root);
     }
 
     //the verb agrees with its subject. TODO many ergative languages agree with the absolutive instead

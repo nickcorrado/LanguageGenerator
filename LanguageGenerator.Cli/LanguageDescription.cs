@@ -214,11 +214,15 @@ public static class LanguageDescription
         output.WriteLine(lang.Passive switch
         {
             null => "No passive",
-            { Position: ExponentPosition.Prefix } p => $"Passive: prefix {p.Marker.Spell(orthography)}-",
-            { Position: ExponentPosition.Suffix } p => $"Passive: suffix -{p.Marker.Spell(orthography)}",
-            { Position: ExponentPosition.PrecedingParticle } p => $"Passive: {p.Marker.Spell(orthography)} before the verb",
-            var p => $"Passive: {p.Marker.Spell(orthography)} after the verb",
+            { Exponent.Position: ExponentPosition.Prefix } p => $"Passive: prefix {p.Exponent.Marker.Spell(orthography)}-",
+            { Exponent.Position: ExponentPosition.Suffix } p => $"Passive: suffix -{p.Exponent.Marker.Spell(orthography)}",
+            { Exponent.Position: ExponentPosition.PrecedingParticle } p => $"Passive: {p.Exponent.Marker.Spell(orthography)} before the verb",
+            var p => $"Passive: {p.Exponent.Marker.Spell(orthography)} after the verb",
         });
+        //an affix as Spelled spells it, or a word with the side of the verb it goes on
+        string OnVerb(Exponent exponent) => exponent.Value is Bound
+            ? Spelled(exponent.Position, exponent.Marker)
+            : $"{exponent.Marker.Spell(orthography)} {(exponent.Side == Side.Before ? "before" : "after")} the verb";
         string SpelledWord(Lexeme word) => phonology.Realize(new Word([word.Root])).Spell(orthography);
         var conjunctions = lang.Conjunctions;
         var nounAnd = conjunctions.NounAnd.Value switch
@@ -264,8 +268,8 @@ public static class LanguageDescription
             : "unmarked";
         var want = complementation.Desiderative.Marking?.Value switch
         {
-            ModalAffix a => $"'want' is {Spelled(a.Position, a.Marker)} on the verb",
-            ModalParticle p => $"'want' is {((Morpheme)p.Marker).Spell(orthography)} {(p.BeforeVerb ? "before" : "after")} the verb",
+            Bound b => $"'want' is {OnVerb(b)} on the verb",
+            Free f => $"'want' is {OnVerb(f)}",
             _ => "'want' is a verb",
         };
         output.WriteLine($"Complement clauses: 'that' {Complements(ComplementKind.Proposition)}; 'to' {Complements(ComplementKind.Event)}; quotations {quotative}; " +
@@ -315,8 +319,8 @@ public static class LanguageDescription
         });
         string Modal(Modality modality, ModalMarking marking) => marking switch
         {
-            ModalAffix a => Spelled(a.Position, a.Marker),
-            ModalParticle p => $"{((Morpheme)p.Marker).Spell(orthography)} {(p.BeforeVerb ? "before" : "after")} the verb",
+            Bound b => OnVerb(b),
+            Free f => OnVerb(f),
             ModalVerb v when modality.Epistemic => $"the verb {SpelledWord(v.Verb)} said impersonally, with the clause as its complement",
             ModalVerb v => $"the verb {SpelledWord(v.Verb)} {(v.BeforeVerb ? "before" : "after")} the bare verb",
         };
@@ -324,8 +328,8 @@ public static class LanguageDescription
         string Aspectual(Grammeme aspect, AspectMarking? marking, string without) => marking?.Value switch
         {
             null => without,
-            AspectAffix a => Spelled(a.Position, a.Marker),
-            AspectParticle p => $"{((Morpheme)p.Marker).Spell(orthography)} {(p.BeforeVerb ? "before" : "after")} the verb",
+            Bound b => OnVerb(b),
+            Free f => OnVerb(f),
             AspectAuxiliary x when aspect is Aspect auxiliaryOf => $"the verb {SpelledWord(lang.AuxiliaryVerb(x, auxiliaryOf))} {(x.BeforeVerb ? "before" : "after")} the bare verb",
             _ => throw new InvalidOperationException(),
         };
