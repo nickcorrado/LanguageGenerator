@@ -139,29 +139,13 @@ public static class ClauseFile
 
     private static IEnumerable<Argument> ArgumentsOf(Statement statement) => statement switch
     {
-        Clause c => [.. ArgumentsOf(c.Force), .. ArgumentsOf(c.Predicate), .. c.Obliques.Select(o => o.Argument)],
+        Clause c => c.Arguments,
         Comparative c => [.. ArgumentsOf(c.Clause), .. Given(c.Standard)],
         Addressed a => [.. ArgumentsOf(a.Statement), a.Addressee],
         Coordinated c => [.. ArgumentsOf(c.First), .. ArgumentsOf(c.Second)],
         Subordinated s => [.. ArgumentsOf(s.Main), .. ArgumentsOf(s.Clause)],
         Modalized m => ArgumentsOf(m.Clause),
         Question q => ArgumentsOf(q.Statement),
-    };
-
-    //a command's subject is 'you', which it doesn't say
-    private static IEnumerable<Argument> ArgumentsOf(Force force) => force switch
-    {
-        Declarative stated => [stated.Subject],
-        Directive => [],
-    };
-
-    private static IEnumerable<Argument> ArgumentsOf(Predicate predicate) => predicate switch
-    {
-        Doing doing => Given(doing.Object),
-        Done done => Given(done.Agent),
-        Being { Complement: NounPhrase noun } => [noun],
-        Being { Complement: Oblique location } => [location.Argument],
-        Being => [],
     };
 
     private static IEnumerable<Argument> Given(Argument? argument) => argument.HasValue ? [argument.GetValueOrDefault()] : [];
@@ -207,20 +191,22 @@ public static class ClauseFile
      */
     private static IEnumerable<string> GapRoles(Statement statement)
     {
-        static bool IsGap(Argument? argument) => argument?.Value is Gap;
-        IEnumerable<string> Where(params (string Role, Argument? Argument)[] roles) => roles.Where(r => IsGap(r.Argument)).Select(r => r.Role);
-        IEnumerable<string> Obliques(ValueList<Oblique> obliques) => obliques.Where(o => IsGap(o.Argument)).Select(o => o.Role.ToString().ToLowerInvariant());
         return statement.Value switch
         {
-            Clause { Force.Value: Declarative stated } c => [.. Where(("subject", stated.Subject), c.Predicate switch
-            {
-                Doing doing => ("object", doing.Object),
-                Done done => ("agent", done.Agent),
-                Being being => ("location", being.Complement.Value is Oblique location ? location.Argument : (Argument?)null),
-            }), .. Obliques(c.Obliques)],
-            Comparative c => [.. GapRoles(c.Clause), .. Where(("standard", c.Standard))],
+            Clause c => c.Fillers.Where(f => f.Argument.Value is Gap).Select(NameOf),
+            Comparative c => [.. GapRoles(c.Clause), .. c.Standard is { Value: Gap } ? ["standard"] : Array.Empty<string>()],
             Modalized m => GapRoles(m.Clause),
             _ => [],
+        };
+
+        //an oblique's role is written as its name, as a location be says its subject is in is
+        static string NameOf(Filler filler) => filler switch
+        {
+            { Oblique: { } oblique } => oblique.Role.ToString().ToLowerInvariant(),
+            { Role: Role.IntransitiveSubject or Role.TransitiveSubject } => "subject",
+            { Role: Role.DirectObject } => "object",
+            { Role: Role.Agent } => "agent",
+            { Role: var role } => throw new ArgumentOutOfRangeException(nameof(filler), role, null),
         };
     }
 

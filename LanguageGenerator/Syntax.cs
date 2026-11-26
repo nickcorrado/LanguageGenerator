@@ -50,7 +50,44 @@ public record Oblique(Role Role, Argument Argument, Configuration Configuration)
 /// </summary>
 //obliques and adverbs are each in the order they're written, which ModifierOrder keeps for those
 //that go equally near the verb
-public record Clause(Predicate Predicate, Force Force, bool Negative, ValueList<Oblique> Obliques, ValueList<Adverbial> Adverbs);
+public record Clause(Predicate Predicate, Force Force, bool Negative, ValueList<Oblique> Obliques, ValueList<Adverbial> Adverbs)
+{
+    /// <summary>
+    /// What fills each of the clause's roles, in order: its subject, where it states something, then
+    /// its object, a passive's agent or where be says its subject is, then its obliques.
+    /// </summary>
+    public IEnumerable<Filler> Fillers =>
+    [
+        .. Force.Value is Declarative stated
+            ? [new Filler(stated.Subject, Predicate.Value is Doing { Object: not null } ? Role.TransitiveSubject : Role.IntransitiveSubject, null)]
+            : Array.Empty<Filler>(),
+        .. Predicate.Fillers,
+        .. Obliques.Select(o => new Filler(o.Argument, o.Role, o)),
+    ];
+
+    /// <summary>Every argument the clause says, in order: its fillers', with a noun be says its subject is after the subject.</summary>
+    public IEnumerable<Argument> Arguments =>
+    [
+        .. Force.Value is Declarative stated ? [stated.Subject] : Array.Empty<Argument>(),
+        .. Predicate.Arguments,
+        .. Obliques.Select(o => o.Argument),
+    ];
+
+    /// <summary>The clause with each of its roles filled with what this makes of what fills it now.</summary>
+    public Clause Refilled(Func<Argument, Argument> fill) => this with
+    {
+        Force = Force switch
+        {
+            Declarative stated => stated with { Subject = fill(stated.Subject) },
+            Directive told => told,
+        },
+        Predicate = Predicate.Refilled(fill),
+        Obliques = [.. Obliques.Select(o => o with { Argument = fill(o.Argument) })],
+    };
+}
+
+/// <summary>What fills one of a clause's roles, and the oblique it's in, where it's in one.</summary>
+public record Filler(Argument Argument, Role Role, Oblique? Oblique);
 
 /// <summary>What a clause does: state something of its subject, or tell someone to do something.</summary>
 public union Force(Declarative, Directive)
@@ -73,7 +110,35 @@ public record Declarative(Tense Tense, Aspect Aspect, Argument Subject);
 public record Directive(Number Number);
 
 /// <summary>What a clause says of its subject: what it does, what's done to it, or what or where it is.</summary>
-public union Predicate(Doing, Done, Being);
+public union Predicate(Doing, Done, Being)
+{
+    /// <summary>What fills the roles it has besides the subject: an object, an agent, or where be says the subject is.</summary>
+    public IEnumerable<Filler> Fillers => this switch
+    {
+        Doing { Object: { } o } => [new Filler(o, Role.DirectObject, null)],
+        Doing => [],
+        Done { Agent: { } agent } => [new Filler(agent, Role.Agent, null)],
+        Done => [],
+        Being { Complement.Value: Oblique location } => [new Filler(location.Argument, location.Role, location)],
+        Being => [],
+    };
+
+    /// <summary>The arguments it says: its fillers', or a noun be says the subject is.</summary>
+    public IEnumerable<Argument> Arguments => this switch
+    {
+        Being { Complement.Value: NounPhrase noun } => [noun],
+        Doing or Done or Being => Fillers.Select(f => f.Argument),
+    };
+
+    /// <summary>It with each of its fillers what this makes of it.</summary>
+    public Predicate Refilled(Func<Argument, Argument> fill) => this switch
+    {
+        Doing doing => doing with { Object = doing.Object is { } o ? fill(o) : (Argument?)null },
+        Done done => done with { Agent = done.Agent is { } agent ? fill(agent) : (Argument?)null },
+        Being { Complement.Value: Oblique location } being => being with { Complement = location with { Argument = fill(location.Argument) } },
+        Being being => being,
+    };
+}
 
 /// <summary>A verb, with its object if it has one.</summary>
 public record Doing(string Verb, Argument? Object);
@@ -241,51 +306,19 @@ public static class Syntax
 
     //the role a relative clause's gap is in, as the language says the clause, and the oblique it's
     //in, if it's one. A passive in a language without one is said as the active
-    private static (Role Role, Oblique? Oblique) GapSlot(Language language, Statement clause)
-    {
-        static bool IsGap(Argument? argument) => argument?.Value is Gap;
-        (Role, Oblique?)? InObliques(ValueList<Oblique> obliques) => obliques.FirstOrDefault(o => IsGap(o.Argument)) is { } o ? (o.Role, o) : null;
-        return clause.Value switch
-        {
-            Clause { Force.Value: Declarative stated } c => c.Predicate switch
-            {
-                Doing doing when IsGap(stated.Subject) => (doing.Object is null ? Role.IntransitiveSubject : Role.TransitiveSubject, null),
-                Doing doing when IsGap(doing.Object) => (Role.DirectObject, null),
-                Done done when language.Passive is null => GapSlot(language, Active(c, done, stated)),
-                Done when IsGap(stated.Subject) => (Role.IntransitiveSubject, null),
-                Done done when IsGap(done.Agent) => (Role.Agent, null),
-                Being when IsGap(stated.Subject) => (Role.IntransitiveSubject, null),
-                Being { Complement.Value: Oblique location } when IsGap(location.Argument) => (location.Role, location),
-                Doing or Done or Being => InObliques(c.Obliques) ?? throw NoGap(),
-            },
-            Comparative c => GapSlot(language, c.Clause),
-            Modalized m => GapSlot(language, m.Clause),
-            _ => throw NoGap(),
-        };
-
-        static ArgumentException NoGap() => new("A relative clause needs a gap in one of its roles.", nameof(clause));
-    }
+    private static (Role Role, Oblique? Oblique) GapSlot(Language language, Statement clause) =>
+        Roles(language, clause).FirstOrDefault(f => f.Argument.Value is Gap) is { } gap
+            ? (gap.Role, gap.Oblique)
+            : throw new ArgumentException("A relative clause needs a gap in one of its roles.", nameof(clause));
 
     //a relative clause with this in its gap's place
     private static Statement Filled(Statement clause, Argument filler)
     {
         Argument Fill(Argument argument) => argument.Value is Gap ? filler : argument;
-        Argument? FillGiven(Argument? argument) => argument.HasValue ? Fill(argument.GetValueOrDefault()) : (Argument?)null;
-        ValueList<Oblique> FillObliques(ValueList<Oblique> obliques) => [.. obliques.Select(o => o with { Argument = Fill(o.Argument) })];
         return clause.Value switch
         {
-            Clause { Force.Value: Declarative stated } c => c with
-            {
-                Force = stated with { Subject = Fill(stated.Subject) },
-                Predicate = c.Predicate switch
-                {
-                    Doing doing => doing with { Object = FillGiven(doing.Object) },
-                    Done done => done with { Agent = FillGiven(done.Agent) },
-                    Being being => being with { Complement = being.Complement.Value is Oblique location ? location with { Argument = Fill(location.Argument) } : being.Complement },
-                },
-                Obliques = FillObliques(c.Obliques),
-            },
-            Comparative c => c with { Clause = (Clause)Filled(c.Clause, filler).Value!, Standard = FillGiven(c.Standard) },
+            Clause c => c.Refilled(Fill),
+            Comparative c => c with { Clause = c.Clause.Refilled(Fill), Standard = c.Standard.HasValue ? Fill(c.Standard.GetValueOrDefault()) : (Argument?)null },
             Modalized m => m with { Clause = Filled(m.Clause, filler) },
             _ => clause,
         };
@@ -1119,32 +1152,25 @@ public static class Syntax
     //says it, with the role's case and adposition
     private static (Root Root, IReadOnlyList<Word> Phrase)? Asked(Language language, Statement statement)
     {
-        foreach (var (argument, role, marked) in Roles(language, statement))
+        foreach (var (argument, role, oblique) in Roles(language, statement))
         {
             if (argument.Value is QuestionWord question)
             {
+                var marked = oblique is not null || role == Role.Agent;
                 return (language.Questions.Words[question.Word].Root, marked ? Marked(language, argument, role) : Inflect(language, argument, role));
             }
         }
         return null;
     }
 
-    //what fills each of a clause's roles, as the language says it, and whether that role is marked as
-    //an oblique is, with its adposition
-    private static IEnumerable<(Argument Argument, Role Role, bool Marked)> Roles(Language language, Statement statement)
+    //what fills each of a clause's roles, as the language says it: a passive in a language without
+    //one is said as the active
+    private static IEnumerable<Filler> Roles(Language language, Statement statement)
     {
-        IEnumerable<(Argument, Role, bool)> Obliques(ValueList<Oblique> obliques) => obliques.Select(o => (o.Argument, o.Role, true));
-        IEnumerable<(Argument, Role, bool)> Given(Argument? argument, Role role, bool marked) => argument.HasValue ? [(argument.GetValueOrDefault(), role, marked)] : [];
         return statement.Value switch
         {
-            Clause { Force.Value: Declarative stated } c => c.Predicate switch
-            {
-                Doing doing => [(stated.Subject, doing.Object is null ? Role.IntransitiveSubject : Role.TransitiveSubject, false), .. Given(doing.Object, Role.DirectObject, false), .. Obliques(c.Obliques)],
-                Done done when language.Passive is null => Roles(language, Active(c, done, stated)),
-                Done done => [(stated.Subject, Role.IntransitiveSubject, false), .. Given(done.Agent, Role.Agent, true), .. Obliques(c.Obliques)],
-                Being { Complement.Value: Oblique location } => [(stated.Subject, Role.IntransitiveSubject, false), (location.Argument, location.Role, true), .. Obliques(c.Obliques)],
-                Being => [(stated.Subject, Role.IntransitiveSubject, false), .. Obliques(c.Obliques)],
-            },
+            Clause { Predicate.Value: Done done, Force.Value: Declarative stated } c when language.Passive is null => Roles(language, Active(c, done, stated)),
+            Clause c => c.Fillers,
             Comparative c => Roles(language, c.Clause),
             Modalized m => Roles(language, m.Clause),
             _ => [],
