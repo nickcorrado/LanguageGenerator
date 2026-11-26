@@ -89,6 +89,12 @@ A sound change can make a sound the language doesn't have as a phoneme, as Spani
 
 Forbidding a sound in `consonants` or `vowels` only keeps it out of the inventory, so a language without θ may still say its t as θ between vowels. To keep a sound out of the language altogether, forbid it in both. `allophones` can also be an exact array of the sounds allowed, which may be empty, for sound changes that make only phonemes.
 
+## Where words meet
+
+Four sound changes can also apply where one word ends and the next begins: nasal assimilation, intervocalic voicing, lenition and voicing assimilation. Each does so only in a language that has it within words, as Spanish lenition reaches across words in *la boca*, said [laˈβoka]. These changes alter only how a word is said, never how it's spelled, since spelling keeps a word the same wherever it stands. A language with final consonant loss silences a word's last obstruent after a vowel and says it again only before a vowel, as French *petit* is [pəti] but *petit ami* [pətit‿ami]. The consonant is still spelled, and it needs codas that can be any consonant.
+
+Words without a root, particles, are clitics. Each leans on the word with a root beside it, on the side syntax put it, and is said as one word with it. That way a clitic can lose its vowel before a vowel, as French *le ami* is *l'ami*, or take its host's harmony. `clitic-stress` decides whether the stress falls by the rule over the whole group, as in Latin *virúmque*, or stays where the host alone has it, as in Spanish *dígamelo*. Clitics are still written as words of their own. The interlinear joins each one to its host with `=`, as the Leipzig rules do.
+
 ## Settings
 
 | Setting | Values |
@@ -109,6 +115,9 @@ Forbidding a sound in `consonants` or `vowels` only keeps it out of the inventor
 | `coda-devoicing`, `coda-weakening`, `compensatory-lengthening`, `closed-syllable-laxing`, `open-syllable-lengthening`, `unstressed-shortening`, `unstressed-monophthongization`, `syncope`, `pretonic-syncope`, `apocope`, `aphaeresis`, `verners-law`, `accent-retraction` | `true` if the language has the change, which applies once words have syllables |
 | `unstressed-vowels` | `None`, `Reduction`, `Raising`, what happens to vowels without the stress |
 | `contact-repair` | `None`, `CodaAssimilation`, `OnsetHardening`, `CodaNasalization` |
+| `nasal-assimilation-across-words`, `intervocalic-voicing-across-words`, `lenition-across-words`, `voicing-assimilation-across-words` | `true` if the change also applies where words meet, which needs it within words too |
+| `final-consonant-loss` | `true` if a word's last obstruent after a vowel goes silent, except before a vowel, as in French liaison |
+| `clitic-stress` | `Group`, `Host`, whether a clitic and its host are stressed by the rule as one word or where the host alone is |
 | `constituent-order` | `SOV`, `SVO`, `VSO`, `VOS`, `OVS`, `OSV` |
 | `adpositions` | `Prepositions`, `Postpositions` |
 | `adjective-order` | `NounAdjective`, `AdjectiveNoun` |

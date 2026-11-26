@@ -11,9 +11,11 @@
   sound change made it an allophone, a sound the language has only as a form of one of its
   phonemes, as Spanish says the b of lobo as β. A sound change that makes another of the
   language's phonemes merges the two, so the sound realizes that one. Spelling and syllables go by
-  the phoneme, so an allophone is written as its phoneme is and fills the slots its phoneme does
+  the phoneme, so an allophone is written as its phoneme is and fills the slots its phoneme does.
+  A silent sound is one a language's final consonant loss took from what's said, which is still
+  spelled and may be said again before a vowel (see Phonology.Silenced)
  */
-public record Segment(Phoneme Phoneme, Phoneme Realizes, Morpheme Morpheme, bool Accented);
+public record Segment(Phoneme Phoneme, Phoneme Realizes, Morpheme Morpheme, bool Accented, bool Silent);
 
 /// <summary>What a language does with a consonant cluster its syllables can't hold.</summary>
 public enum ClusterRepair
@@ -56,6 +58,8 @@ public record Phonology
     /// those the spec doesn't forbid, and those no language has as phonemes.
     /// </summary>
     public required IReadOnlyList<Phoneme> Allophones { get; init; }
+    /// <summary>What happens to sounds where words meet in a sentence.</summary>
+    public required Sandhi Sandhi { get; init; }
 
     /// <summary>Whether a sound change may make this sound, as a phoneme or an allophone.</summary>
     public bool CanSay(Phoneme sound) => sound switch
@@ -103,10 +107,20 @@ public record Phonology
       changes that depend on syllables, each followed by repair, syllables and stress again, since it
       can leave a word that needs them: a syllable lost to syncope moves stress that falls by rule, as
       it would in a language that had lost it, though a stored accent stays on its vowel. Every
-      segment keeps track of its morpheme throughout, so the result can still be segmented
+      segment keeps track of its morpheme throughout, so the result can still be segmented. Last, a
+      language that loses final consonants silences them (see Silenced)
      */
-    public SurfaceForm Realize(Word word)
+    public SurfaceForm Realize(Word word) => Realize([word], 0);
+
+    /*
+      a word with a root and the clitics leaning on it, said as one word, which is how a clitic comes
+      to lose its vowel before a host that starts with one, as French le ami is l'ami, or to take the
+      host's harmony, as Turkish question mI does. The host is the one with a root
+     */
+    private SurfaceForm Realize(IReadOnlyList<Word> words, int host)
     {
+        var word = words.Count == 1 ? words[0] : new Word([.. words.SelectMany(w => w.Morphemes)], words[host].Covert);
+        var hostMorphemes = words[host].Morphemes;
         var segments = new List<Segment>();
         foreach (var morpheme in word.Morphemes)
         {
@@ -124,7 +138,7 @@ public record Phonology
             var vowels = 0;
             foreach (var phoneme in morpheme.Form)
             {
-                segments.Add(new Segment(phoneme, phoneme, morpheme, phoneme is Vowel && vowels++ == accent));
+                segments.Add(new Segment(phoneme, phoneme, morpheme, phoneme is Vowel && vowels++ == accent, false));
             }
         }
         foreach (var change in SoundChanges)
@@ -135,26 +149,178 @@ public record Phonology
         var syllables = Repaired(word, ref segments);
         foreach (var change in SyllableChanges)
         {
-            segments = change.Apply(segments, this, Places(syllables, StressedSyllable(word, segments, syllables)));
+            segments = change.Apply(segments, this, Places(syllables, StressedSyllable(word, hostMorphemes, segments, syllables)));
             syllables = Repaired(word, ref segments);
         }
-        var stressed = StressedSyllable(word, segments, syllables);
-        return new SurfaceForm(word, segments, syllables) { StressedSyllable = stressed, StressMarked = stressed is { } s && s != Stress.Rule.StressedSyllable(syllables) };
+        var stressed = StressedSyllable(word, hostMorphemes, segments, syllables);
+        //marked against the syllables before any consonant is silenced, since it's still spelled
+        var marked = stressed is { } s && s != Stress.Rule.StressedSyllable(syllables);
+        if (Sandhi.FinalConsonantLoss && Silenced(words, segments) is var silenced && silenced.Any(x => x.Silent))
+        {
+            segments = silenced;
+            syllables = Syllabify(Said(segments), out _)!;
+        }
+        return new SurfaceForm(word, segments, syllables) { Words = words, StressedSyllable = stressed, StressMarked = marked, LinksToNext = false };
     }
 
     /*
       the syllable of the first accented vowel if there is one, since every vowel is a nucleus, so
       the leftmost accent among the morphemes wins, as in Russian, and otherwise the rule's. A word
-      without a root has no stress, so null
+      without a root has no stress, so null. Where clitics keep the stress of their host, as Spanish
+      dígamelo keeps díga's, only the host's syllables count, and the rule applies to them alone
      */
-    private int? StressedSyllable(Word word, List<Segment> segments, IReadOnlyList<Syllable> syllables)
+    private int? StressedSyllable(Word word, IReadOnlyList<Morpheme> host, List<Segment> segments, List<Syllable> syllables)
     {
         if (word.Root is null)
         {
             return null;
         }
-        var accented = segments.FindIndex(s => s.Accented);
-        return accented >= 0 ? segments.Take(accented).Count(s => s.Phoneme is Vowel) : Stress.Rule.StressedSyllable(syllables);
+        var nuclei = segments.Where(s => s.Phoneme is Vowel).ToList();
+        List<int> own = Sandhi.CliticStress switch
+        {
+            CliticStress.Group => [],
+            CliticStress.Host => [.. Enumerable.Range(0, nuclei.Count).Where(k => host.Contains(nuclei[k].Morpheme))],
+            _ => throw new InvalidOperationException($"No stress for clitics like {Sandhi.CliticStress}."),
+        };
+        //a word alone is all host, and a host left with no vowel of its own is stressed as a whole
+        var (start, end) = own.Count > 0 ? (own[0], own[^1] + 1) : (0, nuclei.Count);
+        var accented = Enumerable.Range(start, end - start).FirstOrDefault(k => nuclei[k].Accented, -1);
+        return accented >= 0 ? accented : start + Stress.Rule.StressedSyllable(syllables[start..end]);
+    }
+
+    //the sounds that are said, without those a language's final consonant loss silenced
+    private static List<Segment> Said(IEnumerable<Segment> segments) => [.. segments.Where(s => !s.Silent)];
+
+    /*
+      final consonant loss: a word's last sound is silenced where it's an obstruent after a vowel of
+      the same word and no vowel follows it, as French lost its final consonants but kept them before
+      a vowel, so petit is said pəti and petit ami pətitami. A silenced sound is still spelled, as
+      French spells it, and a vowel starting the next word says it again (see RealizePhrase). Inside
+      a host and its clitics, the vowel after it is already known; at the end, it's taken as a pause.
+      It's done only where the word still makes syllables without it, which it always should, since
+      a lone consonant leaving a coda only shortens it
+     */
+    private List<Segment> Silenced(IReadOnlyList<Word> words, List<Segment> segments)
+    {
+        var result = segments.ToList();
+        foreach (var word in words)
+        {
+            var last = result.FindLastIndex(s => word.Morphemes.Contains(s.Morpheme));
+            if (last < 1 || result[last].Phoneme is not Consonant { IsObstruent: true }
+                || result[last - 1].Phoneme is not Vowel || !word.Morphemes.Contains(result[last - 1].Morpheme)
+                || last + 1 < result.Count && result[last + 1].Phoneme is Vowel)
+            {
+                continue;
+            }
+            List<Segment> silenced = [.. result[..last], result[last] with { Silent = true }, .. result[(last + 1)..]];
+            if (Syllabify(Said(silenced), out _) is not null)
+            {
+                result = silenced;
+            }
+        }
+        return result;
+    }
+
+    /// <summary>
+    /// A sentence's words as they're said together: each word with a root and the clitics that lean
+    /// on it said as one word, and then, where those meet, a silenced consonant said again before a
+    /// vowel and the sound changes the language makes across words.
+    /// </summary>
+    public IReadOnlyList<SurfaceForm> RealizePhrase(IReadOnlyList<Word> words)
+    {
+        foreach (var word in words)
+        {
+            if ((word.Root is null) != (word.Leans is not null))
+            {
+                throw new ArgumentException(word.Root is null
+                    ? $"The word {word.Gloss} has no root, so it has to lean on a word next to it."
+                    : $"The word {word.Gloss} has a root, so it can't lean on another.", nameof(words));
+            }
+        }
+        var forms = Groups(words).Select(g => Realize(g.Words, g.Host)).ToList();
+        //liaison: a silenced consonant is said again before a vowel, as the onset it gives it
+        for (int i = 0; i + 1 < forms.Count; i++)
+        {
+            if (forms[i].Segments is [.., { Silent: true }] && forms[i + 1].Segments.First(s => !s.Silent).Phoneme is Vowel)
+            {
+                List<Segment> segments = [.. forms[i].Segments.SkipLast(1), forms[i].Segments[^1] with { Silent = false }];
+                if (Syllabify(Said(segments), out _) is { } syllables)
+                {
+                    forms[i] = forms[i] with { Segments = segments, Syllables = syllables, LinksToNext = true };
+                }
+            }
+        }
+        return AcrossWords(forms);
+    }
+
+    /*
+      each word with a root and the clitics that lean on it next to it, the host's index among them,
+      and each clitic with nothing to lean on, which stands alone, unstressed. A run of clitics leans
+      together, as Spanish me lo dice puts both before the verb. Words whose group would have a
+      morpheme twice stand alone, since a word never has the same morpheme twice
+     */
+    private static List<(IReadOnlyList<Word> Words, int Host)> Groups(IReadOnlyList<Word> words)
+    {
+        var groups = new List<(IReadOnlyList<Word> Words, int Host)>();
+        for (int i = 0; i < words.Count;)
+        {
+            var host = i;
+            while (host < words.Count && words[host].Root is null && words[host].Leans == Lean.Forward)
+            {
+                host++;
+            }
+            if (host == words.Count || words[host].Root is null)
+            {
+                groups.Add(([words[i]], 0));
+                i++;
+                continue;
+            }
+            var end = host + 1;
+            while (end < words.Count && words[end].Root is null && words[end].Leans == Lean.Back)
+            {
+                end++;
+            }
+            var group = words.Skip(i).Take(end - i).ToList();
+            var morphemes = group.SelectMany(w => w.Morphemes).ToList();
+            if (morphemes.Distinct().Count() == morphemes.Count)
+            {
+                groups.Add((group, host - i));
+            }
+            else
+            {
+                groups.AddRange(group.Select(w => ((IReadOnlyList<Word>)[w], 0)));
+            }
+            i = end;
+        }
+        return groups;
+    }
+
+    /*
+      the language's changes across words, each over the whole sentence, kept only where it differs
+      from the change applied to each word alone, so only what the meeting of words brings about
+      counts. They change only how a sound is said: what it realizes, and so how it's spelled, stays
+      as the word has it alone, since spelling keeps a word the same wherever it stands. Silenced
+      sounds take no part, so a vowel and the consonant after a silenced one are neighbors
+     */
+    private List<SurfaceForm> AcrossWords(List<SurfaceForm> forms)
+    {
+        var said = forms.Select(f => Said(f.Segments)).ToList();
+        foreach (var change in Sandhi.AcrossWords)
+        {
+            var together = change.Apply([.. said.SelectMany(s => s)], this);
+            var alone = said.SelectMany(s => change.Apply(s, this)).ToList();
+            if (together.Count != alone.Count || together.Count != said.Sum(s => s.Count))
+            {
+                throw new InvalidOperationException($"{change} changed how many sounds a sentence has, which no change across words may.");
+            }
+            var at = 0;
+            said = [.. said.Select(word => word.Select(segment => together[at] is var t && t.Phoneme != alone[at++].Phoneme ? segment with { Phoneme = t.Phoneme } : segment).ToList())];
+        }
+        return [.. forms.Select((form, i) =>
+        {
+            var sounds = new Queue<Segment>(said[i]);
+            return form with { Segments = [.. form.Segments.Select(s => s.Silent ? s : sounds.Dequeue())] };
+        })];
     }
 
     //the word's syllables, once it's been repaired until it has legal ones
@@ -273,15 +439,27 @@ public record Phonology
     }
 }
 
-/// <summary>A word as it's actually pronounced.</summary>
-//its syllables are made of the phonemes its sounds realize, so they spell as the word does
+/// <summary>
+/// A word as it's actually pronounced, or a word with a root and the clitics leaning on it, which
+/// are said as one word.
+/// </summary>
+/*
+  its syllables are made of the phonemes its sounds realize, so they spell as the word does. They
+  leave out the sounds that are silent, which are spelled all the same
+ */
 public record SurfaceForm(Word Word, IReadOnlyList<Segment> Segments, IReadOnlyList<Syllable> Syllables)
 {
-    /// <summary>The sounds as they're said, allophones and all.</summary>
-    public IEnumerable<Phoneme> Phonemes => Segments.Select(s => s.Phoneme);
+    /// <summary>
+    /// The words it was said from, in order: the one, or the host and its clitics, whose morphemes
+    /// Word runs together.
+    /// </summary>
+    public required IReadOnlyList<Word> Words { get; init; }
 
-    /// <summary>The phonemes the sounds realize.</summary>
-    public IEnumerable<Phoneme> Realized => Segments.Select(s => s.Realizes);
+    /// <summary>The sounds as they're said, allophones and all.</summary>
+    public IEnumerable<Phoneme> Phonemes => Segments.Where(s => !s.Silent).Select(s => s.Phoneme);
+
+    /// <summary>The phonemes the sounds that are said realize.</summary>
+    public IEnumerable<Phoneme> Realized => Segments.Where(s => !s.Silent).Select(s => s.Realizes);
 
     /// <summary>The index of the stressed syllable, or null for a word with no stress.</summary>
     public required int? StressedSyllable { get; init; }
@@ -292,11 +470,38 @@ public record SurfaceForm(Word Word, IReadOnlyList<Segment> Segments, IReadOnlyL
     /// </summary>
     public required bool StressMarked { get; init; }
 
+    /// <summary>
+    /// Whether its last sound, silent on its own, is said before the vowel the next word starts with,
+    /// as in French liaison.
+    /// </summary>
+    public required bool LinksToNext { get; init; }
+
     public string Spell(Orthography orthography) => string.Concat(Segments.Select((_, i) => Spell(orthography, i)));
 
-    public string Syllabified(Orthography orthography) => string.Join(".", Syllables.Select((s, i) => i == StressedSyllable && StressMarked
-        ? orthography.Spell(s.Onset) + orthography.SpellStressed(s.Nucleus) + orthography.Spell(s.Coda)
-        : s.Spell(orthography)));
+    /// <summary>The sounds of one of the words it was said from, spelled.</summary>
+    public string Spell(Orthography orthography, Word word) =>
+        string.Concat(Enumerable.Range(0, Segments.Count).Where(i => word.Morphemes.Contains(Segments[i].Morpheme)).Select(i => Spell(orthography, i)));
+
+    //spelled by syllable, with a silent sound spelled at the end of the syllable before it
+    public string Syllabified(Orthography orthography)
+    {
+        var syllableOf = new int[Segments.Count];
+        var (syllable, left) = (0, Syllables[0].Phonemes.Count());
+        for (int i = 0; i < Segments.Count; i++)
+        {
+            if (!Segments[i].Silent)
+            {
+                while (left == 0)
+                {
+                    left = Syllables[++syllable].Phonemes.Count();
+                }
+                left--;
+            }
+            syllableOf[i] = syllable;
+        }
+        return string.Join(".", Enumerable.Range(0, Syllables.Count)
+            .Select(k => string.Concat(Enumerable.Range(0, Segments.Count).Where(i => syllableOf[i] == k).Select(i => Spell(orthography, i)))));
+    }
 
     //the index among the segments of the vowel that carries a stress mark, or -1 if none does
     private int MarkedVowel => StressMarked
@@ -312,22 +517,26 @@ public record SurfaceForm(Word Word, IReadOnlyList<Segment> Segments, IReadOnlyL
     /// </summary>
     public string Transcribed()
     {
+        var sounds = Segments.Where(s => !s.Silent).ToList();
         var start = 0;
         var said = new List<string>();
         foreach (var syllable in Syllables)
         {
-            said.Add(string.Concat(Segments.Skip(start).Take(syllable.Phonemes.Count()).Select(s => s.Phoneme.IpaSymbol)));
+            said.Add(string.Concat(sounds.Skip(start).Take(syllable.Phonemes.Count()).Select(s => s.Phoneme.IpaSymbol)));
             start += syllable.Phonemes.Count();
         }
         return said.Count == 1 ? said[0] : string.Concat(said.Select((s, i) => (i == StressedSyllable ? "ˈ" : i == 0 ? "" : ".") + s));
     }
 
-    //the surface form split back into its morphemes, lining up with Gloss. A morpheme that lost
-    //all of its sounds to a sound change or cluster repair shows as ∅
-    public string Segmented(Orthography orthography) => string.Join("-", Word.Morphemes.Select(morpheme =>
+    /*
+      the surface form split back into its morphemes, lining up with Gloss, with - between a word's
+      morphemes and = between a host and its clitics, as the Leipzig rules have it. A morpheme that
+      lost all of its sounds to a sound change or cluster repair shows as ∅
+     */
+    public string Segmented(Orthography orthography) => string.Join("=", Words.Select(word => string.Join("-", word.Morphemes.Select(morpheme =>
         Segments.Any(s => s.Morpheme.Equals(morpheme))
             ? string.Concat(Enumerable.Range(0, Segments.Count).Where(i => Segments[i].Morpheme.Equals(morpheme)).Select(i => Spell(orthography, i)))
-            : "∅"));
+            : "∅"))));
 
-    public string Gloss => Word.Gloss;
+    public string Gloss => string.Join("=", Words.Select(w => w.Gloss));
 }

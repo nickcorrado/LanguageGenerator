@@ -135,7 +135,7 @@ public sealed class SoundChange(string name, Func<Site, bool> when, Func<Site, P
             }
             if (places is null && site.Next is { } next && insertsAfter?.Invoke(site, phonology) is { } inserted)
             {
-                result.Add(new Segment(inserted, inserted, next.Morpheme, false));
+                result.Add(new Segment(inserted, inserted, next.Morpheme, false, false));
             }
         }
         return result;
@@ -780,6 +780,12 @@ public sealed class SoundChange(string name, Func<Site, bool> when, Func<Site, P
         Labialization, GlideVocalization, AccentRetraction, CodaDevoicing, CodaWeakening, CompensatoryLengthening, ClosedSyllableLaxing, VernersLaw, OpenSyllableLengthening, UnstressedShortening,
         UnstressedMonophthongization, Syncope, PretonicSyncope, Apocope, Aphaeresis, UnstressedReduction, UnstressedRaising, CodaAssimilation, OnsetHardening, CodaNasalization,
     ];
+
+    /// <summary>
+    /// The sound changes that can also apply across words, in the order they apply: those that only
+    /// change a sound by its neighbors, without syllables, deleting or inserting anything.
+    /// </summary>
+    public static IReadOnlyList<SoundChange> AcrossWordOrder { get; } = [NasalAssimilation, IntervocalicVoicing, Lenition, VoicingAssimilation];
 
     /// <summary>The change for each kind of harmony, of which a language has one at most.</summary>
     public static IReadOnlyList<(VowelHarmony Kind, SoundChange? Change)> Harmonies { get; } =

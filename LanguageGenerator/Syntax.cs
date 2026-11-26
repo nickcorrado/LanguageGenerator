@@ -167,9 +167,9 @@ public static class Syntax
         switch (position)
         {
             case ExponentPosition.PrecedingParticle:
-                return [new Word([marker]), .. clause];
+                return [Word.Marker(marker, Lean.Forward), .. clause];
             case ExponentPosition.FollowingParticle:
-                return [.. clause, new Word([marker])];
+                return [.. clause, Word.Marker(marker, Lean.Back)];
         }
         List<Word> words = [.. clause];
         var at = words.FindLastIndex(w => w.Root is { } r && r == verb);
@@ -220,8 +220,8 @@ public static class Syntax
             words = TakePhrase(words, word.Word.Root, phrase) is var (taken, rest) ? [.. taken, .. rest] : words;
         }
         return relativizer.Kind != RelativizerKind.Particle ? words
-            : relativization.BeforeNoun ? [.. words, new Word([relativizer.Marker])]
-            : [new Word([relativizer.Marker]), .. words];
+            : relativization.BeforeNoun ? [.. words, Word.Marker(relativizer.Marker, Lean.Back)]
+            : [Word.Marker(relativizer.Marker, Lean.Forward), .. words];
     }
 
     //the role a relative clause's gap is in, as the language says the clause, and the oblique it's
@@ -704,7 +704,7 @@ public static class Syntax
                     MannerBare => [new Word([root])],
                     MannerAffix { Position: ExponentPosition.Prefix } affix => [new Word([affix.Marker, root])],
                     MannerAffix affix => [new Word([root, affix.Marker])],
-                    MannerWord word => word.BeforeAdjective ? [new Word([word.Marker]), new Word([root])] : [new Word([root]), new Word([word.Marker])],
+                    MannerWord word => word.BeforeAdjective ? [Word.Marker(word.Marker, Lean.Forward), new Word([root])] : [new Word([root]), Word.Marker(word.Marker, Lean.Back)],
                 };
                 return Intensified(language, words, root, manner.Adjective);
             }
@@ -953,7 +953,7 @@ public static class Syntax
                 break;
             }
             case DegreeWord word:
-                compared.Insert(word.BeforeAdjective ? at : at + 1, new Word([word.Marker]));
+                compared.Insert(word.BeforeAdjective ? at : at + 1, Word.Marker(word.Marker, word.BeforeAdjective ? Lean.Forward : Lean.Back));
                 break;
         }
         return compared;
@@ -1070,9 +1070,10 @@ public static class Syntax
      */
     private static IReadOnlyList<Word> Polar(Language language, IReadOnlyList<Word> clause, Root? finite) => language.Questions.Polar switch
     {
-        QuestionParticle { Position: QuestionParticlePosition.Initial } p => [new Word([p.Marker]), .. clause],
-        QuestionParticle { Position: QuestionParticlePosition.Final } p => [.. clause, new Word([p.Marker])],
-        QuestionParticle p => [.. clause.Take(1), new Word([p.Marker]), .. clause.Skip(1)],
+        QuestionParticle { Position: QuestionParticlePosition.Initial } p => [Word.Marker(p.Marker, Lean.Forward), .. clause],
+        QuestionParticle { Position: QuestionParticlePosition.Final } p => [.. clause, Word.Marker(p.Marker, Lean.Back)],
+        //a particle in second place leans on the first word, as Latin -ne does
+            QuestionParticle p => [.. clause.Take(1), Word.Marker(p.Marker, Lean.Back), .. clause.Skip(1)],
         QuestionAffix a => Affixed(clause, a, finite),
         QuestionInversion => Inverted(clause, finite),
         QuestionIntonation => clause,
@@ -1217,7 +1218,7 @@ public static class Syntax
             case ModalParticle m:
             {
                 var words = Voiced(Verb(language, verb, tense, aspect, subject, negative: false));
-                return Negated(m.BeforeVerb ? [new Word([m.Marker]), .. words] : [.. words, new Word([m.Marker])], negative || modal.Negative);
+                return Negated(m.BeforeVerb ? [Word.Marker(m.Marker, Lean.Forward), .. words] : [.. words, Word.Marker(m.Marker, Lean.Back)], negative || modal.Negative);
             }
             default:
                 throw new InvalidOperationException();
@@ -1240,7 +1241,7 @@ public static class Syntax
                 return words;
             }
             case AspectParticle particle:
-                words.Insert(particle.BeforeVerb ? at : at + 1, new Word([particle.Marker]));
+                words.Insert(particle.BeforeVerb ? at : at + 1, Word.Marker(particle.Marker, particle.BeforeVerb ? Lean.Forward : Lean.Back));
                 return words;
             case AspectAuxiliary:
                 throw new ArgumentException("An auxiliary isn't marked on the verb.", nameof(marking));
@@ -1333,7 +1334,7 @@ public static class Syntax
     private static IReadOnlyList<Word> Flat(IEnumerable<IReadOnlyList<Word>> constituents) => [.. constituents.SelectMany(c => c)];
 
     private static Sentence Sentence(Language language, IReadOnlyList<Word> words, string translation) =>
-        new([.. words.Select(language.Phonology.Realize)], translation, language.Orthography);
+        new(language.Phonology.RealizePhrase(words), translation, language.Orthography);
 
     private static IReadOnlyList<Word> Inflect(Language language, Argument argument, Role role) =>
         Inflect(language, argument, CaseFor(language, language.RoleMarkers[role]), Localization.None);
@@ -1627,17 +1628,46 @@ public static class Syntax
     private static IReadOnlyList<Argument> ObliqueArguments(ValueList<Oblique> obliques) => [.. obliques.Select(o => o.Argument)];
 }
 
-public record Sentence(IReadOnlyList<SurfaceForm> Words, string Translation, Orthography Orthography)
+/// <summary>
+/// A sentence as it's said: its words in groups, each a word with a root and the clitics leaning
+/// on it, said as one word, or a clitic with nothing to lean on.
+/// </summary>
+public record Sentence(IReadOnlyList<SurfaceForm> Groups, string Translation, Orthography Orthography)
 {
-    public string Text => string.Join(" ", Words.Select(w => w.Spell(Orthography)));
+    /// <summary>Every word of the sentence, in order, with the group it's said in.</summary>
+    public IReadOnlyList<SentenceWord> Words => [.. Groups.SelectMany(g => g.Words.Select(w => new SentenceWord(g, w)))];
 
-    // https://www.eva.mpg.de/lingua/resources/glossing-rules.php
-    //the sentence, then its morphemes and their glosses aligned word by word, then a free translation
-    public string Interlinear()
+    //clitics are written as words of their own, as French and Greek write theirs, and a word that
+    //lost every sound to its host, as a clitic's vowel can, isn't written at all
+    public string Text => string.Join(" ", Words.Select(w => w.Spell(Orthography)).Where(s => s.Length > 0));
+
+    /// <summary>
+    /// The IPA of the sentence as it's said, a group at a time, with ‿ where a silent consonant is
+    /// said before the next word's vowel, as in [pəˈtit‿aˈmi].
+    /// </summary>
+    public string Transcribed() =>
+        $"[{string.Concat(Groups.Select((g, i) => g.Transcribed() + (i == Groups.Count - 1 ? "" : g.LinksToNext ? "‿" : " ")))}]";
+
+    /*
+       https://www.eva.mpg.de/lingua/resources/glossing-rules.php
+      the sentence, then, if asked for, how it's said, then its morphemes and their glosses aligned
+      group by group, with = between a host and its clitics, then a free translation. How it's said
+      is left out unless asked for, since most uses only want the language as it's written
+     */
+    public string Interlinear(bool phonetic)
     {
-        var widths = Words.Select(w => Math.Max(w.Segmented(Orthography).Length, w.Gloss.Length)).ToList();
+        var widths = Groups.Select(g => Math.Max(g.Segmented(Orthography).Length, g.Gloss.Length)).ToList();
         string Aligned(Func<SurfaceForm, string> line) =>
-            string.Join("  ", Words.Select((w, i) => line(w).PadRight(widths[i]))).TrimEnd();
-        return string.Join(Environment.NewLine, Text, Aligned(w => w.Segmented(Orthography)), Aligned(w => w.Gloss), $"'{Translation}'");
+            string.Join("  ", Groups.Select((g, i) => line(g).PadRight(widths[i]))).TrimEnd();
+        return string.Join(Environment.NewLine,
+            [Text, .. phonetic ? [Transcribed()] : Array.Empty<string>(), Aligned(g => g.Segmented(Orthography)), Aligned(g => g.Gloss), $"'{Translation}'"]);
     }
+}
+
+/// <summary>One word of a sentence, and the group it's said in.</summary>
+public record SentenceWord(SurfaceForm Group, Word Word)
+{
+    public string Gloss => Word.Gloss;
+
+    public string Spell(Orthography orthography) => Group.Spell(orthography, Word);
 }

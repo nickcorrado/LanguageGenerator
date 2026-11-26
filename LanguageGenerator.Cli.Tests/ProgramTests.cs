@@ -49,6 +49,18 @@ public class ProgramTests
         }
     }
 
+    //how a sentence is said is the one line in brackets, under the sentence
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Main_Phonetic_AddsHowEachSentenceIsSaid(bool phonetic)
+    {
+        var (exitCode, output) = phonetic ? Run("7", "--phonetic") : Run("7");
+
+        Assert.Equal(0, exitCode);
+        Assert.Equal(phonetic, output.Split(Environment.NewLine).Any(line => line.StartsWith('[') && line.EndsWith(']')));
+    }
+
     [Fact]
     public void Main_Spec_FixesWhatItSays()
     {

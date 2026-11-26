@@ -38,11 +38,11 @@ public record Negation(NegationStrategy Strategy, IReadOnlyList<(ExponentPositio
                     words[main] = words[main] with { Morphemes = [.. words[main].Morphemes, marker] };
                     break;
                 case ExponentPosition.PrecedingParticle:
-                    words.Insert(0, new Word([marker]));
+                    words.Insert(0, Word.Marker(marker, Lean.Forward));
                     main++;
                     break;
                 case ExponentPosition.FollowingParticle:
-                    words.Add(new Word([marker]));
+                    words.Add(Word.Marker(marker, Lean.Back));
                     break;
             }
         }

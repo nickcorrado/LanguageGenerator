@@ -8,12 +8,13 @@ namespace LanguageGenerator.Cli;
 /// </summary>
 public static class LanguageDescription
 {
-    public static void Write(Language lang, TextWriter output)
+    //phonetic adds how each example sentence is said beneath it
+    public static void Write(Language lang, TextWriter output, bool phonetic)
     {
         lang.Lexicon.Classify(ExampleNouns);
         WriteFeatures(lang, output);
         WriteParadigms(lang, output);
-        WriteExamples(lang, output);
+        WriteExamples(lang, output, phonetic);
     }
 
     //English's ending for an ordinal written in digits, as in 1st, 12th or 22nd
@@ -40,6 +41,16 @@ public static class LanguageDescription
         {
             output.WriteLine($"Allophones: {string.Join(", ", allophones)}");
         }
+        var sandhi = phonology.Sandhi;
+        List<string> acrossWords = [.. sandhi.AcrossWords.Select(c => c.ToString()!), .. sandhi.FinalConsonantLoss ? ["final consonant loss, said again before a vowel (liaison)"] : Array.Empty<string>()];
+        output.WriteLine($"Across words: {(acrossWords.Count == 0 ? "none" : string.Join(", ", acrossWords))}");
+        var cliticStress = sandhi.CliticStress switch
+        {
+            CliticStress.Group => "stressed with their host as one word",
+            CliticStress.Host => "keep their host's stress",
+            _ => throw new ArgumentOutOfRangeException(nameof(lang), sandhi.CliticStress, null),
+        };
+        output.WriteLine($"Clitics: {cliticStress}");
         var repair = phonology.ClusterRepair == ClusterRepair.Epenthesis ? $"epenthesis of {phonology.EpentheticVowel.IpaSymbol}" : "deletion";
         output.WriteLine($"Illegal clusters: {repair}");
         output.WriteLine($"Stress: {phonology.Stress.Description}");
@@ -410,7 +421,7 @@ public static class LanguageDescription
     private static readonly IReadOnlyDictionary<string, SemanticClass> ExampleNouns =
         NounFile.Parse("woman F\nperson HUM\ndog ANIM\ncat ANIM\nbird ANIM\nfish ANIM");
 
-    private static void WriteExamples(Language lang, TextWriter output)
+    private static void WriteExamples(Language lang, TextWriter output, bool phonetic)
     {
         //a few sentences, glossed
         NounPhrase Phrase(string noun, Number number) => new(noun, number, Definiteness: Definiteness.Definite);
@@ -583,7 +594,7 @@ public static class LanguageDescription
         foreach (var (clause, translation) in all)
         {
             output.WriteLine();
-            output.WriteLine(Syntax.Realize(lang, clause, translation).Interlinear());
+            output.WriteLine(Syntax.Realize(lang, clause, translation).Interlinear(phonetic));
         }
     }
 }

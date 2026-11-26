@@ -264,6 +264,14 @@ public static class SpecRules
             $"A syllable contact restriction needs a syllable template with a coda: {CodaTemplates}."),
         SpecRule.Together(Settings.SyllableContact, Settings.ContactRepair, (contact, repair) => repair == ContactRepair.None || contact != SyllableContact.Any,
             "A contact repair needs a syllable contact restriction, so syllable-contact can't be Any."),
+        //a change applies across words only where the language has it within them
+        .. Settings.ChangesAcrossWords.Select(c => SpecRule.Together(c.Has, c.Across, (has, across) => !across || has,
+            $"{c.Across.Name} needs the change within words too, so {c.Has.Name} must be true.")),
+        //final consonant loss silences obstruents closing a word, which needs codas that can be one
+        SpecRule.Together(Settings.SyllableTemplate, Settings.FinalConsonantLoss, (template, on) => !on || HasCodas(template),
+            $"final-consonant-loss needs a syllable template with a coda: {CodaTemplates}."),
+        SpecRule.Together(Settings.CodaRestriction, Settings.FinalConsonantLoss, (codas, on) => !on || codas == CodaRestriction.Any,
+            "final-consonant-loss needs codas that can be any consonant, so coda-restriction must be Any."),
         //and a change needs the sounds it works with
         .. VowelNeeds.SelectMany(need => NeedRules(need, Settings.VowelInventory)),
         .. ConsonantNeeds.SelectMany(need => NeedRules(need, Settings.ConsonantInventory)),

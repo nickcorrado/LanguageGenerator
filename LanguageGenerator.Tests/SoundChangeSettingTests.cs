@@ -79,6 +79,37 @@ public class SoundChangeSettingTests
     }
 
     [Fact]
+    public void Generate_ChangeAcrossWordsFixed_HasItWithinWordsToo()
+    {
+        var spec = LanguageSpec.Free.Fix(Settings.LenitionAcrossWords, true);
+
+        Assert.All(Generate(spec), l =>
+        {
+            Assert.Contains(SoundChange.Lenition, l.Phonology.SoundChanges);
+            Assert.Contains(SoundChange.Lenition, l.Phonology.Sandhi.AcrossWords);
+        });
+    }
+
+    [Fact]
+    public void Generate_FinalConsonantLossFixed_DrawsCodasThatCanBeAnything()
+    {
+        var spec = LanguageSpec.Free.Fix(Settings.FinalConsonantLoss, true);
+
+        Assert.All(Generate(spec), l =>
+        {
+            Assert.Contains(Slot.Final, l.Phonology.SyllableRule.Template.Slots);
+            Assert.Equal(CodaRestriction.Any, l.Phonology.SyllableRule.Codas);
+            Assert.True(l.Phonology.Sandhi.FinalConsonantLoss);
+        });
+    }
+
+    [Fact]
+    public void Generate_FreeLanguages_MakeOnlyTheirOwnChangesAcrossWords()
+    {
+        Assert.All(GeneratedLanguages.Sample, l => Assert.All(l.Phonology.Sandhi.AcrossWords, c => Assert.Contains(c, l.Phonology.SoundChanges)));
+    }
+
+    [Fact]
     public void Generate_ChangeFixedOff_KeepsTheSeedsLanguageWhereItHadNone()
     {
         var spec = LanguageSpec.Free.Fix(Settings.Lenition, false);
@@ -110,6 +141,9 @@ public class SoundChangeSettingTests
         { """{ "vowel-harmony": "TongueRoot", "vowels": ["a", "e", "i", "o", "u"] }""", "Vowel harmony needs a pair" },
         { """{ "glide-formation": true, "consonants": ["p", "t", "k", "m", "n", "s"] }""", "glide-formation needs j or w" },
         { """{ "hiatus-resolution": "GlottalInsertion", "consonants": ["p", "t", "k", "m", "n", "s"] }""", "glottal insertion ʔ or h" },
+        { """{ "lenition-across-words": true, "lenition": false }""", "lenition-across-words needs the change within words too" },
+        { """{ "final-consonant-loss": true, "syllable-template": "CV" }""", "final-consonant-loss needs a syllable template with a coda" },
+        { """{ "final-consonant-loss": true, "coda-restriction": "Nasals" }""", "final-consonant-loss needs codas that can be any consonant" },
     };
 
     [Theory]

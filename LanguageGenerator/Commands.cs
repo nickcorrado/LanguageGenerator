@@ -36,7 +36,7 @@ public record Commands(Morpheme? Singular, Morpheme? Plural, ExponentPosition Po
         {
             ExponentPosition.Prefix => [new Word([marker, verb.Root])],
             ExponentPosition.Suffix => [new Word([verb.Root, marker])],
-            ExponentPosition.PrecedingParticle => [new Word([marker]), new Word([verb.Root])],
-            _ => [new Word([verb.Root]), new Word([marker])],
+            ExponentPosition.PrecedingParticle => [Word.Marker(marker, Lean.Forward), new Word([verb.Root])],
+            _ => [new Word([verb.Root]), Word.Marker(marker, Lean.Back)],
         };
 }

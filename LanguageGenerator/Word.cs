@@ -10,6 +10,22 @@ public record Word(IReadOnlyList<Morpheme> Morphemes, IReadOnlyList<Grammeme>? C
     /// <summary>The word's root, if it has one: a particle's word doesn't.</summary>
     public Root? Root => Morphemes.Select(m => m.Value).OfType<Root>().FirstOrDefault();
 
+    /// <summary>
+    /// Which way a word without a root leans for its stress and sound, as a clitic: onto the word
+    /// after it or the one before. A word with a root never leans.
+    /// </summary>
+    /*
+      only a word without a root leans, and every such word has to, which Phonology.RealizePhrase
+      checks: syntax knows which side of its head it put a particle on, and nothing else does
+     */
+    public Lean? Leans { get; init; }
+
+    /// <summary>
+    /// A word of one morpheme that marks the word next to it this way: a clitic leaning on it, unless
+    /// the morpheme is a root, which stands on its own, as an indefinite article that's 'one' does.
+    /// </summary>
+    public static Word Marker(Morpheme morpheme, Lean leans) => morpheme.Value is Root ? new([morpheme]) : new([morpheme]) { Leans = leans };
+
     public string Spell(Orthography orthography) => string.Concat(Morphemes.Select(m => m.Spell(orthography)));
 
     /*
@@ -25,6 +41,13 @@ public record Word(IReadOnlyList<Morpheme> Morphemes, IReadOnlyList<Grammeme>? C
     //Leipzig rule 6: features with no form of their own go in brackets on the root, as in boy[NOM.SG]
     public string Gloss => string.Join("-", Morphemes.Select(m =>
         m.Value is Root && Covert is { Count: > 0 } covert ? $"{m.Gloss}[{Grammeme.JoinGlosses(covert)}]" : m.Gloss));
+}
+
+/// <summary>Which word a clitic leans on: the one after it, a proclitic, or the one before, an enclitic.</summary>
+public enum Lean
+{
+    Forward,
+    Back,
 }
 
 /// <summary>A dictionary entry: a root, and what it can be inflected as.</summary>

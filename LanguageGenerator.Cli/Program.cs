@@ -6,13 +6,14 @@ using LanguageGenerator.Cli;
   "translate <file> [seed]" translates a file of clauses (see ClauseFile) instead of describing
   the language, with the noun file (see NounFile) that --nouns names or else the one beside it, and
   "gloss <english.txt>" writes such files from English (see Glosser). Either of the first two takes
-  --spec with a JSON file fixing some of the language's settings (see SpecFile)
+  --spec with a JSON file fixing some of the language's settings (see SpecFile), and --phonetic, which
+  adds how each sentence is said beneath it
  */
 if (args is ["gloss", .. var glossArguments])
 {
     return await GlossCommand.Run(glossArguments);
 }
-const string Usage = "Usage: LanguageGenerator.Cli [seed] [--spec file], or LanguageGenerator.Cli translate <file> [seed] [--nouns file] [--spec file], where the seed is an integer, or LanguageGenerator.Cli gloss <english.txt>.";
+const string Usage = "Usage: LanguageGenerator.Cli [seed] [--spec file] [--phonetic], or LanguageGenerator.Cli translate <file> [seed] [--nouns file] [--spec file] [--phonetic], where the seed is an integer, or LanguageGenerator.Cli gloss <english.txt>. --phonetic adds how each sentence is said.";
 //an option and the file after it, taken out of the arguments
 string? Option(string name)
 {
@@ -24,6 +25,17 @@ string? Option(string name)
     args = [.. args[..at], .. args[Math.Min(at + 2, args.Length)..]];
     return value ?? "";
 }
+//a flag with no value, taken out of the arguments
+bool Flag(string name)
+{
+    var at = Array.IndexOf(args, name);
+    if (at >= 0)
+    {
+        args = [.. args[..at], .. args[(at + 1)..]];
+    }
+    return at >= 0;
+}
+var phonetic = Flag("--phonetic");
 var nounsArgument = Option("--nouns");
 var specArgument = Option("--spec");
 if (nounsArgument == "" || specArgument == "")
@@ -108,10 +120,10 @@ if (translating)
     foreach (var entry in script)
     {
         Console.WriteLine();
-        Console.WriteLine(Syntax.Realize(lang, entry.Statement, entry.Translation).Interlinear());
+        Console.WriteLine(Syntax.Realize(lang, entry.Statement, entry.Translation).Interlinear(phonetic));
     }
     return 0;
 }
 
-LanguageDescription.Write(lang, Console.Out);
+LanguageDescription.Write(lang, Console.Out, phonetic);
 return 0;

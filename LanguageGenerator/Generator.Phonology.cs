@@ -99,6 +99,23 @@ public static partial class Generator
         (null, 23),
     ];
 
+    /*
+      which of its own changes a language also makes across words, whether it loses final
+      consonants, and how its clitics take stress. Nobody counts these, so the odds are guesses: each
+      change that can cross words does half the time, as Spanish lenition does (la boca, said
+      laβoka) and Korean's voicing mostly doesn't; final consonant loss, as French has it, is rare,
+      and needs codas that can be obstruents; and clitics keep their host's stress as often as they
+      take the group's. Each change's odds are drawn whether or not the language has it, so the rest
+      draw the same either way
+     */
+    public static Sandhi SelectSandhi(Random rand, IReadOnlyCollection<SoundChange> changes, SyllableRule rule)
+    {
+        List<SoundChange> across = [.. SoundChange.AcrossWordOrder.Where(c => rand.NextDouble() < 0.5 && changes.Contains(c))];
+        var loss = rand.NextDouble() < 0.1 && rule.Template.Slots.Any(s => s is Slot.Final) && rule.Codas == CodaRestriction.Any;
+        var stress = rand.NextDouble() < 0.5 ? CliticStress.Group : CliticStress.Host;
+        return new(across, loss, stress);
+    }
+
     //every sound beyond the inventory, which a spec can then forbid
     public static IReadOnlyList<Phoneme> SelectAllophones(IReadOnlyCollection<Vowel> vowels, IReadOnlyCollection<Consonant> consonants) =>
         [.. Phoneme.Every.Where(p => p switch { Vowel v => !vowels.Contains(v), Consonant c => !consonants.Contains(c) })];
