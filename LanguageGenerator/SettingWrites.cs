@@ -697,18 +697,29 @@ internal static class SettingWrites
     }
 
     /*
-      indefinite pronouns move between kinds keeping their forms, all of which are made whatever is
-      drawn. A mixed one that wasn't drawn mixed makes persons from nouns and things from question
-      words, as Semelai does
+      indefinite pronouns move between kinds keeping the forms the draw has, and a kind needing forms
+      it lacks passes the draw over. A mixed one that wasn't drawn mixed makes persons from nouns and
+      things from question words, as Semelai does
      */
-    public static Indefinites WithIndefinitePronouns(Indefinites drawn, IndefinitePronouns type) => type switch
+    public static Indefinites WithIndefinitePronouns(Indefinites drawn, IndefinitePronouns type)
     {
-        _ when type == drawn.Type => drawn,
-        IndefinitePronouns.InterrogativeBased => drawn with { PersonBase = IndefiniteBase.Interrogative, ThingBase = IndefiniteBase.Interrogative },
-        IndefinitePronouns.GenericNounBased => drawn with { PersonBase = IndefiniteBase.GenericNoun, ThingBase = IndefiniteBase.GenericNoun },
-        IndefinitePronouns.Special => drawn with { PersonBase = IndefiniteBase.Special, ThingBase = IndefiniteBase.Special },
-        _ => drawn with { PersonBase = IndefiniteBase.GenericNoun, ThingBase = IndefiniteBase.Interrogative },
-    };
+        if (type == drawn.Type)
+        {
+            return drawn;
+        }
+        //question words' markers serve persons and things alike, but words of their own are a kind's, and a generic noun needs none
+        var markers = drawn.Persons.Value as InterrogativeIndefinites ?? drawn.Things.Value as InterrogativeIndefinites;
+        IndefiniteSource Interrogative() => markers ?? throw NoForm("Indefinites made from question words");
+        IndefiniteSource Special(IndefiniteSource source) => source.Value as SpecialIndefinites ?? throw NoForm("Indefinites of their own");
+        return type switch
+        {
+            IndefinitePronouns.InterrogativeBased => drawn with { Persons = Interrogative(), Things = Interrogative() },
+            IndefinitePronouns.GenericNounBased => drawn with { Persons = new GenericNounIndefinites(), Things = new GenericNounIndefinites() },
+            IndefinitePronouns.Special => drawn with { Persons = Special(drawn.Persons), Things = Special(drawn.Things) },
+            IndefinitePronouns.Mixed => drawn with { Persons = new GenericNounIndefinites(), Things = Interrogative() },
+            _ => throw new ArgumentOutOfRangeException(nameof(type), type, null),
+        };
+    }
 }
 
 /// <summary>

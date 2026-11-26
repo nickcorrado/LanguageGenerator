@@ -1431,18 +1431,17 @@ public static class Syntax
         var indefinites = language.Indefinites;
         var nouns = language.Paradigms.Nouns;
         var features = Features(nouns, [Number.Singular, @case, localization]);
-        switch (indefinites.BaseOf(pronoun.Kind))
+        IReadOnlyList<Word> Marked(Exponent marker)
         {
-            case IndefiniteBase.Special:
-                return nouns.Inflect(indefinites.Own[(pronoun.Series, pronoun.Kind)], features);
-            case IndefiniteBase.Interrogative:
-                var word = language.Questions.Words[Indefinites.QuestionWordFor(pronoun.Kind)];
-                return Articles.Mark(nouns.Inflect(word, features), word.Root, indefinites.Markers[pronoun.Series], indefinites.MarkerPosition);
-            case IndefiniteBase.GenericNoun:
-                return Modified(language, pronoun.AsNoun, features);
-            case var other:
-                throw new ArgumentOutOfRangeException(nameof(pronoun), other, null);
+            var word = language.Questions.Words[Indefinites.QuestionWordFor(pronoun.Kind)];
+            return Articles.Mark(nouns.Inflect(word, features), word.Root, marker.Marker, marker.Position);
         }
+        return indefinites.SourceOf(pronoun.Kind) switch
+        {
+            SpecialIndefinites special => nouns.Inflect(special.Words[(pronoun.Series, pronoun.Kind)], features),
+            InterrogativeIndefinites interrogative => Marked(interrogative.Markers[pronoun.Series]),
+            GenericNounIndefinites => Modified(language, pronoun.AsNoun, features),
+        };
     }
 
     /*

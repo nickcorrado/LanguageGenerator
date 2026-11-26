@@ -114,26 +114,36 @@ public class IndefiniteTests
         var mixed = Draws(s => s).Where(i => i.Type == IndefinitePronouns.Mixed).ToList();
 
         Assert.NotEmpty(mixed);
-        Assert.All(mixed, i =>
-            Assert.Equal([IndefiniteBase.Interrogative, IndefiniteBase.GenericNoun], new[] { i.PersonBase, i.ThingBase }.Order()));
+        Assert.All(mixed, i => Assert.True(i is { Persons.Value: InterrogativeIndefinites, Things.Value: GenericNounIndefinites }
+            or { Persons.Value: GenericNounIndefinites, Things.Value: InterrogativeIndefinites }));
     }
 
     [Fact]
-    public void GenerateIndefinites_ManyDraws_HaveEveryFormAndKeepThemApart()
+    public void GenerateIndefinites_ManyDraws_HaveTheFormsTheirSourcesUseAndKeepThemApart()
     {
         Assert.All(Draws(s => s).Take(500), i =>
         {
-            Assert.Equal(Indefinites.Series.Order(), i.Markers.Keys.Order());
-            Assert.Equal(12, i.Own.Count);
+            var markers = Markers(i).ToList();
+            Assert.Equal(markers.Count > 0 ? Indefinites.Series.Count : 0, markers.Count);
+            Assert.Equal(i.Type == IndefinitePronouns.Special ? 12 : 0, i.Own.Count());
             Assert.Equal(Enum.GetValues<Quantifier>(), i.Quantifiers.Keys.Order());
-            var forms = i.Markers.Values.Select(m => m.Form).Concat(i.Own.Values.Concat(i.Quantifiers.Values).Select(l => l.Root.Form)).Select(f => string.Concat(f.Select(p => p.IpaSymbol))).ToList();
+            var forms = markers.Select(m => m.Marker.Form).Concat(i.Own.Concat(i.Quantifiers.Values).Select(l => l.Root.Form)).Select(f => string.Concat(f.Select(p => p.IpaSymbol))).ToList();
             Assert.Equal(forms.Count, forms.Distinct().Count());
         });
     }
 
+    //the markers for question words, which persons and things share where both are made from them
+    private static IEnumerable<Exponent> Markers(Indefinites indefinites) =>
+        new[] { indefinites.Persons.Value, indefinites.Things.Value }.OfType<InterrogativeIndefinites>().Distinct().SelectMany(m => m.Markers.Values);
+
+    private static InterrogativeIndefinites FromQuestionWords(Indefinites indefinites) =>
+        Assert.IsType<InterrogativeIndefinites>(indefinites.Persons.Value as InterrogativeIndefinites ?? indefinites.Things.Value);
+
+    private static SpecialIndefinites Special(Indefinites indefinites, Ontology kind) => Assert.IsType<SpecialIndefinites>(indefinites.SourceOf(kind).Value);
+
     [Fact]
     public void GenerateIndefinites_IsolatingLanguage_MarksQuestionWordsWithWords() =>
-        Assert.All(Draws(s => s.Fix(Settings.Fusion, Fusion.Isolating)), i => Assert.False(i.MarkersAreAffixes));
+        Assert.All(Draws(s => s.Fix(Settings.Fusion, Fusion.Isolating)), i => Assert.DoesNotContain(Markers(i), m => m.Value is Bound));
 
     [Fact]
     public void GenerateIndefinites_RestrictedNumerals_SayManyWithTheNumeralsWord() =>
@@ -151,7 +161,7 @@ public class IndefiniteTests
             .Words.SelectMany(w => w.Word.Morphemes).ToList();
 
         Assert.Contains(language.Questions.Words[Interrogative.Who].Root, morphemes);
-        Assert.Contains(language.Indefinites.Markers[Quantifier.Some], morphemes);
+        Assert.Contains(FromQuestionWords(language.Indefinites).Markers[Quantifier.Some].Marker, morphemes);
     }
 
     [Fact]
@@ -160,7 +170,7 @@ public class IndefiniteTests
         var language = With(IndefinitePronouns.Special);
         var sentence = Syntax.Realize(language, Sees(BareNoun("dog", Number.Singular), Indefinite(Quantifier.Every, Ontology.Thing)), "x");
 
-        Assert.True(IndexOf(sentence, language.Indefinites.Own[(Quantifier.Every, Ontology.Thing)].Root) >= 0);
+        Assert.True(IndexOf(sentence, Special(language.Indefinites, Ontology.Thing).Words[(Quantifier.Every, Ontology.Thing)].Root) >= 0);
     }
 
     [Fact]
@@ -178,7 +188,7 @@ public class IndefiniteTests
     {
         var language = With(IndefinitePronouns.Mixed);
         var sentence = Syntax.Realize(language, Sees(Indefinite(Quantifier.Some, Ontology.Person), Indefinite(Quantifier.Some, Ontology.Thing)), "x");
-        var (fromNoun, fromQuestion) = language.Indefinites.PersonBase == IndefiniteBase.GenericNoun
+        var (fromNoun, fromQuestion) = language.Indefinites.Persons.Value is GenericNounIndefinites
             ? (language.Lexicon.Noun("person"), language.Questions.Words[Interrogative.What])
             : (language.Lexicon.Noun("thing"), language.Questions.Words[Interrogative.Who]);
 
@@ -230,7 +240,7 @@ public class IndefiniteTests
         var sleeps = new Clause(new Doing("sleep", null), new Declarative(Tense.Present, Aspect.Imperfective, BareNoun("dog", Number.Singular)), false, [new(Role.Time, Indefinite(Quantifier.No, Ontology.Time), Configuration.At)], []);
 
         Assert.Equal(negated, Negated(language, sleeps));
-        Assert.True(IndexOf(Syntax.Realize(language, sleeps, "x"), language.Indefinites.Own[(Quantifier.No, Ontology.Time)].Root) >= 0);
+        Assert.True(IndexOf(Syntax.Realize(language, sleeps, "x"), Special(language.Indefinites, Ontology.Time).Words[(Quantifier.No, Ontology.Time)].Root) >= 0);
     }
 
     [Fact]
@@ -241,7 +251,7 @@ public class IndefiniteTests
         var morphemes = Syntax.Realize(language, sleeps, "x").Words.SelectMany(w => w.Word.Morphemes).ToList();
 
         Assert.Contains(language.Questions.Words[Interrogative.When].Root, morphemes);
-        Assert.Contains(language.Indefinites.Markers[Quantifier.Every], morphemes);
+        Assert.Contains(FromQuestionWords(language.Indefinites).Markers[Quantifier.Every].Marker, morphemes);
     }
 
     [Fact]

@@ -121,27 +121,31 @@ public static class LanguageDescription
         output.WriteLine($"Demonstratives: {demonstratives.Contrast}, {adnominal}, {where}; {standing}; 'here' and 'there' {places}");
 
         var indefinites = lang.Indefinites;
-        string Kind(Ontology kind) => indefinites.BaseOf(kind) switch
+        string Kind(Ontology kind) => indefinites.SourceOf(kind).Value switch
         {
-            IndefiniteBase.Interrogative => "question words",
-            IndefiniteBase.GenericNoun => $"'{Indefinites.NounFor(kind)}'",
+            InterrogativeIndefinites => "question words",
+            GenericNounIndefinites => $"'{Indefinites.NounFor(kind)}'",
             _ => "words of their own",
         };
-        var markers = string.Join(", ", indefinites.Markers.Select(m =>
-        {
-            var spelled = m.Value.Spell(orthography);
-            var form = indefinites.MarkerPosition switch { ExponentPosition.Prefix => $"{spelled}-", ExponentPosition.Suffix => $"-{spelled}", _ => spelled };
-            return $"{form} ({m.Key.ToString().ToLowerInvariant()})";
-        }));
-        var markerWhere = indefinites.MarkerPosition switch
-        {
-            ExponentPosition.PrecedingParticle => " before them",
-            ExponentPosition.FollowingParticle => " after them",
-            _ => "",
-        };
-        var made = indefinites.PersonBase == indefinites.ThingBase ? $"made from {Kind(Ontology.Person)}"
+        var made = indefinites.Persons.Value?.GetType() == indefinites.Things.Value?.GetType() ? $"made from {Kind(Ontology.Person)}"
             : $"'someone' made from {Kind(Ontology.Person)} and 'something' from {Kind(Ontology.Thing)}";
-        var indefiniteMarking = indefinites.Type is IndefinitePronouns.GenericNounBased or IndefinitePronouns.Special ? "" : $", marked {markers}{markerWhere}";
+        var indefiniteMarking = "";
+        if ((indefinites.Persons.Value as InterrogativeIndefinites ?? indefinites.Things.Value as InterrogativeIndefinites) is { } interrogative)
+        {
+            var markers = string.Join(", ", interrogative.Markers.Select(m =>
+            {
+                var spelled = m.Value.Marker.Spell(orthography);
+                var form = m.Value.Position switch { ExponentPosition.Prefix => $"{spelled}-", ExponentPosition.Suffix => $"-{spelled}", _ => spelled };
+                return $"{form} ({m.Key.ToString().ToLowerInvariant()})";
+            }));
+            var markerWhere = interrogative.Markers.Values.First().Position switch
+            {
+                ExponentPosition.PrecedingParticle => " before them",
+                ExponentPosition.FollowingParticle => " after them",
+                _ => "",
+            };
+            indefiniteMarking = $", marked {markers}{markerWhere}";
+        }
         var negated = indefinites.Negation switch
         {
             NegativeIndefiniteNegation.Always => "'nobody' takes the verb's negation too",
