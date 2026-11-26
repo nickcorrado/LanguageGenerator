@@ -8,7 +8,7 @@ public class AdjectiveTests
 
     //only the basic meanings, since coining new ones would add to the shared sample's lexicons
     private static Sentence Sleep(Language l, NounPhrase subject) =>
-        Syntax.Realize(l, new Clause("sleep", Tense.Present, Aspect.Imperfective, subject) { Adverbs = [] }, "the big old dogs are sleeping");
+        Syntax.Realize(l, new Clause(new Doing("sleep", null), new Declarative(Tense.Present, Aspect.Imperfective, subject), false, [], []), "the big old dogs are sleeping");
 
     private static Word WordOf(Sentence sentence, string meaning) => sentence.Words[IndexOf(sentence, meaning)].Word;
 

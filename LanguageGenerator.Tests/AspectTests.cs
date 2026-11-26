@@ -1,3 +1,4 @@
+using static LanguageGenerator.Tests.Clauses;
 using static LanguageGenerator.Tests.Sentences;
 
 namespace LanguageGenerator.Tests;
@@ -8,7 +9,7 @@ public class AspectTests
 
     private static readonly NounPhrase Dog = new("dog", Number.Singular);
     private static readonly NounPhrase Fish = new("fish", Number.Singular);
-    private static Clause DogEatsFish(Tense tense, Aspect aspect, bool negative = false) => new("eat", tense, aspect, Dog, Fish, negative) { Adverbs = [] };
+    private static Clause DogEatsFish(Tense tense, Aspect aspect, bool negative = false) => new Clause(new Doing("eat", Fish), new Declarative(tense, aspect, Dog), negative, [], []);
 
     private static Sentence Realized(Language language, Statement statement) => Syntax.Realize(language, statement, "x");
 
@@ -114,7 +115,7 @@ public class AspectTests
         Assert.NotEmpty(languages);
         Assert.All(languages, l =>
         {
-            var sentence = Realized(l, new PassiveClause("eat", Tense.Past, Aspect.Perfect, Fish, null, false, []) { Adverbs = [] });
+            var sentence = Realized(l, new Clause(new Done("eat", null), new Declarative(Tense.Past, Aspect.Perfect, Fish), false, [], []));
             var morphemes = sentence.Words[IndexOf(sentence, l.Lexicon.Verb("eat").Root)].Word.Morphemes.Select(m => m.Value).ToList();
             var root = morphemes.FindIndex(m => m is Root);
             var prefix = Assert.IsType<Bound>(l.Aspects.Perfect?.Value).Side == Side.Before;
@@ -140,7 +141,7 @@ public class AspectTests
     public void Realize_CopulaWithAnAspectMarker_IsNeverDropped() =>
         Assert.All(Languages(AspectKind.Particle, AspectKind.None, s => s.Fix(Settings.ZeroCopula, true).Fix(Settings.PredicativeAdjectives, PredicativeAdjectives.Nonverbal)), l =>
         {
-            var big = new CopularClause(new Adjective("big", false), Tense.Present, Aspect.Perfect, Dog) { Obliques = [], Adverbs = [] };
+            var big = new Clause(new Being(new Adjective("big", false)), new Declarative(Tense.Present, Aspect.Perfect, Dog), false, [], []);
             Assert.True(IndexOf(Realized(l, big), l.Predication.Copula.Root) >= 0);
         });
 
@@ -148,7 +149,7 @@ public class AspectTests
     public void Realize_PerfectAuxiliaryUnderASuffix_PutsTheSuffixOnTheAuxiliary() =>
         Assert.All(Languages(AspectKind.Have, AspectKind.None, s => s.Fix(Settings.SubordinatorOf(Subordinator.If), ExponentPosition.Suffix).Fix(Settings.TemporalBalance, Balance.Balanced)), l =>
         {
-            var main = new Clause("sleep", Tense.Present, Aspect.Imperfective, new NounPhrase("cat", Number.Singular)) { Adverbs = [] };
+            var main = new Clause(new Doing("sleep", null), new Declarative(Tense.Present, Aspect.Imperfective, new NounPhrase("cat", Number.Singular)), false, [], []);
             var sentence = Realized(l, new Subordinated(main, Subordinator.If, DogEatsFish(Tense.Present, Aspect.Perfect), false));
 
             Assert.Contains(l.Subordination.Markers[Subordinator.If].Marker, sentence.Words[IndexOf(sentence, "have")].Word.Morphemes);
@@ -160,8 +161,8 @@ public class AspectTests
         var clauses = new Func<Aspect, Statement>[]
         {
             aspect => DogEatsFish(Tense.Present, aspect),
-            aspect => new PassiveClause("eat", Tense.Past, aspect, Fish, Dog, false, []) { Adverbs = [] },
-            aspect => new CopularClause(new Adjective("big", false), Tense.Present, aspect, Dog) { Obliques = [], Adverbs = [] },
+            aspect => new Clause(new Done("eat", Dog), new Declarative(Tense.Past, aspect, Fish), false, [], []),
+            aspect => new Clause(new Being(new Adjective("big", false)), new Declarative(Tense.Present, aspect, Dog), false, [], []),
             aspect => new Question(DogEatsFish(Tense.Past, aspect), null),
         };
         Assert.All(GeneratedLanguages.Sample, l =>
@@ -181,7 +182,7 @@ public class AspectTests
     [InlineData("mend.PST.PROG  subject:3SG.F  object:net.NDF", "Progressive")]
     [InlineData("walk.PST.HAB  subject:3SG.F", "Habitual")]
     public void Parse_PerfectProgressiveAndHabitual_AreAspects(string gloss, string? aspect) =>
-        Assert.Equal(aspect is null ? Aspect.Imperfective : ClauseFile.ValuesOf<Aspect>().Single(a => a.Name == aspect), Assert.IsType<Clause>(Parsed(gloss).Value).Aspect);
+        Assert.Equal(aspect is null ? Aspect.Imperfective : ClauseFile.ValuesOf<Aspect>().Single(a => a.Name == aspect), ForceOf<Declarative>(Parsed(gloss)).Aspect);
 
     [Theory]
     [InlineData("go.PRF.OBLIG  subject:3SG.M", "OBLIG can't take PRF")]

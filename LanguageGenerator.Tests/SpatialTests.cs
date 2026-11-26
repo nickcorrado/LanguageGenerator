@@ -1,3 +1,4 @@
+using static LanguageGenerator.Tests.Clauses;
 using static LanguageGenerator.Tests.Sentences;
 
 namespace LanguageGenerator.Tests;
@@ -8,7 +9,7 @@ public class SpatialTests
     private static readonly NounPhrase Stone = new("stone", Number.Singular);
 
     private static Sentence Walk(Language language, Role role, Configuration configuration) =>
-        Syntax.Realize(language, new Clause("walk", Tense.Past, Aspect.Perfective, new NounPhrase("dog", Number.Singular), Obliques: [new(role, Stone, configuration)]) { Adverbs = [] }, "x");
+        Syntax.Realize(language, new Clause(new Doing("walk", null), new Declarative(Tense.Past, Aspect.Perfective, new NounPhrase("dog", Number.Singular)), false, [new(role, Stone, configuration)], []), "x");
 
     private static Statement Parsed(string gloss) => Assert.Single(ClauseFile.Parse($"x\n  {gloss}")).Statement;
 
@@ -32,7 +33,7 @@ public class SpatialTests
     [Fact]
     public void Parse_BeWithAConfiguration_SaysWhereItsSubjectIs()
     {
-        var clause = Assert.IsType<CopularClause>(Parsed("be  subject:key.DEF  location.under:table.DEF").Value);
+        var clause = PredicateOf<Being>(Parsed("be  subject:key.DEF  location.under:table.DEF"));
 
         Assert.Equal(new Oblique(Role.Location, new NounPhrase("table", Number.Singular, Definiteness: Definiteness.Definite), Configuration.Under), clause.Complement.Value);
     }
@@ -161,8 +162,7 @@ public class SpatialTests
         Assert.All(languages, l =>
         {
             var (configuration, marker) = l.Configurations.Markers.First(m => m.Value.Value is SpatialCase);
-            var sentence = Syntax.Realize(l, new Clause("walk", Tense.Past, Aspect.Perfective, new NounPhrase("dog", Number.Singular),
-                Obliques: [new(Role.Location, new Pronoun(Person.Third, Number.Singular), configuration)]) { Adverbs = [] }, "x");
+            var sentence = Syntax.Realize(l, new Clause(new Doing("walk", null), new Declarative(Tense.Past, Aspect.Perfective, new NounPhrase("dog", Number.Singular)), false, [new(Role.Location, new Pronoun(Person.Third, Number.Singular), configuration)], []), "x");
 
             Assert.Contains(((SpatialCase)marker.Value!).Localization.Gloss, Glosses(sentence));
         });

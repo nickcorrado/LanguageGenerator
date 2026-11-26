@@ -1,4 +1,5 @@
-﻿namespace LanguageGenerator.Tests;
+﻿using static LanguageGenerator.Tests.Clauses;
+namespace LanguageGenerator.Tests;
 
 public class NounFileTests
 {
@@ -64,10 +65,10 @@ public class NounFileTests
 
         Assert.Equal(["marta", "wolf"], ClauseFile.Nouns(entries).Select(n => n.Noun));
         var (first, second) = ((Clause)entries[0].Statement.Value!, (Clause)entries[1].Statement.Value!);
-        Assert.Equal(second.Verb, first.Verb);
-        Assert.Equal(second.Subject, first.Subject);
-        Assert.Equal("big", Assert.Single(((NounPhrase)first.Object.GetValueOrDefault().Value!).Adjectives).Meaning);
-        Assert.IsType<CopularClause>(entries[2].Statement.Value);
+        Assert.Equal(PredicateOf<Doing>(second).Verb, PredicateOf<Doing>(first).Verb);
+        Assert.Equal(second.Force.Subject, first.Force.Subject);
+        Assert.Equal("big", Assert.Single(((NounPhrase)PredicateOf<Doing>(first).Object.GetValueOrDefault().Value!).Adjectives).Meaning);
+        PredicateOf<Being>(entries[2].Statement);
         Assert.Throws<ClauseFormatException>(() => ClauseFile.Parse("one\n  see.pst  subject:marta"));
     }
 

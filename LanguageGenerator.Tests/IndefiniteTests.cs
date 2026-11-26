@@ -1,3 +1,4 @@
+using static LanguageGenerator.Tests.Clauses;
 using static LanguageGenerator.Tests.Sentences;
 
 namespace LanguageGenerator.Tests;
@@ -20,7 +21,7 @@ public class IndefiniteTests
     [InlineData("nothing", "No", "Thing")]
     [InlineData("everyone", "Every", "Person")]
     public void Parse_IndefinitePronoun_IsAnIndefinitePhraseOfItsKind(string written, string series, string kind) =>
-        Assert.Equal(Indefinite(Enum.Parse<Quantifier>(series), Enum.Parse<Ontology>(kind)), ClauseOf($"see  subject:1SG  object:{written}").Object.GetValueOrDefault().Value);
+        Assert.Equal(Indefinite(Enum.Parse<Quantifier>(series), Enum.Parse<Ontology>(kind)), PredicateOf<Doing>(ClauseOf($"see  subject:1SG  object:{written}")).Object.GetValueOrDefault().Value);
 
     [Theory]
     [InlineData("location:somewhere", "Location", "Some")]
@@ -40,7 +41,7 @@ public class IndefiniteTests
     [Fact]
     public void Parse_IndefiniteWithARelativeClause_KeepsIt()
     {
-        var nobody = Assert.IsType<NounPhrase>(ClauseOf("return  subject:(nobody relative:[go  subject:_  goal.in:forest.DEF])").Subject.Value);
+        var nobody = Assert.IsType<NounPhrase>(ClauseOf("return  subject:(nobody relative:[go  subject:_  goal.in:forest.DEF])").Force.Subject.Value);
 
         Assert.Equal(("person", Quantifier.No, Ontology.Person), (nobody.Noun, nobody.Quantifier, nobody.Indefinite));
         Assert.NotNull(nobody.Relative);
@@ -53,7 +54,7 @@ public class IndefiniteTests
     [InlineData("(traveler no)", "No", "Singular", null)]
     public void Parse_Quantifier_IsInItsNounPhrase(string written, string quantifier, string number, string? definiteness)
     {
-        var phrase = Assert.IsType<NounPhrase>(ClauseOf($"come  subject:{written}").Subject.Value);
+        var phrase = Assert.IsType<NounPhrase>(ClauseOf($"come  subject:{written}").Force.Subject.Value);
 
         Assert.Equal((Enum.Parse<Quantifier>(quantifier), number, definiteness, (Ontology?)null), (phrase.Quantifier, phrase.Number.Name, phrase.Definiteness?.Name, phrase.Indefinite));
     }
@@ -61,7 +62,7 @@ public class IndefiniteTests
     [Fact]
     public void Parse_AllWithANumber_KeepsBoth()
     {
-        var dogs = Assert.IsType<NounPhrase>(ClauseOf("sleep  subject:(dog.PL.DEF all 3)").Subject.Value);
+        var dogs = Assert.IsType<NounPhrase>(ClauseOf("sleep  subject:(dog.PL.DEF all 3)").Force.Subject.Value);
 
         Assert.Equal((Quantifier.All, 3), (dogs.Quantifier, dogs.Count));
     }
@@ -137,7 +138,7 @@ public class IndefiniteTests
     public void GenerateIndefinites_RestrictedNumerals_SayManyWithTheNumeralsWord() =>
         Assert.All(Draws(s => s.Fix(Settings.NumeralBase, NumeralBase.Restricted)), i => Assert.Equal("many", i.Quantifiers[Quantifier.Many].Root.Meaning));
 
-    private static Clause Sees(Argument subject, Argument @object) => new("see", Tense.Present, Aspect.Imperfective, subject, @object) { Adverbs = [] };
+    private static Clause Sees(Argument subject, Argument @object) => new Clause(new Doing("see", @object), new Declarative(Tense.Present, Aspect.Imperfective, subject), false, [], []);
 
     private static Language With(IndefinitePronouns type) => GeneratedLanguages.With(s => s.Fix(Settings.IndefinitePronouns, type));
 
@@ -187,11 +188,10 @@ public class IndefiniteTests
     [Fact]
     public void Realize_EveryIndefiniteInEveryRole_SaysItsWords()
     {
-        var relative = new Clause("sleep", Tense.Present, Aspect.Imperfective, new Gap(null)) { Adverbs = [] };
+        var relative = new Clause(new Doing("sleep", null), new Declarative(Tense.Present, Aspect.Imperfective, new Gap(null)), false, [], []);
         Assert.All(GeneratedLanguages.Sample.Take(60), l => Assert.All(Indefinites.Series, series =>
         {
-            var sentence = Syntax.Realize(l, new Clause("see", Tense.Past, Aspect.Perfective, Indefinite(series, Ontology.Person) with { Relative = relative },
-                Indefinite(series, Ontology.Thing), Obliques: [new(Role.Location, Indefinite(series, Ontology.Place), Configuration.At)]) { Adverbs = [] }, "x");
+            var sentence = Syntax.Realize(l, new Clause(new Doing("see", Indefinite(series, Ontology.Thing)), new Declarative(Tense.Past, Aspect.Perfective, Indefinite(series, Ontology.Person) with { Relative = relative }), false, [new(Role.Location, Indefinite(series, Ontology.Place), Configuration.At)], []), "x");
 
             Assert.True(sentence.Words.Count >= 4);
         }));
@@ -226,8 +226,7 @@ public class IndefiniteTests
     public void Realize_Never_NegatesTheVerbAsNobodyDoes(string negation, bool negated)
     {
         var language = Concording(Enum.Parse<NegativeIndefiniteNegation>(negation));
-        var sleeps = new Clause("sleep", Tense.Present, Aspect.Imperfective, new NounPhrase("dog", Number.Singular),
-            Obliques: [new(Role.Time, Indefinite(Quantifier.No, Ontology.Time), Configuration.At)]) { Adverbs = [] };
+        var sleeps = new Clause(new Doing("sleep", null), new Declarative(Tense.Present, Aspect.Imperfective, new NounPhrase("dog", Number.Singular)), false, [new(Role.Time, Indefinite(Quantifier.No, Ontology.Time), Configuration.At)], []);
 
         Assert.Equal(negated, Negated(language, sleeps));
         Assert.True(IndexOf(Syntax.Realize(language, sleeps, "x"), language.Indefinites.Own[(Quantifier.No, Ontology.Time)].Root) >= 0);
@@ -237,8 +236,7 @@ public class IndefiniteTests
     public void Realize_InterrogativeBasedTime_IsWhenWithItsSeriesMarker()
     {
         var language = With(IndefinitePronouns.InterrogativeBased);
-        var sleeps = new Clause("sleep", Tense.Present, Aspect.Imperfective, new NounPhrase("dog", Number.Singular),
-            Obliques: [new(Role.Time, Indefinite(Quantifier.Every, Ontology.Time), Configuration.At)]) { Adverbs = [] };
+        var sleeps = new Clause(new Doing("sleep", null), new Declarative(Tense.Present, Aspect.Imperfective, new NounPhrase("dog", Number.Singular)), false, [new(Role.Time, Indefinite(Quantifier.Every, Ontology.Time), Configuration.At)], []);
         var morphemes = Syntax.Realize(language, sleeps, "x").Words.SelectMany(w => w.Word.Morphemes).ToList();
 
         Assert.Contains(language.Questions.Words[Interrogative.When].Root, morphemes);
@@ -249,7 +247,7 @@ public class IndefiniteTests
     public void Realize_NegativeIndefiniteWithAModal_NegatesItOnce()
     {
         var language = Concording(NegativeIndefiniteNegation.Always);
-        var swims = new Clause("swim", Tense.Present, Aspect.Imperfective, Indefinite(Quantifier.No, Ontology.Person)) { Adverbs = [] };
+        var swims = new Clause(new Doing("swim", null), new Declarative(Tense.Present, Aspect.Imperfective, Indefinite(Quantifier.No, Ontology.Person)), false, [], []);
         var morphemes = Syntax.Realize(language, new Modalized(swims, Modality.Ability, false), "x").Words.SelectMany(w => w.Word.Morphemes).ToList();
 
         Assert.Equal(language.Negation.Markers.Count, morphemes.Count(m => language.Negation.Markers.Any(n => n.Marker.Equals(m))));
@@ -262,7 +260,7 @@ public class IndefiniteTests
     {
         var language = GeneratedLanguages.With(s => s.Fix(Settings.QuantifiersBeforeNoun, before));
         var dogs = new NounPhrase("dog", Number.Plural, [new("big", false)], Count: 3, Quantifier: Quantifier.All);
-        var sentence = Syntax.Realize(language, new Clause("sleep", Tense.Present, Aspect.Imperfective, dogs) { Adverbs = [] }, "x");
+        var sentence = Syntax.Realize(language, new Clause(new Doing("sleep", null), new Declarative(Tense.Present, Aspect.Imperfective, dogs), false, [], []), "x");
         var all = IndexOf(sentence, language.Indefinites.Quantifiers[Quantifier.All].Root);
         var others = new[] { IndexOf(sentence, "three"), IndexOf(sentence, "big"), IndexOf(sentence, "dog") };
 

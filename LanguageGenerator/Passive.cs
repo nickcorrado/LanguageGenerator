@@ -9,10 +9,7 @@ namespace LanguageGenerator;
 public record Passive(Exponent Exponent);
 
 /// <summary>
-/// A clause about what's done to its patient, as in 'each light is carried by a small figure', with
-/// who does it, if anyone says.
+/// What's done to a clause's subject, its patient, as in 'each light is carried by a small figure',
+/// with who does it, if anyone says.
 /// </summary>
-public record PassiveClause(string Verb, Tense Tense, Aspect Aspect, Argument Patient, Argument? Agent, bool Negative, ValueList<Oblique> Obliques)
-{
-    public required ValueList<Adverbial> Adverbs { get; init; }
-}
+public record Done(string Verb, Argument? Agent);

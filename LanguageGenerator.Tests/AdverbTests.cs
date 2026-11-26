@@ -1,3 +1,4 @@
+using static LanguageGenerator.Tests.Clauses;
 using static LanguageGenerator.Tests.Sentences;
 
 namespace LanguageGenerator.Tests;
@@ -5,12 +6,8 @@ namespace LanguageGenerator.Tests;
 public class AdverbTests
 {
     //only the basic meanings, since coining new ones would add to the shared sample's lexicons
-    private static readonly Clause DogWalks = new("walk", Tense.Present, Aspect.Imperfective, new NounPhrase("dog", Number.Singular)) { Adverbs = [] };
-    private static readonly CopularClause DogIsBig = new(new Adjective("big", false), Tense.Present, Aspect.Imperfective, new NounPhrase("dog", Number.Singular))
-    {
-        Obliques = [],
-        Adverbs = [],
-    };
+    private static readonly Clause DogWalks = new Clause(new Doing("walk", null), new Declarative(Tense.Present, Aspect.Imperfective, new NounPhrase("dog", Number.Singular)), false, [], []);
+    private static readonly Clause DogIsBig = new Clause(new Being(new Adjective("big", false)), new Declarative(Tense.Present, Aspect.Imperfective, new NounPhrase("dog", Number.Singular)), false, [], []);
     private static readonly Oblique AtTheHouse = new(Role.Location, new NounPhrase("house", Number.Singular), Configuration.At);
     private static readonly Adverb Now = new("now", AdverbKind.When);
     private static readonly Adverb Again = new("again", AdverbKind.Often);
@@ -18,10 +15,6 @@ public class AdverbTests
     private static Sentence Realized(Language l, Statement statement) => statement.Value switch
     {
         Clause c => Syntax.Realize(l, c, "x"),
-        CopularClause c => Syntax.Realize(l, c, "x"),
-        Command c => Syntax.Realize(l, c, "x"),
-        CopularCommand c => Syntax.Realize(l, c, "x"),
-        PassiveClause c => Syntax.Realize(l, c, "x"),
         Comparative c => Syntax.Realize(l, c, "x"),
         Subordinated s => Syntax.Realize(l, s, "x"),
         _ => throw new ArgumentException("Not a statement these tests realize.", nameof(statement)),
@@ -141,10 +134,10 @@ public class AdverbTests
             var side = l.Intensifier.BeforeAdjective ? -1 : 1;
             Statement[] statements =
             [
-                DogIsBig with { Complement = new Adjective("big", true) },
-                DogWalks with { Subject = new NounPhrase("dog", Number.Singular, [new Adjective("big", true)]) },
+                DogIsBig with { Predicate = new Being(new Adjective("big", true)) },
+                DogWalks with { Force = new Declarative(Tense.Present, Aspect.Imperfective, new NounPhrase("dog", Number.Singular, [new Adjective("big", true)])) },
                 DogWalks with { Adverbs = [new Manner(new Adjective("big", true))] },
-                new CopularCommand(new Adjective("big", true), Number.Singular, false) { Obliques = [], Adverbs = [] },
+                new Clause(new Being(new Adjective("big", true)), new Directive(Number.Singular), false, [], []),
             ];
             Assert.All(statements, s =>
             {
@@ -160,7 +153,7 @@ public class AdverbTests
     public void Realize_IntensifiedComparative_PutsTheComparativeNearer() =>
         Assert.All(GeneratedLanguages.Sample.Where(l => l.Degree.Marker.Value is DegreeWord), l =>
         {
-            var sentence = Realized(l, new Comparative(DogIsBig with { Complement = new Adjective("big", true) }, null));
+            var sentence = Realized(l, new Comparative(DogIsBig with { Predicate = new Being(new Adjective("big", true)) }, null));
             var side = l.Intensifier.BeforeAdjective ? -1 : 1;
 
             Assert.Equal(2 * side, Intensifier(l, sentence, "big"));
@@ -227,11 +220,11 @@ public class AdverbTests
         Assert.All(GeneratedLanguages.Sample, l =>
         {
             Oblique sunrise = new(Role.Time, new NounPhrase("sun", Number.Singular), Configuration.At);
-            CopularClause[] clauses =
+            Clause[] clauses =
             [
                 DogIsBig with { Adverbs = [Now], Obliques = [sunrise] },
-                DogIsBig with { Complement = AtTheHouse, Adverbs = [Now], Obliques = [sunrise] },
-                DogIsBig with { Complement = new NounPhrase("cat", Number.Singular), Adverbs = [Now], Obliques = [sunrise] },
+                DogIsBig with { Predicate = new Being(AtTheHouse), Adverbs = [Now], Obliques = [sunrise] },
+                DogIsBig with { Predicate = new Being(new NounPhrase("cat", Number.Singular)), Adverbs = [Now], Obliques = [sunrise] },
             ];
             Assert.All(clauses, c =>
             {
@@ -247,10 +240,10 @@ public class AdverbTests
         {
             Statement[] statements =
             [
-                new Command("eat", Number.Singular, new NounPhrase("fish", Number.Singular)) { Adverbs = [Now] },
-                new CopularCommand(AtTheHouse, Number.Plural, false) { Obliques = [], Adverbs = [Now] },
-                new PassiveClause("see", Tense.Past, Aspect.Perfective, new NounPhrase("dog", Number.Singular), null, false, []) { Adverbs = [Now] },
-                new Subordinated(DogWalks, Subordinator.Purpose, new Clause("drink", Tense.Present, Aspect.Imperfective, new NounPhrase("dog", Number.Singular)) { Adverbs = [Now] }, true),
+                new Clause(new Doing("eat", new NounPhrase("fish", Number.Singular)), new Directive(Number.Singular), false, [], [Now]),
+                new Clause(new Being(AtTheHouse), new Directive(Number.Plural), false, [], [Now]),
+                new Clause(new Done("see", null), new Declarative(Tense.Past, Aspect.Perfective, new NounPhrase("dog", Number.Singular)), false, [], [Now]),
+                new Subordinated(DogWalks, Subordinator.Purpose, new Clause(new Doing("drink", null), new Declarative(Tense.Present, Aspect.Imperfective, new NounPhrase("dog", Number.Singular)), false, [], [Now]), true),
             ];
             Assert.All(statements, s => Assert.Single(Realized(l, s).Words, w => w.Word.Root?.Meaning == "now"));
         });
@@ -275,14 +268,16 @@ public class AdverbTests
     [Fact]
     public void Parse_Be_TakesTimesAndAdverbs()
     {
-        var big = Assert.IsType<CopularClause>(Parsed("be  subject:dog  adjective:big.INTS  time:night  when:now").Value);
-        var there = Assert.IsType<CopularClause>(Parsed("be  subject:dog  location:house  duration:(year 3)").Value);
-        var command = Assert.IsType<CopularCommand>(Parsed("be.IMP  adjective:careful  when:now").Value);
+        var big = Assert.IsType<Clause>(Parsed("be  subject:dog  adjective:big.INTS  time:night  when:now").Value);
+        var there = Assert.IsType<Clause>(Parsed("be  subject:dog  location:house  duration:(year 3)").Value);
+        var command = Assert.IsType<Clause>(Parsed("be.IMP  adjective:careful  when:now").Value);
 
-        Assert.Equal(new Adjective("big", true), big.Complement.Value);
+        Assert.Equal(new Adjective("big", true), PredicateOf<Being>(big).Complement.Value);
         Assert.Equal(new Oblique(Role.Time, new NounPhrase("night", Number.Singular), Configuration.At), Assert.Single(big.Obliques));
         Assert.Equal(Now, Assert.Single(big.Adverbs).Value);
-        Assert.Equal(Role.Location, Assert.IsType<Oblique>(there.Complement.Value).Role);
+        Assert.Equal(Role.Location, Assert.IsType<Oblique>(PredicateOf<Being>(there).Complement.Value).Role);
+        Assert.IsType<Being>(command.Predicate.Value);
+        Assert.IsType<Directive>(command.Force.Value);
         Assert.Equal(Role.Duration, Assert.Single(there.Obliques).Role);
         Assert.Equal(Now, Assert.Single(command.Adverbs).Value);
     }
@@ -290,12 +285,12 @@ public class AdverbTests
     [Fact]
     public void Parse_Intensive_GoesOnAnyAdjective()
     {
-        var phrase = Assert.IsType<NounPhrase>(Assert.IsType<Clause>(Parsed("walk  subject:(dog big.INTS)").Value).Subject.Value);
+        var phrase = Assert.IsType<NounPhrase>(ForceOf<Declarative>(Parsed("walk  subject:(dog big.INTS)")).Subject.Value);
         var comparative = Assert.IsType<Comparative>(Parsed("be  subject:dog  adjective:big.CMPR.INTS").Value);
-        var together = Assert.IsType<AdjectiveCoordination>(Assert.IsType<CopularClause>(Parsed("be  subject:dog  adjective:(and big.INTS old)").Value).Complement.Value);
+        var together = Assert.IsType<AdjectiveCoordination>(PredicateOf<Being>(Parsed("be  subject:dog  adjective:(and big.INTS old)")).Complement.Value);
 
         Assert.Equal(new Adjective("big", true), Assert.Single(phrase.Adjectives));
-        Assert.Equal(new Adjective("big", true), comparative.Clause.Complement.Value);
+        Assert.Equal(new Adjective("big", true), PredicateOf<Being>(comparative.Clause).Complement.Value);
         Assert.Equal<Adjective>([new("big", true), new("old", false)], together.Adjectives);
     }
 

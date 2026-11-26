@@ -1,4 +1,5 @@
-﻿using static LanguageGenerator.Tests.Sentences;
+﻿using static LanguageGenerator.Tests.Clauses;
+using static LanguageGenerator.Tests.Sentences;
 
 namespace LanguageGenerator.Tests;
 
@@ -24,7 +25,7 @@ public class VocativeTests
 
         Assert.Equal("man", addressed.Addressee.Noun);
         Assert.Equal(["old"], addressed.Addressee.Adjectives.Select(a => a.Meaning));
-        Assert.IsType<CopularClause>(addressed.Statement.Value);
+        PredicateOf<Being>(addressed.Statement);
     }
 
     [Theory]
@@ -36,7 +37,7 @@ public class VocativeTests
     {
         var addressed = Assert.IsType<Addressed>(Parse(gloss).Value);
 
-        Assert.Equal(number, Assert.IsType<Command>(addressed.Statement.Value).Number.Name);
+        Assert.Equal(number, ForceOf<Directive>(addressed.Statement).Number.Name);
     }
 
     [Theory]
@@ -50,7 +51,7 @@ public class VocativeTests
     {
         Assert.All(GeneratedLanguages.Sample, l =>
         {
-            var sentence = Syntax.Realize(l, new Addressed(new Clause("sleep", Tense.Past, Aspect.Perfective, new NounPhrase("dog", Number.Singular)) { Adverbs = [] },
+            var sentence = Syntax.Realize(l, new Addressed(new Clause(new Doing("sleep", null), new Declarative(Tense.Past, Aspect.Perfective, new NounPhrase("dog", Number.Singular)), false, [], []),
                 new NounPhrase("person", Number.Singular)), "x");
             var (person, dog, sleep) = (IndexOf(sentence, "person"), IndexOf(sentence, "dog"), IndexOf(sentence, "sleep"));
             var vocative = sentence.Words.Any(w => w.Gloss.Contains("VOC"));
@@ -64,7 +65,7 @@ public class VocativeTests
     public void Realize_Addressed_KeepsTheClauseAsItWas()
     {
         var language = GeneratedLanguages.Sample[0];
-        var clause = new Clause("sleep", Tense.Past, Aspect.Perfective, new NounPhrase("dog", Number.Singular)) { Adverbs = [] };
+        var clause = new Clause(new Doing("sleep", null), new Declarative(Tense.Past, Aspect.Perfective, new NounPhrase("dog", Number.Singular)), false, [], []);
         var plain = Syntax.Realize(language, clause, "x");
         var addressed = Syntax.Realize(language, new Addressed(clause, new NounPhrase("person", Number.Singular)), "x");
 

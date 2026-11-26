@@ -2,11 +2,11 @@
 
 public class CommandTests
 {
-    private static readonly Command Eat = new("eat", Number.Singular) { Adverbs = [] };
+    private static readonly Clause Eat = new Clause(new Doing("eat", null), new Directive(Number.Singular), false, [], []);
     private static IEnumerable<Language> Sample => GeneratedLanguages.Sample;
 
     //a language's own lexicon, since coining a word into a shared one is off limits
-    private static Sentence Say(Language language, Command command) => Syntax.Realize(language, command, "");
+    private static Sentence Say(Language language, Clause command) => Syntax.Realize(language, command, "");
 
     //the first of a few languages with these settings fixed that also has what no setting says, as a
     //bare stem for an imperative
@@ -81,7 +81,7 @@ public class CommandTests
         var language = GeneratedLanguages.With(s => s.Fix(Settings.Imperatives, ImperativeForms.SingularAndPlural));
 
         Assert.Contains("IMP.SG", Glosses(Say(language, Eat)));
-        Assert.Contains("IMP.PL", Glosses(Say(language, Eat with { Number = Number.Plural })));
+        Assert.Contains("IMP.PL", Glosses(Say(language, Eat with { Force = new Directive(Number.Plural) })));
     }
 
     [Fact]
@@ -89,7 +89,7 @@ public class CommandTests
     {
         var language = GeneratedLanguages.With(s => s.Fix(Settings.Imperatives, ImperativeForms.SingularAndPlural));
 
-        Assert.Contains("IMP.PL", Glosses(Say(language, Eat with { Number = Number.Dual })));
+        Assert.Contains("IMP.PL", Glosses(Say(language, Eat with { Force = new Directive(Number.Dual) })));
     }
 
     [Fact]
@@ -148,8 +148,8 @@ public class CommandTests
         var hunter = new NounPhrase("hunter", Number.Singular);
         var inn = new NounPhrase("inn", Number.Singular);
 
-        var told = Syntax.Realize(language, new Command("give", Number.Singular, hunter, Obliques: [new(Role.Goal, inn, Configuration.At)]) { Adverbs = [] }, "");
-        var said = Syntax.Realize(language, new Clause("give", Tense.Present, Aspect.Imperfective, new NounPhrase("dog", Number.Singular), hunter, Obliques: [new(Role.Goal, inn, Configuration.At)]) { Adverbs = [] }, "");
+        var told = Syntax.Realize(language, new Clause(new Doing("give", hunter), new Directive(Number.Singular), false, [new(Role.Goal, inn, Configuration.At)], []), "");
+        var said = Syntax.Realize(language, new Clause(new Doing("give", hunter), new Declarative(Tense.Present, Aspect.Imperfective, new NounPhrase("dog", Number.Singular)), false, [new(Role.Goal, inn, Configuration.At)], []), "");
 
         Assert.Equal(said.Words.Single(w => w.Word.Root?.Meaning == "hunter").Gloss, told.Words.Single(w => w.Word.Root?.Meaning == "hunter").Gloss);
         Assert.Equal(said.Words.Single(w => w.Word.Root?.Meaning == "inn").Gloss, told.Words.Single(w => w.Word.Root?.Meaning == "inn").Gloss);
@@ -164,7 +164,7 @@ public class CommandTests
             {
                 foreach (var negative in new[] { false, true })
                 {
-                    Assert.NotEmpty(Syntax.Realize(language, new Command("eat", number, new NounPhrase("fish", Number.Plural), negative, [new(Role.Location, new NounPhrase("house", Number.Singular), Configuration.At)]) { Adverbs = [] }, "").Text);
+                    Assert.NotEmpty(Syntax.Realize(language, new Clause(new Doing("eat", new NounPhrase("fish", Number.Plural)), new Directive(number), negative, [new(Role.Location, new NounPhrase("house", Number.Singular), Configuration.At)], []), "").Text);
                 }
             }
         }
@@ -175,10 +175,10 @@ public class CommandTests
     [Fact]
     public void Parse_CommandWithBe_SaysWhatOrWhereToBe()
     {
-        Assert.Equal(new CopularCommand(new Adjective("careful", false), Number.Singular, false) { Obliques = [], Adverbs = [] }, Parsed("be.IMP  adjective:careful").Value);
-        Assert.Equal(new CopularCommand(new NounPhrase("fool", Number.Singular, Definiteness: Definiteness.Indefinite), Number.Plural, true) { Obliques = [], Adverbs = [] },
+        Assert.Equal(new Clause(new Being(new Adjective("careful", false)), new Directive(Number.Singular), false, [], []), Parsed("be.IMP  adjective:careful").Value);
+        Assert.Equal(new Clause(new Being(new NounPhrase("fool", Number.Singular, Definiteness: Definiteness.Indefinite)), new Directive(Number.Plural), true, [], []),
             Parsed("be.IMP.NEG  subject:2PL  noun:fool.NDF").Value);
-        Assert.Equal(new CopularCommand(new Oblique(Role.Location, new NounPhrase("house", Number.Singular, Definiteness: Definiteness.Definite), Configuration.At), Number.Singular, false) { Obliques = [], Adverbs = [] },
+        Assert.Equal(new Clause(new Being(new Oblique(Role.Location, new NounPhrase("house", Number.Singular, Definiteness: Definiteness.Definite), Configuration.At)), new Directive(Number.Singular), false, [], []),
             Parsed("be.IMP  location:house.DEF").Value);
     }
 
@@ -187,7 +187,7 @@ public class CommandTests
     {
         Assert.All(Sample, l =>
         {
-            var sentence = Syntax.Realize(l, new CopularCommand(new Adjective("big", false), Number.Singular, false) { Obliques = [], Adverbs = [] }, "");
+            var sentence = Syntax.Realize(l, new Clause(new Being(new Adjective("big", false)), new Directive(Number.Singular), false, [], []), "");
             var roots = sentence.Words.Select(w => w.Word.Root).ToList();
 
             Assert.Contains(l.Lexicon.Adjective("big").Root, roots);
@@ -204,9 +204,9 @@ public class CommandTests
             foreach (var negative in new[] { false, true })
             {
                 //leaving out the adjective, the copula's words are what any verb's command makes of it
-                var be = Syntax.Realize(l, new CopularCommand(new Adjective("big", false), Number.Plural, negative) { Obliques = [], Adverbs = [] }, "");
+                var be = Syntax.Realize(l, new Clause(new Being(new Adjective("big", false)), new Directive(Number.Plural), negative, [], []), "");
                 var copula = be.Words.Where(w => w.Word.Root != l.Lexicon.Adjective("big").Root).Select(w => w.Gloss);
-                var eat = Syntax.Realize(l, new Command("eat", Number.Plural, Negative: negative) { Adverbs = [] }, "").Words
+                var eat = Syntax.Realize(l, new Clause(new Doing("eat", null), new Directive(Number.Plural), negative, [], []), "").Words
                     .Select(w => w.Gloss.Replace("eat", l.Predication.Copula.Root.Meaning));
 
                 Assert.Equal(eat, copula);
@@ -219,7 +219,7 @@ public class CommandTests
     {
         Assert.All(Sample, l =>
         {
-            var sentence = Syntax.Realize(l, new CopularCommand(new Oblique(Role.Location, new NounPhrase("house", Number.Singular), Configuration.At), Number.Singular, false) { Obliques = [], Adverbs = [] }, "");
+            var sentence = Syntax.Realize(l, new Clause(new Being(new Oblique(Role.Location, new NounPhrase("house", Number.Singular), Configuration.At)), new Directive(Number.Singular), false, [], []), "");
 
             Assert.Contains(l.Predication.CopulaFor(locational: true).Root, sentence.Words.Select(w => w.Word.Root));
         });

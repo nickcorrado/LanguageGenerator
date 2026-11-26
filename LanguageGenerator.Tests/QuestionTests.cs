@@ -1,3 +1,4 @@
+using static LanguageGenerator.Tests.Clauses;
 using static LanguageGenerator.Tests.Sentences;
 
 namespace LanguageGenerator.Tests;
@@ -9,7 +10,7 @@ public class QuestionTests
     //only the basic meanings, since coining new ones would add to the shared sample's lexicons
     private static readonly NounPhrase Dog = new("dog", Number.Singular);
     private static readonly NounPhrase Fish = new("fish", Number.Singular);
-    private static Clause DogEats(Argument food) => new("eat", Tense.Present, Aspect.Imperfective, Dog, food) { Adverbs = [] };
+    private static Clause DogEats(Argument food) => new Clause(new Doing("eat", food), new Declarative(Tense.Present, Aspect.Imperfective, Dog), false, [], []);
     private static Clause DogEatsFish => DogEats(Fish);
 
     private static Sentence Realized(Language language, Statement statement) => Syntax.Realize(language, statement, "x");
@@ -197,14 +198,14 @@ public class QuestionTests
         var clauses = new Statement[]
         {
             new Question(DogEatsFish, null),
-            new Question(new Clause("eat", Tense.Past, Aspect.Perfective, who, Fish) { Adverbs = [] }, null),
-            new Question(new PassiveClause("eat", Tense.Past, Aspect.Perfective, Fish, who, false, []) { Adverbs = [] }, null),
-            new Question(new PassiveClause("eat", Tense.Past, Aspect.Perfective, Fish, null, false, []) { Adverbs = [] }, QuestionAdverb.Why),
-            new Question(new CopularClause(new Adjective("big", false), Tense.Present, Aspect.Imperfective, Dog) { Obliques = [], Adverbs = [] }, null),
-            new Question(new CopularClause(new Oblique(Role.Location, new QuestionWord(Interrogative.Where), Configuration.At), Tense.Present, Aspect.Imperfective, Dog) { Obliques = [], Adverbs = [] }, null),
-            new Question(new CopularClause(new Oblique(Role.Location, house, Configuration.At), Tense.Present, Aspect.Imperfective, who) { Obliques = [], Adverbs = [] }, null),
-            new Question(new Comparative(new CopularClause(new Adjective("big", false), Tense.Present, Aspect.Imperfective, Dog) { Obliques = [], Adverbs = [] }, Fish), null),
-            new Question(new Comparative(new CopularClause(new Adjective("big", false), Tense.Present, Aspect.Imperfective, Dog) { Obliques = [], Adverbs = [] }, Fish), QuestionAdverb.Why),
+            new Question(new Clause(new Doing("eat", Fish), new Declarative(Tense.Past, Aspect.Perfective, who), false, [], []), null),
+            new Question(new Clause(new Done("eat", who), new Declarative(Tense.Past, Aspect.Perfective, Fish), false, [], []), null),
+            new Question(new Clause(new Done("eat", null), new Declarative(Tense.Past, Aspect.Perfective, Fish), false, [], []), QuestionAdverb.Why),
+            new Question(new Clause(new Being(new Adjective("big", false)), new Declarative(Tense.Present, Aspect.Imperfective, Dog), false, [], []), null),
+            new Question(new Clause(new Being(new Oblique(Role.Location, new QuestionWord(Interrogative.Where), Configuration.At)), new Declarative(Tense.Present, Aspect.Imperfective, Dog), false, [], []), null),
+            new Question(new Clause(new Being(new Oblique(Role.Location, house, Configuration.At)), new Declarative(Tense.Present, Aspect.Imperfective, who), false, [], []), null),
+            new Question(new Comparative(new Clause(new Being(new Adjective("big", false)), new Declarative(Tense.Present, Aspect.Imperfective, Dog), false, [], []), Fish), null),
+            new Question(new Comparative(new Clause(new Being(new Adjective("big", false)), new Declarative(Tense.Present, Aspect.Imperfective, Dog), false, [], []), Fish), QuestionAdverb.Why),
             new Question(new Modalized(DogEatsFish, Modality.Obligation, true), QuestionAdverb.Why),
             new Addressed(new Question(DogEatsFish, null), Dog),
         };
@@ -229,7 +230,7 @@ public class QuestionTests
     {
         var question = Assert.IsType<Question>(Parsed(gloss).Value);
         var clause = Assert.IsType<Clause>(question.Statement.Value);
-        Argument[] arguments = [clause.Subject, .. clause.Object.HasValue ? [clause.Object.GetValueOrDefault()] : Array.Empty<Argument>(), .. clause.Obliques.Select(o => o.Argument)];
+        Argument[] arguments = [clause.Force.Subject, .. PredicateOf<Doing>(clause).Object.HasValue ? [PredicateOf<Doing>(clause).Object.GetValueOrDefault()] : Array.Empty<Argument>(), .. clause.Obliques.Select(o => o.Argument)];
 
         Assert.Equal(adverb, question.Adverb);
         Assert.Equal(word, arguments.Select(a => a.Value).OfType<QuestionWord>().SingleOrDefault()?.Word);

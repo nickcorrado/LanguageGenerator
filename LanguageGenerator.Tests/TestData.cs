@@ -47,6 +47,13 @@ internal static class Sentences
     public static int IndexOf(Sentence sentence, Root root) => sentence.Words.ToList().FindIndex(w => w.Word.Root == root);
 }
 
+//a statement's predicate or force, where it's a clause with one of that kind
+internal static class Clauses
+{
+    public static T PredicateOf<T>(Statement statement) => Assert.IsType<T>(Assert.IsType<Clause>(statement.Value).Predicate.Value);
+    public static T ForceOf<T>(Statement statement) => Assert.IsType<T>(Assert.IsType<Clause>(statement.Value).Force.Value);
+}
+
 //what the tests' people and animals are, as a noun file would say
 internal static class TestNouns
 {

@@ -6,10 +6,10 @@ public class CopulaTests
 {
     //only the basic meanings, since coining new ones would add to the shared sample's lexicons
     private static Sentence DogIsPerson(Language l, Tense tense, bool negative = false) =>
-        Syntax.Realize(l, new CopularClause(new NounPhrase("person", Number.Singular), tense, Aspect.Imperfective, new NounPhrase("dog", Number.Singular), negative) { Obliques = [], Adverbs = [] }, "the dog is a person");
+        Syntax.Realize(l, new Clause(new Being(new NounPhrase("person", Number.Singular)), new Declarative(tense, Aspect.Imperfective, new NounPhrase("dog", Number.Singular)), negative, [], []), "the dog is a person");
 
     private static Sentence DogIsBig(Language l, Tense tense, bool negative = false) =>
-        Syntax.Realize(l, new CopularClause(new Adjective("big", false), tense, Aspect.Imperfective, new NounPhrase("dog", Number.Singular), negative) { Obliques = [], Adverbs = [] }, "the dog is big");
+        Syntax.Realize(l, new Clause(new Being(new Adjective("big", false)), new Declarative(tense, Aspect.Imperfective, new NounPhrase("dog", Number.Singular)), negative, [], []), "the dog is big");
 
     private static bool HasCopula(Sentence sentence) => IndexOf(sentence, "COP") >= 0;
 
@@ -119,7 +119,7 @@ public class CopulaTests
         {
             foreach (var (noun, number) in new[] { ("dog", Number.Plural), ("sun", Number.Singular), ("person", Number.Plural) })
             {
-                var sentence = Syntax.Realize(l, new CopularClause(new Adjective("big", false), Tense.Past, Aspect.Imperfective, new NounPhrase(noun, number)) { Obliques = [], Adverbs = [] }, "x");
+                var sentence = Syntax.Realize(l, new Clause(new Being(new Adjective("big", false)), new Declarative(Tense.Past, Aspect.Imperfective, new NounPhrase(noun, number)), false, [], []), "x");
                 var subject = sentence.Words[IndexOf(sentence, noun)].Word;
                 var big = sentence.Words[IndexOf(sentence, "big")].Word;
                 var gender = l.GenderOf(l.Lexicon.Noun(noun));
@@ -138,8 +138,8 @@ public class CopulaTests
             //number from the pronoun, and gender only if it gives one the language has
             var feminine = l.Genders.Values.FirstOrDefault(g => g == Gender.Feminine);
             var they = new Pronoun(Person.Third, Number.Plural, Gender: Gender.Feminine);
-            var sentence = Syntax.Realize(l, new CopularClause(new Adjective("old", false), Tense.Past, Aspect.Imperfective, they) { Obliques = [], Adverbs = [] }, "they were old");
-            var plural = Syntax.Realize(l, new CopularClause(new Adjective("old", false), Tense.Past, Aspect.Imperfective, new NounPhrase("stone", Number.Plural)) { Obliques = [], Adverbs = [] }, "x");
+            var sentence = Syntax.Realize(l, new Clause(new Being(new Adjective("old", false)), new Declarative(Tense.Past, Aspect.Imperfective, they), false, [], []), "they were old");
+            var plural = Syntax.Realize(l, new Clause(new Being(new Adjective("old", false)), new Declarative(Tense.Past, Aspect.Imperfective, new NounPhrase("stone", Number.Plural)), false, [], []), "x");
             var old = sentence.Words[IndexOf(sentence, "old")].Word;
 
             Assert.Equal(Affixes(plural.Words[IndexOf(plural, "old")].Word), Affixes(old));
@@ -148,7 +148,7 @@ public class CopulaTests
     }
 
     private static Sentence DogIsInTheHouse(Language l, Tense tense, bool negative = false) =>
-        Syntax.Realize(l, new CopularClause(new Oblique(Role.Location, new NounPhrase("house", Number.Singular), Configuration.At), tense, Aspect.Imperfective, new NounPhrase("dog", Number.Singular), negative) { Obliques = [], Adverbs = [] }, "the dog is in the house");
+        Syntax.Realize(l, new Clause(new Being(new Oblique(Role.Location, new NounPhrase("house", Number.Singular), Configuration.At)), new Declarative(tense, Aspect.Imperfective, new NounPhrase("dog", Number.Singular)), negative, [], []), "the dog is in the house");
 
     [Fact]
     public void GenerateLocationalPredication_ManyDraws_AddOnlyAOneSyllableCopula()
@@ -220,7 +220,7 @@ public class CopulaTests
     [Fact]
     public void Realize_CopularClauseWithAnotherOblique_Throws()
     {
-        var clause = new CopularClause(new Oblique(Role.Goal, new NounPhrase("house", Number.Singular), Configuration.At), Tense.Past, Aspect.Imperfective, new NounPhrase("dog", Number.Singular)) { Obliques = [], Adverbs = [] };
+        var clause = new Clause(new Being(new Oblique(Role.Goal, new NounPhrase("house", Number.Singular), Configuration.At)), new Declarative(Tense.Past, Aspect.Imperfective, new NounPhrase("dog", Number.Singular)), false, [], []);
 
         Assert.Throws<ArgumentException>(() => Syntax.Realize(GeneratedLanguages.Sample[0], clause, "x"));
     }
@@ -231,7 +231,7 @@ public class CopulaTests
         foreach (var language in GeneratedLanguages.Sample.Where(l => l.Paradigms.Verbs.Categories.Has<Person>()))
         {
             var we = new Pronoun(Person.First, Number.Plural);
-            var sentence = Syntax.Realize(language, new CopularClause(new NounPhrase("person", Number.Plural), Tense.Past, Aspect.Imperfective, we) { Obliques = [], Adverbs = [] }, "we were people");
+            var sentence = Syntax.Realize(language, new Clause(new Being(new NounPhrase("person", Number.Plural)), new Declarative(Tense.Past, Aspect.Imperfective, we), false, [], []), "we were people");
 
             //agreement may be on the copula or a particle of its own, but never on the pronoun's word
             var pronoun = language.Pronouns.For(we).Root;

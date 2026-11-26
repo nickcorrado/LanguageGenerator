@@ -111,7 +111,7 @@ public static class ClauseFile
         var clause = Ungapped(ParseClause(line, number, shares ? Syntax.SubjectOf(main) : (Argument?)null), number);
         return clause.Value switch
         {
-            Command or CopularCommand => throw new ClauseFormatException($"A clause under another can't be a command: {subordinator.ToString().ToLowerInvariant()} takes a clause with a subject.", number),
+            Clause { Force.Value: Directive } => throw new ClauseFormatException($"A clause under another can't be a command: {subordinator.ToString().ToLowerInvariant()} takes a clause with a subject.", number),
             Addressed => throw new ClauseFormatException("Say who's addressed in the main clause, not in one under it.", number),
             Question => throw new ClauseFormatException("A clause under another can't be a question: ask it in the main clause.", number),
             _ => new Subordinated(main, subordinator, clause, shares),
@@ -139,15 +139,7 @@ public static class ClauseFile
 
     private static IEnumerable<Argument> ArgumentsOf(Statement statement) => statement switch
     {
-        Clause c => [c.Subject, .. Given(c.Object), .. c.Obliques.Select(o => o.Argument)],
-        PassiveClause c => [c.Patient, .. Given(c.Agent), .. c.Obliques.Select(o => o.Argument)],
-        CopularClause { Complement: NounPhrase noun } c => [c.Subject, noun, .. c.Obliques.Select(o => o.Argument)],
-        CopularClause { Complement: Oblique location } c => [c.Subject, location.Argument, .. c.Obliques.Select(o => o.Argument)],
-        CopularClause c => [c.Subject, .. c.Obliques.Select(o => o.Argument)],
-        Command c => [.. Given(c.Object), .. c.Obliques.Select(o => o.Argument)],
-        CopularCommand { Complement: NounPhrase noun } c => [noun, .. c.Obliques.Select(o => o.Argument)],
-        CopularCommand { Complement: Oblique location } c => [location.Argument, .. c.Obliques.Select(o => o.Argument)],
-        CopularCommand c => [.. c.Obliques.Select(o => o.Argument)],
+        Clause c => c.Arguments,
         Comparative c => [.. ArgumentsOf(c.Clause), .. Given(c.Standard)],
         Addressed a => [.. ArgumentsOf(a.Statement), a.Addressee],
         Coordinated c => [.. ArgumentsOf(c.First), .. ArgumentsOf(c.Second)],
@@ -199,17 +191,22 @@ public static class ClauseFile
      */
     private static IEnumerable<string> GapRoles(Statement statement)
     {
-        static bool IsGap(Argument? argument) => argument?.Value is Gap;
-        IEnumerable<string> Where(params (string Role, Argument? Argument)[] roles) => roles.Where(r => IsGap(r.Argument)).Select(r => r.Role);
-        IEnumerable<string> Obliques(ValueList<Oblique> obliques) => obliques.Where(o => IsGap(o.Argument)).Select(o => o.Role.ToString().ToLowerInvariant());
         return statement.Value switch
         {
-            Clause c => [.. Where(("subject", c.Subject), ("object", c.Object)), .. Obliques(c.Obliques)],
-            PassiveClause c => [.. Where(("subject", c.Patient), ("agent", c.Agent)), .. Obliques(c.Obliques)],
-            CopularClause c => [.. Where(("subject", c.Subject), ("location", c.Complement.Value is Oblique location ? location.Argument : (Argument?)null)), .. Obliques(c.Obliques)],
-            Comparative c => [.. GapRoles(c.Clause), .. Where(("standard", c.Standard))],
+            Clause c => c.Fillers.Where(f => f.Argument.Value is Gap).Select(NameOf),
+            Comparative c => [.. GapRoles(c.Clause), .. c.Standard is { Value: Gap } ? ["standard"] : Array.Empty<string>()],
             Modalized m => GapRoles(m.Clause),
             _ => [],
+        };
+
+        //an oblique's role is written as its name, as a location be says its subject is in is
+        static string NameOf(Filler filler) => filler switch
+        {
+            { Oblique: { } oblique } => oblique.Role.ToString().ToLowerInvariant(),
+            { Role: Role.IntransitiveSubject or Role.TransitiveSubject } => "subject",
+            { Role: Role.DirectObject } => "object",
+            { Role: Role.Agent } => "agent",
+            { Role: var role } => throw new ArgumentOutOfRangeException(nameof(filler), role, null),
         };
     }
 
@@ -229,7 +226,7 @@ public static class ClauseFile
         var roles = GapRoles(clause).ToList();
         return clause.Value switch
         {
-            Command or CopularCommand => throw new ClauseFormatException("A relative clause can't be a command: it says something of its noun.", number),
+            Clause { Force.Value: Directive } => throw new ClauseFormatException("A relative clause can't be a command: it says something of its noun.", number),
             Question => throw new ClauseFormatException("A relative clause can't be a question.", number),
             Addressed => throw new ClauseFormatException("A relative clause can't be said to someone: say who's addressed in the main clause.", number),
             _ when roles.Count == 0 && Gaps(clause) == 0 => throw new ClauseFormatException($"A relative clause needs _ in the role its noun fills in it, as in {Example}.", number),
@@ -315,28 +312,10 @@ public static class ClauseFile
         }
         var asked = CheckQuestion(features, roles, adverb, number);
 
-        Statement statement;
-        if (features.Imperative)
-        {
-            statement = ToCommand(verb, features, roles, addressee, number);
-        }
-        else if ((roles.Arguments.TryGetValue("subject", out var said) ? said : impliedSubject) is not { } subject)
-        {
-            throw new ClauseFormatException("The clause needs a subject, as in subject:dog.", number);
-        }
-        else if (verb == "be")
-        {
-            var clause = ToCopularClause(features, roles, subject, number);
-            statement = roles.Compared || standard.HasValue ? ToComparative(clause, standard, number) : clause;
-        }
-        else if (features.Passive)
-        {
-            statement = ToPassiveClause(verb, features, roles, subject, number);
-        }
-        else
-        {
-            statement = ToClause(verb, features, roles, subject, number);
-        }
+        Force force = features.Imperative ? ToDirective(verb, features, roles, addressee, number) : ToDeclarative(features, roles, impliedSubject, number);
+        var clause = new Clause(ToPredicate(verb, features, roles, number), force, features.Negative, verb == "be" ? CopularObliques(roles) : roles.AllObliques, [.. roles.Adverbs]);
+        //only be compares, and not in a command, which the checks above make sure of
+        Statement statement = roles.Compared || standard.HasValue ? ToComparative(clause, standard, number) : clause;
         //a negative indefinite says the clause is negated, and a language whose verb takes negation
         //beside one adds it itself
         if ((features.Negative || features.ModalNegative) && ArgumentsOf(statement).Any(Indefinites.IsNegative))
@@ -426,9 +405,9 @@ public static class ClauseFile
 
     //'Marta is taller than the men': an adjective, said of the subject more than of the standard, or
     //with no standard, 'Marta is taller', more than of something already known
-    private static Comparative ToComparative(CopularClause clause, Argument? standard, int number)
+    private static Comparative ToComparative(Clause clause, Argument? standard, int number)
     {
-        if (clause.Complement.Value is not Adjective)
+        if (clause.Predicate.Value is not Being { Complement.Value: Adjective })
         {
             throw new ClauseFormatException("A standard: compares an adjective:, as in adjective:tall.CMPR standard:(man.PL) for 'taller than the men'.", number);
         }
@@ -625,21 +604,21 @@ public static class ClauseFile
     }
 
     //a command is said to one person or several: as many as its subject says, or as its addressee
-    //is, as 'children, come' tells several. A command with be says what or where to be
-    private static Statement ToCommand(string verb, VerbFeatures features, ClauseRoles roles, NounPhrase? addressee, int number)
+    //is, as 'children, come' tells several
+    private static Directive ToDirective(string verb, VerbFeatures features, ClauseRoles roles, NounPhrase? addressee, int number)
     {
         if (features.Tense is not null || features.Aspect is not null)
         {
             throw new ClauseFormatException($"'{verb}' can't take {(features.Tense as Grammeme ?? features.Aspect)!.Gloss}: a command has no tense or aspect.", number);
         }
-        var told = Told(roles.Arguments.TryGetValue("subject", out var subject) ? subject : (Argument?)null, addressee, number);
-        if (verb == "be")
-        {
-            return new CopularCommand(CopularComplement(roles, number), told, features.Negative) { Obliques = CopularObliques(roles), Adverbs = [.. roles.Adverbs] };
-        }
-        RejectComplement(verb, roles, number);
-        return new Command(verb, told, roles.Object, features.Negative, roles.AllObliques) { Adverbs = [.. roles.Adverbs] };
+        return new Directive(Told(roles.Arguments.TryGetValue("subject", out var subject) ? subject : (Argument?)null, addressee, number));
     }
+
+    //a clause that isn't a command says when, present and imperfective unless it says otherwise, and needs a subject
+    private static Declarative ToDeclarative(VerbFeatures features, ClauseRoles roles, Argument? impliedSubject, int number) =>
+        (roles.Arguments.TryGetValue("subject", out var said) ? said : impliedSubject) is { } subject
+            ? new Declarative(features.Tense ?? Tense.Present, features.Aspect ?? Aspect.Imperfective, subject)
+            : throw new ClauseFormatException("The clause needs a subject, as in subject:dog.", number);
 
     //how many a command is said to
     private static Number Told(Argument? subject, NounPhrase? addressee, int number)
@@ -692,19 +671,34 @@ public static class ClauseFile
         var clause = ParseClause(rest, number, shares ? subject : (Argument?)null);
         return clause.Value switch
         {
-            Command or CopularCommand => throw new ClauseFormatException($"A clause in object: can't be a command: write {(kind == ComplementKind.Event ? "to" : "that")} with a subject, or quote the command with quote:[...].", number),
+            Clause { Force.Value: Directive } => throw new ClauseFormatException($"A clause in object: can't be a command: write {(kind == ComplementKind.Event ? "to" : "that")} with a subject, or quote the command with quote:[...].", number),
             Addressed => throw new ClauseFormatException("Say who's addressed in the main clause, not in one inside it, unless it's quoted with quote:[...].", number),
             Question => throw new ClauseFormatException("A question inside another clause can't be said yet, unless it's quoted with quote:[...].", number),
             _ => new ComplementClause(kind, clause, shares),
         };
     }
 
-    private static CopularClause ToCopularClause(VerbFeatures features, ClauseRoles roles, Argument subject, int number) =>
-        new(CopularComplement(roles, number), features.Tense ?? Tense.Present, features.Aspect ?? Aspect.Imperfective, subject, features.Negative)
+    /*
+      what a clause says of its subject: with be, what or where it is, or told, what or where to be;
+      a passive's subject is its patient, so it has no object
+     */
+    private static Predicate ToPredicate(string verb, VerbFeatures features, ClauseRoles roles, int number)
+    {
+        if (verb == "be")
         {
-            Obliques = CopularObliques(roles),
-            Adverbs = [.. roles.Adverbs],
-        };
+            return new Being(CopularComplement(roles, number));
+        }
+        RejectComplement(verb, roles, number);
+        if (!features.Passive)
+        {
+            return new Doing(verb, roles.Object);
+        }
+        if (roles.Object.HasValue)
+        {
+            throw new ClauseFormatException($"A passive has no object: what's done to is its subject, as in {verb}.PASS subject:light.", number);
+        }
+        return new Done(verb, roles.Arguments.TryGetValue("agent", out var by) ? by : (Argument?)null);
+    }
 
     //the only obliques be takes besides a location: when, and for how long
     private static readonly string[] CopularRoles = ["time", "duration"];
@@ -737,31 +731,6 @@ public static class ClauseFile
             throw new ClauseFormatException("be needs a noun, adjective or location saying what or where its subject is, as in noun:fool, adjective:big or location:house.", number);
         }
         return complement.GetValueOrDefault();
-    }
-
-    //a passive's subject is its patient, so it has no object
-    private static PassiveClause ToPassiveClause(string verb, VerbFeatures features, ClauseRoles roles, Argument subject, int number)
-    {
-        RejectComplement(verb, roles, number);
-        if (roles.Object.HasValue)
-        {
-            throw new ClauseFormatException($"A passive has no object: what's done to is its subject, as in {verb}.PASS subject:light.", number);
-        }
-        var agent = roles.Arguments.TryGetValue("agent", out var by) ? by : (Argument?)null;
-        return new PassiveClause(verb, features.Tense ?? Tense.Present, features.Aspect ?? Aspect.Imperfective, subject, agent, features.Negative, roles.AllObliques)
-        {
-            Adverbs = [.. roles.Adverbs],
-        };
-    }
-
-    private static Clause ToClause(string verb, VerbFeatures features, ClauseRoles roles, Argument subject, int number)
-    {
-        RejectComplement(verb, roles, number);
-        return new Clause(verb, features.Tense ?? Tense.Present, features.Aspect ?? Aspect.Imperfective, subject, roles.Object,
-            Negative: features.Negative, Obliques: roles.AllObliques)
-        {
-            Adverbs = [.. roles.Adverbs],
-        };
     }
 
     private static void RejectComplement(string verb, ClauseRoles roles, int number)
