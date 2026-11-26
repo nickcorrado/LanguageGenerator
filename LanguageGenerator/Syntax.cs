@@ -119,9 +119,7 @@ public static class Syntax
      */
     private static ClauseWords Spoken(Language language, Statement statement) => statement switch
     {
-        Clause c => Words(language, c, null, [], null),
-        PassiveClause c => Words(language, c, null, [], null),
-        CopularClause c => Copular(language, c, [], null, null, []),
+        Clause or PassiveClause or CopularClause => Words(language, Fold(language, statement, null), []),
         Command c => new(Words(language, c), null),
         CopularCommand c => new(Words(language, c), null),
         Comparative c => Words(language, c, []),
@@ -445,10 +443,11 @@ public static class Syntax
       including one with a modal, which stays balanced. One that begins or stops something, where
       the language marks that on the verb, is what's begun with its inceptive or cessative
      */
-    private static ClauseWords? Deranked(Language language, Statement statement, bool dropSubject, Role? markedAs) =>
-        statement.Value is Clause clause && Phased(language, clause) is var (begun, phase)
-            ? Deranked(language, begun, dropSubject, markedAs, phase)
-            : Deranked(language, statement, dropSubject, markedAs, null);
+    private static ClauseWords? Deranked(Language language, Statement statement, bool dropSubject, Role? markedAs)
+    {
+        var folded = FoldPhase(language, statement, null);
+        return Deranked(language, folded.Clause, dropSubject, markedAs, folded.Phase);
+    }
 
     private static ClauseWords? Deranked(Language language, Statement statement, bool dropSubject, Role? markedAs, AspectMarking? phase)
     {
@@ -604,24 +603,34 @@ public static class Syntax
         return Flat(Order(language.WordOrder, [], copula, complement, obliques));
     }
 
-    public static Sentence Realize(Language language, Clause clause, string translation) => Sentence(language, Words(language, clause, null, [], null).Words, translation);
+    public static Sentence Realize(Language language, Clause clause, string translation) => Sentence(language, Spoken(language, clause).Words, translation);
+
+    /*
+      a clause as its verb says it: the clause, with its modal, if it has one, and its marker of
+      beginning or ceasing, if a begin or stop clause was folded into it. 'Want' becomes the modal
+      where the language marks it on the verb, unless the clause has a modal already, and then what
+      it wants is what's folded, so 'wants to start singing' can be sing.INCEP.DESID
+     */
+    private record Folded(Statement Clause, Modal? Modal, AspectMarking? Phase);
+
+    private static Folded Fold(Language language, Statement clause, Modal? modal) =>
+        modal is null && clause.Value is Clause c && Desired(language, c) is var (wanted, want) ? FoldPhase(language, wanted, want) : FoldPhase(language, clause, modal);
+
+    private static Folded FoldPhase(Language language, Statement clause, Modal? modal) =>
+        clause.Value is Clause c && Phased(language, c) is var (begun, phase) ? new(begun, modal, phase) : new(clause, modal, null);
+
+    //a clause with a verb or be, as it's folded, with words said where its obliques go, before them
+    private static ClauseWords Words(Language language, Folded folded, IReadOnlyList<Word> adverbs) => folded.Clause.Value switch
+    {
+        Clause c => Words(language, c, folded.Modal, adverbs, folded.Phase),
+        PassiveClause c => Words(language, c, folded.Modal, adverbs, folded.Phase),
+        CopularClause c when folded.Phase is null => Copular(language, c, [], null, folded.Modal, adverbs),
+        _ => throw new ArgumentException("Only a clause with a verb or be is said with a modal, and only one with a verb with a phase.", nameof(folded)),
+    };
 
     //phase is the marker of beginning or ceasing on the verb, where a begin or stop clause was folded into it
     private static ClauseWords Words(Language language, Clause clause, Modal? modal, IReadOnlyList<Word> adverbs, AspectMarking? phase)
     {
-        if (modal is null && phase is null && Desired(language, clause) is var (wanted, want))
-        {
-            return Words(language, wanted, want, adverbs);
-        }
-        if (phase is null && Phased(language, clause) is var (begun, marking))
-        {
-            return begun.Value switch
-            {
-                Clause c => Words(language, c, modal, adverbs, marking),
-                PassiveClause c => Words(language, c, modal, adverbs, marking),
-                _ => throw new InvalidOperationException("Only a clause with a verb is folded into a phase."),
-            };
-        }
         var subjectRole = clause.Object is null ? Role.IntransitiveSubject : Role.TransitiveSubject;
         var subject = Subject(language, clause.Subject, subjectRole);
         var (@object, last) = Object(language, clause.Object, clause.Subject);
@@ -637,7 +646,7 @@ public static class Syntax
       obliques, marked for its role. A language without a passive says the active instead, as real
       ones do, with the agent as its subject, or 'they' where nobody says who
      */
-    public static Sentence Realize(Language language, PassiveClause clause, string translation) => Sentence(language, Words(language, clause, null, [], null).Words, translation);
+    public static Sentence Realize(Language language, PassiveClause clause, string translation) => Sentence(language, Spoken(language, clause).Words, translation);
 
     private static ClauseWords Words(Language language, PassiveClause clause, Modal? modal, IReadOnlyList<Word> adverbs, AspectMarking? phase)
     {
@@ -993,13 +1002,9 @@ public static class Syntax
             verb.Outermost.Root);
     }
 
-    private static ClauseWords Words(Language language, Statement clause, Modal modal, IReadOnlyList<Word> adverbs) => clause.Value switch
-    {
-        Clause c => Words(language, c, modal, adverbs, null),
-        PassiveClause c => Words(language, c, modal, adverbs, null),
-        CopularClause c => Copular(language, c, [], null, modal, adverbs),
-        _ => throw new ArgumentException("Only a clause with a verb or be can take a modal.", nameof(clause)),
-    };
+    private static ClauseWords Words(Language language, Statement clause, Modal modal, IReadOnlyList<Word> adverbs) => clause.Value is Clause or PassiveClause or CopularClause
+        ? Words(language, Fold(language, clause, modal), adverbs)
+        : throw new ArgumentException("Only a clause with a verb or be can take a modal.", nameof(clause));
 
     //how a modal or 'want' is marked on a verb, and whether it's negated
     private record Modal(ModalMarking Marking, bool Negative);
@@ -1045,9 +1050,7 @@ public static class Syntax
     //a clause that can be asked, with words said where its obliques go, before them
     private static ClauseWords Words(Language language, Statement statement, IReadOnlyList<Word> adverbs) => statement.Value switch
     {
-        Clause c => Words(language, c, null, adverbs, null),
-        PassiveClause c => Words(language, c, null, adverbs, null),
-        CopularClause c => Copular(language, c, [], null, null, adverbs),
+        Clause or PassiveClause or CopularClause => Words(language, Fold(language, statement, null), adverbs),
         Comparative c => Words(language, c, adverbs),
         Modalized m => Words(language, m, adverbs),
         _ => throw new ArgumentException("Only a clause with a verb or be can be asked.", nameof(statement)),
