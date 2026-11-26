@@ -1,3 +1,4 @@
+using static LanguageGenerator.Tests.Phrases;
 using static LanguageGenerator.Tests.Clauses;
 using static LanguageGenerator.Tests.Sentences;
 
@@ -8,8 +9,8 @@ public class QuestionTests
     private static Statement Parsed(string gloss) => Assert.Single(ClauseFile.Parse($"x\n  {gloss}")).Statement;
 
     //only the basic meanings, since coining new ones would add to the shared sample's lexicons
-    private static readonly NounPhrase Dog = new("dog", Number.Singular);
-    private static readonly NounPhrase Fish = new("fish", Number.Singular);
+    private static readonly NounPhrase Dog = BareNoun("dog", Number.Singular);
+    private static readonly NounPhrase Fish = BareNoun("fish", Number.Singular);
     private static Clause DogEats(Argument food) => new Clause(new Doing("eat", food), new Declarative(Tense.Present, Aspect.Imperfective, Dog), false, [], []);
     private static Clause DogEatsFish => DogEats(Fish);
 
@@ -141,7 +142,7 @@ public class QuestionTests
         Assert.All(GeneratedLanguages.Sample.Take(100), l =>
         {
             Clause At(Argument time) => DogEatsFish with { Obliques = [new Oblique(Role.Time, time, Configuration.At)] };
-            var night = Realized(l, At(new NounPhrase("sun", Number.Singular)));
+            var night = Realized(l, At(BareNoun("sun", Number.Singular)));
             var when = Realized(l, new Question(At(new QuestionWord(Interrogative.When)), null));
             var word = l.Questions.Words[Interrogative.When].Root;
 
@@ -165,7 +166,7 @@ public class QuestionTests
         Assert.NotEmpty(languages);
         Assert.All(languages, l =>
         {
-            var house = new NounPhrase("house", Number.Singular);
+            var house = BareNoun("house", Number.Singular);
             var withOblique = Realized(l, DogEatsFish with { Obliques = [new Oblique(Role.Location, house, Configuration.At)] });
             var why = Realized(l, new Question(DogEatsFish, QuestionAdverb.Why));
 
@@ -194,7 +195,7 @@ public class QuestionTests
     public void Realize_EveryKindOfClause_CanBeAsked()
     {
         var who = new QuestionWord(Interrogative.Who);
-        var house = new NounPhrase("house", Number.Singular);
+        var house = BareNoun("house", Number.Singular);
         var clauses = new Statement[]
         {
             new Question(DogEatsFish, null),

@@ -1,3 +1,4 @@
+using static LanguageGenerator.Tests.Phrases;
 using static LanguageGenerator.Tests.Clauses;
 using static LanguageGenerator.Tests.Sentences;
 
@@ -17,7 +18,7 @@ public class CoordinationTests
         var subject = Assert.IsType<Coordination>(SubjectOf(Parsed("sleep  subject:(and dog.DEF cat.DEF)")).Value);
 
         Assert.Equal(Conjunction.And, subject.Conjunction);
-        Assert.Equal(["dog", "cat"], subject.Items.Select(i => Assert.IsType<NounPhrase>(i.Value).Noun));
+        Assert.Equal(["dog", "cat"], subject.Items.Select(i => NounOf(i).Meaning));
     }
 
     [Fact]
@@ -26,7 +27,7 @@ public class CoordinationTests
         var @object = PredicateOf<Doing>(Parsed("carry  subject:3SG.F  object:(or (purse.NDF empty) 1SG (and dog cat))")).Object!.Value;
         var items = Assert.IsType<Coordination>(@object.Value).Items;
 
-        Assert.Equal(["empty"], Assert.IsType<NounPhrase>(items[0].Value).Adjectives.Select(a => a.Meaning));
+        Assert.Equal(["empty"], NounOf(items[0]).Adjectives.Select(a => a.Meaning));
         Assert.Equal(new Pronoun(Person.First, Number.Singular), items[1].Value);
         Assert.Equal(Conjunction.And, Assert.IsType<Coordination>(items[2].Value).Conjunction);
     }
@@ -92,9 +93,9 @@ public class CoordinationTests
     }
 
     //only the basic meanings, since coining new ones would add to the shared sample's lexicons
-    private static readonly NounPhrase Dog = new("dog", Number.Singular);
-    private static readonly NounPhrase Cat = new("cat", Number.Singular);
-    private static readonly NounPhrase Birds = new("bird", Number.Plural);
+    private static readonly NounPhrase Dog = BareNoun("dog", Number.Singular);
+    private static readonly NounPhrase Cat = BareNoun("cat", Number.Singular);
+    private static readonly NounPhrase Birds = BareNoun("bird", Number.Plural);
 
     private static Sentence Saw(Language l, Argument subject) => Syntax.Realize(l, new Clause(new Doing("see", Birds), new Declarative(Tense.Past, Aspect.Perfective, subject), false, [], []), "x");
 
@@ -130,7 +131,7 @@ public class CoordinationTests
     public void Realize_TwoNounsJoinedByAnd_AgreeAsADual()
     {
         Assert.All(GeneratedLanguages.Sample.Where(l => !l.Genders.VerbsAgree || l.GenderOf(l.Lexicon.Noun("dog")) == l.GenderOf(l.Lexicon.Noun("cat"))), l =>
-            Assert.Equal(VerbGloss(Saw(l, new NounPhrase("dog", Number.Dual))), VerbGloss(Saw(l, new Coordination(Conjunction.And, [Dog, Cat])))));
+            Assert.Equal(VerbGloss(Saw(l, BareNoun("dog", Number.Dual))), VerbGloss(Saw(l, new Coordination(Conjunction.And, [Dog, Cat])))));
     }
 
     //a king and a woman, whose genders differ in every language with masculine and feminine, which assign people by sex.
@@ -148,7 +149,7 @@ public class CoordinationTests
             var masculine = new[] { "king", "woman" }.FirstOrDefault(n => l.GenderOf(l.Lexicon.Noun(n)) == Gender.Masculine);
             if (masculine is not null)
             {
-                Assert.Equal(VerbGloss(Saw(l, new NounPhrase(masculine, Number.Dual))), VerbGloss(Saw(l, new Coordination(Conjunction.And, [new NounPhrase("king", Number.Singular), new NounPhrase("woman", Number.Singular)]))));
+                Assert.Equal(VerbGloss(Saw(l, BareNoun(masculine, Number.Dual))), VerbGloss(Saw(l, new Coordination(Conjunction.And, [BareNoun("king", Number.Singular), BareNoun("woman", Number.Singular)]))));
             }
         });
     }
@@ -167,9 +168,9 @@ public class CoordinationTests
     {
         Assert.All(GeneratedLanguages.Sample, l =>
         {
-            var sentence = Saw(l, new Coordination(Conjunction.Or, [Dog, new NounPhrase("cat", Number.Plural)]));
+            var sentence = Saw(l, new Coordination(Conjunction.Or, [Dog, BareNoun("cat", Number.Plural)]));
 
-            Assert.Equal(VerbGloss(Saw(l, new NounPhrase("cat", Number.Plural))), VerbGloss(sentence));
+            Assert.Equal(VerbGloss(Saw(l, BareNoun("cat", Number.Plural))), VerbGloss(sentence));
             Assert.InRange(IndexOf(sentence, l.Conjunctions.Or.Root), IndexOf(sentence, "dog") + 1, IndexOf(sentence, "cat") - 1);
         });
     }

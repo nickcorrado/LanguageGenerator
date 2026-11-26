@@ -1,4 +1,5 @@
-﻿using static LanguageGenerator.Tests.Sentences;
+﻿using static LanguageGenerator.Tests.Phrases;
+using static LanguageGenerator.Tests.Sentences;
 
 namespace LanguageGenerator.Tests;
 
@@ -6,9 +7,9 @@ public class PossessionTests
 {
     //only the basic meanings, since coining new ones would add to the shared sample's lexicons
     private static Sentence Slept(Language l, Argument possessor, Number? number = null) =>
-        Syntax.Realize(l, new Clause(new Doing("sleep", null), new Declarative(Tense.Past, Aspect.Perfective, new NounPhrase("dog", number ?? Number.Singular, Possessor: possessor)), false, [], []), "x");
+        Syntax.Realize(l, new Clause(new Doing("sleep", null), new Declarative(Tense.Past, Aspect.Perfective, new NounPhrase(new Noun("dog", number ?? Number.Singular, [], null, null, null, null, possessor), null)), false, [], []), "x");
 
-    private static readonly NounPhrase ThePerson = new("person", Number.Singular);
+    private static readonly NounPhrase ThePerson = BareNoun("person", Number.Singular);
     private static readonly Pronoun Me = new(Person.First, Number.Singular);
 
     private static IEnumerable<string> Glosses(Sentence sentence) => sentence.Words.SelectMany(w => w.Gloss.Split('-', '.', '[', ']'));
@@ -63,7 +64,7 @@ public class PossessionTests
         Assert.All(GeneratedLanguages.Sample, l =>
         {
             //'the person's cat's dog', with the cat's owner inside the cat's phrase
-            var sentence = Slept(l, new NounPhrase("cat", Number.Singular, Possessor: ThePerson));
+            var sentence = Slept(l, new NounPhrase(new Noun("cat", Number.Singular, [], null, null, null, null, ThePerson), null));
             var (person, cat, dog) = (IndexOf(sentence, "person"), IndexOf(sentence, "cat"), IndexOf(sentence, "dog"));
 
             Assert.True(l.Possession.PossessorFirst ? person < cat && cat < dog : dog < cat && cat < person);
@@ -90,7 +91,7 @@ public class PossessionTests
         {
             foreach (var number in new[] { Number.Plural, Number.Dual })
             {
-                var sentence = Slept(l, new NounPhrase("person", number));
+                var sentence = Slept(l, BareNoun("person", number));
                 Assert.Contains("3PL", sentence.Words[IndexOf(sentence, "dog")].Gloss);
             }
         });

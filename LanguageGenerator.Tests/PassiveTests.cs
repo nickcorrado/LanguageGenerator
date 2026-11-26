@@ -1,3 +1,4 @@
+using static LanguageGenerator.Tests.Phrases;
 using static LanguageGenerator.Tests.Clauses;
 using static LanguageGenerator.Tests.Sentences;
 
@@ -8,8 +9,8 @@ public class PassiveTests
     private static Statement Parsed(string gloss) => Assert.Single(ClauseFile.Parse($"x\n  {gloss}")).Statement;
 
     //only the basic meanings, since coining new ones would add to the shared sample's lexicons
-    private static readonly NounPhrase Fish = new("fish", Number.Singular);
-    private static readonly NounPhrase Cat = new("cat", Number.Singular);
+    private static readonly NounPhrase Fish = BareNoun("fish", Number.Singular);
+    private static readonly NounPhrase Cat = BareNoun("cat", Number.Singular);
     private static Clause EatenBy(Argument? agent) => new Clause(new Done("eat", agent), new Declarative(Tense.Past, Aspect.Perfective, Fish), false, [], []);
 
     private static IEnumerable<string> Glosses(Sentence sentence) => sentence.Words.Select(w => w.Gloss);
@@ -38,8 +39,8 @@ public class PassiveTests
     {
         var clause = Parsed("carry.PASS.PST  subject:light.DEF  agent:(figure.NDF small)");
 
-        Assert.Equal(new NounPhrase("light", Number.Singular, Definiteness: Definiteness.Definite), ForceOf<Declarative>(clause).Subject.Value);
-        Assert.Equal("figure", Assert.IsType<NounPhrase>(PredicateOf<Done>(clause).Agent!.Value.Value).Noun);
+        Assert.Equal(new NounPhrase(new Noun("light", Number.Singular, [], null, null, null, Definiteness.Definite, null), null), ForceOf<Declarative>(clause).Subject.Value);
+        Assert.Equal("figure", NounOf(PredicateOf<Done>(clause).Agent!.Value).Meaning);
         Assert.Equal(Tense.Past, ForceOf<Declarative>(clause).Tense);
     }
 

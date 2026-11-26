@@ -81,10 +81,10 @@ public record Relativization(bool BeforeNoun, RelativeStrategy Subject, Relative
 /// The role a relative clause's noun fills in it, written _, as in 'the net [she was mending _]'.
 /// Head is the noun, which the clause file leaves out and Syntax fills in, for what agrees with it.
 /// </summary>
-public record Gap(NounPhrase? Head);
+public record Gap(Nominal? Head);
 
 /// <summary>
 /// A relative pronoun standing for Head in a relative clause, which Syntax puts in a gap's place
 /// where the language says the gap's role with one.
 /// </summary>
-public record RelativeWord(Lexeme Word, NounPhrase Head);
+public record RelativeWord(Lexeme Word, Nominal Head);

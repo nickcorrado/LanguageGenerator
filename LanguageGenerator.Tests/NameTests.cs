@@ -1,3 +1,4 @@
+using static LanguageGenerator.Tests.Phrases;
 using static LanguageGenerator.Tests.Sentences;
 
 namespace LanguageGenerator.Tests;
@@ -11,7 +12,7 @@ public class NameTests
     {
         Assert.All(GeneratedLanguages.Sample, l =>
         {
-            var sentence = Syntax.Realize(l, new Clause(new Doing("sleep", null), new Declarative(Tense.Past, Aspect.Perfective, new NounPhrase("person", Number.Plural)), false, [], []), "the people slept");
+            var sentence = Syntax.Realize(l, new Clause(new Doing("sleep", null), new Declarative(Tense.Past, Aspect.Perfective, BareNoun("person", Number.Plural)), false, [], []), "the people slept");
             var people = sentence.Words[IndexOf(sentence, "person")].Spell(l.Orthography);
 
             Assert.Equal(people, char.ToLowerInvariant(l.Name[0]) + l.Name[1..]);

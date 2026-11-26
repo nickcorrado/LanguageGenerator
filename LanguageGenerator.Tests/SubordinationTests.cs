@@ -1,4 +1,5 @@
-﻿using static LanguageGenerator.Tests.Clauses;
+﻿using static LanguageGenerator.Tests.Phrases;
+using static LanguageGenerator.Tests.Clauses;
 using static LanguageGenerator.Tests.Sentences;
 
 namespace LanguageGenerator.Tests;
@@ -115,7 +116,7 @@ public class SubordinationTests
     [Fact]
     public void Realize_DerankedClauseMarkedLikeARole_TakesItsCaseOrAdposition()
     {
-        var dogEats = CatEats with { Force = new Declarative(Tense.Present, Aspect.Imperfective, new NounPhrase("dog", Number.Singular)) };
+        var dogEats = CatEats with { Force = new Declarative(Tense.Present, Aspect.Imperfective, BareNoun("dog", Number.Singular)) };
         var marked = GeneratedLanguages.Sample.Where(l => l.Subordination.Markers[Subordinator.Purpose] is { Balance: not Balance.Balanced, MarkedAs: not null }).ToList();
 
         Assert.NotEmpty(marked);
@@ -144,8 +145,8 @@ public class SubordinationTests
             l => Assert.DoesNotContain(l.Subordination.Markers.Values, m => m.Position == ExponentPosition.Suffix));
 
     //only the basic meanings, since coining new ones would add to the shared sample's lexicons
-    private static readonly Clause CatEats = new Clause(new Doing("eat", new NounPhrase("fish", Number.Singular)), new Declarative(Tense.Present, Aspect.Imperfective, new NounPhrase("cat", Number.Singular)), false, [], []);
-    private static readonly Clause DogSleeps = new Clause(new Doing("sleep", null), new Declarative(Tense.Present, Aspect.Imperfective, new NounPhrase("dog", Number.Singular)), false, [], []);
+    private static readonly Clause CatEats = new Clause(new Doing("eat", BareNoun("fish", Number.Singular)), new Declarative(Tense.Present, Aspect.Imperfective, BareNoun("cat", Number.Singular)), false, [], []);
+    private static readonly Clause DogSleeps = new Clause(new Doing("sleep", null), new Declarative(Tense.Present, Aspect.Imperfective, BareNoun("dog", Number.Singular)), false, [], []);
 
     private static bool IsMarker(Morpheme m) => m.Value is Affix { Grammemes: [Linkage] } or Particle { Grammemes: [Linkage] };
 
@@ -195,7 +196,7 @@ public class SubordinationTests
     [Fact]
     public void Realize_SharedSubject_IsSaidOnlyOnce()
     {
-        var dogEats = CatEats with { Force = new Declarative(Tense.Present, Aspect.Imperfective, new NounPhrase("dog", Number.Singular)) };
+        var dogEats = CatEats with { Force = new Declarative(Tense.Present, Aspect.Imperfective, BareNoun("dog", Number.Singular)) };
 
         Assert.All(GeneratedLanguages.Sample, l =>
         {

@@ -54,6 +54,16 @@ internal static class Clauses
     public static T ForceOf<T>(Statement statement) => Assert.IsType<T>(Assert.IsType<Clause>(statement.Value).Force.Value);
 }
 
+//a noun on its own, with no modifiers, determiner, possessor or relative clause
+internal static class Phrases
+{
+    public static NounPhrase BareNoun(string meaning, Number number) => new(new Noun(meaning, number, [], null, null, null, null, null), null);
+
+    //the noun a phrase is of, where it's a noun phrase of a noun
+    public static Noun NounOf(Argument argument) => NounOf(Assert.IsType<NounPhrase>(argument.Value));
+    public static Noun NounOf(NounPhrase phrase) => Assert.IsType<Noun>(phrase.Head.Value);
+}
+
 //what the tests' people and animals are, as a noun file would say
 internal static class TestNouns
 {

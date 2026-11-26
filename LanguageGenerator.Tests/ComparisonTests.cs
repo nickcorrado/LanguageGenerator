@@ -1,3 +1,4 @@
+using static LanguageGenerator.Tests.Phrases;
 using static LanguageGenerator.Tests.Clauses;
 using static LanguageGenerator.Tests.Sentences;
 
@@ -5,8 +6,8 @@ namespace LanguageGenerator.Tests;
 
 public class ComparisonTests
 {
-    private static readonly Clause DogIsBig = new Clause(new Being(new Adjective("big", false)), new Declarative(Tense.Present, Aspect.Imperfective, new NounPhrase("dog", Number.Singular)), false, [], []);
-    private static readonly NounPhrase Cats = new("cat", Number.Plural);
+    private static readonly Clause DogIsBig = new Clause(new Being(new Adjective("big", false)), new Declarative(Tense.Present, Aspect.Imperfective, BareNoun("dog", Number.Singular)), false, [], []);
+    private static readonly NounPhrase Cats = BareNoun("cat", Number.Plural);
 
     //'the dog is bigger than the cats', in only the basic meanings, since coining new ones would add
     //to the shared sample's lexicons
@@ -25,7 +26,7 @@ public class ComparisonTests
         var comparative = Assert.IsType<Comparative>(Parsed("be  subject:marta  adjective:tall.CMPR  standard:man.PL.DEF").Value);
 
         Assert.Equal(new Adjective("tall", false), PredicateOf<Being>(comparative.Clause).Complement.Value);
-        Assert.Equal(new NounPhrase("man", Number.Plural, Definiteness: Definiteness.Definite), comparative.Standard.Value);
+        Assert.Equal(new NounPhrase(new Noun("man", Number.Plural, [], null, null, null, Definiteness.Definite, null), null), comparative.Standard.Value);
     }
 
     [Fact]
@@ -115,7 +116,7 @@ public class ComparisonTests
             Assert.True(verb >= 0);
             Assert.True(l.WordOrder.VerbPhraseDirectionality == HeadDirectionality.Initial ? verb < cat : verb > cat);
             //the standard is said as an object is
-            var seen = Syntax.Realize(l, new Clause(new Doing("see", Cats), new Declarative(Tense.Present, Aspect.Imperfective, new NounPhrase("dog", Number.Singular)), false, [], []), "x");
+            var seen = Syntax.Realize(l, new Clause(new Doing("see", Cats), new Declarative(Tense.Present, Aspect.Imperfective, BareNoun("dog", Number.Singular)), false, [], []), "x");
             Assert.Equal(seen.Words[IndexOf(seen, "cat")].Gloss, sentence.Words[cat].Gloss);
         });
         Assert.NotEmpty(languages);
@@ -199,10 +200,10 @@ public class ComparisonTests
         Assert.Contains(languages, l => !l.Degree.WithStandard);
     }
 
-    private static readonly Clause DogWalks = new Clause(new Doing("walk", null), new Declarative(Tense.Present, Aspect.Imperfective, new NounPhrase("dog", Number.Singular)), false, [], []);
+    private static readonly Clause DogWalks = new Clause(new Doing("walk", null), new Declarative(Tense.Present, Aspect.Imperfective, BareNoun("dog", Number.Singular)), false, [], []);
 
     //'the dog walks like a cat'
-    private static Sentence WalksLikeACat(Language l) => Syntax.Realize(l, DogWalks with { Obliques = [new(Role.Similative, new NounPhrase("cat", Number.Singular), Configuration.At)] }, "x");
+    private static Sentence WalksLikeACat(Language l) => Syntax.Realize(l, DogWalks with { Obliques = [new(Role.Similative, BareNoun("cat", Number.Singular), Configuration.At)] }, "x");
 
     [Fact]
     public void Generate_SimilativeWords_GoOnTheirAdpositionsSide() =>
@@ -246,7 +247,7 @@ public class ComparisonTests
         Assert.All(GeneratedLanguages.Sample, l =>
         {
             var simile = WalksLikeACat(l);
-            var located = Syntax.Realize(l, DogWalks with { Obliques = [new(Role.Location, new NounPhrase("cat", Number.Singular), Configuration.At)] }, "x");
+            var located = Syntax.Realize(l, DogWalks with { Obliques = [new(Role.Location, BareNoun("cat", Number.Singular), Configuration.At)] }, "x");
 
             Assert.Equal(IndexOf(located, "walk") < IndexOf(located, "cat"), IndexOf(simile, "walk") < IndexOf(simile, "cat"));
         });
@@ -265,7 +266,7 @@ public class ComparisonTests
     {
         var clause = Assert.IsType<Clause>(Parsed("shine  subject:3SG.N  like:water").Value);
 
-        Assert.Equal(new Oblique(Role.Similative, new NounPhrase("water", Number.Singular), Configuration.At), Assert.Single(clause.Obliques));
+        Assert.Equal(new Oblique(Role.Similative, BareNoun("water", Number.Singular), Configuration.At), Assert.Single(clause.Obliques));
     }
 
     [Theory]

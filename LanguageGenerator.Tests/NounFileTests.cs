@@ -1,4 +1,5 @@
-﻿using static LanguageGenerator.Tests.Clauses;
+﻿using static LanguageGenerator.Tests.Phrases;
+using static LanguageGenerator.Tests.Clauses;
 namespace LanguageGenerator.Tests;
 
 public class NounFileTests
@@ -67,7 +68,7 @@ public class NounFileTests
         var (first, second) = ((Clause)entries[0].Statement.Value!, (Clause)entries[1].Statement.Value!);
         Assert.Equal(PredicateOf<Doing>(second).Verb, PredicateOf<Doing>(first).Verb);
         Assert.Equal(second.Force.Subject, first.Force.Subject);
-        Assert.Equal("big", Assert.Single(((NounPhrase)PredicateOf<Doing>(first).Object.GetValueOrDefault().Value!).Adjectives).Meaning);
+        Assert.Equal("big", Assert.Single(NounOf(PredicateOf<Doing>(first).Object.GetValueOrDefault()).Adjectives).Meaning);
         PredicateOf<Being>(entries[2].Statement);
         Assert.Throws<ClauseFormatException>(() => ClauseFile.Parse("one\n  see.pst  subject:marta"));
     }

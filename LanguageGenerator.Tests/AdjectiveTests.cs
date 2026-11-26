@@ -1,10 +1,11 @@
-﻿using static LanguageGenerator.Tests.Sentences;
+﻿using static LanguageGenerator.Tests.Phrases;
+using static LanguageGenerator.Tests.Sentences;
 
 namespace LanguageGenerator.Tests;
 
 public class AdjectiveTests
 {
-    private static readonly NounPhrase BigOldDogs = new("dog", Number.Plural, [new("big", false), new("old", false)]);
+    private static readonly NounPhrase BigOldDogs = new NounPhrase(new Noun("dog", Number.Plural, [new("big", false), new("old", false)], null, null, null, null, null), null);
 
     //only the basic meanings, since coining new ones would add to the shared sample's lexicons
     private static Sentence Sleep(Language l, NounPhrase subject) =>
@@ -61,7 +62,7 @@ public class AdjectiveTests
     public void Realize_NounWithoutAdjectives_IsUnchanged()
     {
         Assert.All(GeneratedLanguages.Sample, l =>
-            Assert.Equal(Sleep(l, new NounPhrase("dog", Number.Plural)).Text, Sleep(l, BigOldDogs with { Adjectives = [] }).Text));
+            Assert.Equal(Sleep(l, BareNoun("dog", Number.Plural)).Text, Sleep(l, BigOldDogs with { Head = NounOf(BigOldDogs) with { Adjectives = [] } }).Text));
     }
 
     [Fact]
@@ -89,7 +90,7 @@ public class AdjectiveTests
             Assert.Single(WordOf(sentence, "big").Morphemes);
             Assert.Single(WordOf(sentence, "old").Morphemes);
             //and the noun keeps what it would have had alone
-            Assert.Equal(Affixes(WordOf(Sleep(l, new NounPhrase("dog", Number.Plural)), "dog")), Affixes(WordOf(sentence, "dog")));
+            Assert.Equal(Affixes(WordOf(Sleep(l, BareNoun("dog", Number.Plural)), "dog")), Affixes(WordOf(sentence, "dog")));
         });
     }
 
@@ -101,7 +102,7 @@ public class AdjectiveTests
         Assert.NotEmpty(phrasal);
         Assert.All(phrasal, l =>
         {
-            var alone = WordOf(Sleep(l, new NounPhrase("dog", Number.Plural)), "dog");
+            var alone = WordOf(Sleep(l, BareNoun("dog", Number.Plural)), "dog");
             var (prefixes, suffixes) = Affixes(alone);
             var sentence = Sleep(l, BigOldDogs);
             var phrase = new[] { "dog", "big", "old" }.Select(m => IndexOf(sentence, m)).Order().Select(i => sentence.Words[i].Word).ToList();

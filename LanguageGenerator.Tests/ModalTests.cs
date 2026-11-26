@@ -1,3 +1,4 @@
+using static LanguageGenerator.Tests.Phrases;
 using static LanguageGenerator.Tests.Clauses;
 using static LanguageGenerator.Tests.Sentences;
 
@@ -8,8 +9,8 @@ public class ModalTests
     private static Statement Parsed(string gloss) => Assert.Single(ClauseFile.Parse($"x\n  {gloss}")).Statement;
 
     //only the basic meanings, since coining new ones would add to the shared sample's lexicons
-    private static readonly NounPhrase Dog = new("dog", Number.Singular);
-    private static readonly NounPhrase Fish = new("fish", Number.Singular);
+    private static readonly NounPhrase Dog = BareNoun("dog", Number.Singular);
+    private static readonly NounPhrase Fish = BareNoun("fish", Number.Singular);
     private static Clause DogEatsFish(bool negative) => new Clause(new Doing("eat", Fish), new Declarative(Tense.Present, Aspect.Imperfective, Dog), negative, [], []);
 
     private static Sentence Realized(Language language, Statement statement) => Syntax.Realize(language, statement, "x");
@@ -56,7 +57,7 @@ public class ModalTests
             DogEatsFish(false),
             new Clause(new Done("eat", Dog), new Declarative(Tense.Past, Aspect.Perfective, Fish), false, [], []),
             new Clause(new Being(new Adjective("big", false)), new Declarative(Tense.Present, Aspect.Imperfective, Dog), false, [], []),
-            new Clause(new Being(new Oblique(Role.Location, new NounPhrase("house", Number.Singular), Configuration.At)), new Declarative(Tense.Present, Aspect.Imperfective, Dog), false, [], []),
+            new Clause(new Being(new Oblique(Role.Location, BareNoun("house", Number.Singular), Configuration.At)), new Declarative(Tense.Present, Aspect.Imperfective, Dog), false, [], []),
         };
         Assert.All(GeneratedLanguages.Sample, l =>
         {
@@ -160,7 +161,7 @@ public class ModalTests
 
         Assert.All(Enumerable.Range(0, 5).Select(seed => Generator.Generate(seed, spec)), l =>
         {
-            var main = new Clause(new Doing("sleep", null), new Declarative(Tense.Present, Aspect.Imperfective, new NounPhrase("cat", Number.Singular)), false, [], []);
+            var main = new Clause(new Doing("sleep", null), new Declarative(Tense.Present, Aspect.Imperfective, BareNoun("cat", Number.Singular)), false, [], []);
             var sentence = Realized(l, new Subordinated(main, Subordinator.If, new Modalized(DogEatsFish(false), Modality.Ability, false), false));
             var marker = l.Subordination.Markers[Subordinator.If].Marker;
 
