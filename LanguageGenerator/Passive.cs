@@ -6,12 +6,7 @@ namespace LanguageGenerator;
 /// </summary>
 //WALS 107A counts passives without telling them apart by form, and the generator has no
 //participles, so an English-style passive with be and a participle is made this way too
-public record Passive(Exponent Exponent)
-{
-    /// <summary>The verb's words with the passive marked on them.</summary>
-    //voice sits closer to the root than tense or agreement, as it nearly always does
-    public IReadOnlyList<Word> Apply(IReadOnlyList<Word> verb) => Exponent.Place(verb, Exponent.Host(verb), Reach.Root);
-}
+public record Passive(Exponent Exponent);
 
 /// <summary>
 /// A clause about what's done to its patient, as in 'each light is carried by a small figure', with

@@ -467,11 +467,10 @@ public static class Syntax
     private static IReadOnlyList<Word>? Deranked(Language language, Statement statement, bool dropSubject, Role? markedAs, AspectMarking? phase)
     {
         var marker = markedAs is { } role ? language.RoleMarkers[role] : null;
-        IReadOnlyList<Word> Verb(Lexeme verb, bool negative)
+        IReadOnlyList<Word> Verb(Lexeme verb, bool negative, Passive? passive)
         {
-            var bare = marker is { Case: { } @case, Adposition: null } ? AsNoun(language, verb, @case) : [new Word([verb.Root])];
-            var words = phase is { } p ? Aspectual(bare, p) : bare;
-            return negative ? language.Negation.Apply(words) : words;
+            Finiteness finiteness = marker is { Case: { } @case, Adposition: null } ? new Nominalized(@case) : new Bare();
+            return Said(language, new VerbComplex(verb, [.. PassiveLayers(passive), .. PhaseLayers(phase), .. NegationLayers(language.Negation, negative)], finiteness));
         }
         IReadOnlyList<Word> Adpositioned(IReadOnlyList<Word> clause) => WithAdposition(clause, marker?.Adposition);
 
@@ -479,14 +478,14 @@ public static class Syntax
         {
             case Clause c:
             {
-                var verb = Verb(language.Lexicon.Verb(c.Verb), Concord(language, c.Negative, null, c.Subject, c.Object, ObliqueArguments(c.Obliques)).Negative);
+                var verb = Verb(language.Lexicon.Verb(c.Verb), Concord(language, c.Negative, null, c.Subject, c.Object, ObliqueArguments(c.Obliques)).Negative, null);
                 var subject = dropSubject ? [] : Subject(language, c.Subject, c.Object is null ? Role.IntransitiveSubject : Role.TransitiveSubject);
                 var (@object, last) = Object(language, c.Object, c.Subject);
                 return Adpositioned([.. Flat(Order(language.WordOrder, subject, verb, @object, WhereObliquesGo(language, Adverbials(language, c.Adverbs, c.Obliques)))), .. last]);
             }
             case PassiveClause c when language.Passive is { } passive:
             {
-                var verb = passive.Apply(Verb(language.Lexicon.Verb(c.Verb), Concord(language, c.Negative, null, c.Patient, null, [.. Given(c.Agent), .. ObliqueArguments(c.Obliques)]).Negative));
+                var verb = Verb(language.Lexicon.Verb(c.Verb), Concord(language, c.Negative, null, c.Patient, null, [.. Given(c.Agent), .. ObliqueArguments(c.Obliques)]).Negative, passive);
                 var subject = dropSubject ? [] : Subject(language, c.Patient, Role.IntransitiveSubject);
                 IReadOnlyList<Word> agent = c.Agent.HasValue ? Marked(language, c.Agent.GetValueOrDefault(), Role.Agent) : [];
                 return Adpositioned(Flat(Order(language.WordOrder, subject, verb, null,
@@ -579,10 +578,10 @@ public static class Syntax
     {
         var commands = language.Commands;
         var imperative = negative && !commands.ProhibitiveUsesImperative ? null : commands.MarkerFor(number);
-        var words = imperative.HasValue
-            ? commands.Imperative(verb, imperative.GetValueOrDefault())
-            : Verb(language, verb, Tense.Present, Aspect.Imperfective, new Pronoun(Person.Second, number), negative: false);
-        return negative ? (commands.Prohibitive ?? language.Negation).Apply(words) : words;
+        Finiteness finiteness = imperative.HasValue
+            ? new Imperative(imperative.GetValueOrDefault())
+            : new Finite(Tense.Present, Aspect.Imperfective, new Pronoun(Person.Second, number));
+        return Said(language, new VerbComplex(verb, [.. NegationLayers(commands.Prohibitive ?? language.Negation, negative)], finiteness));
     }
 
     /*
@@ -998,7 +997,7 @@ public static class Syntax
     {
         var it = new Pronoun(Person.Third, Number.Singular);
         var subject = Subject(language, it, Role.IntransitiveSubject);
-        var verb = Verb(language, modal.Verb, Tense.Present, Aspect.Imperfective, it, negative);
+        var verb = Said(language, new VerbComplex(modal.Verb, [.. NegationLayers(language.Negation, negative)], new Finite(Tense.Present, Aspect.Imperfective, it)));
         var (complement, balanced) = Complement(language, new ComplementClause(ComplementKind.Proposition, clause, SharesSubject: false), null);
         var last = balanced && language.Complementation.Last;
         return [.. Flat(Order(language.WordOrder, subject, verb, last ? null : complement, WhereObliquesGo(language, [(Closeness.Reason, adverbs)]))), .. last ? complement : []];
@@ -1160,80 +1159,103 @@ public static class Syntax
         AspectMarking? phase)
     {
         var (said, inflected, marking) = language.Aspects.Said(tense, aspect);
-        switch (marking?.Value)
+        List<VerbLayer> layers = [.. PassiveLayers(passive), .. PhaseLayers(phase)];
+        if (marking is { } aspectual)
         {
-            case null:
-                return Predicate(language, verb, said, inflected, subject, negative, modal, passive, null, phase);
-            case AspectAuxiliary auxiliary:
+            layers.Add(aspectual switch
             {
-                //an auxiliary says a state, having done or being at it, so it's imperfective
-                var finite = Predicate(language, language.AuxiliaryVerb(auxiliary, aspect), said, Aspect.Imperfective, subject, negative, modal, null, null, null);
-                IReadOnlyList<Word> phased = phase is { } p ? Aspectual([new Word([verb.Root])], p) : [new Word([verb.Root])];
-                IReadOnlyList<Word> bare = passive is null ? phased : passive.Apply(phased);
-                return auxiliary.BeforeVerb ? [.. finite, .. bare] : [.. bare, .. finite];
-            }
-            case Bound or Free:
-                return Predicate(language, verb, said, inflected, subject, negative, modal, passive, marking, phase);
-            default:
-                throw new InvalidOperationException();
+                Bound b => new VerbMarker(b, Reach.Root),
+                Free f => new VerbMarker(f, Reach.Root),
+                AspectAuxiliary a => new Auxiliary(language.AuxiliaryVerb(a, aspect), a.BeforeVerb ? Side.Before : Side.After),
+            });
+            //an auxiliary says a state, having done or being at it, so it's imperfective
+            inflected = aspectual.Value is AspectAuxiliary ? Aspect.Imperfective : inflected;
         }
-    }
-
-    /*
-      a verb with its passive, its modal and its negation, and an aspect's affix or particle and a
-      phase's, if it has them. Each goes beside the root, so the last put there is the nearest it
-     */
-    private static IReadOnlyList<Word> Predicate(Language language, Lexeme verb, Tense tense, Aspect aspect, Argument subject, bool negative, Modal? modal, Passive? passive,
-        AspectMarking? marking, AspectMarking? phase)
-    {
-        IReadOnlyList<Word> Voiced(IReadOnlyList<Word> words)
-        {
-            var aspectual = marking is { } m ? Aspectual(words, m) : words;
-            var phased = phase is { } p ? Aspectual(aspectual, p) : aspectual;
-            return passive is null ? phased : passive.Apply(phased);
-        }
-        IReadOnlyList<Word> Negated(IReadOnlyList<Word> words, bool negated) => negated ? language.Negation.Apply(words) : words;
         if (modal is null)
         {
-            return Voiced(Verb(language, verb, tense, aspect, subject, negative));
+            layers.AddRange(NegationLayers(language.Negation, negative));
         }
-        switch (modal.Marking.Value)
+        else
         {
-            case ModalVerb m:
+            switch (modal.Marking)
             {
-                var bare = Negated(Voiced([new Word([verb.Root])]), negative);
-                var auxiliary = Verb(language, m.Verb, tense, aspect, subject, modal.Negative);
-                return m.BeforeVerb ? [.. auxiliary, .. bare] : [.. bare, .. auxiliary];
+                case ModalVerb m:
+                    layers.AddRange(NegationLayers(language.Negation, negative));
+                    layers.Add(new Auxiliary(m.Verb, m.BeforeVerb ? Side.Before : Side.After));
+                    layers.AddRange(NegationLayers(language.Negation, modal.Negative));
+                    break;
+                case Bound m:
+                    layers.Add(new VerbMarker(m, Reach.Root));
+                    layers.AddRange(NegationLayers(language.Negation, negative || modal.Negative));
+                    break;
+                case Free m:
+                    layers.Add(new VerbMarker(m, Reach.Edge));
+                    layers.AddRange(NegationLayers(language.Negation, negative || modal.Negative));
+                    break;
             }
-            case Bound m:
-            {
-                var words = Verb(language, verb, tense, aspect, subject, negative: false);
-                return Negated(Voiced(((Exponent)m).Place(words, Exponent.Host(words), Reach.Root)), negative || modal.Negative);
-            }
-            case Free m:
-            {
-                var words = Voiced(Verb(language, verb, tense, aspect, subject, negative: false));
-                return Negated(((Exponent)m).Place(words, Exponent.Host(words), Reach.Edge), negative || modal.Negative);
-            }
-            default:
-                throw new InvalidOperationException();
         }
+        return Said(language, new VerbComplex(verb, layers, new Finite(said, inflected, subject)));
     }
 
-    //a verb's words with an aspect's affix next to its root, or its particle beside it
-    private static IReadOnlyList<Word> Aspectual(IReadOnlyList<Word> verb, AspectMarking marking)
-    {
-        Exponent exponent = marking switch
+    //voice sits closer to the root than tense or agreement, as it nearly always does
+    private static IEnumerable<VerbLayer> PassiveLayers(Passive? passive) => passive is null ? [] : [new VerbMarker(passive.Exponent, Reach.Root)];
+
+    //an inceptive's or cessative's marker, never an auxiliary, since a language without one says it with a verb
+    private static IEnumerable<VerbLayer> PhaseLayers(AspectMarking? phase) => phase is { } p
+        ? [p switch
         {
-            Bound b => b,
-            Free f => f,
-            AspectAuxiliary => throw new ArgumentException("An auxiliary isn't marked on the verb.", nameof(marking)),
-        };
-        return exponent.Place(verb, Exponent.Host(verb), Reach.Root);
+            Bound b => new VerbMarker(b, Reach.Root),
+            Free f => new VerbMarker(f, Reach.Root),
+            AspectAuxiliary => throw new ArgumentException("A phase isn't marked by an auxiliary.", nameof(phase)),
+        }]
+        : [];
+
+    //a negation's markers go outside the verb's other affixes, and its words outside its other words
+    private static IEnumerable<VerbLayer> NegationLayers(Negation negation, bool negative) =>
+        negative ? negation.Markers.Select(m => (VerbLayer)new VerbMarker(m, Reach.Edge)) : [];
+
+    /*
+      a verb's words. Where it has an auxiliary, the outermost one takes its inflection and the
+      markers outside it, beside everything inside it said bare, so a modal verb goes outside an
+      aspect's auxiliary and the verb they share, as Thai tɔ̂ŋ kin sèt 'must eat finish' has it.
+      Otherwise it's the verb inflected, with the markers that reach its root put there from the
+      outermost in, so each goes nearer the root than the one before, and those that reach the edge
+      from the innermost out, so each goes outside the one before
+     */
+    private static IReadOnlyList<Word> Said(Language language, VerbComplex complex)
+    {
+        var layers = complex.Layers;
+        var at = layers.ToList().FindLastIndex(l => l.Value is Auxiliary);
+        if (at >= 0 && layers[at].Value is Auxiliary auxiliary)
+        {
+            var inside = Said(language, complex with { Layers = [.. layers.Take(at)], Finiteness = new Bare() });
+            var outside = Said(language, new VerbComplex(auxiliary.Verb, [.. layers.Skip(at + 1)], complex.Finiteness));
+            return auxiliary.Side == Side.Before ? [.. outside, .. inside] : [.. inside, .. outside];
+        }
+        var markers = layers.Select(l => (VerbMarker)l.Value!).ToList();
+        var words = Inflected(language, complex.Verb, complex.Finiteness);
+        foreach (var marker in markers.Where(m => m.Reach == Reach.Root).Reverse())
+        {
+            words = marker.Exponent.Place(words, Exponent.Host(words), Reach.Root);
+        }
+        foreach (var marker in markers.Where(m => m.Reach == Reach.Edge))
+        {
+            words = marker.Exponent.Place(words, Exponent.Host(words), Reach.Edge);
+        }
+        return words;
     }
+
+    //a verb's own words, inflected as its finiteness says, before any of its markers
+    private static IReadOnlyList<Word> Inflected(Language language, Lexeme verb, Finiteness finiteness) => finiteness switch
+    {
+        Finite f => Verb(language, verb, f.Tense, f.Aspect, f.Subject),
+        Imperative i => language.Commands.Imperative(verb, i.Marker),
+        Nominalized n => AsNoun(language, verb, n.Case),
+        Bare => [new Word([verb.Root])],
+    };
 
     //the verb agrees with its subject. TODO many ergative languages agree with the absolutive instead
-    private static IReadOnlyList<Word> Verb(Language language, Lexeme verb, Tense tense, Aspect aspect, Argument subject, bool negative)
+    private static IReadOnlyList<Word> Verb(Language language, Lexeme verb, Tense tense, Aspect aspect, Argument subject)
     {
         var (person, number) = AgreementOf(language, subject);
         var paradigm = language.Paradigms.Verbs;
@@ -1245,7 +1267,7 @@ public static class Syntax
             var main = words.FindIndex(w => w.Root is not null);
             words[main] = genders.Agree(words[main], gender, nextToRoot: false);
         }
-        return negative ? language.Negation.Apply(words) : words;
+        return words;
     }
 
     //the number a noun takes: its own, unless a numeral leaves it singular, as in Turkish üç kurt

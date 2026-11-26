@@ -21,10 +21,6 @@ public enum NegationStrategy
 //particles
 public record Negation(NegationStrategy Strategy, IReadOnlyList<Exponent> Markers)
 {
-    //the verb's words, negated
-    public IReadOnlyList<Word> Apply(IReadOnlyList<Word> verb) =>
-        Markers.Aggregate(verb, (words, marker) => marker.Place(words, Exponent.Host(words), Reach.Edge));
-
     public override string ToString() => Strategy switch
     {
         NegationStrategy.ParticleBefore => "a particle before the verb",
