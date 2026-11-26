@@ -36,4 +36,11 @@ public record Bare;
 public union Finiteness(Finite, Imperative, Nominalized, Bare);
 
 /// <summary>A verb with its layers, innermost first, and what its outermost verb inflects for.</summary>
-public record VerbComplex(Lexeme Verb, IReadOnlyList<VerbLayer> Layers, Finiteness Finiteness);
+public record VerbComplex(Lexeme Verb, IReadOnlyList<VerbLayer> Layers, Finiteness Finiteness)
+{
+    /// <summary>
+    /// The verb that takes the inflection: the outermost auxiliary, or the verb itself where it has
+    /// none, which is the one a question moves or a suffix marking the whole clause goes on.
+    /// </summary>
+    public Lexeme Outermost => Layers.Select(l => l.Value).OfType<Auxiliary>().LastOrDefault()?.Verb ?? Verb;
+}
