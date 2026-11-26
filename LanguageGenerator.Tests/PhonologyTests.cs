@@ -67,6 +67,7 @@ public class PhonologyTests
             Dropoff = new Dropoff(0.15, 0.15),
             SyllableContact = SyllableContact.Any,
             Allophones = Generator.SelectAllophones(TestData.Vowels, TestData.Consonants),
+            Sandhi = TestData.NoSandhi,
         };
 
         //a nasal can close a syllable, but a stop needs a vowel after it, as with Japanese batto 'bat'
@@ -90,6 +91,7 @@ public class PhonologyTests
             Dropoff = new Dropoff(0.15, 0.15),
             SyllableContact = SyllableContact.Any,
             Allophones = Generator.SelectAllophones(TestData.Vowels, TestData.Consonants),
+            Sandhi = TestData.NoSandhi,
         };
 
         Assert.Equal("a.an", phonology.Realize(TestData.Word([Vowel.a, Consonant.t, Vowel.a, Consonant.n])).Syllabified(Orthography.Ipa));
@@ -245,8 +247,9 @@ public class PhonologyTests
     }
 
     //every generated language has some sound change, at least identical vowel fusion, so seeing what
-    //repair alone does means taking them away
-    private static Phonology WithoutSoundChanges(Language language) => language.Phonology with { SoundChanges = [], SyllableChanges = [] };
+    //repair alone does means taking them away, and final consonant loss with them
+    private static Phonology WithoutSoundChanges(Language language) =>
+        language.Phonology with { SoundChanges = [], SyllableChanges = [], Sandhi = language.Phonology.Sandhi with { FinalConsonantLoss = false } };
 
     [Fact]
     public void Realize_RootsWithoutSoundChanges_AreUnchanged()

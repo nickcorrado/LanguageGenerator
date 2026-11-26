@@ -23,7 +23,11 @@ internal static class TestData
         Dropoff = new Dropoff(0.15, 0.15),
         SyllableContact = SyllableContact.Any,
         Allophones = Generator.SelectAllophones(Vowels, consonants),
+        Sandhi = NoSandhi,
     };
+
+    //nothing happens where words meet, and clitics are stressed with their host by the rule
+    public static Sandhi NoSandhi { get; } = new([], false, CliticStress.Group);
 
     //the first form is a root meaning "dog"; any after it are plural suffixes
     public static Word Word(params Phoneme[][] morphemes) =>

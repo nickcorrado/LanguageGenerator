@@ -43,12 +43,13 @@ public static partial class Generator
         //stress comes before the changes that follow it, which depend on what it is
         var stress = stages.Draw(Settings.StressStage, SelectStress);
         var allophones = stages.Draw(Settings.AllophoneStage, _ => SelectAllophones(vowels, consonants));
+        var soundChanges = stages.Draw(Settings.SoundChangeStage, rand => SelectSoundChanges(rand, syllableRule, vowels));
         var phonology = new Phonology
         {
             Vowels = vowels,
             Consonants = consonants,
             SyllableRule = syllableRule,
-            SoundChanges = stages.Draw(Settings.SoundChangeStage, rand => SelectSoundChanges(rand, syllableRule, vowels)),
+            SoundChanges = soundChanges,
             SyllableChanges = stages.Draw(Settings.SyllableChangeStage, rand => SelectSyllableChanges(rand, syllableRule, vowels, consonants, syllableContact, stress)),
             ClusterRepair = stages.Draw(Settings.ClusterRepairStage, SelectClusterRepair),
             EpentheticVowel = SelectEpentheticVowel(vowels),
@@ -56,6 +57,7 @@ public static partial class Generator
             SyllableContact = syllableContact,
             Dropoff = syllableDropoff,
             Allophones = allophones,
+            Sandhi = stages.Draw(Settings.SandhiStage, rand => SelectSandhi(rand, soundChanges, syllableRule)),
         };
         var orthography = SelectOrthography(stages.For("orthography"), vowels, consonants, stress);
 

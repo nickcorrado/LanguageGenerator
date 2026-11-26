@@ -74,9 +74,9 @@ public record NumeralSystem(NumeralBase Base, int Limit, IReadOnlyDictionary<int
                 words[^1] = words[^1] with { Morphemes = [.. words[^1].Morphemes, marker] };
                 return words;
             case ExponentPosition.PrecedingParticle:
-                return [new Word([marker]), .. words];
+                return [Word.Marker(marker, Lean.Forward), .. words];
             case ExponentPosition.FollowingParticle:
-                return [.. words, new Word([marker])];
+                return [.. words, Word.Marker(marker, Lean.Back)];
             default:
                 throw new ArgumentOutOfRangeException(nameof(position), position, null);
         }

@@ -17,10 +17,10 @@ public record Passive(Morpheme Marker, ExponentPosition Position)
         switch (Position)
         {
             case ExponentPosition.PrecedingParticle:
-                words.Insert(at, new Word([Marker]));
+                words.Insert(at, Word.Marker(Marker, Lean.Forward));
                 return words;
             case ExponentPosition.FollowingParticle:
-                words.Insert(at + 1, new Word([Marker]));
+                words.Insert(at + 1, Word.Marker(Marker, Lean.Back));
                 return words;
         }
         var morphemes = words[at].Morphemes.ToList();

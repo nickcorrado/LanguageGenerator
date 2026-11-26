@@ -121,21 +121,21 @@ public class SyntaxTests
     }
 
     [Fact]
-    public void Interlinear_SegmentedAndGlossLines_StartEachWordInTheSameColumn()
+    public void Interlinear_SegmentedAndGlossLines_StartEachGroupInTheSameColumn()
     {
         var sentence = DogSawCat(GeneratedLanguages.Sample[13]);
 
-        var lines = sentence.Interlinear().Split(Environment.NewLine);
+        var lines = sentence.Interlinear(phonetic: false).Split(Environment.NewLine);
 
         Assert.Equal(4, lines.Length);
         Assert.Equal(sentence.Text, lines[0]);
         Assert.Equal("'the dog saw the cat'", lines[3]);
         var column = 0;
-        foreach (var word in sentence.Words)
+        foreach (var group in sentence.Groups)
         {
-            Assert.StartsWith(word.Segmented(sentence.Orthography), lines[1][column..]);
-            Assert.StartsWith(word.Gloss, lines[2][column..]);
-            column += Math.Max(word.Segmented(sentence.Orthography).Length, word.Gloss.Length) + 2;
+            Assert.StartsWith(group.Segmented(sentence.Orthography), lines[1][column..]);
+            Assert.StartsWith(group.Gloss, lines[2][column..]);
+            column += Math.Max(group.Segmented(sentence.Orthography).Length, group.Gloss.Length) + 2;
         }
     }
 }

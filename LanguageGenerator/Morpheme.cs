@@ -1,6 +1,6 @@
 ﻿namespace LanguageGenerator;
 
-//forms are underlying: the phonemes before sandhi applies at morpheme boundaries
+//forms are underlying: the phonemes before sound changes apply where morphemes meet
 
 /// <summary>
 /// A free morpheme with its own meaning, glossed by that meaning. Where stress is free, Accent is

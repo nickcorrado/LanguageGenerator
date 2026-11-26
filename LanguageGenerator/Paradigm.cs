@@ -152,10 +152,10 @@ public class Paradigm
                     morphemes.Add(exponent);
                     break;
                 case ExponentPosition.PrecedingParticle:
-                    before.Insert(0, new Word([exponent]));
+                    before.Insert(0, Word.Marker(exponent, Lean.Forward));
                     break;
                 case ExponentPosition.FollowingParticle:
-                    after.Add(new Word([exponent]));
+                    after.Add(Word.Marker(exponent, Lean.Back));
                     break;
             }
         }

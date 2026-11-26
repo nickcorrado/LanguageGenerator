@@ -154,6 +154,32 @@ public static class Settings
     public static Setting<IReadOnlyList<SoundChange>, UnstressedVowels> UnstressedVowels { get; } = ChangeKind(SyllableChangeStage, SoundChange.SyllableChangeOrder, "unstressed-vowels", SoundChange.UnstressedChanges);
     public static Setting<IReadOnlyList<SoundChange>, ContactRepair> ContactRepair { get; } = ChangeKind(SyllableChangeStage, SoundChange.SyllableChangeOrder, "contact-repair", SoundChange.ContactRepairs);
 
+    //sandhi, what happens where words meet
+
+    public static Stage<Sandhi> SandhiStage { get; } = new("sandhi", l => l.Phonology.Sandhi, null);
+    /// <summary>Whether a sound change the language has also applies where one word meets the next.</summary>
+    public static Setting<Sandhi, bool> NasalAssimilationAcrossWords { get; } = AcrossWords("nasal-assimilation", SoundChange.NasalAssimilation);
+    public static Setting<Sandhi, bool> IntervocalicVoicingAcrossWords { get; } = AcrossWords("intervocalic-voicing", SoundChange.IntervocalicVoicing);
+    public static Setting<Sandhi, bool> LenitionAcrossWords { get; } = AcrossWords("lenition", SoundChange.Lenition);
+    public static Setting<Sandhi, bool> VoicingAssimilationAcrossWords { get; } = AcrossWords("voicing-assimilation", SoundChange.VoicingAssimilation);
+    /// <summary>Whether a word's last obstruent after a vowel goes silent, unless a vowel comes next, as in French liaison.</summary>
+    public static Setting<Sandhi, bool> FinalConsonantLoss { get; } = SandhiStage.Declare("final-consonant-loss", Changes,
+        s => s.FinalConsonantLoss, (s, on) => s with { FinalConsonantLoss = on }, YesNo);
+    /// <summary>Whether a host and its clitics are stressed by the rule over all of them, or where the host alone is.</summary>
+    public static Setting<Sandhi, CliticStress> CliticStress { get; } = SandhiStage.Declare("clitic-stress", Changes,
+        s => s.CliticStress, (s, c) => s with { CliticStress = c }, Choice<CliticStress>.Of(Enum.GetValues<CliticStress>()));
+
+    /// <summary>For each change that can apply across words, the setting for whether it does.</summary>
+    public static IReadOnlyList<(SoundChange Change, Setting<IReadOnlyList<SoundChange>, bool> Has, Setting<Sandhi, bool> Across)> ChangesAcrossWords { get; } =
+    [
+        (SoundChange.NasalAssimilation, NasalAssimilation, NasalAssimilationAcrossWords), (SoundChange.IntervocalicVoicing, IntervocalicVoicing, IntervocalicVoicingAcrossWords),
+        (SoundChange.Lenition, Lenition, LenitionAcrossWords), (SoundChange.VoicingAssimilation, VoicingAssimilation, VoicingAssimilationAcrossWords),
+    ];
+
+    private static Setting<Sandhi, bool> AcrossWords(string name, SoundChange change) =>
+        SandhiStage.Declare($"{name}-across-words", Changes, s => s.AcrossWords.Contains(change),
+            (s, on) => s with { AcrossWords = SettingWrites.WithChange(s.AcrossWords, SoundChange.AcrossWordOrder, change, on) }, YesNo);
+
     private static Setting<IReadOnlyList<SoundChange>, bool> Change(Stage<IReadOnlyList<SoundChange>> stage, IReadOnlyList<SoundChange> order, string name, SoundChange change) =>
         stage.Declare(name, Changes, c => c.Contains(change), (c, on) => SettingWrites.WithChange(c, order, change, on), YesNo);
 
@@ -574,7 +600,7 @@ public static class Settings
     /// <summary>Every stage with settings, in the order they're declared.</summary>
     public static IReadOnlyList<IStage> Stages { get; } =
     [
-        VowelStage, ConsonantStage, AllophoneStage, SyllableStage, StressStage, ClusterRepairStage, SyllableContactStage, DropoffStage, SoundChangeStage, SyllableChangeStage, WordOrderStage, MorphologyStage, AlignmentStage,
+        VowelStage, ConsonantStage, AllophoneStage, SyllableStage, StressStage, ClusterRepairStage, SyllableContactStage, DropoffStage, SoundChangeStage, SyllableChangeStage, SandhiStage, WordOrderStage, MorphologyStage, AlignmentStage,
         RoleRegionStage, CaseStage, ConfigurationRegionStage, ConfigurationPlanStage, NounParadigmStage, VerbParadigmStage, PronounStage, PredicationStage, LocationalCopulaStage, AdjectiveAgreementStage,
         CommandStage, NegationStage, QuestionStage, PassiveStage, ModalStage, AspectStage, PossessionStage, GenderStage, NumeralStage, DemonstrativeStage, ArticleStage, IndefiniteStage, ConjunctionStage, SubordinationStage, ComplementationStage, RelativizationStage, ComparisonStage, DegreeStage, SimilativeStage,
     ];
@@ -583,7 +609,7 @@ public static class Settings
     public static IReadOnlyList<ISetting> All { get; } =
     [
         .. VowelStage.Settings, .. ConsonantStage.Settings, .. AllophoneStage.Settings, .. SyllableStage.Settings, .. StressStage.Settings, .. ClusterRepairStage.Settings,
-        .. SyllableContactStage.Settings, .. DropoffStage.Settings, .. SoundChangeStage.Settings, .. SyllableChangeStage.Settings, .. WordOrderStage.Settings, .. MorphologyStage.Settings, .. AlignmentStage.Settings, .. RoleRegionStage.Settings,
+        .. SyllableContactStage.Settings, .. DropoffStage.Settings, .. SoundChangeStage.Settings, .. SyllableChangeStage.Settings, .. SandhiStage.Settings, .. WordOrderStage.Settings, .. MorphologyStage.Settings, .. AlignmentStage.Settings, .. RoleRegionStage.Settings,
         .. CaseStage.Settings, .. ConfigurationRegionStage.Settings, .. ConfigurationPlanStage.Settings, .. NounParadigmStage.Settings,
         .. VerbParadigmStage.Settings, .. PronounStage.Settings, .. PredicationStage.Settings, .. LocationalCopulaStage.Settings, .. AdjectiveAgreementStage.Settings,
         .. CommandStage.Settings, .. NegationStage.Settings, .. QuestionStage.Settings, .. PassiveStage.Settings, .. ModalStage.Settings, .. AspectStage.Settings, .. PossessionStage.Settings, .. GenderStage.Settings,

@@ -88,9 +88,9 @@ public record Articles(Article? Definite, Article? Indefinite, bool DefiniteFrom
         switch (position)
         {
             case ExponentPosition.PrecedingParticle:
-                return [new Word([marker]), .. phrase];
+                return [Word.Marker(marker, Lean.Forward), .. phrase];
             case ExponentPosition.FollowingParticle:
-                return [.. phrase, new Word([marker])];
+                return [.. phrase, Word.Marker(marker, Lean.Back)];
         }
 
         List<Word> words = [.. phrase];
