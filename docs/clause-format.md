@@ -7,7 +7,7 @@ the hunter saw the wolves
   see.PST.PFV  subject:hunter.DEF  object:wolf.PL.DEF
 ```
 
-The verb comes first, then its arguments as `role:noun`. A line with no verb is a [fragment](#fragments). See [examples/scene.txt](../examples/scene.txt) for a whole file, and `ClauseFile` for the parser.
+The verb comes first, then its arguments as `role:noun`. A line with no verb is a [fragment](#fragments). What a line is read as is described in [the clause model](clause-model.md). See [examples/scene.txt](../examples/scene.txt) for a whole file, and `ClauseFile` for the parser.
 
 Words are English meanings, whatever their case, which the language coins roots for as needed.
 

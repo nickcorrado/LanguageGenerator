@@ -1,17 +1,17 @@
-# The clause model: a design
+# The clause model
 
-A proposal for what a sentence means before any language says it: the types `ClauseFile` builds and `Syntax` realizes. It replaces `Statement`, `Force`, `Directive`, `Question`, `Modalized`, `Comparative` and `Addressed` as they stand. Nothing here is built yet.
+What a sentence means before any language says it: the types `ClauseFile` builds from the [clause format](clause-format.md) and `Syntax` realizes. It replaced `Statement`, `Force`, `Directive`, `Question`, `Modalized`, `Comparative` and `Addressed` as they stood, for the reasons [Why](#why) gives. What's in the model but not built yet, as an absolute clause or a jussive, is marked so.
 
 ## Why
 
-`Statement` is the union of `Clause`, `Comparative`, `Addressed`, `Coordinated`, `Subordinated`, `Modalized` and `Question`, which sit at four different levels:
+`Statement` was the union of `Clause`, `Comparative`, `Addressed`, `Coordinated`, `Subordinated`, `Modalized` and `Question`, which sat at four different levels:
 
 - **Categories of the clause, modeled as wrappers around it.** `Modalized` wraps a statement, though a modal is a category of the clause as negation is, and negation is already a field. `Comparative` wraps a clause whose predicate, a comment promises, is always `be` with an adjective.
 - **Sentence type, split in two.** A command is `Clause.Force` being `Directive`, a question a `Question` around the clause, though the clause file glosses both as moods of the verb, `IMP` and `Q`. `Force`'s other case, `Declarative`, holds the tense, aspect and subject, so it's really finiteness, and `Directive(Number)` bakes the second person into the command.
 - **The utterance's, modeled as a statement's.** `Addressed` is a vocative, and the fragment has an addressee of its own, so one thing has two homes.
 - **Independent and dependent clauses as one type.** A subordinate clause, a complement and a relative clause are each a `Statement`, and each refuses what a dependent clause can't be.
 
-The parser's refusals show it. Each of these exists only because a type allows what the grammar doesn't:
+The parser's refusals showed it. Each of these existed only because a type allowed what the grammar doesn't:
 
 | Refusal | What it patches |
 | --- | --- |
@@ -23,7 +23,7 @@ The parser's refusals show it. Each of these exists only because a type allows w
 | Only be takes a standard: | Comparison is a wrapper, not part of be's complement |
 | A command can't take a modal | The modal is a wrapper, with no layer saying what it can go on |
 
-Some refusals are real limits of what's built so far, like "a comparison can't be negated yet", and those stay. The ones above should become things the types can't say.
+Some refusals are real limits of what's built so far, like "a comparison can't be negated yet", and those stay. The ones above are things the types can't say now; the parser still says what's wrong with a line that tries.
 
 ## Principles
 
@@ -44,7 +44,7 @@ record Event(Predicate Predicate, Argument Subject, ValueList<Oblique> Obliques,
 ```
 
 - **The subject is always there,** whatever the clause's type or rank. A directive's is 'you' unless it says otherwise, a hortative's 'we' and a jussive's anyone (see [Sentence types](#sentence-types)). A dependent clause whose subject is the one it depends on says so with an `Argument` case, `Shared`, which took the place of the `SharesSubject` flags on `ComplementClause` and `Subordinated`. Syntax says a shared subject as a pronoun where the clause is balanced and leaves it out where it's deranked, as it did before.
-- **Comparison is part of what be says of its subject:** be's `Complement` becomes `Attribute`, which gains `Compared(Adjective Adjective, Standard? Standard)`, and `Comparative` goes. A question or a modal on a comparison then needs no nesting rule.
+- **Comparison is part of what be says of its subject:** be's complement is an `Attribute`, one of which is `Compared(Adjective Adjective, Argument? Standard)`, in place of the `Comparative` wrapper there was. A question or a modal on a comparison then needs no nesting rule.
 - **Phase stays as it is:** 'begin' and 'stop' are verbs with an event complement, folded into an inceptive or cessative where the language has one, which is the language's choice.
 
 ### The state of affairs
@@ -61,7 +61,7 @@ record Aspected(Aspect Aspect, StateOfAffairs StateOfAffairs)                   
 - **Scope is nesting.** 'You must not sing' is `Modalized(OBLIG, Negated(sing))` and 'you don't have to sing' `Negated(Modalized(OBLIG, sing))`, in place of today's `Modalized.Negative` flag. 'You can't eat and drink here', read as 'not both', is one `Negated(Modalized(ABIL, ...))` over the joined pair, and 'you can't eat and you can't drink here' joins two that each have one. These are operators at the layer they scope over, as Hengeveld's are, not wrappers at the wrong level, which is what the old `Modalized` was.
 - **Operators stack.** 'Must be able to swim' is a modal over a modal, as many languages say, and 'I didn't not go' a negation over a negation, as colloquial English does. 'You should have gone' is a modal over the perfect, and 'she has had to leave' the perfect over a modal, as Russian *smog*, the perfective of *moč'* 'be able', is 'managed to'. 'Has been waiting' is the perfect over the progressive. Which stacks of aspect languages allow, as the perfective over the imperfective may be nonsense, is for the work on stacked aspects to settle; until it does, the parser refuses what Syntax can't say.
 - **A state of affairs with no aspect has the unmarked one,** imperfective, as a clause without `PFV` or `IPFV` does today.
-- **Only a situational modal goes here.** `Modality` splits into `SituationalModality` and `EpistemicModality`, so an epistemic modal, which judges a proposition, can't be put on a state of affairs at all.
+- **Only a situational modal goes here.** `Modality` has two kinds, `SituationalModality` and `EpistemicModality`, so an epistemic modal, which judges a proposition, can't be put on a state of affairs at all.
 - **A directive holds a state of affairs,** so it can have an aspect, as Russian perfective and imperfective imperatives do, and a negation, which is a prohibitive. It can have a situational modal too, as 'be able to swim by summer!' does; the roadmap has a modal on a command as something to build, so Syntax refuses one until it is, as a limit of what's built rather than of the model.
 
 ### The proposition
@@ -104,10 +104,12 @@ union Sentence(Clause, Coordinated<Sentence>, Subordinated)
 record Coordinated<T>(Conjunction Conjunction, T First, T Second)
 record Subordinated(Sentence Main, AdverbialClause Clause)
 
-union AdverbialClause(Purpose, Circumstance, Absolute)  // Thompson, Longacre and Hwang's adverbial clauses
+union AdverbialClause(Purpose, Circumstance)            // Thompson, Longacre and Hwang's adverbial clauses
 record Purpose(StateOfAffairs StateOfAffairs)          // its time is set by the main clause's
 record Circumstance(Relation Relation, Propositional Propositional)   // if, when, before, after, until, because
-record Absolute(StateOfAffairs StateOfAffairs, Taxis Taxis)   // 'the work done, we left'
+
+//not built yet
+record Absolute(StateOfAffairs StateOfAffairs, Taxis Taxis)   // 'the work done, we left', a third AdverbialClause
 enum Taxis { Anterior, Simultaneous, Posterior }
 ```
 
@@ -123,7 +125,7 @@ enum Taxis { Anterior, Simultaneous, Posterior }
 Complements and relative clauses are dependent clauses too, in the roles and noun phrases they fill:
 
 ```
-union Complement(Said, Wanted)                         // Noonan; ComplementClause goes
+union Complement(Said, Wanted)                         // Noonan; in place of ComplementClause
 record Said(Proposition Proposition)                   // what's said, known or seen
 record Wanted(StateOfAffairs StateOfAffairs)           // what's wanted, tried, begun or told to be done
 record NounPhrase(Nominal Head, Proposition? Relative) // with a Gap in the relative's role, as now
@@ -143,7 +145,7 @@ union Fragment(Standalone, Oblique, Heading, Interjection, Answer)
 record Quotation(Utterance Utterance)
 ```
 
-- **The addressee is here once,** for a sentence or a fragment, so `Addressed` goes and so does `Fragment.Addressee`. Fragment loses its record and becomes the union of its parts, since its only other field was the addressee.
+- **The addressee is here once,** for a sentence or a fragment, in place of the `Addressed` statement and the fragment's own addressee there were. A fragment is the union of its parts.
 - **A call has an addressee and nothing else,** and a message has content and maybe an addressee, so the types can't say an utterance with neither.
 - **A heading still can't have one,** which stays a check, since it's a fact about headings rather than a type that allows too much.
 - **A quotation holds an utterance,** as it does now, so it can be any of these.
@@ -176,7 +178,7 @@ The model has to take these without another redesign. For each, where it goes an
 | --- | --- | --- |
 | Questions inside clauses, as in 'did anyone see what happened?' | A third complement, `Asked(Proposition)`, an interrogative clause type with no question's force, as König and Siemund separate the two | Its marking, 'whether' as 'if' or as the yes-no particle |
 | Jussives and hortatives, as in 'let's go' | A directive with any subject, already | A generator stage after WALS 72A; the glosser stops refusing 'let's go' |
-| Absolute clauses, as in 'the work done, we left' | `Absolute`, a state of affairs and its taxis, already | Its marking, as a participle, a converb or an aspect |
+| Absolute clauses, as in 'the work done, we left' | `Absolute`, a state of affairs and its taxis, a third `AdverbialClause` | The case, and its marking, as a participle, a converb or an aspect |
 | Existentials, as in 'there is a fallen tree upstream' | A predicate of its own, existing, beside be's | The predicate, and how languages say it |
 | Insubordination, as in 'If you come back.' | A `Sentence` case holding an `AdverbialClause` with no main clause | The case; the glosser stops refusing it |
 | Experiencers, as in 'I like it' or Spanish *me gusta* | An event's participant, in a role of its own | The role, and verbs that take one |
@@ -188,34 +190,19 @@ The model has to take these without another redesign. For each, where it goes an
 | A negated comparison, or one with a modal | `Negated` and `Modalized` over it, already | Saying them |
 
 
-## What changes
+## How it's read and said
 
-- **The clause file barely does.** Its glosses already say mood on the verb (`IMP`, `Q`), modals as features, and comparison on the adjective. Its order of glosses already says scope, the innermost first, as the Mirror Principle the code cites has it: `sing.NEG.OBLIG` is 'must not sing' and `go.OBLIG.NEG` 'doesn't have to go'. That order now maps one to one onto the nesting of negation, modals and aspect, so `swim.ABIL.OBLIG`, which the parser refuses today, is 'must be able to swim', and `leave.OBLIG.PRF` 'has had to leave'; tense, mood and an epistemic modal belong to the layers above, so where they're written doesn't matter. `IMP` with a subject becomes possible (`go.IMP subject:1PL.INCL` for 'let's go'), refused until the generator can say it. `purpose` stays a subordinate line, read as a purpose clause. Joined sentences stay lines starting with `and`, `or` or `but`, and joined events are new: the conjunction heads them, glossed with what they share, which is the tense, the mood, an epistemic modal, the operators over the whole, and the subject where they share one, and each event goes in brackets, as a complement clause does:
-
-  ```
-  she turns and walks away
-    and.PST  subject:3SG.F  [turn]  [walk  goal:away]
-
-  you can't eat and drink here
-    and.ABIL.NEG  subject:2SG  [eat  location:here]  [drink  location:here]
-
-  you can't eat and you can't drink here
-    eat.ABIL.NEG  subject:2SG  location:here
-    and  drink.ABIL.NEG  subject:2SG  location:here
-  ```
-
-  An event with no subject has the shared one, and one with a subject of its own keeps it, which is how switch reference is written. Three or more events go in one head, as in `and [a] [b] [c]`. An oblique that applies to both is written in each, since sharing one would be ellipsis, which the model doesn't have. The glosser's rule is the one above: events where the conjuncts share their type and tense.
-- **The parser** builds layers instead of wrappers, and loses the refusals in the table above.
-- **Syntax** says a dependent clause as a clause stating it, at its own time where it has one and at the present where the clause it's in sets its time, which the main clause's time would say more truly. It keeps everything it decides about form, and reads it from layers: finiteness from the sentence type and the clause's place, rank from the language as now, folding of 'want' and 'begin' as now. `Rank`, `Folded` and `ClauseWords` stay. It collects what a clause's verb says from the layers around its event into a `Spine`: the tense, the aspect, the negation, and a situational modal with its own, refusing layers stacked beyond what's built, as two aspects, the perfect over a modal, or a negation over a negation. An aspect is said the same on either side of a modal until stacked aspects are built.
-- **`LanguageDescription`** builds its sample sentences in the new types.
-- **Tests** change throughout, which is when parser tests can move to comparing whole values against shared ones.
+- **The clause file** writes the layers the way its glosses already did: mood on the verb (`IMP`, `Q`), modals as features, and comparison on the adjective. The order of a verb's glosses is scope, the innermost first, as the Mirror Principle has it: `sing.NEG.OBLIG` is 'must not sing' and `go.OBLIG.NEG` 'doesn't have to go'. Tense, mood and an epistemic modal belong to the layers above, so where they're written doesn't matter, but for a negation after an epistemic modal, which denies the judgment, as `leave.PRF.DUB.NEG` is 'can't have left'. Stacked modals and aspects, as `swim.ABIL.OBLIG` for 'must be able to swim' or `leave.OBLIG.PRF` for 'has had to leave', fit the model and are refused until Syntax can say them, as is a directive to anyone but 'you'. Joined events are written as [the clause format](clause-format.md#joined-events) describes.
+- **The parser** builds the layers, nesting operators in gloss order.
+- **Syntax** says a dependent clause as a clause stating it, at its own time where it has one and at the present where the clause it's in sets its time, which the main clause's time would say more truly. It keeps everything it decides about form, and reads it from layers: finiteness from the sentence type and the clause's place, rank from the language, folding of 'want' and 'begin' into the verb. It collects what a clause's verb says from the layers around its event into a `Spine`: the tense, the aspect, the negation, and a situational modal with its own, refusing layers stacked beyond what's built, as two aspects, the perfect over a modal, or a negation over a negation. An aspect is said the same on either side of a modal until stacked aspects are built. Joined events are each said as a clause at the shared tense.
+- **Tests** build clauses through a few builders in `TestData`, as `LanguageDescription` builds its samples through its own.
 
 ## Names
 
-This design retires `Statement`, `Force`, `Directive` as it stands, `Question`, `Modalized` as it stands, `Comparative`, `Addressed` and `ComplementClause`. It reuses `Directive` for the sentence type and `Modalized` for a modal over a state of affairs, which is what each term means. Settled:
+The model retired `Statement`, `Force`, `Directive` as it stood, `Question`, `Modalized` as it stood, `Comparative`, `Addressed` and `ComplementClause`. It reuses `Directive` for the sentence type and `Modalized` for a modal over a state of affairs, which is what each term means. Settled:
 
-- **`Sentence`** is clause combining's, and the realized output becomes `Rendering`, its words `RenderedWord`.
-- **`Complement`** is a complement clause's, and be's complement becomes `Attribute`, what be says of its subject.
+- **`Sentence`** is clause combining's, and the realized output is `Rendering`, its words `RenderedWord`.
+- **`Complement`** is a complement clause's, and be's complement is `Attribute`, what be says of its subject.
 - **`AdverbialClause`** is an adverbial clause's, and `Adverbial` stays an adverb or a manner.
 - **`Event` and `Proposition`** follow Noonan and `ComplementKind`, which they replace, and **`StateOfAffairs`** follows Dik and Hengeveld.
 
