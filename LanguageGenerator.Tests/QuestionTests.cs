@@ -85,7 +85,7 @@ public class QuestionTests
             var morphemes = sentence.Words[MarkerAt(sentence)].Word.Morphemes;
 
             Assert.Equal("can", sentence.Words[MarkerAt(sentence)].Word.Root?.Meaning);
-            Assert.Equal(affix.Marker, (affix.Position == ExponentPosition.Prefix ? morphemes[0] : morphemes[^1]).Value);
+            Assert.Equal(affix.Marker.Affix, (affix.Marker.Side == Side.Before ? morphemes[0] : morphemes[^1]).Value);
         });
     }
 

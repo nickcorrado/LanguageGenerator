@@ -1100,10 +1100,7 @@ public static class Syntax
         List<Word> words = [.. clause];
         var at = words.FindLastIndex(w => w.Root is { } r && r == finite);
         at = at < 0 ? words.Count - 1 : at;
-        words[at] = words[at] with
-        {
-            Morphemes = affix.Position == ExponentPosition.Prefix ? [affix.Marker, .. words[at].Morphemes] : [.. words[at].Morphemes, affix.Marker],
-        };
+        words[at] = affix.Marker.On(words[at], Reach.Edge);
         return words;
     }
 

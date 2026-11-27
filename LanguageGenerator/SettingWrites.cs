@@ -461,15 +461,15 @@ internal static class SettingWrites
         VerbsAgree = drawn.VerbsAgree,
     };
 
-    public static PolarQuestion PolarQuestionOf(Questions questions) => questions.Polar.Value switch
+    public static PolarQuestion PolarQuestionOf(Questions questions) => questions.Polar switch
     {
         QuestionParticle { Position: QuestionParticlePosition.Initial } => PolarQuestion.InitialParticle,
         QuestionParticle { Position: QuestionParticlePosition.Final } => PolarQuestion.FinalParticle,
         QuestionParticle => PolarQuestion.SecondParticle,
-        QuestionAffix { Position: ExponentPosition.Prefix } => PolarQuestion.Prefix,
+        QuestionAffix { Marker.Side: Side.Before } => PolarQuestion.Prefix,
         QuestionAffix => PolarQuestion.Suffix,
         QuestionInversion => PolarQuestion.Inversion,
-        _ => PolarQuestion.Intonation,
+        QuestionIntonation => PolarQuestion.Intonation,
     };
 
     public static Questions WithPolarQuestion(Questions drawn, PolarQuestion polar)
@@ -477,20 +477,21 @@ internal static class SettingWrites
         IReadOnlyList<Phoneme>? form = drawn.Polar.Value switch
         {
             QuestionParticle p => p.Marker.Form,
-            QuestionAffix a => a.Marker.Form,
+            QuestionAffix a => a.Marker.Affix.Form,
             _ => null,
         };
-        var accent = drawn.Polar.Value is QuestionAffix { Marker: var marker } ? marker.Accent : AffixAccent.None;
+        var accent = drawn.Polar.Value is QuestionAffix { Marker.Affix: var marker } ? marker.Accent : AffixAccent.None;
         IReadOnlyList<Phoneme> Form() => form ?? throw NoForm($"{polar} for polar questions");
         PolarQuestionMarking marking = polar switch
         {
             PolarQuestion.InitialParticle => new QuestionParticle(new Particle(Form(), [Mood.Interrogative]), QuestionParticlePosition.Initial),
             PolarQuestion.FinalParticle => new QuestionParticle(new Particle(Form(), [Mood.Interrogative]), QuestionParticlePosition.Final),
             PolarQuestion.SecondParticle => new QuestionParticle(new Particle(Form(), [Mood.Interrogative]), QuestionParticlePosition.Second),
-            PolarQuestion.Prefix => new QuestionAffix(new Affix(Form(), [Mood.Interrogative], accent), ExponentPosition.Prefix),
-            PolarQuestion.Suffix => new QuestionAffix(new Affix(Form(), [Mood.Interrogative], accent), ExponentPosition.Suffix),
+            PolarQuestion.Prefix => new QuestionAffix(new Bound(new Affix(Form(), [Mood.Interrogative], accent), Side.Before)),
+            PolarQuestion.Suffix => new QuestionAffix(new Bound(new Affix(Form(), [Mood.Interrogative], accent), Side.After)),
             PolarQuestion.Inversion => new QuestionInversion(),
-            _ => new QuestionIntonation(),
+            PolarQuestion.Intonation => new QuestionIntonation(),
+            _ => throw new ArgumentOutOfRangeException(nameof(polar), polar, null),
         };
         return drawn with { Polar = marking };
     }

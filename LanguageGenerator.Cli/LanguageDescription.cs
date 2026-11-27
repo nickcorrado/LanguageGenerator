@@ -339,7 +339,7 @@ public static class LanguageDescription
                 QuestionParticlePosition.Final => "last",
                 _ => "after the first word",
             }}",
-            QuestionAffix a => $"{Spelled(a.Position, a.Marker)} on the verb",
+            QuestionAffix a => $"{OnVerb(a.Marker)} on the verb",
             QuestionInversion => "the verb first",
             QuestionIntonation => "intonation alone",
         };
