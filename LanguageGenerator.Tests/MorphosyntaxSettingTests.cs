@@ -94,9 +94,9 @@ public class MorphosyntaxSettingTests
 
         var written = Settings.Genders.Write(drawn, [NounGenders.MasculineFeminineNeuter]);
 
-        Assert.Equal([Gender.Masculine, Gender.Feminine, Gender.Neuter], written.Markers!.Keys);
-        Assert.Empty(written.Markers[Gender.Masculine].Form);
-        Assert.All([Gender.Feminine, Gender.Neuter], g => Assert.Equal(drawn.Markers![Gender.Feminine].Form, written.Markers[g].Form));
+        Assert.Equal([Gender.Masculine, Gender.Feminine, Gender.Neuter], written.Markers!.Affixes.Keys);
+        Assert.Empty(written.Markers.Affixes[Gender.Masculine].Form);
+        Assert.All([Gender.Feminine, Gender.Neuter], g => Assert.Equal(drawn.Markers!.Affixes[Gender.Feminine].Form, written.Markers.Affixes[g].Form));
     }
 
     [Fact]

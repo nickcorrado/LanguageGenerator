@@ -433,21 +433,19 @@ internal static class SettingWrites
             Genders = genders,
             Assignment = drawn.Assignment,
             Markers = null,
-            MarkerPosition = drawn.MarkerPosition,
             VerbsAgree = genders != NounGenders.None && drawn.VerbsAgree,
         };
         if (drawn.Markers is null || genders == NounGenders.None)
         {
             return system;
         }
-        List<Affix> kept = [.. drawn.Values.Skip(1).Select(g => drawn.Markers[g])];
+        List<Affix> kept = [.. drawn.Values.Skip(1).Select(g => drawn.Markers.Affixes[g])];
         return new GenderSystem
         {
             Genders = genders,
             Assignment = system.Assignment,
-            Markers = system.Values.Select((gender, i) => (gender, i)).ToDictionary(g => g.gender,
-                g => g.i == 0 ? new Affix([], [g.gender], AffixAccent.None) : kept[(g.i - 1) % kept.Count] with { Grammemes = [g.gender] }),
-            MarkerPosition = system.MarkerPosition,
+            Markers = new GenderMarkers(system.Values.Select((gender, i) => (gender, i)).ToDictionary(g => g.gender,
+                g => g.i == 0 ? new Affix([], [g.gender], AffixAccent.None) : kept[(g.i - 1) % kept.Count] with { Grammemes = [g.gender] }), drawn.Markers.Side),
             VerbsAgree = system.VerbsAgree,
         };
     }
@@ -457,7 +455,6 @@ internal static class SettingWrites
         Genders = drawn.Genders,
         Assignment = assignment,
         Markers = drawn.Markers,
-        MarkerPosition = drawn.MarkerPosition,
         VerbsAgree = drawn.VerbsAgree,
     };
 

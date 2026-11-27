@@ -37,6 +37,9 @@ public enum SemanticClass
     Thing,
 }
 
+/// <summary>The affix each gender puts on a word that agrees with a noun, all on one side of it.</summary>
+public record GenderMarkers(IReadOnlyDictionary<Gender, Affix> Affixes, Side Side);
+
 /// <summary>
 /// A language's noun genders: which there are, how a noun gets one, and how words agree with it.
 /// </summary>
@@ -45,11 +48,10 @@ public class GenderSystem
     public required NounGenders Genders { get; init; }
     public required GenderAssignment Assignment { get; init; }
     /// <summary>
-    /// The affix each gender puts on a word that agrees with a noun, all on one side of it. Null in
-    /// a language without gender, or an isolating one, with no affixes to agree with.
+    /// The markers words agree with. Null in a language without gender, or an isolating one, with no
+    /// affixes to agree with.
     /// </summary>
-    public required IReadOnlyDictionary<Gender, Affix>? Markers { get; init; }
-    public required ExponentPosition MarkerPosition { get; init; }
+    public required GenderMarkers? Markers { get; init; }
     /// <summary>
     /// Whether a verb agrees with the gender of its subject, as in Russian on spal 'he slept' and
     /// ona spala 'she slept'.
@@ -107,14 +109,10 @@ public class GenderSystem
      */
     public Word Agree(Word word, Gender gender, bool nextToRoot)
     {
-        if (Markers is null || !Markers.TryGetValue(gender, out var marker) || marker.Form.Count == 0)
+        if (Markers is null || !Markers.Affixes.TryGetValue(gender, out var marker) || marker.Form.Count == 0)
         {
             return word;
         }
-        var morphemes = word.Morphemes.ToList();
-        var root = morphemes.FindIndex(m => m.Value is Root);
-        var at = MarkerPosition == ExponentPosition.Prefix ? (nextToRoot ? root : 0) : (nextToRoot ? root + 1 : morphemes.Count);
-        morphemes.Insert(at, marker);
-        return word with { Morphemes = morphemes };
+        return new Bound(marker, Markers.Side).On(word, nextToRoot ? Reach.Root : Reach.Edge);
     }
 }

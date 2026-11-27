@@ -28,9 +28,10 @@ public static partial class Generator
     {
         var kind = Sampling.Categorical(rand, NounGenderCounts);
         var assignment = Sampling.Categorical(rand, GenderAssignmentCounts);
-        var position = rand.NextDouble() < PrefixChance(morphology) ? ExponentPosition.Prefix : ExponentPosition.Suffix;
+        //the side is drawn before it's known whether there are markers, so that the draws after it stay the same
+        var side = rand.NextDouble() < PrefixChance(morphology) ? Side.Before : Side.After;
         var verbsAgree = rand.NextDouble() < 0.5 && paradigms.Verbs.Categories.Has<Person>();
-        var system = new GenderSystem { Genders = kind, Assignment = assignment, Markers = null, MarkerPosition = position, VerbsAgree = false };
+        var system = new GenderSystem { Genders = kind, Assignment = assignment, Markers = null, VerbsAgree = false };
         if (kind == NounGenders.None || morphology.Fusion == Fusion.Isolating)
         {
             return system;
@@ -42,6 +43,6 @@ public static partial class Generator
         {
             markers[gender] = CoinAffix(rand, phonology, i == 0 ? [] : forms.Draw(() => VowelOrSyllable(rand, phonology)), [gender]);
         }
-        return new GenderSystem { Genders = kind, Assignment = assignment, Markers = markers, MarkerPosition = position, VerbsAgree = verbsAgree };
+        return new GenderSystem { Genders = kind, Assignment = assignment, Markers = new GenderMarkers(markers, side), VerbsAgree = verbsAgree };
     }
 }

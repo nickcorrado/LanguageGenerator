@@ -200,7 +200,7 @@ public static class LanguageDescription
         if (genders.Genders != NounGenders.None)
         {
             var markerSpellings = genders.Markers is null ? "no markers to agree with"
-                : string.Join(", ", genders.Values.Select(g => $"{g.Gloss} {(genders.Markers[g].Form.Count == 0 ? "∅" : ((Morpheme)genders.Markers[g]).Spell(orthography))}"));
+                : string.Join(", ", genders.Values.Select(g => $"{g.Gloss} {(genders.Markers.Affixes[g].Form.Count == 0 ? "∅" : ((Morpheme)genders.Markers.Affixes[g]).Spell(orthography))}"));
             var by = genders.Assignment == GenderAssignment.Semantic ? "by meaning" : "by meaning and form";
             output.WriteLine($"Genders: {string.Join("/", genders.Values.Select(g => g.Gloss))}, {by} ({markerSpellings}){(genders.VerbsAgree ? "; verbs agree" : "")}");
         }

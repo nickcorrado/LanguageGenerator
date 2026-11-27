@@ -6,7 +6,7 @@ public class GenderTests
     private static Lexeme Noun(string meaning, params Phoneme[] form) => new(new Root(form, meaning, null), PartOfSpeech.Noun);
 
     private static GenderSystem System(NounGenders genders, GenderAssignment assignment) =>
-        new() { Genders = genders, Assignment = assignment, Markers = null, MarkerPosition = ExponentPosition.Suffix, VerbsAgree = false };
+        new() { Genders = genders, Assignment = assignment, Markers = null, VerbsAgree = false };
 
     //which gender markers a word has, by gloss
     private static List<string> GenderGlosses(Word word) =>
@@ -76,7 +76,7 @@ public class GenderTests
     {
         Assert.All(GeneratedLanguages.Sample.Where(l => l.Genders.Markers is not null), l =>
         {
-            var markers = l.Genders.Values.Select(g => l.Genders.Markers![g]).ToList();
+            var markers = l.Genders.Values.Select(g => l.Genders.Markers!.Affixes[g]).ToList();
             Assert.Empty(markers[0].Form);
             Assert.All(markers.Skip(1), m => Assert.NotEmpty(m.Form));
             Assert.Equal(markers.Count, markers.Select(m => string.Join(" ", m.Form.Select(p => p.IpaSymbol))).Distinct().Count());
@@ -101,7 +101,7 @@ public class GenderTests
                 var sentence = Syntax.Realize(language, new Clause(new Doing("sleep", null), new Declarative(Tense.Present, Aspect.Imperfective, new NounPhrase(new Noun(noun, Number.Singular, [new("big", false)], null, null, null, null, null), null)), false, [], []), "x");
                 var big = sentence.Words.Single(w => w.Word.Root?.Meaning == "big").Word;
 
-                Assert.Equal(language.Genders.Markers![gender].Form.Count == 0 ? [] : [gender.Gloss], GenderGlosses(big));
+                Assert.Equal(language.Genders.Markers!.Affixes[gender].Form.Count == 0 ? [] : [gender.Gloss], GenderGlosses(big));
             }
         }
     }
@@ -133,7 +133,7 @@ public class GenderTests
                 var sentence = Syntax.Realize(l, new Clause(new Doing("sleep", null), new Declarative(Tense.Present, Aspect.Imperfective, subject), false, [], []), "x");
                 var sleep = sentence.Words.Single(w => w.Word.Root?.Meaning == "sleep").Word;
 
-                Assert.Equal(l.Genders.Markers![gender].Form.Count == 0 ? [] : [gender.Gloss], GenderGlosses(sleep));
+                Assert.Equal(l.Genders.Markers!.Affixes[gender].Form.Count == 0 ? [] : [gender.Gloss], GenderGlosses(sleep));
             }
         });
     }
