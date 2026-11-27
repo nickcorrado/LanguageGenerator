@@ -6,7 +6,7 @@ namespace LanguageGenerator.Tests;
 
 public class AspectTests
 {
-    private static Statement Parsed(string gloss) => Stated(Assert.Single(ClauseFile.Parse($"x\n  {gloss}")).Utterance);
+    private static T Parsed<T>(string gloss) => Said<T>(Assert.Single(ClauseFile.Parse($"x\n  {gloss}")).Utterance);
 
     private static readonly NounPhrase Dog = BareNoun("dog", Number.Singular);
     private static readonly NounPhrase Fish = BareNoun("fish", Number.Singular);
@@ -183,7 +183,7 @@ public class AspectTests
     [InlineData("mend.PST.PROG  subject:3SG.F  object:net.NDF", "Progressive")]
     [InlineData("walk.PST.HAB  subject:3SG.F", "Habitual")]
     public void Parse_PerfectProgressiveAndHabitual_AreAspects(string gloss, string? aspect) =>
-        Assert.Equal(aspect is null ? Aspect.Imperfective : ClauseFile.ValuesOf<Aspect>().Single(a => a.Name == aspect), ForceOf<Declarative>(Parsed(gloss)).Aspect);
+        Assert.Equal(aspect is null ? Aspect.Imperfective : ClauseFile.ValuesOf<Aspect>().Single(a => a.Name == aspect), ForceOf<Declarative>(Parsed<Clause>(gloss)).Aspect);
 
     [Theory]
     [InlineData("go.PRF.OBLIG  subject:3SG.M", "OBLIG can't take PRF")]

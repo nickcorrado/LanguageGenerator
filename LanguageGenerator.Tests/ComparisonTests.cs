@@ -13,7 +13,7 @@ public class ComparisonTests
     //to the shared sample's lexicons
     private static Sentence Bigger(Language l) => Syntax.Realize(l, new Comparative(DogIsBig, Cats), "x");
 
-    private static Statement Parsed(string gloss) => Stated(Assert.Single(ClauseFile.Parse($"x\n  {gloss}")).Utterance);
+    private static T Parsed<T>(string gloss) => Said<T>(Assert.Single(ClauseFile.Parse($"x\n  {gloss}")).Utterance);
 
     [Fact]
     public void Generate_Particles_GoOnTheirAdpositionsSide() =>
@@ -23,7 +23,7 @@ public class ComparisonTests
     [Fact]
     public void Parse_Standard_MakesAComparative()
     {
-        var comparative = Assert.IsType<Comparative>(Parsed("be  subject:marta  adjective:tall.CMPR  standard:man.PL.DEF").Value);
+        var comparative = Parsed<Comparative>("be  subject:marta  adjective:tall.CMPR  standard:man.PL.DEF");
 
         Assert.Equal(new Adjective("tall", false), PredicateOf<Being>(comparative.Clause).Complement.Value);
         Assert.Equal(new NounPhrase(new Noun("man", Number.Plural, [], null, null, null, Definiteness.Definite, null), null), comparative.Standard.Value);
@@ -32,7 +32,7 @@ public class ComparisonTests
     [Fact]
     public void Parse_StandardWithAnAddressee_IsAnAddressedComparative()
     {
-        var addressed = Assert.IsType<Addressed>(Parsed("be  subject:2SG  adjective:tall.CMPR  standard:1SG  addressee:marta").Value);
+        var addressed = Parsed<Addressed>("be  subject:2SG  adjective:tall.CMPR  standard:1SG  addressee:marta");
 
         Assert.Equal(new Pronoun(Person.First, Number.Singular), Assert.IsType<Comparative>(addressed.Statement.Value).Standard.Value);
     }
@@ -255,7 +255,7 @@ public class ComparisonTests
     [Fact]
     public void Parse_Comparative_WithoutAStandard_HasNone()
     {
-        var comparative = Assert.IsType<Comparative>(Parsed("be  subject:marta  adjective:tall.CMPR").Value);
+        var comparative = Parsed<Comparative>("be  subject:marta  adjective:tall.CMPR");
 
         Assert.Equal(new Adjective("tall", false), PredicateOf<Being>(comparative.Clause).Complement.Value);
         Assert.Null(comparative.Standard);
@@ -264,7 +264,7 @@ public class ComparisonTests
     [Fact]
     public void Parse_Like_IsASimile()
     {
-        var clause = Assert.IsType<Clause>(Parsed("shine  subject:3SG.N  like:water").Value);
+        var clause = Parsed<Clause>("shine  subject:3SG.N  like:water");
 
         Assert.Equal(new Oblique(Role.Similative, BareNoun("water", Number.Singular), Configuration.At), Assert.Single(clause.Obliques));
     }

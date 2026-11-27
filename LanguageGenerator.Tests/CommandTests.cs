@@ -172,16 +172,16 @@ public class CommandTests
         }
     }
 
-    private static Statement Parsed(string gloss) => Stated(Assert.Single(ClauseFile.Parse($"x\n  {gloss}")).Utterance);
+    private static T Parsed<T>(string gloss) => Said<T>(Assert.Single(ClauseFile.Parse($"x\n  {gloss}")).Utterance);
 
     [Fact]
     public void Parse_CommandWithBe_SaysWhatOrWhereToBe()
     {
-        Assert.Equal(new Clause(new Being(new Adjective("careful", false)), new Directive(Number.Singular), false, [], []), Parsed("be.IMP  adjective:careful").Value);
+        Assert.Equal(new Clause(new Being(new Adjective("careful", false)), new Directive(Number.Singular), false, [], []), Parsed<Clause>("be.IMP  adjective:careful"));
         Assert.Equal(new Clause(new Being(new NounPhrase(new Noun("fool", Number.Singular, [], null, null, null, Definiteness.Indefinite, null), null)), new Directive(Number.Plural), true, [], []),
-            Parsed("be.IMP.NEG  subject:2PL  noun:fool.NDF").Value);
+            Parsed<Clause>("be.IMP.NEG  subject:2PL  noun:fool.NDF"));
         Assert.Equal(new Clause(new Being(new Oblique(Role.Location, new NounPhrase(new Noun("house", Number.Singular, [], null, null, null, Definiteness.Definite, null), null), Configuration.At)), new Directive(Number.Singular), false, [], []),
-            Parsed("be.IMP  location:house.DEF").Value);
+            Parsed<Clause>("be.IMP  location:house.DEF"));
     }
 
     [Fact]

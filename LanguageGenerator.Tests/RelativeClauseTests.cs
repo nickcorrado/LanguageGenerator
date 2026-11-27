@@ -8,16 +8,16 @@ namespace LanguageGenerator.Tests;
 //phrase says one
 public class RelativeClauseTests
 {
-    private static Statement Parsed(string text) => Stated(Assert.Single(ClauseFile.Parse(text)).Utterance);
+    private static T Parsed<T>(string text) => Said<T>(Assert.Single(ClauseFile.Parse(text)).Utterance);
 
     private static ClauseFormatException Error(string text) => Assert.Throws<ClauseFormatException>(() => ClauseFile.Parse(text));
 
-    private static NounPhrase ObjectOf(Statement statement) => Assert.IsType<NounPhrase>(PredicateOf<Doing>(statement).Object.GetValueOrDefault().Value);
+    private static NounPhrase ObjectOf(Clause clause) => Assert.IsType<NounPhrase>(PredicateOf<Doing>(clause).Object.GetValueOrDefault().Value);
 
     [Fact]
     public void Parse_RelativeInANounPhrase_IsItsClauseWithTheGapInItsRole()
     {
-        var net = ObjectOf(Parsed("x\n  lift  subject:3SG.F  object:(net.DEF relative:[mend.PST  subject:3SG.F  object:_])"));
+        var net = ObjectOf(Parsed<Clause>("x\n  lift  subject:3SG.F  object:(net.DEF relative:[mend.PST  subject:3SG.F  object:_])"));
 
         var relative = Assert.IsType<Clause>(net.Relative?.Value);
         Assert.Equal("mend", PredicateOf<Doing>(relative).Verb);
@@ -28,7 +28,7 @@ public class RelativeClauseTests
     [Fact]
     public void Parse_GapInAnOblique_KeepsItsRoleAndConfiguration()
     {
-        var clearing = Assert.IsType<NounPhrase>(Assert.IsType<Clause>(Parsed("x\n  stand  subject:circle.DEF  location.in:(clearing.NDF relative:[grow  subject:nothing  location.in:_])").Value).Obliques[0].Argument.Value);
+        var clearing = Assert.IsType<NounPhrase>(Parsed<Clause>("x\n  stand  subject:circle.DEF  location.in:(clearing.NDF relative:[grow  subject:nothing  location.in:_])").Obliques[0].Argument.Value);
 
         var oblique = Assert.Single(Assert.IsType<Clause>(clearing.Relative?.Value).Obliques);
         Assert.Equal((Role.Location, Configuration.In), (oblique.Role, oblique.Configuration));
@@ -38,7 +38,7 @@ public class RelativeClauseTests
     [Fact]
     public void Parse_RelativeWithAnEventSharingItsGappedSubject_IsOneGap()
     {
-        var man = ObjectOf(Parsed("x\n  see.PST  subject:1SG  object:(man.DEF relative:[want  subject:_  object:[to  go  goal:home]])"));
+        var man = ObjectOf(Parsed<Clause>("x\n  see.PST  subject:1SG  object:(man.DEF relative:[want  subject:_  object:[to  go  goal:home]])"));
 
         Assert.IsType<Gap>(Assert.IsType<Clause>(man.Relative?.Value).Force.Subject.Value);
     }

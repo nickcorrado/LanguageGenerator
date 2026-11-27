@@ -12,7 +12,7 @@ public class SpatialTests
     private static Sentence Walk(Language language, Role role, Configuration configuration) =>
         Syntax.Realize(language, new Clause(new Doing("walk", null), new Declarative(Tense.Past, Aspect.Perfective, BareNoun("dog", Number.Singular)), false, [new(role, Stone, configuration)], []), "x");
 
-    private static Statement Parsed(string gloss) => Stated(Assert.Single(ClauseFile.Parse($"x\n  {gloss}")).Utterance);
+    private static T Parsed<T>(string gloss) => Said<T>(Assert.Single(ClauseFile.Parse($"x\n  {gloss}")).Utterance);
 
     private static ClauseFormatException Error(string gloss) => Assert.Throws<ClauseFormatException>(() => ClauseFile.Parse($"x\n  {gloss}"));
 
@@ -26,7 +26,7 @@ public class SpatialTests
     [InlineData("route", Role.Route, Configuration.At)]
     public void Parse_SpatialRole_TakesItsConfiguration(string written, Role role, Configuration configuration)
     {
-        var clause = Assert.IsType<Clause>(Parsed($"walk.PST  subject:3SG.M  {written}:river.DEF").Value);
+        var clause = Parsed<Clause>($"walk.PST  subject:3SG.M  {written}:river.DEF");
 
         Assert.Equal(new Oblique(role, new NounPhrase(new Noun("river", Number.Singular, [], null, null, null, Definiteness.Definite, null), null), configuration), Assert.Single(clause.Obliques));
     }
@@ -34,7 +34,7 @@ public class SpatialTests
     [Fact]
     public void Parse_BeWithAConfiguration_SaysWhereItsSubjectIs()
     {
-        var clause = PredicateOf<Being>(Parsed("be  subject:key.DEF  location.under:table.DEF"));
+        var clause = PredicateOf<Being>(Parsed<Clause>("be  subject:key.DEF  location.under:table.DEF"));
 
         Assert.Equal(new Oblique(Role.Location, new NounPhrase(new Noun("table", Number.Singular, [], null, null, null, Definiteness.Definite, null), null), Configuration.Under), clause.Complement.Value);
     }

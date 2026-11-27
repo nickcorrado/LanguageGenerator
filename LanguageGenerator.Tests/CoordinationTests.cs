@@ -6,16 +6,16 @@ namespace LanguageGenerator.Tests;
 
 public class CoordinationTests
 {
-    private static Statement Parsed(string gloss) => Stated(Assert.Single(ClauseFile.Parse($"x\n  {gloss}")).Utterance);
+    private static T Parsed<T>(string gloss) => Said<T>(Assert.Single(ClauseFile.Parse($"x\n  {gloss}")).Utterance);
 
     private static ClauseFormatException Error(string text) => Assert.Throws<ClauseFormatException>(() => ClauseFile.Parse(text));
 
-    private static Argument SubjectOf(Statement statement) => ForceOf<Declarative>(statement).Subject;
+    private static Argument SubjectOf(Clause clause) => ForceOf<Declarative>(clause).Subject;
 
     [Fact]
     public void Parse_NounsJoined_AreACoordinationInOrder()
     {
-        var subject = Assert.IsType<Coordination>(SubjectOf(Parsed("sleep  subject:(and dog.DEF cat.DEF)")).Value);
+        var subject = Assert.IsType<Coordination>(SubjectOf(Parsed<Clause>("sleep  subject:(and dog.DEF cat.DEF)")).Value);
 
         Assert.Equal(Conjunction.And, subject.Conjunction);
         Assert.Equal(["dog", "cat"], subject.Items.Select(i => NounOf(i).Meaning));
@@ -24,7 +24,7 @@ public class CoordinationTests
     [Fact]
     public void Parse_Conjuncts_CanBeAnythingARoleTakes()
     {
-        var @object = PredicateOf<Doing>(Parsed("carry  subject:3SG.F  object:(or (purse.NDF empty) 1SG (and dog cat))")).Object!.Value;
+        var @object = PredicateOf<Doing>(Parsed<Clause>("carry  subject:3SG.F  object:(or (purse.NDF empty) 1SG (and dog cat))")).Object!.Value;
         var items = Assert.IsType<Coordination>(@object.Value).Items;
 
         Assert.Equal(["empty"], NounOf(items[0]).Adjectives.Select(a => a.Meaning));
@@ -35,7 +35,7 @@ public class CoordinationTests
     [Fact]
     public void Parse_AdjectivesJoined_AreSaidTogether()
     {
-        var clause = PredicateOf<Being>(Parsed("be  subject:inn.DEF  adjective:(and warm crowded)"));
+        var clause = PredicateOf<Being>(Parsed<Clause>("be  subject:inn.DEF  adjective:(and warm crowded)"));
 
         Assert.Equal(new AdjectiveCoordination(Conjunction.And, [new("warm", false), new("crowded", false)]), clause.Complement.Value);
     }
@@ -50,11 +50,11 @@ public class CoordinationTests
               but  sleep  subject:3SG.F
             """));
 
-        var outer = Assert.IsType<Coordinated>(Stated(entry.Utterance).Value);
+        var outer = Said<Coordinated>(entry.Utterance);
         Assert.Equal(Conjunction.But, outer.Conjunction);
         var inner = Assert.IsType<Coordinated>(outer.First.Value);
-        Assert.Equal(("sit", "argue"), (PredicateOf<Doing>(inner.First).Verb, PredicateOf<Doing>(inner.Second).Verb));
-        Assert.Equal("sleep", PredicateOf<Doing>(outer.Second).Verb);
+        Assert.Equal(("sit", "argue"), (PredicateOf<Doing>(Said<Clause>(inner.First)).Verb, PredicateOf<Doing>(Said<Clause>(inner.Second)).Verb));
+        Assert.Equal("sleep", PredicateOf<Doing>(Said<Clause>(outer.Second)).Verb);
     }
 
     [Fact]
@@ -63,7 +63,7 @@ public class CoordinationTests
         var entries = ClauseFile.Parse("one\n  sit  subject:dog\n  and  sleep  subject:dog\ntwo\n  sleep  subject:cat");
 
         Assert.Equal(2, entries.Count);
-        Assert.IsType<Clause>(Stated(entries[1].Utterance).Value);
+        Said<Clause>(entries[1].Utterance);
     }
 
     [Theory]

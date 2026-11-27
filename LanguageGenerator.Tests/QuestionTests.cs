@@ -6,7 +6,7 @@ namespace LanguageGenerator.Tests;
 
 public class QuestionTests
 {
-    private static Statement Parsed(string gloss) => Stated(Assert.Single(ClauseFile.Parse($"x\n  {gloss}")).Utterance);
+    private static T Parsed<T>(string gloss) => Said<T>(Assert.Single(ClauseFile.Parse($"x\n  {gloss}")).Utterance);
 
     //only the basic meanings, since coining new ones would add to the shared sample's lexicons
     private static readonly NounPhrase Dog = BareNoun("dog", Number.Singular);
@@ -229,7 +229,7 @@ public class QuestionTests
     [InlineData("fix.PST  subject:2SG  object:3SG.N  how", null, QuestionAdverb.How)]
     public void Parse_Question_AsksWhatItsWordsSay(string gloss, Interrogative? word, QuestionAdverb? adverb)
     {
-        var question = Assert.IsType<Question>(Parsed(gloss).Value);
+        var question = Parsed<Question>(gloss);
         var clause = Assert.IsType<Clause>(question.Statement.Value);
         Argument[] arguments = [clause.Force.Subject, .. PredicateOf<Doing>(clause).Object.HasValue ? [PredicateOf<Doing>(clause).Object.GetValueOrDefault()] : Array.Empty<Argument>(), .. clause.Obliques.Select(o => o.Argument)];
 
@@ -240,7 +240,7 @@ public class QuestionTests
     [Fact]
     public void Parse_QuestionWithAModalAndAnAddressee_NestsThemInThatOrder()
     {
-        var addressed = Assert.IsType<Addressed>(Parsed("swim.ABIL.Q  subject:2SG  addressee:marta").Value);
+        var addressed = Parsed<Addressed>("swim.ABIL.Q  subject:2SG  addressee:marta");
 
         Assert.IsType<Modalized>(Assert.IsType<Question>(addressed.Statement.Value).Statement.Value);
     }

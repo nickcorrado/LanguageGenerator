@@ -8,21 +8,21 @@ namespace LanguageGenerator.Tests;
 //how a clause says them
 public class ComplementationTests
 {
-    private static Statement Parsed(string text) => Stated(Assert.Single(ClauseFile.Parse(text)).Utterance);
+    private static T Parsed<T>(string text) => Said<T>(Assert.Single(ClauseFile.Parse(text)).Utterance);
 
     private static ClauseFormatException Error(string text) => Assert.Throws<ClauseFormatException>(() => ClauseFile.Parse(text));
 
-    private static T ObjectOf<T>(Statement statement) => Assert.IsType<T>(PredicateOf<Doing>(statement).Object.GetValueOrDefault().Value);
+    private static T ObjectOf<T>(Clause clause) => Assert.IsType<T>(PredicateOf<Doing>(clause).Object.GetValueOrDefault().Value);
 
     [Fact]
     public void Parse_ThatInBrackets_IsAPropositionWithItsOwnSubject()
     {
-        var complement = ObjectOf<ComplementClause>(Parsed("x\n  tell.PST  subject:1SG  recipient:2SG  object:[that  be.PST  subject:2SG  adjective:late]"));
+        var complement = ObjectOf<ComplementClause>(Parsed<Clause>("x\n  tell.PST  subject:1SG  recipient:2SG  object:[that  be.PST  subject:2SG  adjective:late]"));
 
         Assert.Equal(ComplementKind.Proposition, complement.Kind);
         Assert.False(complement.SharesSubject);
-        PredicateOf<Being>(complement.Clause);
-        var clause = ForceOf<Declarative>(complement.Clause);
+        PredicateOf<Being>(Said<Clause>(complement.Clause));
+        var clause = ForceOf<Declarative>(Said<Clause>(complement.Clause));
         Assert.Equal(Tense.Past, clause.Tense);
         Assert.Equal(new Pronoun(Person.Second, Number.Singular), clause.Subject.Value);
     }
@@ -30,47 +30,47 @@ public class ComplementationTests
     [Fact]
     public void Parse_ToWithoutASubject_IsAnEventSharingTheMainClauses()
     {
-        var complement = ObjectOf<ComplementClause>(Parsed("x\n  want  subject:3PL  object:[to  go  goal:home]"));
+        var complement = ObjectOf<ComplementClause>(Parsed<Clause>("x\n  want  subject:3PL  object:[to  go  goal:home]"));
 
         Assert.Equal(ComplementKind.Event, complement.Kind);
         Assert.True(complement.SharesSubject);
-        Assert.Equal(new Pronoun(Person.Third, Number.Plural), ForceOf<Declarative>(complement.Clause).Subject.Value);
+        Assert.Equal(new Pronoun(Person.Third, Number.Plural), ForceOf<Declarative>(Said<Clause>(complement.Clause)).Subject.Value);
     }
 
     [Fact]
     public void Parse_ToInACommand_SharesYou()
     {
-        var command = Parsed("x\n  try.IMP  subject:2PL  object:[to  sleep]");
+        var command = Parsed<Clause>("x\n  try.IMP  subject:2PL  object:[to  sleep]");
         ForceOf<Directive>(command);
         var complement = Assert.IsType<ComplementClause>(PredicateOf<Doing>(command).Object.GetValueOrDefault().Value);
 
-        Assert.Equal(new Pronoun(Person.Second, Number.Plural), ForceOf<Declarative>(complement.Clause).Subject.Value);
+        Assert.Equal(new Pronoun(Person.Second, Number.Plural), ForceOf<Declarative>(Said<Clause>(complement.Clause)).Subject.Value);
     }
 
     [Fact]
     public void Parse_Quote_KeepsWhatWasSaidAsItWas()
     {
-        var quotation = ObjectOf<Quotation>(Parsed("x\n  say  subject:3SG.F  quote:[go.IMP  goal:inn.DEF  addressee:marta]"));
+        var quotation = ObjectOf<Quotation>(Parsed<Clause>("x\n  say  subject:3SG.F  quote:[go.IMP  goal:inn.DEF  addressee:marta]"));
 
-        var addressed = Assert.IsType<Addressed>(Stated(quotation.Utterance).Value);
-        ForceOf<Directive>(addressed.Statement);
+        var addressed = Said<Addressed>(quotation.Utterance);
+        ForceOf<Directive>(Said<Clause>(addressed.Statement));
     }
 
     [Fact]
     public void Parse_ClauseInsideAClauseInsideAClause_Nests()
     {
-        var outer = ObjectOf<ComplementClause>(Parsed("x\n  say  subject:3SG.F  object:[that  know  subject:1SG  object:[that  come.PST  subject:(man.DEF old)]]"));
-        var inner = ObjectOf<ComplementClause>(outer.Clause);
+        var outer = ObjectOf<ComplementClause>(Parsed<Clause>("x\n  say  subject:3SG.F  object:[that  know  subject:1SG  object:[that  come.PST  subject:(man.DEF old)]]"));
+        var inner = ObjectOf<ComplementClause>(Said<Clause>(outer.Clause));
 
-        Assert.Equal("come", PredicateOf<Doing>(inner.Clause).Verb);
+        Assert.Equal("come", PredicateOf<Doing>(Said<Clause>(inner.Clause)).Verb);
     }
 
     [Fact]
     public void Parse_QuestionAboutAClause_AsksTheMainOne()
     {
-        var question = Assert.IsType<Question>(Parsed("x\n  tell.PST  subject:who  recipient:2SG  object:[that  come.PST  subject:1SG]").Value);
+        var question = Parsed<Question>("x\n  tell.PST  subject:who  recipient:2SG  object:[that  come.PST  subject:1SG]");
 
-        Assert.IsType<ComplementClause>(PredicateOf<Doing>(question.Statement).Object.GetValueOrDefault().Value);
+        Assert.IsType<ComplementClause>(PredicateOf<Doing>(Said<Clause>(question.Statement)).Object.GetValueOrDefault().Value);
     }
 
     [Theory]

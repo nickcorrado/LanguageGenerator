@@ -7,7 +7,7 @@ public class ClauseFileTests
     private static ClauseFile.Entry Single(string text) => Assert.Single(ClauseFile.Parse(text));
 
     //the clause an entry says, which most of these tests expect to be a verb's
-    private static Clause Verbal(ClauseFile.Entry entry) => Assert.IsType<Clause>(Stated(entry.Utterance).Value);
+    private static Clause Verbal(ClauseFile.Entry entry) => Said<Clause>(entry.Utterance);
 
     private static ClauseFormatException Error(string text) => Assert.Throws<ClauseFormatException>(() => ClauseFile.Parse(text));
 
@@ -16,19 +16,19 @@ public class ClauseFileTests
     {
         var entry = Single("drink the wine\n  drink.IMP  object:wine  location:house");
 
-        Assert.Equal(new Clause(new Doing("drink", BareNoun("wine", Number.Singular)), new Directive(Number.Singular), false, [new(Role.Location, BareNoun("house", Number.Singular), Configuration.At)], []), Stated(entry.Utterance).Value);
+        Assert.Equal(new Clause(new Doing("drink", BareNoun("wine", Number.Singular)), new Directive(Number.Singular), false, [new(Role.Location, BareNoun("house", Number.Singular), Configuration.At)], []), Said<Clause>(entry.Utterance));
     }
 
     [Fact]
     public void Parse_NegativeCommand_IsNegative()
     {
-        Assert.Equal(new Clause(new Doing("go", null), new Directive(Number.Singular), true, [], []), Stated(Single("don't go\n  go.IMP.NEG").Utterance).Value);
+        Assert.Equal(new Clause(new Doing("go", null), new Directive(Number.Singular), true, [], []), Said<Clause>(Single("don't go\n  go.IMP.NEG").Utterance));
     }
 
     [Fact]
     public void Parse_CommandToSeveralPeople_TakesTheirNumber()
     {
-        Assert.Equal(new Clause(new Doing("go", null), new Directive(Number.Plural), false, [], []), Stated(Single("go, all of you\n  go.IMP  subject:2PL").Utterance).Value);
+        Assert.Equal(new Clause(new Doing("go", null), new Directive(Number.Plural), false, [], []), Said<Clause>(Single("go, all of you\n  go.IMP  subject:2PL").Utterance));
     }
 
     [Theory]
@@ -181,16 +181,16 @@ public class ClauseFileTests
     public void Parse_Be_IsACopularClause()
     {
         Assert.Equal(new Clause(new Being(new Adjective("locked", false)), new Declarative(Tense.Past, Aspect.Imperfective, BareNoun("gate", Number.Singular)), false, [], []),
-            Stated(Single("the gate was locked\n  be.PST subject:gate adjective:locked").Utterance).Value);
+            Said<Clause>(Single("the gate was locked\n  be.PST subject:gate adjective:locked").Utterance));
         Assert.Equal(new Clause(new Being(BareNoun("fool", Number.Plural)), new Declarative(Tense.Present, Aspect.Imperfective, new Pronoun(Person.Second, Number.Plural)), true, [], []),
-            Stated(Single("you aren't fools\n  be.NEG subject:2PL noun:fool.PL").Utterance).Value);
+            Said<Clause>(Single("you aren't fools\n  be.NEG subject:2PL noun:fool.PL").Utterance));
     }
 
     [Fact]
     public void Parse_BeWithALocation_SaysWhereItsSubjectIs()
     {
         Assert.Equal(new Clause(new Being(new Oblique(Role.Location, new NounPhrase(new Noun("house", Number.Singular, [new("big", false)], null, null, null, null, null), null), Configuration.At)), new Declarative(Tense.Past, Aspect.Imperfective, BareNoun("dog", Number.Singular)), true, [], []),
-            Stated(Single("the dog wasn't in the big house\n  be.PST.NEG location:(house big) subject:dog").Utterance).Value);
+            Said<Clause>(Single("the dog wasn't in the big house\n  be.PST.NEG location:(house big) subject:dog").Utterance));
     }
 
     [Theory]
@@ -358,7 +358,7 @@ public class ClauseFileTests
         foreach (var seed in Enumerable.Range(0, 20))
         {
             var language = Generator.Generate(seed, LanguageSpec.Free);
-            Assert.All(entries, e => Assert.NotEmpty(Syntax.Realize(language, Stated(e.Utterance), e.Translation).Text));
+            Assert.All(entries, e => Assert.NotEmpty(Syntax.Realize(language, e.Utterance, e.Translation).Text));
         }
     }
 
@@ -382,7 +382,7 @@ public class ClauseFileTests
     {
         var complement = Assert.IsType<ComplementClause>(PredicateOf<Doing>(Verbal(Single("x\n  want  object:[to  go  goal:home]  subject:3PL"))).Object.GetValueOrDefault().Value);
 
-        Assert.Equal(new Pronoun(Person.Third, Number.Plural), ForceOf<Declarative>(complement.Clause).Subject.Value);
+        Assert.Equal(new Pronoun(Person.Third, Number.Plural), ForceOf<Declarative>(Said<Clause>(complement.Clause)).Subject.Value);
     }
 
     [Fact]

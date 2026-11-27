@@ -6,38 +6,38 @@ namespace LanguageGenerator.Tests;
 
 public class SubordinationTests
 {
-    private static Statement Parsed(string text) => Stated(Assert.Single(ClauseFile.Parse(text)).Utterance);
+    private static T Parsed<T>(string text) => Said<T>(Assert.Single(ClauseFile.Parse(text)).Utterance);
 
     private static ClauseFormatException Error(string text) => Assert.Throws<ClauseFormatException>(() => ClauseFile.Parse(text));
 
     [Fact]
     public void Parse_LineStartingWithASubordinator_PutsItsClauseUnderTheMainOne()
     {
-        var subordinated = Assert.IsType<Subordinated>(Parsed("x\n  cover.IMP  object:ear.PL\n  if  hear  subject:2SG  object:song.DEF").Value);
+        var subordinated = Parsed<Subordinated>("x\n  cover.IMP  object:ear.PL\n  if  hear  subject:2SG  object:song.DEF");
 
-        ForceOf<Directive>(subordinated.Main);
+        ForceOf<Directive>(Said<Clause>(subordinated.Main));
         Assert.Equal(Subordinator.If, subordinated.Subordinator);
-        Assert.Equal("hear", PredicateOf<Doing>(subordinated.Clause).Verb);
+        Assert.Equal("hear", PredicateOf<Doing>(Said<Clause>(subordinated.Clause)).Verb);
         Assert.False(subordinated.SharesSubject);
     }
 
     [Fact]
     public void Parse_PurposeWithoutASubject_TakesTheMainClauses()
     {
-        var subordinated = Assert.IsType<Subordinated>(Parsed("x\n  need  subject:2SG  object:rope.NDF\n  purpose  cross  object:river.DEF").Value);
+        var subordinated = Parsed<Subordinated>("x\n  need  subject:2SG  object:rope.NDF\n  purpose  cross  object:river.DEF");
 
         Assert.True(subordinated.SharesSubject);
-        Assert.Equal(new Pronoun(Person.Second, Number.Singular), ForceOf<Declarative>(subordinated.Clause).Subject.Value);
+        Assert.Equal(new Pronoun(Person.Second, Number.Singular), ForceOf<Declarative>(Said<Clause>(subordinated.Clause)).Subject.Value);
     }
 
     [Fact]
     public void Parse_PurposeWithASubject_KeepsIt() =>
-        Assert.False(Assert.IsType<Subordinated>(Parsed("x\n  shout  subject:1SG\n  purpose  hear  subject:3SG.M").Value).SharesSubject);
+        Assert.False(Parsed<Subordinated>("x\n  shout  subject:1SG\n  purpose  hear  subject:3SG.M").SharesSubject);
 
     [Fact]
     public void Parse_JoinedAndSubordinateLines_NestInTheOrderWritten()
     {
-        var subordinated = Assert.IsType<Subordinated>(Parsed("x\n  sit  subject:dog\n  and  eat  subject:dog\n  until  sleep  subject:cat").Value);
+        var subordinated = Parsed<Subordinated>("x\n  sit  subject:dog\n  and  eat  subject:dog\n  until  sleep  subject:cat");
 
         Assert.IsType<Coordinated>(subordinated.Main.Value);
         Assert.Equal(Subordinator.Until, subordinated.Subordinator);

@@ -21,7 +21,7 @@ public class AdverbTests
         _ => throw new ArgumentException("Not a statement these tests realize.", nameof(statement)),
     };
 
-    private static Statement Parsed(string gloss) => Stated(Assert.Single(ClauseFile.Parse($"x\n  {gloss}")).Utterance);
+    private static T Parsed<T>(string gloss) => Said<T>(Assert.Single(ClauseFile.Parse($"x\n  {gloss}")).Utterance);
 
     [Fact]
     public void Realize_Adverb_IsItsBareRootWhereObliquesGo() =>
@@ -258,7 +258,7 @@ public class AdverbTests
     [Fact]
     public void Parse_AdverbsMannersTimesAndDurations_KeepTheirOrder()
     {
-        var clause = Assert.IsType<Clause>(Parsed("walk  subject:dog  when:now  manner:slow.INTS  time:night  often:again  duration:(year 3)").Value);
+        var clause = Parsed<Clause>("walk  subject:dog  when:now  manner:slow.INTS  time:night  often:again  duration:(year 3)");
 
         ValueList<Adverbial> adverbs = [Now, new Manner(new Adjective("slow", true)), Again];
         ValueList<Oblique> obliques = [new(Role.Time, BareNoun("night", Number.Singular), Configuration.At), new(Role.Duration, new NounPhrase(new Noun("year", Number.Paucal, [], 3, null, null, null, null), null), Configuration.At)];
@@ -269,9 +269,9 @@ public class AdverbTests
     [Fact]
     public void Parse_Be_TakesTimesAndAdverbs()
     {
-        var big = Assert.IsType<Clause>(Parsed("be  subject:dog  adjective:big.INTS  time:night  when:now").Value);
-        var there = Assert.IsType<Clause>(Parsed("be  subject:dog  location:house  duration:(year 3)").Value);
-        var command = Assert.IsType<Clause>(Parsed("be.IMP  adjective:careful  when:now").Value);
+        var big = Parsed<Clause>("be  subject:dog  adjective:big.INTS  time:night  when:now");
+        var there = Parsed<Clause>("be  subject:dog  location:house  duration:(year 3)");
+        var command = Parsed<Clause>("be.IMP  adjective:careful  when:now");
 
         Assert.Equal(new Adjective("big", true), PredicateOf<Being>(big).Complement.Value);
         Assert.Equal(new Oblique(Role.Time, BareNoun("night", Number.Singular), Configuration.At), Assert.Single(big.Obliques));
@@ -286,9 +286,9 @@ public class AdverbTests
     [Fact]
     public void Parse_Intensive_GoesOnAnyAdjective()
     {
-        var phrase = Assert.IsType<NounPhrase>(ForceOf<Declarative>(Parsed("walk  subject:(dog big.INTS)")).Subject.Value);
-        var comparative = Assert.IsType<Comparative>(Parsed("be  subject:dog  adjective:big.CMPR.INTS").Value);
-        var together = Assert.IsType<AdjectiveCoordination>(PredicateOf<Being>(Parsed("be  subject:dog  adjective:(and big.INTS old)")).Complement.Value);
+        var phrase = Assert.IsType<NounPhrase>(ForceOf<Declarative>(Parsed<Clause>("walk  subject:(dog big.INTS)")).Subject.Value);
+        var comparative = Parsed<Comparative>("be  subject:dog  adjective:big.CMPR.INTS");
+        var together = Assert.IsType<AdjectiveCoordination>(PredicateOf<Being>(Parsed<Clause>("be  subject:dog  adjective:(and big.INTS old)")).Complement.Value);
 
         Assert.Equal(new Adjective("big", true), Assert.Single(NounOf(phrase).Adjectives));
         Assert.Equal(new Adjective("big", true), PredicateOf<Being>(comparative.Clause).Complement.Value);

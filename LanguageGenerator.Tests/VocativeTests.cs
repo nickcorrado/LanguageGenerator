@@ -6,14 +6,14 @@ namespace LanguageGenerator.Tests;
 
 public class VocativeTests
 {
-    private static Statement Parse(string gloss) => Stated(Assert.Single(ClauseFile.Parse($"x\n  {gloss}")).Utterance);
+    private static T Parse<T>(string gloss) => Said<T>(Assert.Single(ClauseFile.Parse($"x\n  {gloss}")).Utterance);
 
     private static ClauseFormatException Error(string gloss) => Assert.Throws<ClauseFormatException>(() => ClauseFile.Parse($"x\n  {gloss}"));
 
     [Fact]
     public void Parse_Addressee_WrapsTheClause()
     {
-        var addressed = Assert.IsType<Addressed>(Parse("sleep subject:dog.DEF addressee:marta").Value);
+        var addressed = Parse<Addressed>("sleep subject:dog.DEF addressee:marta");
 
         Assert.Equal(BareNoun("marta", Number.Singular), addressed.Addressee);
         Assert.IsType<Clause>(addressed.Statement.Value);
@@ -22,11 +22,11 @@ public class VocativeTests
     [Fact]
     public void Parse_AddresseeWithAdjectives_IsANounPhrase()
     {
-        var addressed = Assert.IsType<Addressed>(Parse("be subject:wolf.PL.DEF location:village.DEF addressee:(man old)").Value);
+        var addressed = Parse<Addressed>("be subject:wolf.PL.DEF location:village.DEF addressee:(man old)");
 
         Assert.Equal("man", NounOf(addressed.Addressee).Meaning);
         Assert.Equal(["old"], NounOf(addressed.Addressee).Adjectives.Select(a => a.Meaning));
-        PredicateOf<Being>(addressed.Statement);
+        PredicateOf<Being>(Said<Clause>(addressed.Statement));
     }
 
     [Theory]
@@ -36,9 +36,9 @@ public class VocativeTests
     [InlineData("walk.IMP subject:2SG addressee:child.PL", "Singular")]
     public void Parse_CommandToAnAddressee_TellsAsManyAsItSays(string gloss, string number)
     {
-        var addressed = Assert.IsType<Addressed>(Parse(gloss).Value);
+        var addressed = Parse<Addressed>(gloss);
 
-        Assert.Equal(number, ForceOf<Directive>(addressed.Statement).Number.Name);
+        Assert.Equal(number, ForceOf<Directive>(Said<Clause>(addressed.Statement)).Number.Name);
     }
 
     [Theory]

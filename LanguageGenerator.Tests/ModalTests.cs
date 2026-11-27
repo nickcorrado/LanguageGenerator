@@ -6,7 +6,7 @@ namespace LanguageGenerator.Tests;
 
 public class ModalTests
 {
-    private static Statement Parsed(string gloss) => Stated(Assert.Single(ClauseFile.Parse($"x\n  {gloss}")).Utterance);
+    private static T Parsed<T>(string gloss) => Said<T>(Assert.Single(ClauseFile.Parse($"x\n  {gloss}")).Utterance);
 
     //only the basic meanings, since coining new ones would add to the shared sample's lexicons
     private static readonly NounPhrase Dog = BareNoun("dog", Number.Singular);
@@ -176,7 +176,7 @@ public class ModalTests
     [InlineData("follow.NEG.ADVS  subject:2SG  object:3PL", false, true)]
     public void Parse_Modal_NegatesWhatTheNegationFollows(string gloss, bool modalNegative, bool verbNegative)
     {
-        var modalized = Assert.IsType<Modalized>(Parsed(gloss).Value);
+        var modalized = Parsed<Modalized>(gloss);
 
         Assert.Equal(modalNegative, modalized.Negative);
         Assert.Equal(verbNegative, Assert.IsType<Clause>(modalized.Clause.Value).Negative);
@@ -185,18 +185,18 @@ public class ModalTests
     [Fact]
     public void Parse_ModalWithBe_IsAModalCopularClause()
     {
-        var modalized = Assert.IsType<Modalized>(Parsed("be.OBLIG  subject:2SG  adjective:careful").Value);
+        var modalized = Parsed<Modalized>("be.OBLIG  subject:2SG  adjective:careful");
 
         Assert.Equal(Modality.Obligation, modalized.Modality);
-        PredicateOf<Being>(modalized.Clause);
+        PredicateOf<Being>(Said<Clause>(modalized.Clause));
     }
 
     [Fact]
     public void Parse_ModalPassiveWithAnAddressee_KeepsTheAddresseeOutside()
     {
-        var addressed = Assert.IsType<Addressed>(Parsed("carry.PASS.PERM  subject:box.DEF  addressee:marta").Value);
+        var addressed = Parsed<Addressed>("carry.PASS.PERM  subject:box.DEF  addressee:marta");
 
-        PredicateOf<Done>(Assert.IsType<Modalized>(addressed.Statement.Value).Clause);
+        PredicateOf<Done>(Said<Clause>(Assert.IsType<Modalized>(addressed.Statement.Value).Clause));
     }
 
     [Theory]
@@ -253,9 +253,9 @@ public class ModalTests
     [InlineData("wait.PROG.DUB  subject:3PL  object:1PL", "Dubitative", "Progressive")]
     public void Parse_EpistemicModal_JudgesThePerfectOrProgressive(string gloss, string modality, string aspect)
     {
-        var modalized = Assert.IsType<Modalized>(Parsed(gloss).Value);
+        var modalized = Parsed<Modalized>(gloss);
 
         Assert.Equal(modality, modalized.Modality.Name);
-        Assert.Equal(aspect, ForceOf<Declarative>(modalized.Clause).Aspect.Name);
+        Assert.Equal(aspect, ForceOf<Declarative>(Said<Clause>(modalized.Clause)).Aspect.Name);
     }
 }

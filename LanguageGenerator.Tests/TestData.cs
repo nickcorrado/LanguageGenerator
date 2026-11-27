@@ -47,18 +47,23 @@ internal static class Sentences
     public static int IndexOf(Sentence sentence, Root root) => sentence.Words.ToList().FindIndex(w => w.Word.Root == root);
 }
 
-//a statement's predicate or force, where it's a clause with one of that kind
+//what a line says, as the kind of thing a test is about, and a clause's predicate or force
 internal static class Clauses
 {
-    //what a line or a quotation states, where it's a statement and not a fragment
-    public static Statement Stated(Utterance utterance) => utterance switch
+    /*
+      a line, a quotation or a statement inside another as what the test is about: a clause, or a
+      case of what's built around one, as a question or a coordination is. A statement is a union
+      inside the utterance's, so it takes the two steps here, and fails where the line is a fragment
+      or another case
+     */
+    public static T Said<T>(Utterance utterance) => utterance switch
     {
-        Statement statement => statement,
-        Fragment fragment => throw new Xunit.Sdk.XunitException($"Expected a statement, but got {fragment}."),
+        Statement statement => Assert.IsType<T>(statement.Value),
+        Fragment fragment => throw new Xunit.Sdk.XunitException($"Expected a {typeof(T).Name}, but got {fragment}."),
     };
 
-    public static T PredicateOf<T>(Statement statement) => Assert.IsType<T>(Assert.IsType<Clause>(statement.Value).Predicate.Value);
-    public static T ForceOf<T>(Statement statement) => Assert.IsType<T>(Assert.IsType<Clause>(statement.Value).Force.Value);
+    public static T PredicateOf<T>(Clause clause) => Assert.IsType<T>(clause.Predicate.Value);
+    public static T ForceOf<T>(Clause clause) => Assert.IsType<T>(clause.Force.Value);
 }
 
 //a noun on its own, with no modifiers, determiner, possessor or relative clause

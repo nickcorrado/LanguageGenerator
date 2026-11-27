@@ -9,11 +9,11 @@ namespace LanguageGenerator.Tests;
 //has it
 public class IndefiniteTests
 {
-    private static Statement Parsed(string text) => Stated(Assert.Single(ClauseFile.Parse(text)).Utterance);
+    private static T Parsed<T>(string text) => Said<T>(Assert.Single(ClauseFile.Parse(text)).Utterance);
 
     private static ClauseFormatException Error(string text) => Assert.Throws<ClauseFormatException>(() => ClauseFile.Parse(text));
 
-    private static Clause ClauseOf(string gloss) => Assert.IsType<Clause>(Parsed($"x\n  {gloss}").Value);
+    private static Clause ClauseOf(string gloss) => Parsed<Clause>($"x\n  {gloss}");
 
     private static NounPhrase Indefinite(Quantifier series, Ontology kind) => new(new IndefinitePronoun(series, kind), null);
 

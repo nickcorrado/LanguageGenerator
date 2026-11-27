@@ -6,7 +6,7 @@ namespace LanguageGenerator.Tests;
 
 public class PassiveTests
 {
-    private static Statement Parsed(string gloss) => Stated(Assert.Single(ClauseFile.Parse($"x\n  {gloss}")).Utterance);
+    private static T Parsed<T>(string gloss) => Said<T>(Assert.Single(ClauseFile.Parse($"x\n  {gloss}")).Utterance);
 
     //only the basic meanings, since coining new ones would add to the shared sample's lexicons
     private static readonly NounPhrase Fish = BareNoun("fish", Number.Singular);
@@ -37,7 +37,7 @@ public class PassiveTests
     [Fact]
     public void Parse_Passive_HasItsPatientAsSubjectAndAnAgent()
     {
-        var clause = Parsed("carry.PASS.PST  subject:light.DEF  agent:(figure.NDF small)");
+        var clause = Parsed<Clause>("carry.PASS.PST  subject:light.DEF  agent:(figure.NDF small)");
 
         Assert.Equal(new NounPhrase(new Noun("light", Number.Singular, [], null, null, null, Definiteness.Definite, null), null), ForceOf<Declarative>(clause).Subject.Value);
         Assert.Equal("figure", NounOf(PredicateOf<Done>(clause).Agent!.Value).Meaning);
@@ -46,7 +46,7 @@ public class PassiveTests
 
     [Fact]
     public void Parse_PassiveWithoutAnAgent_HasNone() =>
-        Assert.Null(PredicateOf<Done>(Parsed("take.PASS.PST  subject:child.PL.DEF")).Agent);
+        Assert.Null(PredicateOf<Done>(Parsed<Clause>("take.PASS.PST  subject:child.PL.DEF")).Agent);
 
     [Theory]
     [InlineData("carry  subject:light  agent:figure", "Only a passive verb takes an agent:")]

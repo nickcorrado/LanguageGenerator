@@ -207,10 +207,10 @@ public class PhonologyTests
             new Clause(new Doing("see", null), new Directive(Number.Plural), true, [], []),
         ];
         var example = ClauseFile.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "scene.txt")));
-        var statements = example.Select(e => Stated(e.Utterance)).Concat(commands).ToList();
+        var utterances = example.Select(e => e.Utterance).Concat(commands.Select(c => (Utterance)c)).ToList();
         foreach (var language in Enumerable.Range(0, 100).Select(seed => Generator.Generate(seed, LanguageSpec.Free)))
         {
-            var said = statements.SelectMany(s => Syntax.Realize(language, s, "").Words.Select(w => w.Word));
+            var said = utterances.SelectMany(u => Syntax.Realize(language, u, "").Words.Select(w => w.Word));
             Assert.Empty(GeneratedLanguages.AllWords(language).Concat(said).Where(Repeats).Select(w => w.Gloss));
         }
     }

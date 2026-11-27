@@ -72,7 +72,7 @@ public class FragmentTests
     [Fact]
     public void Parse_QuotedAnswer_IsWhatWasSaid()
     {
-        var said = Stated(Assert.Single(ClauseFile.Parse("x\n  say  subject:3SG.F  quote:[answer:no]  manner:quiet")).Utterance);
+        var said = Said<Clause>(Assert.Single(ClauseFile.Parse("x\n  say  subject:3SG.F  quote:[answer:no]  manner:quiet")).Utterance);
 
         var quotation = Assert.IsType<Quotation>(PredicateOf<Doing>(said).Object.GetValueOrDefault().Value);
         Assert.Equal(new Answer(Polarity.Negative), Assert.IsType<Fragment>(quotation.Utterance.Value).Part.GetValueOrDefault().Value);
@@ -81,7 +81,7 @@ public class FragmentTests
     [Fact]
     public void Parse_QuotedFragment_IsWhatWasSaid()
     {
-        var said = Stated(Assert.Single(ClauseFile.Parse("x\n  say  subject:3SG.M  quote:[beneficiary:(ear.PL possessor:2SG)]")).Utterance);
+        var said = Said<Clause>(Assert.Single(ClauseFile.Parse("x\n  say  subject:3SG.M  quote:[beneficiary:(ear.PL possessor:2SG)]")).Utterance);
 
         var quotation = Assert.IsType<Quotation>(PredicateOf<Doing>(said).Object.GetValueOrDefault().Value);
         var fragment = Assert.IsType<Fragment>(quotation.Utterance.Value);

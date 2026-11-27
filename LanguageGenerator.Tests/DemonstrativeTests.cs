@@ -8,11 +8,11 @@ namespace LanguageGenerator.Tests;
 //demonstrative standing alone, and 'here' and 'there' say them
 public class DemonstrativeTests
 {
-    private static Statement Parsed(string text) => Stated(Assert.Single(ClauseFile.Parse(text)).Utterance);
+    private static T Parsed<T>(string text) => Said<T>(Assert.Single(ClauseFile.Parse(text)).Utterance);
 
     private static ClauseFormatException Error(string text) => Assert.Throws<ClauseFormatException>(() => ClauseFile.Parse(text));
 
-    private static Clause ClauseOf(string gloss) => Assert.IsType<Clause>(Parsed($"x\n  {gloss}").Value);
+    private static Clause ClauseOf(string gloss) => Parsed<Clause>($"x\n  {gloss}");
 
     [Fact]
     public void Parse_DemonstrativeOnANoun_IsItsDistanceWithNoDefiniteness()
@@ -48,7 +48,7 @@ public class DemonstrativeTests
     [Fact]
     public void Parse_HereWithBe_IsWhereItsSubjectIs() =>
         Assert.Equal(new DemonstrativePlace(Distance.Proximal),
-            Assert.IsType<Oblique>(PredicateOf<Being>(Parsed("x\n  be  subject:1SG  location:here")).Complement.Value).Argument.Value);
+            Assert.IsType<Oblique>(PredicateOf<Being>(Parsed<Clause>("x\n  be  subject:1SG  location:here")).Complement.Value).Argument.Value);
 
     [Theory]
     [InlineData("sleep  subject:village.PROX.DEF", "not both")]
