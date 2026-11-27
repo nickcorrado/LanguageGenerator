@@ -13,7 +13,7 @@ public class ComparisonTests
     //to the shared sample's lexicons
     private static Sentence Bigger(Language l) => Syntax.Realize(l, new Comparative(DogIsBig, Cats), "x");
 
-    private static Statement Parsed(string gloss) => Assert.Single(ClauseFile.Parse($"x\n  {gloss}")).Statement;
+    private static Statement Parsed(string gloss) => Stated(Assert.Single(ClauseFile.Parse($"x\n  {gloss}")).Utterance);
 
     [Fact]
     public void Generate_Particles_GoOnTheirAdpositionsSide() =>

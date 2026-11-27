@@ -50,6 +50,13 @@ internal static class Sentences
 //a statement's predicate or force, where it's a clause with one of that kind
 internal static class Clauses
 {
+    //what a line or a quotation states, where it's a statement and not a fragment
+    public static Statement Stated(Utterance utterance) => utterance switch
+    {
+        Statement statement => statement,
+        Fragment fragment => throw new Xunit.Sdk.XunitException($"Expected a statement, but got {fragment}."),
+    };
+
     public static T PredicateOf<T>(Statement statement) => Assert.IsType<T>(Assert.IsType<Clause>(statement.Value).Predicate.Value);
     public static T ForceOf<T>(Statement statement) => Assert.IsType<T>(Assert.IsType<Clause>(statement.Value).Force.Value);
 }

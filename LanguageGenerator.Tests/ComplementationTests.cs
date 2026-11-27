@@ -8,7 +8,7 @@ namespace LanguageGenerator.Tests;
 //how a clause says them
 public class ComplementationTests
 {
-    private static Statement Parsed(string text) => Assert.Single(ClauseFile.Parse(text)).Statement;
+    private static Statement Parsed(string text) => Stated(Assert.Single(ClauseFile.Parse(text)).Utterance);
 
     private static ClauseFormatException Error(string text) => Assert.Throws<ClauseFormatException>(() => ClauseFile.Parse(text));
 
@@ -52,7 +52,7 @@ public class ComplementationTests
     {
         var quotation = ObjectOf<Quotation>(Parsed("x\n  say  subject:3SG.F  quote:[go.IMP  goal:inn.DEF  addressee:marta]"));
 
-        var addressed = Assert.IsType<Addressed>(quotation.Statement.Value);
+        var addressed = Assert.IsType<Addressed>(Stated(quotation.Utterance).Value);
         ForceOf<Directive>(addressed.Statement);
     }
 
@@ -209,7 +209,7 @@ public class ComplementationTests
         var language = GeneratedLanguages.With(s => s.Fix(Settings.Quotative, QuotativeKind.None).Fix(Settings.ComplementsLast, true));
         var command = new Clause(new Doing("walk", null), new Directive(Number.Singular), false, [new(Role.Goal, BareNoun("house", Number.Singular), Configuration.At)], []);
         var alone = Syntax.Realize(language, command, "x").Words.Select(w => w.Gloss);
-        var quoted = Syntax.Realize(language, Says(new Quotation(command)), "x").Words.Select(w => w.Gloss);
+        var quoted = Syntax.Realize(language, Says(new Quotation((Statement)command)), "x").Words.Select(w => w.Gloss);
 
         Assert.Equal(alone, quoted.TakeLast(alone.Count()));
     }
@@ -220,7 +220,7 @@ public class ComplementationTests
     public void Realize_MarkedQuotation_TakesTheQuotative(QuotativeKind kind)
     {
         var language = GeneratedLanguages.With(s => s.Fix(Settings.Quotative, kind).Fix(Settings.PropositionComplementizer, ComplementizerPosition.Initial, ComplementizerPosition.Final));
-        var sentence = Syntax.Realize(language, Says(new Quotation(DogSleeps)), "x");
+        var sentence = Syntax.Realize(language, Says(new Quotation((Statement)DogSleeps)), "x");
         var quotative = Assert.Single(sentence.Words, w => w.Gloss == "QUOT");
 
         if (kind == QuotativeKind.Complementizer)

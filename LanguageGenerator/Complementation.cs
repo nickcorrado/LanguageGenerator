@@ -146,6 +146,7 @@ public record ComplementClause(ComplementKind Kind, Statement Clause, bool Share
 
 /// <summary>
 /// What someone said, word for word, as the object of a verb of saying, as in '"you're late," she
-/// says'. It's as it was said, so its 'I' is the speaker's, and it can be a command or a question.
+/// says'. It's as it was said, so its 'I' is the speaker's, and it can be a command, a question or a
+/// fragment, as in '"for your ears," he says', though not a heading.
 /// </summary>
-public record Quotation(Statement Statement);
+public record Quotation(Utterance Utterance);

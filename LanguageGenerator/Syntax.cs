@@ -200,6 +200,59 @@ public static class Syntax
 {
     public static Sentence Realize(Language language, Statement statement, string translation) => Sentence(language, Words(language, statement).Words, translation);
 
+    public static Sentence Realize(Language language, Utterance utterance, string translation) => utterance switch
+    {
+        Statement statement => Realize(language, statement, translation),
+        Fragment fragment => Realize(language, fragment, translation),
+    };
+
+    /*
+      a heading is its label, then its title, each as a noun is cited, said apart as phrases of their
+      own, as a pause comes between them, which is written as a colon. Anything else a fragment says
+      is said as one phrase
+     */
+    public static Sentence Realize(Language language, Fragment fragment, string translation)
+    {
+        if (fragment.Part is not { Value: Heading heading })
+        {
+            return Sentence(language, Words(language, fragment).Words, translation);
+        }
+        if (fragment.Addressee is not null)
+        {
+            throw new ArgumentException("A heading is said to no one.", nameof(fragment));
+        }
+        var phonology = language.Phonology;
+        return new(phonology.RealizePhrase(Cited(language, heading.Label)), phonology.RealizePhrase(Cited(language, heading.Title)), translation, language.Orthography);
+    }
+
+    //what an utterance says, so that it can be quoted
+    private static ClauseWords Words(Language language, Utterance utterance) => utterance switch
+    {
+        Statement statement => Words(language, statement),
+        Fragment fragment => Words(language, fragment),
+    };
+
+    /*
+      a fragment's words: who it's said to first, as a statement's addressee is, then what it says,
+      which is a phrase as a noun is cited, or an oblique marked as its role is in a clause. It has
+      no verb, so a marker of the whole goes on its last word. A heading is said only as a sentence
+      of its own, since its label is said apart
+     */
+    private static ClauseWords Words(Language language, Fragment fragment)
+    {
+        IReadOnlyList<Word> called = fragment.Addressee is { } addressee ? Marked(language, addressee, Role.Addressee) : [];
+        IReadOnlyList<Word> said = fragment.Part is { } part
+            ? part switch
+            {
+                Standalone standalone => Cited(language, standalone.Argument),
+                Oblique oblique => Oblique(language, oblique),
+                Heading => throw new ArgumentException("A heading is said only as a sentence of its own.", nameof(fragment)),
+            }
+            : [];
+        return called.Count + said.Count > 0 ? new([.. called, .. said], null)
+            : throw new ArgumentException("A fragment says something, or calls someone.", nameof(fragment));
+    }
+
     /// <summary>
     /// A clause's words, and the root of its finite verb where one is said, for what goes on that
     /// verb: a question's affix, the verb a question moves, or a suffix marking the whole clause.
@@ -433,7 +486,7 @@ public static class Syntax
     //what was said, as it was said, with the language's quotative, if it has one
     private static IReadOnlyList<Word> Quoted(Language language, Quotation quotation)
     {
-        var said = Words(language, quotation.Statement);
+        var said = Words(language, quotation.Utterance);
         return language.Complementation.QuotativeMarker is var (marker, position) ? Subordinate(said, marker, position) : said.Words;
     }
 
@@ -1350,13 +1403,13 @@ public static class Syntax
     private static IReadOnlyList<Word> Flat(IEnumerable<IReadOnlyList<Word>> constituents) => [.. constituents.SelectMany(c => c)];
 
     private static Sentence Sentence(Language language, IReadOnlyList<Word> words, string translation) =>
-        new(language.Phonology.RealizePhrase(words), translation, language.Orthography);
+        new([], language.Phonology.RealizePhrase(words), translation, language.Orthography);
 
     private static IReadOnlyList<Word> Inflect(Language language, Argument argument, Role role) =>
         Inflect(language, argument, CaseFor(language, language.RoleMarkers[role]), Localization.None);
 
-    //a noun phrase on its own, in the case a noun is cited in, as in a dictionary or a name
-    public static IReadOnlyList<Word> Cited(Language language, NounPhrase phrase) => Inflect(language, phrase, Citation(language), Localization.None);
+    //a phrase on its own, in the case a noun is cited in, as in a dictionary or a name
+    public static IReadOnlyList<Word> Cited(Language language, Argument phrase) => Inflect(language, phrase, Citation(language), Localization.None);
 
     //a localization is None for anything that isn't a place with a configuration in the noun
     private static IReadOnlyList<Word> Inflect(Language language, Argument argument, Case @case, Localization localization)
@@ -1650,37 +1703,50 @@ public static class Syntax
 
 /// <summary>
 /// A sentence as it's said: its words in groups, each a word with a root and the clitics leaning
-/// on it, said as one word, or a clitic with nothing to lean on.
+/// on it, said as one word, or a clitic with nothing to lean on. A heading's label comes first,
+/// said apart from the rest, as a phrase of its own, and written with a colon after it; any other
+/// sentence has none.
 /// </summary>
-public record Sentence(IReadOnlyList<SurfaceForm> Groups, string Translation, Orthography Orthography)
+public record Sentence(IReadOnlyList<SurfaceForm> Label, IReadOnlyList<SurfaceForm> Said, string Translation, Orthography Orthography)
 {
+    /// <summary>Every group of the sentence, its label's first.</summary>
+    public IReadOnlyList<SurfaceForm> Groups => [.. Label, .. Said];
+
     /// <summary>Every word of the sentence, in order, with the group it's said in.</summary>
     public IReadOnlyList<SentenceWord> Words => [.. Groups.SelectMany(g => g.Words.Select(w => new SentenceWord(g, w)))];
 
     //clitics are written as words of their own, as French and Greek write theirs, and a word that
     //lost every sound to its host, as a clitic's vowel can, isn't written at all
-    public string Text => string.Join(" ", Words.Select(w => w.Spell(Orthography)).Where(s => s.Length > 0));
+    public string Text => Label.Count == 0 ? Spelled(Said) : $"{Spelled(Label)}: {Spelled(Said)}";
+
+    private string Spelled(IReadOnlyList<SurfaceForm> groups) =>
+        string.Join(" ", groups.SelectMany(g => g.Words.Select(w => g.Spell(Orthography, w))).Where(s => s.Length > 0));
 
     /// <summary>
     /// The IPA of the sentence as it's said, a group at a time, with ‿ where a silent consonant is
-    /// said before the next word's vowel, as in [pəˈtit‿aˈmi].
+    /// said before the next word's vowel, as in [pəˈtit‿aˈmi], and | for the pause after a label.
     /// </summary>
-    public string Transcribed() =>
-        $"[{string.Concat(Groups.Select((g, i) => g.Transcribed() + (i == Groups.Count - 1 ? "" : g.LinksToNext ? "‿" : " ")))}]";
+    public string Transcribed() => Label.Count == 0 ? $"[{Transcribed(Said)}]" : $"[{Transcribed(Label)} | {Transcribed(Said)}]";
+
+    private static string Transcribed(IReadOnlyList<SurfaceForm> groups) =>
+        string.Concat(groups.Select((g, i) => g.Transcribed() + (i == groups.Count - 1 ? "" : g.LinksToNext ? "‿" : " ")));
 
     /*
        https://www.eva.mpg.de/lingua/resources/glossing-rules.php
       the sentence, then, if asked for, how it's said, then its morphemes and their glosses aligned
       group by group, with = between a host and its clitics, then a free translation. How it's said
-      is left out unless asked for, since most uses only want the language as it's written
+      is left out unless asked for, since most uses only want the language as it's written. A
+      label's colon is written after its last group, as it is in the sentence
      */
     public string Interlinear(bool phonetic)
     {
-        var widths = Groups.Select(g => Math.Max(g.Segmented(Orthography).Length, g.Gloss.Length)).ToList();
-        string Aligned(Func<SurfaceForm, string> line) =>
-            string.Join("  ", Groups.Select((g, i) => line(g).PadRight(widths[i]))).TrimEnd();
+        var groups = Groups;
+        string Segmented(int i) => groups[i].Segmented(Orthography) + (i == Label.Count - 1 ? ":" : "");
+        var widths = groups.Select((g, i) => Math.Max(Segmented(i).Length, g.Gloss.Length)).ToList();
+        string Aligned(Func<int, string> line) =>
+            string.Join("  ", groups.Select((_, i) => line(i).PadRight(widths[i]))).TrimEnd();
         return string.Join(Environment.NewLine,
-            [Text, .. phonetic ? [Transcribed()] : Array.Empty<string>(), Aligned(g => g.Segmented(Orthography)), Aligned(g => g.Gloss), $"'{Translation}'"]);
+            [Text, .. phonetic ? [Transcribed()] : Array.Empty<string>(), Aligned(Segmented), Aligned(i => groups[i].Gloss), $"'{Translation}'"]);
     }
 }
 

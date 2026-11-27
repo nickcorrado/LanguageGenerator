@@ -21,7 +21,7 @@ public class AdverbTests
         _ => throw new ArgumentException("Not a statement these tests realize.", nameof(statement)),
     };
 
-    private static Statement Parsed(string gloss) => Assert.Single(ClauseFile.Parse($"x\n  {gloss}")).Statement;
+    private static Statement Parsed(string gloss) => Stated(Assert.Single(ClauseFile.Parse($"x\n  {gloss}")).Utterance);
 
     [Fact]
     public void Realize_Adverb_IsItsBareRootWhereObliquesGo() =>

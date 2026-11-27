@@ -7,7 +7,7 @@ the hunter saw the wolves
   see.PST.PFV  subject:hunter.DEF  object:wolf.PL.DEF
 ```
 
-The verb comes first, then its arguments as `role:noun`. See [examples/scene.txt](../examples/scene.txt) for a whole file, and `ClauseFile` for the parser.
+The verb comes first, then its arguments as `role:noun`. A line with no verb is a [fragment](#fragments). See [examples/scene.txt](../examples/scene.txt) for a whole file, and `ClauseFile` for the parser.
 
 Words are English meanings, whatever their case, which the language coins roots for as needed.
 
@@ -322,7 +322,7 @@ A clause can be the object of a verb, written in square brackets in the object's
 
 These follow Noonan's division of complements by time reference, which is what decides how languages mark them more than the verb does. A clause starting with `to` has no tense or aspect, since its time is the main verb's, and leaves out its subject when that's the main clause's subject, as in 'they want to go home'; 'I told you to wait' says it, as `object:[to  wait  subject:2SG]`. A clause starting with `that` always has a subject. A clause in brackets can hold another, as in `say  subject:3SG.F  object:[that  know  subject:1SG  object:[that  come.PST  subject:2SG]]`, and a question can be about one, as in `tell.PST  subject:who  recipient:2SG  object:[that  come.PST  subject:1SG]` for 'who told you that I was coming?'. A question inside one, as in 'did anyone see what happened?', can't be said yet, and neither can a command, or a clause in any role but the object.
 
-What someone said word for word is `quote:[...]`, in place of an object, on the verb that says it. It's as the speaker said it, so its 'I' and 'you' are the speaker's, and it can be anything a clause on its own line can, a command, a question or a clause said to someone:
+What someone said word for word is `quote:[...]`, in place of an object, on the verb that says it. It's as the speaker said it, so its 'I' and 'you' are the speaker's, and it can be anything a line on its own can but a heading: a command, a question, a clause said to someone or a [fragment](#fragments):
 
 ```
 "you are late," she says
@@ -359,6 +359,22 @@ Where a relative clause goes follows WALS 96A: after its noun in all but 5 of 42
 WALS doesn't cross the two, so obliques are drawn given subjects, keeping its totals and the Accessibility Hierarchy, which Keenan and Comrie find has languages resume the roles low on it before the high ones: a language that resumes its subjects resumes its obliques too. WALS counts no direct objects, which are drawn like the subject, or more rarely like obliques. The 24 languages that keep the whole noun inside the relative clause, as internally headed and correlative ones do, aren't made here.
 
 A relative clause is marked by a word at its edge beside its noun, as English *that* and Mandarin *de* are, by an affix on its verb, which leaves the verb a participle without tense or agreement, as Turkish *-an* and Korean *-n* do, or by nothing, as English *the net she was mending* is; either marker is glossed `REL`. Nobody counts these, so the odds are guesses after Lehmann and Keenan: a relative clause before its noun is mostly a participle, one after it mostly marked by a word, and one with a relative pronoun mostly by nothing else.
+
+## Fragments
+
+Game text is full of lines with no verb: headings, item descriptions, replies and calls. A line that starts with a role instead of a verb is a fragment, which says one of these:
+
+| Written | Means |
+| --- | --- |
+| `noun:(key.NDF old iron)` | 'an old iron key', a phrase on its own |
+| `beneficiary:(ear.PL possessor:2SG)` | 'for your ears', an oblique on its own |
+| `goal.in:river.DEF  addressee:marta` | 'Marta, into the river', either of them said to someone |
+| `label:item  noun:(key rusty)` | 'Item: Rusty Key', a heading |
+| `addressee:stranger` | 'stranger!', someone called with nothing else |
+
+`noun:` takes anything a role does but a clause: a noun phrase, a pronoun, a demonstrative or several of them joined. A fragment says one `noun:` or one oblique, not both, and asks nothing yet, as 'where?' would. A heading is its `label:`, what kind of thing follows, and its title as `noun:`, and is said to no one. A fragment can be quoted, as in `say  subject:3SG.M  quote:[beneficiary:(ear.PL possessor:2SG)]` for '"for your ears," he says', but a heading can't, and no clause can be joined to one with a conjunction or a subordinator.
+
+A phrase on its own is in the case a noun is cited in, the nominative or the absolutive where the language has either, and an oblique is marked just as it would be in a clause. An addressee comes first, in the vocative where the language has one, as it does before a clause. A heading's label and title are each said as a noun is cited, apart from each other, with a pause between them that's written as a colon, so 'Item: Rusty Key' can come out as *mef: natki natkuf*; it's the only punctuation the output has.
 
 ## Pronouns
 

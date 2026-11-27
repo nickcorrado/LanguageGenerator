@@ -120,7 +120,7 @@ if (translating)
     foreach (var entry in script)
     {
         Console.WriteLine();
-        Console.WriteLine(Syntax.Realize(lang, entry.Statement, entry.Translation).Interlinear(phonetic));
+        Console.WriteLine(Syntax.Realize(lang, entry.Utterance, entry.Translation).Interlinear(phonetic));
     }
     return 0;
 }

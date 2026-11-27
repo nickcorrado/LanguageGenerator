@@ -8,7 +8,7 @@ namespace LanguageGenerator.Tests;
 //phrase says one
 public class RelativeClauseTests
 {
-    private static Statement Parsed(string text) => Assert.Single(ClauseFile.Parse(text)).Statement;
+    private static Statement Parsed(string text) => Stated(Assert.Single(ClauseFile.Parse(text)).Utterance);
 
     private static ClauseFormatException Error(string text) => Assert.Throws<ClauseFormatException>(() => ClauseFile.Parse(text));
 

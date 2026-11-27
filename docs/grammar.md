@@ -149,3 +149,7 @@ Similes, 'it shines like water', take a word for 'like' or an affix on what some
 Words of their own like 'now' and 'again'; manner adverbs made from adjectives, as the adjective itself, with an affix like English *-ly*, or with a word beside it like Mandarin *de*; times marked like places in most languages, as English *at night* and Turkish *gece-de* 'night-LOC' are; durations marked like an object, like a time or by a word for 'for'; and a word for 'very' on the same side as other degree words.
 
 Adverbs and obliques go nearer the verb by what they say, manner nearest and time furthest, mirrored before the verb, and adjectives after the noun mirror the English order in most languages.
+
+## Fragments
+
+Lines with no verb, as game text is full of: a noun phrase on its own, as in 'an old iron key', in the case a noun is cited in; an oblique on its own, as in 'for your ears', marked as it is in a clause; a heading, as in 'Item: Rusty Key', its label and title each cited, with a pause between them written as a colon; and an addressee alone, as in 'stranger!', in the vocative where the language has one. A phrase or an oblique can be said to someone, who comes first, as before a clause.

@@ -1,4 +1,5 @@
-﻿using static LanguageGenerator.Tests.Phrases;
+﻿using static LanguageGenerator.Tests.Clauses;
+using static LanguageGenerator.Tests.Phrases;
 namespace LanguageGenerator.Tests;
 
 public class CommandTests
@@ -171,7 +172,7 @@ public class CommandTests
         }
     }
 
-    private static Statement Parsed(string gloss) => Assert.Single(ClauseFile.Parse($"x\n  {gloss}")).Statement;
+    private static Statement Parsed(string gloss) => Stated(Assert.Single(ClauseFile.Parse($"x\n  {gloss}")).Utterance);
 
     [Fact]
     public void Parse_CommandWithBe_SaysWhatOrWhereToBe()

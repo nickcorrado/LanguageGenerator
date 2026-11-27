@@ -290,6 +290,28 @@ public static class GlossPrompt
 
                 where did you get that?
                   get.PST.PFV  subject:2SG  object:DIST  source:where
+            - A line with no verb, as in headings, item descriptions or replies, is a fragment: its
+              gloss line has roles only, and no verb. noun: is a phrase on its own, an oblique role
+              one on its own, label: with noun: a heading, and addressee: alone calls someone. Keep a
+              fragment a fragment, never adding 'it is' or 'the item is', and write its English line
+              as the gloss says it:
+
+                an old iron key
+                  noun:(key.NDF old iron)
+                for your ears
+                  beneficiary:(ear.PL possessor:2SG)
+                item: rusty key
+                  label:item  noun:(key rusty)
+                new quest: the missing children
+                  label:(quest new)  noun:(child.PL.DEF missing)
+                stranger!
+                  addressee:stranger
+
+              A fragment says one noun: or one oblique, not both, can be said to someone with
+              addressee:, and can be quoted, as in '"for your ears," he says', which is
+              say  subject:3SG.M  quote:[beneficiary:(ear.PL possessor:2SG)]. A heading is said to no
+              one and can't be quoted, and no line starting with and, or, but or a subordinator can
+              follow a fragment.
             - A relative clause goes in its noun's parentheses as relative:[...], a clause of its own
               with _ in the role its noun fills in it, whether English says who, which, that, where
               or nothing. A clause that English shortens, as in 'a bow made of yew', is still a
@@ -349,7 +371,8 @@ public static class GlossPrompt
               PERM, OBLIG, ADVS, DUB or PRSM (like a 'would' or 'could' that imagines something), a relative clause with 'whose' or on a
               pronoun (like 'he who hesitates'), a comparison other than an adjective with be (like 'runs faster than',
               'stronger arms than yours' or 'as tall as'), a comparison with a clause (like 'warmer
-              than it should be' or 'slower than before'), the most or a superlative (like 'the
+              than it should be' or 'slower than before'), a subordinate clause with no main clause
+              (like 'if you come back.' on its own), the most or a superlative (like 'the
               tallest'), or a command to anyone but 'you', like 'let's go', write instead one line: {CantExpress} (what's missing): the sentence.
               This is better than a gloss that changes what the sentence means.
 

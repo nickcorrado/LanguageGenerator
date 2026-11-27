@@ -6,7 +6,7 @@ namespace LanguageGenerator.Tests;
 
 public class AspectTests
 {
-    private static Statement Parsed(string gloss) => Assert.Single(ClauseFile.Parse($"x\n  {gloss}")).Statement;
+    private static Statement Parsed(string gloss) => Stated(Assert.Single(ClauseFile.Parse($"x\n  {gloss}")).Utterance);
 
     private static readonly NounPhrase Dog = BareNoun("dog", Number.Singular);
     private static readonly NounPhrase Fish = BareNoun("fish", Number.Singular);

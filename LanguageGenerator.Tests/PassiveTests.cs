@@ -6,7 +6,7 @@ namespace LanguageGenerator.Tests;
 
 public class PassiveTests
 {
-    private static Statement Parsed(string gloss) => Assert.Single(ClauseFile.Parse($"x\n  {gloss}")).Statement;
+    private static Statement Parsed(string gloss) => Stated(Assert.Single(ClauseFile.Parse($"x\n  {gloss}")).Utterance);
 
     //only the basic meanings, since coining new ones would add to the shared sample's lexicons
     private static readonly NounPhrase Fish = BareNoun("fish", Number.Singular);
