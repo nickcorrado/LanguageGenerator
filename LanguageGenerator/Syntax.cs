@@ -349,10 +349,9 @@ public static class Syntax
     //'who' or 'what', as its noun names a person or not, or the language's word of its own
     private static Lexeme RelativePronounFor(Language language, Nominal head, Role role)
     {
-        var pronoun = language.Relativization.Pronoun;
-        if (!pronoun.FromQuestionWords)
+        if (language.Relativization.Pronoun.Value is OwnRelativePronoun own)
         {
-            return pronoun.Own;
+            return own.Word;
         }
         var words = language.Questions.Words;
         return role is Role.Location or Role.Goal or Role.Source ? words[Interrogative.Where]
@@ -427,7 +426,7 @@ public static class Syntax
         var clause = deranked ?? Words(language, complement.SharesSubject
             ? WithSubject(complement.Clause, Pronominal(language, subject ?? throw new ArgumentException("A complement that shares its subject needs the main clause's.", nameof(subject))))
             : complement.Clause);
-        var marked = Complementation.PositionOf(marking.Position) is { } position ? Subordinate(clause, marking.Marker, position) : clause.Words;
+        var marked = marking.Marker is { } complementizer ? Subordinate(clause, complementizer.Marker, complementizer.Position) : clause.Words;
         return (marked, deranked is null);
     }
 
@@ -1431,18 +1430,17 @@ public static class Syntax
         var indefinites = language.Indefinites;
         var nouns = language.Paradigms.Nouns;
         var features = Features(nouns, [Number.Singular, @case, localization]);
-        switch (indefinites.BaseOf(pronoun.Kind))
+        IReadOnlyList<Word> Marked(Exponent marker)
         {
-            case IndefiniteBase.Special:
-                return nouns.Inflect(indefinites.Own[(pronoun.Series, pronoun.Kind)], features);
-            case IndefiniteBase.Interrogative:
-                var word = language.Questions.Words[Indefinites.QuestionWordFor(pronoun.Kind)];
-                return Articles.Mark(nouns.Inflect(word, features), word.Root, indefinites.Markers[pronoun.Series], indefinites.MarkerPosition);
-            case IndefiniteBase.GenericNoun:
-                return Modified(language, pronoun.AsNoun, features);
-            case var other:
-                throw new ArgumentOutOfRangeException(nameof(pronoun), other, null);
+            var word = language.Questions.Words[Indefinites.QuestionWordFor(pronoun.Kind)];
+            return Articles.Mark(nouns.Inflect(word, features), word.Root, marker.Marker, marker.Position);
         }
+        return indefinites.SourceOf(pronoun.Kind) switch
+        {
+            SpecialIndefinites special => nouns.Inflect(special.Words[(pronoun.Series, pronoun.Kind)], features),
+            InterrogativeIndefinites interrogative => Marked(interrogative.Markers[pronoun.Series]),
+            GenericNounIndefinites => Modified(language, pronoun.AsNoun, features),
+        };
     }
 
     /*
@@ -1498,14 +1496,14 @@ public static class Syntax
         var possessor = noun.Possessor.GetValueOrDefault();
         var possession = language.Possession;
         List<Word> possessed = [.. words];
-        if (possession.MarksPossessed)
+        if (possession.Agreement is { } agreement)
         {
             var root = language.Lexicon.Noun(noun.Meaning).Root;
             var at = possessed.FindIndex(w => w.Root == root);
             var (person, number) = AgreementOf(language, possessor);
-            possessed[at] = possession.Agree(possessed[at], person, number);
+            possessed[at] = agreement.Agree(possessed[at], person, number);
         }
-        if (possession.Marking == PossessiveMarking.Head && possessor.Value is Pronoun)
+        if (!possession.MarksPossessor && possession.MarksPossessed && possessor.Value is Pronoun)
         {
             return possessed;
         }

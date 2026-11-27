@@ -47,13 +47,23 @@ public enum IndefinitePronouns
     Mixed,
 }
 
-/// <summary>What the indefinite pronouns of one kind, a person, a thing or a place, are made from.</summary>
-public enum IndefiniteBase
-{
-    Interrogative,
-    GenericNoun,
-    Special,
-}
+/// <summary>
+/// What the indefinite pronouns of persons, or of things, places and times, are made from: question
+/// words, a generic noun, or words of their own.
+/// </summary>
+public union IndefiniteSource(InterrogativeIndefinites, GenericNounIndefinites, SpecialIndefinites);
+
+/// <summary>
+/// Question words, each with a marker for its series, as Japanese dare-ka 'who-INDF' and dare-mo
+/// 'who-every', which goes on the question word as an affix or a word.
+/// </summary>
+public record InterrogativeIndefinites(IReadOnlyDictionary<Quantifier, Exponent> Markers);
+
+/// <summary>A generic noun with its series' quantifier, as 'some person' is 'somebody'.</summary>
+public record GenericNounIndefinites;
+
+/// <summary>A word of its own for each series of each kind, as Latin aliquis 'someone'.</summary>
+public record SpecialIndefinites(IReadOnlyDictionary<(Quantifier Series, Ontology Kind), Lexeme> Words);
 
 /// <summary>
 /// Whether a negative indefinite like 'nobody' takes the verb's negation too, as WALS 115A counts
@@ -70,20 +80,13 @@ public enum NegativeIndefiniteNegation
 }
 
 /// <summary>
-/// A language's quantifiers and indefinite pronouns: a word for each quantifier, which goes before or
-/// after its noun; what 'someone', 'nothing' and the rest are made from, for persons and for things,
-/// places going as things do; for those made from question words, a marker for each series, as
-/// Japanese -ka and -mo, which goes on the question word as a word or an affix; for those of their
-/// own, a word for each; and whether a negative one takes the verb's negation too.
+/// A language's quantifiers and indefinite pronouns: what 'someone' and 'nobody' are made from, and
+/// what 'something', 'nowhere' and 'never' are, places and times going as things do; a word for each
+/// quantifier, which goes before or after its noun; and whether a negative indefinite takes the
+/// verb's negation too.
 /// </summary>
-/*
-  an indefinite made from a noun is that noun with its quantifier, as 'some person', so its series'
-  quantifiers are the language's quantifier words. The markers and words of their own are made
-  whatever is drawn, so that a spec can choose. A marker is an Affix or a Particle glossed with
-  its series
- */
-public record Indefinites(IndefiniteBase PersonBase, IndefiniteBase ThingBase, ExponentPosition MarkerPosition, IReadOnlyDictionary<Quantifier, Morpheme> Markers,
-    IReadOnlyDictionary<(Quantifier Series, Ontology Kind), Lexeme> Own, IReadOnlyDictionary<Quantifier, Lexeme> Quantifiers, bool QuantifiersBeforeNoun,
+//an indefinite made from a noun is that noun with its quantifier, so its series' quantifiers are the language's quantifier words
+public record Indefinites(IndefiniteSource Persons, IndefiniteSource Things, IReadOnlyDictionary<Quantifier, Lexeme> Quantifiers, bool QuantifiersBeforeNoun,
     NegativeIndefiniteNegation Negation)
 {
     /// <summary>The quantifiers that make indefinite pronouns, as 'someone', 'nobody' and 'everyone'.</summary>
@@ -101,15 +104,17 @@ public record Indefinites(IndefiniteBase PersonBase, IndefiniteBase ThingBase, E
         _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
     };
 
-    public IndefinitePronouns Type => (PersonBase, ThingBase) switch
+    /// <summary>What the indefinite pronouns are made from, as a spec names it.</summary>
+    public IndefinitePronouns Type => (Persons.Value, Things.Value) switch
     {
-        (IndefiniteBase.Interrogative, IndefiniteBase.Interrogative) => IndefinitePronouns.InterrogativeBased,
-        (IndefiniteBase.GenericNoun, IndefiniteBase.GenericNoun) => IndefinitePronouns.GenericNounBased,
-        (IndefiniteBase.Special, IndefiniteBase.Special) => IndefinitePronouns.Special,
+        (InterrogativeIndefinites, InterrogativeIndefinites) => IndefinitePronouns.InterrogativeBased,
+        (GenericNounIndefinites, GenericNounIndefinites) => IndefinitePronouns.GenericNounBased,
+        (SpecialIndefinites, SpecialIndefinites) => IndefinitePronouns.Special,
         _ => IndefinitePronouns.Mixed,
     };
 
-    public bool MarkersAreAffixes => MarkerPosition is ExponentPosition.Prefix or ExponentPosition.Suffix;
+    /// <summary>The indefinite pronouns' words of their own, where they have any.</summary>
+    public IEnumerable<Lexeme> Own => new[] { Persons.Value, Things.Value }.Distinct().OfType<SpecialIndefinites>().SelectMany(s => s.Words.Values);
 
     /// <summary>
     /// The roles an indefinite of this kind can fill, or null for any a noun can: a place says where,
@@ -124,10 +129,10 @@ public record Indefinites(IndefiniteBase PersonBase, IndefiniteBase ThingBase, E
     };
 
     /// <summary>What the indefinite pronouns of a kind are made from, places and times going as things do.</summary>
-    public IndefiniteBase BaseOf(Ontology kind) => kind switch
+    public IndefiniteSource SourceOf(Ontology kind) => kind switch
     {
-        Ontology.Person => PersonBase,
-        Ontology.Thing or Ontology.Place or Ontology.Time => ThingBase,
+        Ontology.Person => Persons,
+        Ontology.Thing or Ontology.Place or Ontology.Time => Things,
         _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
     };
 

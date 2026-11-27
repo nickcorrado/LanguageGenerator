@@ -56,9 +56,10 @@ public static partial class Generator
 
     /*
       how many distances, where the demonstrative goes, what agrees, and the forms: a short word or
-      affix for each distance, gender and number it agrees in, glossed with what it says; a stem of
-      its own for each distance standing alone; and words of their own for each place, all coined
-      whatever is drawn. Adnominal forms are a syllable even as affixes, so that one can stand alone
+      affix for each distance, gender and number it agrees in, glossed with what it says; for each
+      distance standing alone, the form beside a noun or a stem of its own; and for each place, the
+      demonstrative standing alone or a word of its own. Adnominal forms are a syllable even as
+      affixes, so that one can stand alone
       as a noun. An isolating language uses a word where an affix would go, on the same side, and a
       demonstrative that's an affix can't stand alone, so its pronouns have stems of their own
      */
@@ -98,9 +99,12 @@ public static partial class Generator
                 }
             }
         }
-        var adnominal = distances.ToDictionary(d => d, d => new Lexeme(CoinRoot(rand, phonology, cells[(d, genderValues[0], numberValues[0])].Form, d.Gloss), PartOfSpeech.Noun));
-        var own = distances.ToDictionary(d => d, d => new Lexeme(CoinRoot(rand, phonology, forms.Draw(() => GenerateForm(rand, phonology, 0, maxSyllables: 1)), d.Gloss), PartOfSpeech.Noun));
-        var places = distances.ToDictionary(d => d, d => new Lexeme(CoinRoot(rand, phonology, forms.Draw(() => GenerateForm(rand, phonology, 0, maxSyllables: 2)), PlaceGloss(d, contrast)), PartOfSpeech.Noun));
-        return new Demonstratives(contrast, position, cells, new PronominalDemonstratives(ownStem, adnominal, own), new PlaceDemonstratives(fromDemonstratives, places));
+        PronominalDemonstratives pronouns = ownStem
+            ? new OwnStems(distances.ToDictionary(d => d, d => new Lexeme(CoinRoot(rand, phonology, forms.Draw(() => GenerateForm(rand, phonology, 0, maxSyllables: 1)), d.Gloss), PartOfSpeech.Noun)))
+            : new SharedStems(distances.ToDictionary(d => d, d => new Lexeme(CoinRoot(rand, phonology, cells[(d, genderValues[0], numberValues[0])].Form, d.Gloss), PartOfSpeech.Noun)));
+        PlaceDemonstratives places = fromDemonstratives
+            ? new SharedPlaces()
+            : new OwnPlaces(distances.ToDictionary(d => d, d => new Lexeme(CoinRoot(rand, phonology, forms.Draw(() => GenerateForm(rand, phonology, 0, maxSyllables: 2)), PlaceGloss(d, contrast)), PartOfSpeech.Noun)));
+        return new Demonstratives(contrast, position, cells, pronouns, places);
     }
 }

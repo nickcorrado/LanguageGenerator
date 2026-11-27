@@ -106,17 +106,6 @@ public class ComplementationTests
         Assert.All(Draws(s => s.Inflecting()), c => Assert.True(c.Desiderative?.Value is null or Bound { Affix.Grammemes: [Volition] } or Free { Particle.Grammemes: [Volition] }));
     }
 
-    [Theory]
-    [InlineData(false, ComplementKind.Proposition)]
-    [InlineData(true, ComplementKind.Proposition)]
-    [InlineData(true, ComplementKind.Event)]
-    public void GenerateComplementation_ManyDraws_UseAnAffixExactlyForASuffix(bool objectFirst, ComplementKind kind)
-    {
-        var drawn = Draws(s => s.Inflecting().ObjectFirst(objectFirst));
-
-        Assert.All(drawn, c => Assert.Equal(c.MarkingOf(kind).Position == ComplementizerPosition.Suffix, c.MarkingOf(kind).Marker.Value is Affix));
-    }
-
     [Fact]
     public void GenerateComplementation_ManyDraws_MarkQuotationsWithTheComplementizerOnlyWhereThereIsOne() =>
         Assert.All(Draws(s => s), c => Assert.False(c.QuotativeKind == QuotativeKind.Complementizer && c.Proposition.Position == ComplementizerPosition.None));
@@ -236,7 +225,7 @@ public class ComplementationTests
 
         if (kind == QuotativeKind.Complementizer)
         {
-            Assert.Equal(language.Complementation.Proposition.Marker.Form, quotative.Word.Morphemes[0].Form);
+            Assert.Equal(language.Complementation.Proposition.Marker?.Marker.Form, quotative.Word.Morphemes[0].Form);
         }
     }
 
@@ -258,8 +247,8 @@ public class ComplementationTests
         Assert.All(Enumerable.Range(0, 10).Select(seed => Generator.Generate(seed, spec)), l =>
         {
             var c = l.Complementation;
-            Assert.True(c.Proposition is { Position: ComplementizerPosition.Final, Marker.Value: Particle, Balance: Balance.Either });
-            Assert.True(c.Event is { Position: ComplementizerPosition.Suffix, Marker.Value: Affix, Balance: Balance.Balanced });
+            Assert.True(c.Proposition is { Position: ComplementizerPosition.Final, Balance: Balance.Either });
+            Assert.True(c.Event is { Position: ComplementizerPosition.Suffix, Balance: Balance.Balanced });
             Assert.Equal(QuotativeKind.Complementizer, c.QuotativeKind);
             Assert.False(c.Last);
             Assert.IsType<Free>(c.Desiderative?.Value);
@@ -274,17 +263,25 @@ public class ComplementationTests
         var spec = LanguageSpec.Free.ObjectFirst(false).Inflecting().Fix(Settings.PropositionComplementizer, ComplementizerPosition.Suffix);
 
         Assert.All(Enumerable.Range(0, 5).Select(seed => Generator.Generate(seed, spec)), l =>
-            Assert.True(l.Complementation.Proposition is { Position: ComplementizerPosition.Suffix, Marker.Value: Affix }));
+            Assert.Equal(ComplementizerPosition.Suffix, l.Complementation.Proposition.Position));
     }
 
     [Fact]
-    public void Write_QuotativeComplementizerWhereThereIsNone_SaysOne()
+    public void Write_QuotativeComplementizerWhereThereIsNone_SaysOneWithTheEventsForm()
     {
-        var drawn = Draws(s => s).First(c => c.Proposition.Position == ComplementizerPosition.None);
+        var drawn = Draws(s => s).First(c => c.Proposition.Position == ComplementizerPosition.None && c.Event.Marker is not null);
         var written = Settings.Quotative.Write(drawn, [QuotativeKind.Complementizer]);
 
         Assert.Equal(ComplementizerPosition.Initial, written.Proposition.Position);
-        Assert.Equal(drawn.Proposition.Marker.Form, written.Proposition.Marker.Form);
+        Assert.Equal(drawn.Event.Marker?.Marker.Form, written.Proposition.Marker?.Marker.Form);
+    }
+
+    [Fact]
+    public void Write_ComplementizerWithNoFormToReuse_PassesTheDrawOver()
+    {
+        var drawn = Draws(s => s).First(c => c.Proposition.Marker is null && c.Event.Marker is null && c.Quotative is not { Value: Free });
+
+        Assert.Throws<NoFormException>(() => Settings.PropositionComplementizer.Write(drawn, [ComplementizerPosition.Initial]));
     }
 
     public static TheoryData<string, string> Impossible => new()

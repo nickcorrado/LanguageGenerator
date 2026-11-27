@@ -54,24 +54,15 @@ public static partial class Generator
 
     /*
       what the indefinite pronouns are made from, for persons and things, a mixed language making one
-      from question words and the other from nouns, either way around; the markers for question words,
-      on one side, an isolating language's always words; a word of its own for each indefinite; a word
-      for each quantifier, 'many' being the numerals' word for it where they have one; where they go;
+      from question words and the other from nouns, either way around; where they're made from question
+      words, a marker for each series, on one side, an isolating language's always words; where
+      they're words of their own, one for each; a word for each quantifier, 'many' being the numerals' word for it where they have one; where they go;
       and whether a negative indefinite takes the verb's negation too
      */
     public static Indefinites GenerateIndefinites(Random rand, MorphologicalProfile morphology, NumeralSystem numerals, Phonology phonology)
     {
-        var (personBase, thingBase) = Sampling.Categorical(rand, IndefinitePronounCounts) switch
-        {
-            IndefinitePronouns.InterrogativeBased => (IndefiniteBase.Interrogative, IndefiniteBase.Interrogative),
-            IndefinitePronouns.GenericNounBased => (IndefiniteBase.GenericNoun, IndefiniteBase.GenericNoun),
-            IndefinitePronouns.Special => (IndefiniteBase.Special, IndefiniteBase.Special),
-            _ => rand.NextDouble() < 0.5 ? (IndefiniteBase.GenericNoun, IndefiniteBase.Interrogative) : (IndefiniteBase.Interrogative, IndefiniteBase.GenericNoun),
-        };
-        var position = morphology.Fusion != Fusion.Isolating && rand.NextDouble() < IndefiniteAffixChance
-            ? (rand.NextDouble() < PrefixChance(morphology) ? ExponentPosition.Prefix : ExponentPosition.Suffix)
-            : (rand.NextDouble() < IndefiniteWordAfterChance ? ExponentPosition.FollowingParticle : ExponentPosition.PrecedingParticle);
-        var isAffix = position is ExponentPosition.Prefix or ExponentPosition.Suffix;
+        var type = Sampling.Categorical(rand, IndefinitePronounCounts);
+        var personsFromNoun = type == IndefinitePronouns.Mixed && rand.NextDouble() < 0.5;
 
         //the numerals' words are taken, 'many' among them, since a quantifier goes where they do
         var forms = new DistinctForms();
@@ -79,7 +70,40 @@ public static partial class Generator
         {
             forms.Take(word.Root.Form);
         }
-        var markers = Indefinites.Series.ToDictionary(s => s, s =>
+        //persons and things made from question words share their series' markers
+        InterrogativeIndefinites? interrogative = null;
+        InterrogativeIndefinites Interrogative() => interrogative ??= InterrogativeMarkers(rand, morphology, phonology, forms);
+        SpecialIndefinites Special(params Ontology[] kinds) => new((
+            from series in Indefinites.Series
+            from kind in kinds
+            select (series, kind)).ToDictionary(k => k, k =>
+                new Lexeme(CoinRoot(rand, phonology, forms.Draw(() => GenerateForm(rand, phonology, 0, maxSyllables: 2)), IndefiniteGloss(k.series, k.kind)), PartOfSpeech.Noun)));
+        IndefiniteSource Source(bool fromNoun, params Ontology[] kinds) => type switch
+        {
+            IndefinitePronouns.InterrogativeBased => Interrogative(),
+            IndefinitePronouns.GenericNounBased => new GenericNounIndefinites(),
+            IndefinitePronouns.Special => Special(kinds),
+            IndefinitePronouns.Mixed => fromNoun ? new GenericNounIndefinites() : Interrogative(),
+            _ => throw new ArgumentOutOfRangeException(nameof(type), type, null),
+        };
+        var persons = Source(personsFromNoun, Ontology.Person);
+        var things = Source(!personsFromNoun, Ontology.Thing, Ontology.Place, Ontology.Time);
+
+        var quantifiers = Enum.GetValues<Quantifier>().ToDictionary(q => q, q => q == Quantifier.Many && numerals.Many is { } many ? many
+            : new Lexeme(CoinRoot(rand, phonology, forms.Draw(() => GenerateForm(rand, phonology, 0, maxSyllables: 2)), q.ToString().ToLowerInvariant()), PartOfSpeech.Adjective));
+        var beforeNoun = rand.NextDouble() < QuantifierWithNumeralChance ? numerals.BeforeNoun : !numerals.BeforeNoun;
+        var negation = Sampling.Categorical(rand, NegativeIndefiniteCounts);
+        return new Indefinites(persons, things, quantifiers, beforeNoun, negation);
+    }
+
+    //a marker for each series, an affix or a word as the language goes, all on one side of the question word
+    private static InterrogativeIndefinites InterrogativeMarkers(Random rand, MorphologicalProfile morphology, Phonology phonology, DistinctForms forms)
+    {
+        var isAffix = morphology.Fusion != Fusion.Isolating && rand.NextDouble() < IndefiniteAffixChance;
+        var side = isAffix
+            ? (rand.NextDouble() < PrefixChance(morphology) ? Side.Before : Side.After)
+            : (rand.NextDouble() < IndefiniteWordAfterChance ? Side.After : Side.Before);
+        return new(Indefinites.Series.ToDictionary(s => s, s =>
         {
             var form = forms.Draw(() => MarkerForm(rand, isAffix, phonology));
             Grammeme meaning = s switch
@@ -88,27 +112,7 @@ public static partial class Generator
                 Quantifier.No => Polarity.Negative,
                 _ => Quantification.Universal,
             };
-            return isAffix ? (Morpheme)CoinAffix(rand, phonology, form, [meaning]) : new Particle(form, [meaning]);
-        });
-        var own = new Dictionary<(Quantifier, Ontology), Lexeme>();
-        void Own(Quantifier series, Ontology kind) =>
-            own[(series, kind)] = new Lexeme(CoinRoot(rand, phonology, forms.Draw(() => GenerateForm(rand, phonology, 0, maxSyllables: 2)), IndefiniteGloss(series, kind)), PartOfSpeech.Noun);
-        foreach (var series in Indefinites.Series)
-        {
-            foreach (var kind in new[] { Ontology.Person, Ontology.Thing, Ontology.Place })
-            {
-                Own(series, kind);
-            }
-        }
-        var quantifiers = Enum.GetValues<Quantifier>().ToDictionary(q => q, q => q == Quantifier.Many && numerals.Many is { } many ? many
-            : new Lexeme(CoinRoot(rand, phonology, forms.Draw(() => GenerateForm(rand, phonology, 0, maxSyllables: 2)), q.ToString().ToLowerInvariant()), PartOfSpeech.Adjective));
-        var beforeNoun = rand.NextDouble() < QuantifierWithNumeralChance ? numerals.BeforeNoun : !numerals.BeforeNoun;
-        var negation = Sampling.Categorical(rand, NegativeIndefiniteCounts);
-        //times were added later, so they're drawn last, leaving what was drawn before as it was
-        foreach (var series in Indefinites.Series)
-        {
-            Own(series, Ontology.Time);
-        }
-        return new Indefinites(personBase, thingBase, position, markers, own, quantifiers, beforeNoun, negation);
+            return isAffix ? (Exponent)new Bound(CoinAffix(rand, phonology, form, [meaning]), side) : new Free(new Particle(form, [meaning]), side);
+        }));
     }
 }

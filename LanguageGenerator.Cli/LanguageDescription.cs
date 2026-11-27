@@ -113,35 +113,39 @@ public static class LanguageDescription
             ExponentPosition.FollowingParticle => "after the noun",
             _ => "on the noun",
         };
-        var standing = demonstratives.Pronouns.OwnStem
+        var standing = demonstratives.Pronouns.Value is OwnStems
             ? $"stems of their own standing alone ({string.Join(", ", demonstratives.Distances.Select(d => $"{d.Gloss} {Stem(demonstratives.Pronoun(d))}"))})"
             : "the same standing alone";
-        var places = demonstratives.Places.FromDemonstratives ? "made from the demonstratives"
+        var places = demonstratives.Places.Value is SharedPlaces ? "made from the demonstratives"
             : $"words of their own ({string.Join(", ", demonstratives.Distances.Select(d => $"{demonstratives.Place(d).Root.Meaning} {Stem(demonstratives.Place(d))}"))})";
         output.WriteLine($"Demonstratives: {demonstratives.Contrast}, {adnominal}, {where}; {standing}; 'here' and 'there' {places}");
 
         var indefinites = lang.Indefinites;
-        string Kind(Ontology kind) => indefinites.BaseOf(kind) switch
+        string Kind(Ontology kind) => indefinites.SourceOf(kind).Value switch
         {
-            IndefiniteBase.Interrogative => "question words",
-            IndefiniteBase.GenericNoun => $"'{Indefinites.NounFor(kind)}'",
+            InterrogativeIndefinites => "question words",
+            GenericNounIndefinites => $"'{Indefinites.NounFor(kind)}'",
             _ => "words of their own",
         };
-        var markers = string.Join(", ", indefinites.Markers.Select(m =>
-        {
-            var spelled = m.Value.Spell(orthography);
-            var form = indefinites.MarkerPosition switch { ExponentPosition.Prefix => $"{spelled}-", ExponentPosition.Suffix => $"-{spelled}", _ => spelled };
-            return $"{form} ({m.Key.ToString().ToLowerInvariant()})";
-        }));
-        var markerWhere = indefinites.MarkerPosition switch
-        {
-            ExponentPosition.PrecedingParticle => " before them",
-            ExponentPosition.FollowingParticle => " after them",
-            _ => "",
-        };
-        var made = indefinites.PersonBase == indefinites.ThingBase ? $"made from {Kind(Ontology.Person)}"
+        var made = indefinites.Persons.Value?.GetType() == indefinites.Things.Value?.GetType() ? $"made from {Kind(Ontology.Person)}"
             : $"'someone' made from {Kind(Ontology.Person)} and 'something' from {Kind(Ontology.Thing)}";
-        var indefiniteMarking = indefinites.Type is IndefinitePronouns.GenericNounBased or IndefinitePronouns.Special ? "" : $", marked {markers}{markerWhere}";
+        var indefiniteMarking = "";
+        if ((indefinites.Persons.Value as InterrogativeIndefinites ?? indefinites.Things.Value as InterrogativeIndefinites) is { } interrogative)
+        {
+            var markers = string.Join(", ", interrogative.Markers.Select(m =>
+            {
+                var spelled = m.Value.Marker.Spell(orthography);
+                var form = m.Value.Position switch { ExponentPosition.Prefix => $"{spelled}-", ExponentPosition.Suffix => $"-{spelled}", _ => spelled };
+                return $"{form} ({m.Key.ToString().ToLowerInvariant()})";
+            }));
+            var markerWhere = interrogative.Markers.Values.First().Position switch
+            {
+                ExponentPosition.PrecedingParticle => " before them",
+                ExponentPosition.FollowingParticle => " after them",
+                _ => "",
+            };
+            indefiniteMarking = $", marked {markers}{markerWhere}";
+        }
         var negated = indefinites.Negation switch
         {
             NegativeIndefiniteNegation.Always => "'nobody' takes the verb's negation too",
@@ -251,13 +255,11 @@ public static class LanguageDescription
         string Complements(ComplementKind kind)
         {
             var marking = complementation.MarkingOf(kind);
-            var marker = marking.Marker.Spell(orthography);
-            var form = marking.Position switch
+            var form = marking.Marker is not { } complementizer ? "unmarked" : complementizer.Position switch
             {
-                ComplementizerPosition.None => "unmarked",
-                ComplementizerPosition.Suffix => $"-{marker}",
-                ComplementizerPosition.Initial => $"{marker} …",
-                _ => $"… {marker}",
+                ExponentPosition.Suffix => $"-{complementizer.Marker.Spell(orthography)}",
+                ExponentPosition.PrecedingParticle => $"{complementizer.Marker.Spell(orthography)} …",
+                _ => $"… {complementizer.Marker.Spell(orthography)}",
             };
             var balance = marking.Balance switch { Balance.Deranked => ", bare verb", Balance.Either => ", bare verb if the subject is shared", _ => "" };
             var role = marking.MarkedAs is { } r && marking.Balance != Balance.Balanced ? $", marked like the {(r == Role.DirectObject ? "object" : r.ToString().ToLowerInvariant())} when bare" : "";
@@ -287,7 +289,7 @@ public static class LanguageDescription
             Particle particle => $"marked by {((Morpheme)particle).Spell(orthography)} beside the noun",
             _ => "unmarked",
         };
-        var relativePronoun = relativization.Pronoun.FromQuestionWords ? "the question words" : SpelledWord(relativization.Pronoun.Own);
+        var relativePronoun = relativization.Pronoun.Value is OwnRelativePronoun own ? SpelledWord(own.Word) : "the question words";
         output.WriteLine($"Relative clauses: {(relativization.BeforeNoun ? "before" : "after")} the noun, {marked}; subjects by {Strategy(relativization.Subject)}, " +
             $"objects by {Strategy(relativization.Object)}, obliques by {Strategy(relativization.Oblique)}; relative pronoun {relativePronoun}");
         output.WriteLine("Comparison: " + lang.Comparison switch
@@ -360,32 +362,29 @@ public static class LanguageDescription
         output.WriteLine($"Numerals ({counting}; {(numerals.BeforeNoun ? "before" : "after")} the noun{(numerals.NounStaysSingular ? ", which stays singular" : "")}):");
         output.WriteLine("  " + string.Join(", ", ((int[])[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 20, 37, 100]).Select(n => $"{n} {Say(n)}")));
         var ordinals = numerals.Ordinals;
-        var marking = ordinals.Marking switch
+        var marking = ordinals.Marker switch
         {
-            (ExponentPosition.Prefix, var marker) => $"{marker.Spell(orthography)}- before the numeral",
-            (ExponentPosition.Suffix, var marker) => $"-{marker.Spell(orthography)} after the numeral",
-            (ExponentPosition.PrecedingParticle, var marker) => $"{marker.Spell(orthography)} before the numeral",
-            (ExponentPosition.FollowingParticle, var marker) => $"{marker.Spell(orthography)} after the numeral",
+            { Position: ExponentPosition.Prefix } m => $"{m.Marker.Spell(orthography)}- before the numeral",
+            { Position: ExponentPosition.Suffix } m => $"-{m.Marker.Spell(orthography)} after the numeral",
+            { Position: ExponentPosition.PrecedingParticle } m => $"{m.Marker.Spell(orthography)} before the numeral",
+            { Position: ExponentPosition.FollowingParticle } m => $"{m.Marker.Spell(orthography)} after the numeral",
             _ => "the cardinal",
         };
         string SayOrdinal(int n) => string.Join(" ", numerals.SayOrdinal(n).Select(w => phonology.Realize(w).Spell(orthography)));
-        var suppletive = ordinals.Type switch
-        {
-            OrdinalType.FirstThenCardinal or OrdinalType.FirstThenDerived => "a word for 'first', then ",
-            OrdinalType.FirstSecondThenDerived => "words for 'first' and 'second', then ",
-            _ => "",
-        };
+        var suppletive = ordinals.Second is not null ? "words for 'first' and 'second', then "
+            : ordinals.First is not null ? "a word for 'first', then "
+            : "";
         output.WriteLine($"Ordinals ({suppletive}{marking}):");
         output.WriteLine("  " + string.Join(", ", ((int[])[1, 2, 3, 4, 10, 37]).Select(n => $"{n}{OrdinalEnding(n)} {SayOrdinal(n)}")));
         var possession = lang.Possession;
-        var possessedMarkers = possession.Affixes is null ? ""
-            : $" ({string.Join(", ", possession.Affixes.Select(a => $"{Grammeme.JoinGlosses(a.Value.Grammemes)} {(possession.AffixPosition == ExponentPosition.Prefix ? $"{((Morpheme)a.Value).Spell(orthography)}-" : $"-{((Morpheme)a.Value).Spell(orthography)}")}"))})";
-        output.WriteLine($"Possessors go {(possession.PossessorFirst ? "before" : "after")} the noun, " + possession.Marking switch
+        var possessedMarkers = possession.Agreement is not { } agreement ? ""
+            : $" ({string.Join(", ", agreement.Affixes.Select(a => $"{Grammeme.JoinGlosses(a.Value.Grammemes)} {(agreement.Side == Side.Before ? $"{((Morpheme)a.Value).Spell(orthography)}-" : $"-{((Morpheme)a.Value).Spell(orthography)}")}"))})";
+        output.WriteLine($"Possessors go {(possession.PossessorFirst ? "before" : "after")} the noun, " + (possession.MarksPossessor, possession.MarksPossessed) switch
         {
-            PossessiveMarking.Dependent => $"marked {lang.RoleMarkers[Role.Possessor]}",
-            PossessiveMarking.Head => $"and the noun agrees with them{possessedMarkers}",
-            PossessiveMarking.Double => $"marked {lang.RoleMarkers[Role.Possessor]}, and the noun agrees with them{possessedMarkers}",
-            _ => "unmarked",
+            (true, false) => $"marked {lang.RoleMarkers[Role.Possessor]}",
+            (false, true) => $"and the noun agrees with them{possessedMarkers}",
+            (true, true) => $"marked {lang.RoleMarkers[Role.Possessor]}, and the noun agrees with them{possessedMarkers}",
+            (false, false) => "unmarked",
         });
     }
 

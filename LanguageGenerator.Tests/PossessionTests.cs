@@ -23,8 +23,7 @@ public class PossessionTests
         var drawn = Enumerable.Range(0, 1000).Select(_ => Generator.GeneratePossession(rand, language.MorphologicalProfile, language.WordOrder, language.Phonology)).ToList();
 
         Assert.Contains(drawn, p => p.MarksPossessed);
-        Assert.All(drawn, p => Assert.Equal(p.MarksPossessed, p.Affixes is not null));
-        Assert.All(drawn.Where(p => p.Affixes is not null), p => Assert.Equal(6, p.Affixes!.Count));
+        Assert.All(drawn.Select(p => p.Agreement).OfType<PossessedAgreement>(), a => Assert.Equal(6, a.Affixes.Count));
     }
 
     [Fact]
@@ -79,7 +78,7 @@ public class PossessionTests
             var sentence = Slept(language, Me);
             var pronoun = IndexOf(sentence, language.Pronouns.For(Me).Root);
 
-            Assert.Equal(language.Possession.Marking != PossessiveMarking.Head, pronoun >= 0);
+            Assert.Equal(language.Possession is not { MarksPossessor: false, MarksPossessed: true }, pronoun >= 0);
             Assert.Equal(language.Possession.MarksPossessed, sentence.Words[IndexOf(sentence, "dog")].Gloss.Contains("1SG"));
         }
     }

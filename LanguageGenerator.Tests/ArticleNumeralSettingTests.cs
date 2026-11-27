@@ -14,8 +14,7 @@ public class ArticleNumeralSettingTests
             Assert.Equal(NumeralBase.Vigesimal, l.Numerals.Base);
             Assert.Contains(20, l.Numerals.Words.Keys);
             Assert.False(l.Numerals.BeforeNoun);
-            Assert.Equal(OrdinalType.FirstThenCardinal, l.Numerals.Ordinals.Type);
-            Assert.NotNull(l.Numerals.Ordinals.First);
+            Assert.IsType<FirstThenCardinalOrdinals>(l.Numerals.Ordinals.Value);
         });
     }
 

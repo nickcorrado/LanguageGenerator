@@ -37,7 +37,48 @@ public enum OrdinalType
   first word and a suffix on its last. Only the ordinal alone is suppletive: 21st is twenty-one-th,
   as in German einundzwanzigste, not twenty-first
  */
-public record Ordinals(OrdinalType Type, Lexeme? First, Lexeme? Second, (ExponentPosition Position, Morpheme Marker)? Marking);
+public union Ordinals(CardinalOrdinals, FirstThenCardinalOrdinals, DerivedOrdinals, FirstThenDerivedOrdinals, FirstSecondThenDerivedOrdinals)
+{
+    /// <summary>Its word of its own for 'first', where it has one.</summary>
+    public Lexeme? First => this switch
+    {
+        CardinalOrdinals or DerivedOrdinals => null,
+        FirstThenCardinalOrdinals o => o.First,
+        FirstThenDerivedOrdinals o => o.First,
+        FirstSecondThenDerivedOrdinals o => o.First,
+    };
+
+    /// <summary>Its word of its own for 'second', where it has one.</summary>
+    public Lexeme? Second => this switch
+    {
+        CardinalOrdinals or FirstThenCardinalOrdinals or DerivedOrdinals or FirstThenDerivedOrdinals => null,
+        FirstSecondThenDerivedOrdinals o => o.Second,
+    };
+
+    /// <summary>The marker that builds an ordinal from its cardinal, where it builds them.</summary>
+    public Exponent? Marker => this switch
+    {
+        CardinalOrdinals or FirstThenCardinalOrdinals => (Exponent?)null,
+        DerivedOrdinals o => o.Marker,
+        FirstThenDerivedOrdinals o => o.Marker,
+        FirstSecondThenDerivedOrdinals o => o.Marker,
+    };
+}
+
+/// <summary>No ordinals of their own: the cardinal does, as in 'the three day'.</summary>
+public record CardinalOrdinals;
+
+/// <summary>A word for 'first', and cardinals after it.</summary>
+public record FirstThenCardinalOrdinals(Lexeme First);
+
+/// <summary>Every ordinal built from its cardinal, 'one-th', 'two-th', 'three-th'.</summary>
+public record DerivedOrdinals(Exponent Marker);
+
+/// <summary>A word for 'first', and the rest built from cardinals, the commonest type.</summary>
+public record FirstThenDerivedOrdinals(Lexeme First, Exponent Marker);
+
+/// <summary>Words for 'first' and 'second', and the rest built from cardinals, as in English.</summary>
+public record FirstSecondThenDerivedOrdinals(Lexeme First, Lexeme Second, Exponent Marker);
 
 /// <summary>A language's numerals, each a word of its own.</summary>
 /*
@@ -61,11 +102,12 @@ public record NumeralSystem(NumeralBase Base, int Limit, IReadOnlyDictionary<int
             return [new Word([second.Root])];
         }
         List<Word> words = [.. Say(number).Select(n => new Word([n.Root]))];
-        if (Ordinals.Marking is not (var position, var marker))
+        if (Ordinals.Marker is not { } exponent)
         {
             return words;
         }
-        switch (position)
+        var marker = exponent.Marker;
+        switch (exponent.Position)
         {
             case ExponentPosition.Prefix:
                 words[0] = words[0] with { Morphemes = [marker, .. words[0].Morphemes] };
@@ -77,8 +119,8 @@ public record NumeralSystem(NumeralBase Base, int Limit, IReadOnlyDictionary<int
                 return [Word.Marker(marker, Lean.Forward), .. words];
             case ExponentPosition.FollowingParticle:
                 return [.. words, Word.Marker(marker, Lean.Back)];
-            default:
-                throw new ArgumentOutOfRangeException(nameof(position), position, null);
+            case var position:
+                throw new ArgumentOutOfRangeException(nameof(exponent), position, null);
         }
     }
 

@@ -423,10 +423,10 @@ public static class Settings
 
     public static Stage<Possession> PossessionStage { get; } = new("possession", l => l.Possession, null);
     public static Setting<Possession, PossessiveMarking> PossessiveMarking { get; } = PossessionStage.Declare("possession", Nouns,
-        p => p.Marking, SettingWrites.WithPossession, Choice<PossessiveMarking>.Of(Enum.GetValues<PossessiveMarking>()));
+        SettingWrites.MarkingOf, SettingWrites.WithPossession, Choice<PossessiveMarking>.Of(Enum.GetValues<PossessiveMarking>()));
     /// <summary>Which side of the possessed noun its affix agreeing with the possessor goes on, where there's one.</summary>
     public static Setting<Possession, ExponentPosition> PossessiveAffixes { get; } = PossessionStage.Declare("possessive-affixes", Nouns,
-        p => p.AffixPosition, (p, position) => p with { AffixPosition = position },
+        SettingWrites.PossessiveAffixesOf, SettingWrites.WithPossessiveAffixes,
         new Choice<ExponentPosition>([("Prefix", ExponentPosition.Prefix), ("Suffix", ExponentPosition.Suffix)]));
 
     public static Stage<GenderSystem> GenderStage { get; } = new("genders", l => l.Genders, null);
@@ -444,7 +444,7 @@ public static class Settings
         n => n.BeforeNoun, (n, before) => n with { BeforeNoun = before }, YesNo);
     /// <summary>How 'first', 'second' and the rest are said.</summary>
     public static Setting<NumeralSystem, OrdinalType> Ordinals { get; } = NumeralStage.Declare("ordinals", Nouns,
-        n => n.Ordinals.Type, SettingWrites.Unwritable<NumeralSystem, OrdinalType>("Ordinals of another type"), Choice<OrdinalType>.Of(Enum.GetValues<OrdinalType>()));
+        n => SettingWrites.TypeOf(n.Ordinals), SettingWrites.Unwritable<NumeralSystem, OrdinalType>("Ordinals of another type"), Choice<OrdinalType>.Of(Enum.GetValues<OrdinalType>()));
 
     public static Stage<Demonstratives> DemonstrativeStage { get; } = new("demonstratives", l => l.Demonstratives, null);
     /// <summary>How many distances demonstratives tell apart, as WALS 41A has it.</summary>
@@ -461,10 +461,10 @@ public static class Settings
         d => d.AgreesInGender, SettingWrites.WithDemonstrativeGenderAgreement, YesNo);
     /// <summary>Whether a demonstrative standing alone has a stem of its own, rather than being the one beside a noun, as WALS 42A has it.</summary>
     public static Setting<Demonstratives, bool> DemonstrativePronounsOwnStem { get; } = DemonstrativeStage.Declare("demonstrative-pronouns-own-stem", Nouns,
-        d => d.Pronouns.OwnStem, (d, own) => d with { Pronouns = d.Pronouns with { OwnStem = own } }, YesNo);
+        d => d.Pronouns.Value is OwnStems, SettingWrites.WithOwnStems, YesNo);
     /// <summary>Whether 'here' and 'there' are the demonstratives standing alone, marked as a place is, rather than words of their own.</summary>
     public static Setting<Demonstratives, bool> PlacesFromDemonstratives { get; } = DemonstrativeStage.Declare("here-from-demonstratives", Nouns,
-        d => d.Places.FromDemonstratives, (d, from) => d with { Places = d.Places with { FromDemonstratives = from } }, YesNo);
+        d => d.Places.Value is SharedPlaces, SettingWrites.WithPlacesFromDemonstratives, YesNo);
 
     public static Stage<Articles> ArticleStage { get; } = new("articles", l => l.Articles, null);
     public static Setting<Articles, DefiniteArticle> DefiniteArticle { get; } = ArticleStage.Declare("definite-article", Nouns,

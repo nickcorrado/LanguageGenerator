@@ -135,7 +135,7 @@ public class RelativeClauseTests
         var sentence = Syntax.Realize(language, SeesWhatTheCatAte(), "x");
         var pronoun = language.Relativization.Pronoun;
         var words = sentence.Words.Select(w => w.Word.Root).ToList();
-        var at = words.FindIndex(r => r is not null && (r == pronoun.Own.Root || language.Questions.Words.Values.Any(q => q.Root == r)));
+        var at = words.FindIndex(r => r is not null && (pronoun.Value is OwnRelativePronoun own && r == own.Word.Root || language.Questions.Words.Values.Any(q => q.Root == r)));
 
         Assert.True(at >= 0);
         var clause = new[] { at, IndexOf(sentence, "cat"), IndexOf(sentence, "eat") };
