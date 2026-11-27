@@ -10,9 +10,9 @@ public class ComparisonTests
 
     //'the dog is bigger than the cats', in only the basic meanings, since coining new ones would add
     //to the shared sample's lexicons
-    private static Sentence Bigger(Language l) => Syntax.Realize(l, Comparing(DogIsBig, Cats), "x");
+    private static Rendering Bigger(Language l) => Syntax.Realize(l, Comparing(DogIsBig, Cats), "x");
 
-    private static Statement Parsed(string gloss) => Stated(Assert.Single(ClauseFile.Parse($"x\n  {gloss}")).Utterance);
+    private static Sentence Parsed(string gloss) => Stated(Assert.Single(ClauseFile.Parse($"x\n  {gloss}")).Utterance);
 
     [Fact]
     public void Generate_Particles_GoOnTheirAdpositionsSide() =>
@@ -33,7 +33,7 @@ public class ComparisonTests
     {
         var addressed = Addressed(Line("be  subject:2SG  adjective:tall.CMPR  standard:1SG  addressee:marta"));
 
-        Assert.Equal(new Pronoun(Person.First, Number.Singular), Assert.IsType<Compared>(PredicateOf<Being>(StatementOf(addressed)).Attribute.Value).Standard.Value);
+        Assert.Equal(new Pronoun(Person.First, Number.Singular), Assert.IsType<Compared>(PredicateOf<Being>(SentenceOf(addressed)).Attribute.Value).Standard.Value);
     }
 
     [Theory]
@@ -153,11 +153,11 @@ public class ComparisonTests
         });
 
     //'the dog is bigger', with nothing it's compared with
-    private static Sentence BiggerAlone(Language l) => Syntax.Realize(l, Comparing(DogIsBig, null), "x");
+    private static Rendering BiggerAlone(Language l) => Syntax.Realize(l, Comparing(DogIsBig, null), "x");
 
     //where the comparative's marker is in a sentence: next to the adjective's root in its word, or a
     //word right beside it. Null if it isn't there
-    private static bool? Marked(Language l, Sentence sentence)
+    private static bool? Marked(Language l, Rendering sentence)
     {
         var big = IndexOf(sentence, "big");
         switch (l.Degree.Marker.Value)
@@ -201,7 +201,7 @@ public class ComparisonTests
 
 
     //'the dog walks like a cat'
-    private static Sentence WalksLikeACat(Language l) => Syntax.Realize(l, DogWalks.WithEvent(e => e with { Obliques = [new(Role.Similative, BareNoun("cat", Number.Singular), Configuration.At)] }), "x");
+    private static Rendering WalksLikeACat(Language l) => Syntax.Realize(l, DogWalks.WithEvent(e => e with { Obliques = [new(Role.Similative, BareNoun("cat", Number.Singular), Configuration.At)] }), "x");
 
     [Fact]
     public void Generate_SimilativeWords_GoOnTheirAdpositionsSide() =>

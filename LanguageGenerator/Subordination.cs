@@ -100,4 +100,4 @@ public record Subordination(IReadOnlyDictionary<Subordinator, SubordinatorMarkin
 /// SharesSubject says the subordinate clause's subject wasn't said, but taken from the main clause,
 /// as a purpose clause's is in 'to cross the river, you need a rope'.
 /// </summary>
-public record Subordinated(Statement Main, Subordinator Subordinator, Statement Clause, bool SharesSubject);
+public record Subordinated(Sentence Main, Subordinator Subordinator, Sentence Clause, bool SharesSubject);

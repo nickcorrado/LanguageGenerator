@@ -43,8 +43,8 @@ internal static class Templates
 //finding words in a realized sentence, by meaning or by root
 internal static class Sentences
 {
-    public static int IndexOf(Sentence sentence, string meaning) => sentence.Words.ToList().FindIndex(w => w.Word.Root?.Meaning == meaning);
-    public static int IndexOf(Sentence sentence, Root root) => sentence.Words.ToList().FindIndex(w => w.Word.Root == root);
+    public static int IndexOf(Rendering sentence, string meaning) => sentence.Words.ToList().FindIndex(w => w.Word.Root?.Meaning == meaning);
+    public static int IndexOf(Rendering sentence, Root root) => sentence.Words.ToList().FindIndex(w => w.Word.Root == root);
 }
 
 /*
@@ -93,8 +93,8 @@ internal static class Clauses
     };
 
     //what a line or a quotation states, where it's a statement said to no one
-    public static Statement Stated(Utterance utterance) => utterance.Value is Message { Addressee: null } message
-        ? StatementOf(message)
+    public static Sentence Stated(Utterance utterance) => utterance.Value is Message { Addressee: null } message
+        ? SentenceOf(message)
         : throw new Xunit.Sdk.XunitException($"Expected a statement said to no one, but got {utterance.Value}.");
 
     //a line said to someone, with who it's said to
@@ -103,7 +103,7 @@ internal static class Clauses
         : throw new Xunit.Sdk.XunitException($"Expected a message said to someone, but got {utterance.Value}.");
 
     //what a message states, where it's a statement and not a fragment
-    public static Statement StatementOf(Message message) => message.Content.Value is Statement statement
+    public static Sentence SentenceOf(Message message) => message.Content.Value is Sentence statement
         ? statement
         : throw new Xunit.Sdk.XunitException($"Expected a statement, but got {message.Content.Value}.");
 
@@ -164,12 +164,12 @@ internal static class Clauses
     };
 
     //a statement's clause, its event, its predicate, its sentence type and the proposition it states or asks, where it has each of these
-    public static Clause ClauseOf(Statement statement) => Assert.IsType<Clause>(statement.Value);
-    public static Event EventOf(Statement statement) => ClauseOf(statement).Event;
-    public static T PredicateOf<T>(Statement statement) => Assert.IsType<T>(EventOf(statement).Predicate.Value);
-    public static T ForceOf<T>(Statement statement) => Assert.IsType<T>(ClauseOf(statement).Value);
+    public static Clause ClauseOf(Sentence statement) => Assert.IsType<Clause>(statement.Value);
+    public static Event EventOf(Sentence statement) => ClauseOf(statement).Event;
+    public static T PredicateOf<T>(Sentence statement) => Assert.IsType<T>(EventOf(statement).Predicate.Value);
+    public static T ForceOf<T>(Sentence statement) => Assert.IsType<T>(ClauseOf(statement).Value);
     //the aspect over a statement's event, or the unmarked one where it has none
-    public static Aspect AspectOf(Statement statement) => AspectOf(ClauseOf(statement).StateOfAffairs);
+    public static Aspect AspectOf(Sentence statement) => AspectOf(ClauseOf(statement).StateOfAffairs);
 
     private static Aspect AspectOf(StateOfAffairs layers) => layers switch
     {
@@ -180,7 +180,7 @@ internal static class Clauses
         Coordinated<StateOfAffairs> => throw new Xunit.Sdk.XunitException("Joined states of affairs each have an aspect of their own."),
     };
 
-    public static Proposition PropositionOf(Statement statement) => ClauseOf(statement).Value switch
+    public static Proposition PropositionOf(Sentence statement) => ClauseOf(statement).Value switch
     {
         Declarative stated => stated.Propositional.Proposition,
         Interrogative asked => asked.Propositional.Proposition,
@@ -188,7 +188,7 @@ internal static class Clauses
     };
 
     //the judgment over what a statement states or asks, if it has one
-    public static EpistemicModality? JudgmentOf(Statement statement) => ClauseOf(statement).Value switch
+    public static EpistemicModality? JudgmentOf(Sentence statement) => ClauseOf(statement).Value switch
     {
         Declarative stated => JudgmentOf(stated.Propositional),
         Interrogative asked => JudgmentOf(asked.Propositional),

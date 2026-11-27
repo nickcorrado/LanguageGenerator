@@ -9,7 +9,7 @@
 /// A noun or an indefinite pronoun, and a relative clause saying more of it, if it has one, as in
 /// 'the net she was mending' or 'nobody who goes into the forest'.
 /// </summary>
-public record NounPhrase(Nominal Head, Statement? Relative);
+public record NounPhrase(Nominal Head, Sentence? Relative);
 
 /// <summary>What a noun phrase is of: a noun with what modifies it, or an indefinite pronoun.</summary>
 public union Nominal(Noun, IndefinitePronoun)
@@ -73,18 +73,18 @@ public record Oblique(Role Role, Argument Argument, Configuration Configuration)
 
 public static class Syntax
 {
-    public static Sentence Realize(Language language, Statement statement, string translation) => Sentence(language, Words(language, statement).Words, translation);
+    public static Rendering Realize(Language language, Sentence statement, string translation) => Rendering(language, Words(language, statement).Words, translation);
 
     /*
       a heading is its label, then its title, each as a noun is cited, said apart as phrases of their
       own, as a pause comes between them, which is written as a colon, and is said to no one.
       Anything else is said as one phrase
      */
-    public static Sentence Realize(Language language, Utterance utterance, string translation)
+    public static Rendering Realize(Language language, Utterance utterance, string translation)
     {
         if (utterance.Value is not Message { Content.Value: Fragment { Value: Heading heading } } message)
         {
-            return Sentence(language, Words(language, utterance).Words, translation);
+            return Rendering(language, Words(language, utterance).Words, translation);
         }
         if (message.Addressee is not null)
         {
@@ -122,7 +122,7 @@ public static class Syntax
 
     private static ClauseWords Words(Language language, Content content) => content switch
     {
-        Statement statement => Words(language, statement),
+        Sentence statement => Words(language, statement),
         Fragment fragment => new(Words(language, fragment), null),
     };
 
@@ -149,14 +149,14 @@ public static class Syntax
 
     //a statement's words, before they're sounded out, and its finite verb, so that a statement
     //inside another can be marked as one
-    private static ClauseWords Words(Language language, Statement statement) => statement switch
+    private static ClauseWords Words(Language language, Sentence statement) => statement switch
     {
         Clause c => Words(language, c),
-        Coordinated<Statement> c => Words(language, c),
+        Coordinated<Sentence> c => Words(language, c),
         Subordinated s => Words(language, s),
     };
 
-    public static Sentence Realize(Language language, Clause clause, string translation) => Sentence(language, Words(language, clause).Words, translation);
+    public static Rendering Realize(Language language, Clause clause, string translation) => Rendering(language, Words(language, clause).Words, translation);
 
     //a clause's words: a proposition stated or asked, or a state of affairs someone's told to bring about
     private static ClauseWords Words(Language language, Clause clause) => clause switch
@@ -169,10 +169,10 @@ public static class Syntax
     };
 
     /// <summary>Who or what a statement is about: its first clause's subject, which is 'you' for a command.</summary>
-    public static Argument SubjectOf(Statement statement) => statement switch
+    public static Argument SubjectOf(Sentence statement) => statement switch
     {
         Clause c => c.Event.Subject,
-        Coordinated<Statement> c => SubjectOf(c.First),
+        Coordinated<Sentence> c => SubjectOf(c.First),
         Subordinated s => SubjectOf(s.Main),
     };
 
@@ -331,7 +331,7 @@ public static class Syntax
         Directive told => told with { StateOfAffairs = told.StateOfAffairs.Rebuilt(rebuild) },
     };
 
-    public static Sentence Realize(Language language, Subordinated subordinated, string translation) => Sentence(language, Words(language, subordinated).Words, translation);
+    public static Rendering Realize(Language language, Subordinated subordinated, string translation) => Rendering(language, Words(language, subordinated).Words, translation);
 
     /*
       the subordinate clause, marked by its word or suffix, before or after the main one as the language
@@ -393,7 +393,7 @@ public static class Syntax
       on the clause's verb, which it leaves bare of tense and agreement, as a participle is, and one
       that's a word goes at the clause's edge beside its noun
      */
-    private static IReadOnlyList<Word> RelativeClause(Language language, Statement clause, Nominal head)
+    private static IReadOnlyList<Word> RelativeClause(Language language, Sentence clause, Nominal head)
     {
         var relativization = language.Relativization;
         var (role, oblique) = GapSlot(language, clause);
@@ -423,13 +423,13 @@ public static class Syntax
 
     //the role a relative clause's gap is in, as the language says the clause, and the oblique it's
     //in, if it's one. A passive in a language without one is said as the active
-    private static (Role Role, Oblique? Oblique) GapSlot(Language language, Statement clause) =>
+    private static (Role Role, Oblique? Oblique) GapSlot(Language language, Sentence clause) =>
         Roles(language, clause).FirstOrDefault(f => f.Argument.Value is Gap) is { } gap
             ? (gap.Role, gap.Oblique)
             : throw new ArgumentException("A relative clause needs a gap in one of its roles.", nameof(clause));
 
     //a relative clause with this in its gap's place
-    private static Statement Filled(Statement clause, Argument filler)
+    private static Sentence Filled(Sentence clause, Argument filler)
     {
         Argument Fill(Argument argument) => argument.Value is Gap ? filler : argument;
         return clause.Value is Clause c ? Rebuilt(c, e => e.Refilled(Fill)) : clause;
@@ -603,7 +603,7 @@ public static class Syntax
       including one with a modal, which stays balanced. One that begins or stops something, where
       the language marks that on the verb, is what's begun with its inceptive or cessative
      */
-    private static ClauseWords? AsDeranked(Language language, Statement statement, bool dropSubject, Role? markedAs)
+    private static ClauseWords? AsDeranked(Language language, Sentence statement, bool dropSubject, Role? markedAs)
     {
         if (statement.Value is not Clause { Value: Declarative { Propositional.Value: Proposition proposition } } || JoinsEvents(proposition.StateOfAffairs))
         {
@@ -652,7 +652,7 @@ public static class Syntax
         : throw new InvalidOperationException();
 
     //a command's subject is always 'you'
-    private static Statement WithSubject(Statement statement, Argument subject) => statement.Value switch
+    private static Sentence WithSubject(Sentence statement, Argument subject) => statement.Value switch
     {
         Clause { Value: Directive } => statement,
         Clause c => Rebuilt(c, e => e with { Subject = subject }),
@@ -661,9 +661,9 @@ public static class Syntax
 
     //each statement as it would be said alone, with the language's word for the conjunction between,
     //or nothing where it sets clauses side by side
-    public static Sentence Realize(Language language, Coordinated<Statement> coordinated, string translation) => Sentence(language, Words(language, coordinated).Words, translation);
+    public static Rendering Realize(Language language, Coordinated<Sentence> coordinated, string translation) => Rendering(language, Words(language, coordinated).Words, translation);
 
-    private static ClauseWords Words(Language language, Coordinated<Statement> coordinated)
+    private static ClauseWords Words(Language language, Coordinated<Sentence> coordinated)
     {
         IReadOnlyList<Word> between = language.Conjunctions.BetweenClauses(coordinated.Conjunction) is { } word ? [new Word([word.Root])] : [];
         //TODO each clause has a finite verb of its own, but a suffix marking the two together still goes on the last word
@@ -1246,7 +1246,7 @@ public static class Syntax
 
     //what fills each of a clause's roles, as the language says it: a passive in a language without
     //one is said as the active
-    private static IEnumerable<Filler> Roles(Language language, Statement statement) => statement.Value switch
+    private static IEnumerable<Filler> Roles(Language language, Sentence statement) => statement.Value switch
     {
         Clause { Value: Declarative stated } => Voiced(language, Collected(stated.Propositional.Proposition.StateOfAffairs, stated.Propositional.Proposition.Tense)).Event.Fillers,
         _ => [],
@@ -1460,7 +1460,7 @@ public static class Syntax
     //each constituent keeps its own particles with it
     private static IReadOnlyList<Word> Flat(IEnumerable<IReadOnlyList<Word>> constituents) => [.. constituents.SelectMany(c => c)];
 
-    private static Sentence Sentence(Language language, IReadOnlyList<Word> words, string translation) =>
+    private static Rendering Rendering(Language language, IReadOnlyList<Word> words, string translation) =>
         new([], language.Phonology.RealizePhrase(words), translation, language.Orthography);
 
     private static IReadOnlyList<Word> Inflect(Language language, Argument argument, Role role) =>
@@ -1760,18 +1760,18 @@ public static class Syntax
 }
 
 /// <summary>
-/// A sentence as it's said: its words in groups, each a word with a root and the clitics leaning
+/// A line rendered in a language: its words in groups, each a word with a root and the clitics leaning
 /// on it, said as one word, or a clitic with nothing to lean on. A heading's label comes first,
 /// said apart from the rest, as a phrase of its own, and written with a colon after it; any other
 /// sentence has none.
 /// </summary>
-public record Sentence(IReadOnlyList<SurfaceForm> Label, IReadOnlyList<SurfaceForm> Said, string Translation, Orthography Orthography)
+public record Rendering(IReadOnlyList<SurfaceForm> Label, IReadOnlyList<SurfaceForm> Said, string Translation, Orthography Orthography)
 {
     /// <summary>Every group of the sentence, its label's first.</summary>
     public IReadOnlyList<SurfaceForm> Groups => [.. Label, .. Said];
 
     /// <summary>Every word of the sentence, in order, with the group it's said in.</summary>
-    public IReadOnlyList<SentenceWord> Words => [.. Groups.SelectMany(g => g.Words.Select(w => new SentenceWord(g, w)))];
+    public IReadOnlyList<RenderedWord> Words => [.. Groups.SelectMany(g => g.Words.Select(w => new RenderedWord(g, w)))];
 
     //clitics are written as words of their own, as French and Greek write theirs, and a word that
     //lost every sound to its host, as a clitic's vowel can, isn't written at all
@@ -1809,7 +1809,7 @@ public record Sentence(IReadOnlyList<SurfaceForm> Label, IReadOnlyList<SurfaceFo
 }
 
 /// <summary>One word of a sentence, and the group it's said in.</summary>
-public record SentenceWord(SurfaceForm Group, Word Word)
+public record RenderedWord(SurfaceForm Group, Word Word)
 {
     public string Gloss => Word.Gloss;
 

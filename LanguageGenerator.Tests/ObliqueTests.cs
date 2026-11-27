@@ -8,7 +8,7 @@ public class ObliqueTests
 {
     //only the basic meanings, since coining new ones would add to the shared sample's lexicons
 
-    private static Sentence Walk(Language language, params Oblique[] obliques) =>
+    private static Rendering Walk(Language language, params Oblique[] obliques) =>
         Syntax.Realize(language, Declared(new Event(new Doing("walk", null), BareNoun("dog", Number.Singular), [.. obliques], []), Tense.Past, Aspect.Perfective, false), "x");
 
     private static Oblique Stone(Role role) => new(role, BareNoun("stone", Number.Singular), Configuration.At);

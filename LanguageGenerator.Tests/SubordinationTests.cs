@@ -6,7 +6,7 @@ namespace LanguageGenerator.Tests;
 
 public class SubordinationTests
 {
-    private static Statement Parsed(string text) => Stated(Assert.Single(ClauseFile.Parse(text)).Utterance);
+    private static Sentence Parsed(string text) => Stated(Assert.Single(ClauseFile.Parse(text)).Utterance);
 
     private static ClauseFormatException Error(string text) => Assert.Throws<ClauseFormatException>(() => ClauseFile.Parse(text));
 
@@ -39,7 +39,7 @@ public class SubordinationTests
     {
         var subordinated = Assert.IsType<Subordinated>(Parsed("x\n  sit  subject:dog\n  and  eat  subject:dog\n  until  sleep  subject:cat").Value);
 
-        Assert.IsType<Coordinated<Statement>>(subordinated.Main.Value);
+        Assert.IsType<Coordinated<Sentence>>(subordinated.Main.Value);
         Assert.Equal(Subordinator.Until, subordinated.Subordinator);
     }
 

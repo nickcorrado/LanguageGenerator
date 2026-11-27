@@ -142,7 +142,7 @@ public record Complementation(ComplementMarking Proposition, ComplementMarking E
 /// you were late' or 'they want to go home'. SharesSubject says its subject wasn't said, but taken
 /// from the main clause, as an event's often is.
 /// </summary>
-public record ComplementClause(ComplementKind Kind, Statement Clause, bool SharesSubject);
+public record ComplementClause(ComplementKind Kind, Sentence Clause, bool SharesSubject);
 
 /// <summary>
 /// What someone said, word for word, as the object of a verb of saying, as in '"you're late," she

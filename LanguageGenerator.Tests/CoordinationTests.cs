@@ -6,11 +6,11 @@ namespace LanguageGenerator.Tests;
 
 public class CoordinationTests
 {
-    private static Statement Parsed(string gloss) => Stated(Assert.Single(ClauseFile.Parse($"x\n  {gloss}")).Utterance);
+    private static Sentence Parsed(string gloss) => Stated(Assert.Single(ClauseFile.Parse($"x\n  {gloss}")).Utterance);
 
     private static ClauseFormatException Error(string text) => Assert.Throws<ClauseFormatException>(() => ClauseFile.Parse(text));
 
-    private static Argument SubjectOf(Statement statement) => EventOf(statement).Subject;
+    private static Argument SubjectOf(Sentence statement) => EventOf(statement).Subject;
 
     [Fact]
     public void Parse_NounsJoined_AreACoordinationInOrder()
@@ -50,9 +50,9 @@ public class CoordinationTests
               but  sleep  subject:3SG.F
             """));
 
-        var outer = Assert.IsType<Coordinated<Statement>>(Stated(entry.Utterance).Value);
+        var outer = Assert.IsType<Coordinated<Sentence>>(Stated(entry.Utterance).Value);
         Assert.Equal(Conjunction.But, outer.Conjunction);
-        var inner = Assert.IsType<Coordinated<Statement>>(outer.First.Value);
+        var inner = Assert.IsType<Coordinated<Sentence>>(outer.First.Value);
         Assert.Equal(("sit", "argue"), (PredicateOf<Doing>(inner.First).Verb, PredicateOf<Doing>(inner.Second).Verb));
         Assert.Equal("sleep", PredicateOf<Doing>(outer.Second).Verb);
     }
@@ -95,9 +95,9 @@ public class CoordinationTests
     //only the basic meanings, since coining new ones would add to the shared sample's lexicons
     private static readonly NounPhrase Birds = BareNoun("bird", Number.Plural);
 
-    private static Sentence Saw(Language l, Argument subject) => Syntax.Realize(l, Declared(new Event(new Doing("see", Birds), subject, [], []), Tense.Past, Aspect.Perfective, false), "x");
+    private static Rendering Saw(Language l, Argument subject) => Syntax.Realize(l, Declared(new Event(new Doing("see", Birds), subject, [], []), Tense.Past, Aspect.Perfective, false), "x");
 
-    private static string VerbGloss(Sentence sentence) => sentence.Words[IndexOf(sentence, "see")].Gloss;
+    private static string VerbGloss(Rendering sentence) => sentence.Words[IndexOf(sentence, "see")].Gloss;
 
     [Fact]
     public void Realize_NounsJoinedByAnd_FollowTheLanguagesStrategy()
@@ -183,7 +183,7 @@ public class CoordinationTests
         {
             foreach (var conjunction in Enum.GetValues<Conjunction>())
             {
-                var joined = Syntax.Realize(l, new Coordinated<Statement>(conjunction, first, second), "x").Words.Select(w => w.Gloss);
+                var joined = Syntax.Realize(l, new Coordinated<Sentence>(conjunction, first, second), "x").Words.Select(w => w.Gloss);
                 var word = l.Conjunctions.BetweenClauses(conjunction);
                 IEnumerable<string> between = word is null ? [] : [word.Root.Meaning];
 
@@ -250,7 +250,7 @@ public class CoordinationTests
     [Fact]
     public void Parse_JoinedEventsThenAClause_JoinsTheClauseToThem()
     {
-        var coordinated = Assert.IsType<Coordinated<Statement>>(Stated(Assert.Single(ClauseFile.Parse("x\n  and.PST  subject:dog  [eat]  [drink]\n  but  sleep.PST  subject:cat")).Utterance).Value);
+        var coordinated = Assert.IsType<Coordinated<Sentence>>(Stated(Assert.Single(ClauseFile.Parse("x\n  and.PST  subject:dog  [eat]  [drink]\n  but  sleep.PST  subject:cat")).Utterance).Value);
 
         Assert.Equal(2, ClauseOf(coordinated.First).StateOfAffairs.Events.Count());
     }

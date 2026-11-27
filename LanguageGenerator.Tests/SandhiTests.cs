@@ -10,7 +10,7 @@ public class SandhiTests
 
     private static Word Clitic(Lean leans, params Phoneme[] form) => Word.Marker(new Particle(form, [Definiteness.Definite]), leans);
 
-    private static Sentence Said(Phonology phonology, params Word[] words) => new([], phonology.RealizePhrase(words), "x", Orthography.Ipa);
+    private static Rendering Said(Phonology phonology, params Word[] words) => new([], phonology.RealizePhrase(words), "x", Orthography.Ipa);
 
     private static readonly Word Pan = Noun("bread", Consonant.p, Vowel.a, Consonant.n);
     private static readonly Word Ka = Noun("house", Consonant.k, Vowel.a);

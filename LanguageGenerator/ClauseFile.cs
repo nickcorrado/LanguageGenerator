@@ -15,7 +15,7 @@ namespace LanguageGenerator;
 
   docs/clause-format.md describes the format. A gloss line is read in two steps: ClauseSyntax reads
   what's nested in what, words, groups in parentheses and clauses in brackets, each with the role
-  it's written with, and this builds what that means into a Statement, refusing whatever the
+  it's written with, and this builds what that means into a Sentence, refusing whatever the
   generator can't express yet, never dropping it
  */
 public static class ClauseFile
@@ -57,11 +57,11 @@ public static class ClauseFile
                     throw new ClauseFormatException($"A line starting with '{line.Trim().Split(' ')[0]}' joins a clause to the one above it, so it can't come first.", number);
                 }
                 var previous = entries[^1];
-                var message = previous.Utterance.Value is Message { Content.Value: Statement } said ? said
+                var message = previous.Utterance.Value is Message { Content.Value: Sentence } said ? said
                     : throw new ClauseFormatException($"A line starting with '{line.Trim().Split(' ')[0]}' joins a clause to the one above it, which a fragment with no verb isn't.", number);
-                var main = (Statement)message.Content.Value!;
+                var main = (Sentence)message.Content.Value!;
                 var rest = line.Trim()[(line.Trim().IndexOf(' ') + 1)..];
-                Statement joined = ConjunctionOf(line) is { } conjunction
+                Sentence joined = ConjunctionOf(line) is { } conjunction
                     ? ToCoordinated(conjunction, main, Ungapped(ParseClause(ClauseSyntax.Read(rest, number), number, null,
                         "Say who's addressed on the first line, not on one joined to it: the whole sentence is said to them."), number), number)
                     : ToSubordinated(main, SubordinatorOf(line).GetValueOrDefault(), ClauseSyntax.Read(rest, number), number);
@@ -108,7 +108,7 @@ public static class ClauseFile
       the main clause's, as in 'to cross the river, you need a rope'. It can't be a command, or be said
       to someone, since the main clause is
      */
-    private static Subordinated ToSubordinated(Statement main, Subordinator subordinator, SyntaxClause line, int number)
+    private static Subordinated ToSubordinated(Sentence main, Subordinator subordinator, SyntaxClause line, int number)
     {
         var shares = subordinator == Subordinator.Purpose && !line.Items.Any(i => i.Role == "subject");
         var clause = Ungapped(ParseClause(line, number, shares ? Syntax.SubjectOf(main) : (Argument?)null, "Say who's addressed in the main clause, not in one under it."), number);
@@ -121,15 +121,15 @@ public static class ClauseFile
     }
 
     //clauses joined by a conjunction, neither of them a question yet
-    private static Coordinated<Statement> ToCoordinated(Conjunction conjunction, Statement first, Statement second, int number) =>
+    private static Coordinated<Sentence> ToCoordinated(Conjunction conjunction, Sentence first, Sentence second, int number) =>
         IsQuestion(first) || IsQuestion(second)
             ? throw new ClauseFormatException("A question can't be joined to another clause yet.", number)
-            : new Coordinated<Statement>(conjunction, first, second);
+            : new Coordinated<Sentence>(conjunction, first, second);
 
-    private static bool IsQuestion(Statement statement) => statement.Value switch
+    private static bool IsQuestion(Sentence statement) => statement.Value switch
     {
         Clause { Value: Interrogative } => true,
-        Coordinated<Statement> c => IsQuestion(c.First) || IsQuestion(c.Second),
+        Coordinated<Sentence> c => IsQuestion(c.First) || IsQuestion(c.Second),
         Subordinated s => IsQuestion(s.Main),
         _ => false,
     };
@@ -147,7 +147,7 @@ public static class ClauseFile
 
     private static IEnumerable<Argument> ArgumentsOf(Content content) => content switch
     {
-        Statement statement => ArgumentsOf(statement),
+        Sentence statement => ArgumentsOf(statement),
         Fragment fragment => ArgumentsOf(fragment),
     };
 
@@ -159,10 +159,10 @@ public static class ClauseFile
         Interjection or Answer => [],
     };
 
-    private static IEnumerable<Argument> ArgumentsOf(Statement statement) => statement switch
+    private static IEnumerable<Argument> ArgumentsOf(Sentence statement) => statement switch
     {
         Clause c => c.StateOfAffairs.Events.SelectMany(e => e.Arguments),
-        Coordinated<Statement> c => [.. ArgumentsOf(c.First), .. ArgumentsOf(c.Second)],
+        Coordinated<Sentence> c => [.. ArgumentsOf(c.First), .. ArgumentsOf(c.Second)],
         Subordinated s => [.. ArgumentsOf(s.Main), .. ArgumentsOf(s.Clause)],
     };
 
@@ -186,7 +186,7 @@ public static class ClauseFile
       phrases, joined to others, or in clauses inside it. A complement's subject that's the main
       clause's is no gap of its own, even where the main clause's is one
      */
-    private static int Gaps(Statement statement) => ArgumentsOf(statement).Sum(Gaps);
+    private static int Gaps(Sentence statement) => ArgumentsOf(statement).Sum(Gaps);
 
     private static int Gaps(Argument argument) => argument switch
     {
@@ -200,14 +200,14 @@ public static class ClauseFile
     };
 
     //a clause that isn't relative has no gap, which marks only where a relative clause's noun goes
-    private static Statement Ungapped(Statement statement, int number) => Gaps(statement) == 0 ? statement
+    private static Sentence Ungapped(Sentence statement, int number) => Gaps(statement) == 0 ? statement
         : throw new ClauseFormatException("_ marks the role a relative clause's noun fills in it, so it goes only inside relative:[...], as in object:(net.DEF relative:[mend.PST  subject:3SG.F  object:_]).", number);
 
     /*
       the roles of a relative clause's own that its gap is in. It can be its subject, its object, the
       agent of a passive or an oblique, but not what it compares something with
      */
-    private static IEnumerable<string> GapRoles(Statement statement)
+    private static IEnumerable<string> GapRoles(Sentence statement)
     {
         return statement.Value switch
         {
@@ -358,7 +358,7 @@ public static class ClauseFile
       noun phrase or a clause inside it, where its noun goes. It says something of its noun, so it
       can't be a command, a question or said to someone
      */
-    private static Statement ParseRelative(SyntaxValue value, int number)
+    private static Sentence ParseRelative(SyntaxValue value, int number)
     {
         const string Example = "relative:[mend.PST  subject:3SG.F  object:_]";
         if (value.Value is not SyntaxClause written || written.Items.Count == 0)
@@ -394,14 +394,14 @@ public static class ClauseFile
     public static IReadOnlyList<T> ValuesOf<T>() where T : Grammeme => [.. Glosses.Values.OfType<T>()];
 
     //a clause that can't be said to anyone, as one inside another can't, with what to say where it is
-    private static Statement ParseClause(SyntaxClause written, int number, Argument? impliedSubject, string unaddressable)
+    private static Sentence ParseClause(SyntaxClause written, int number, Argument? impliedSubject, string unaddressable)
     {
         var statement = ParseClause(written, number, impliedSubject, out var addressee);
         return addressee is null ? statement : throw new ClauseFormatException(unaddressable, number);
     }
 
     //a clause, and who it's said to, if anyone. A subject that isn't said is the given one, if there is one
-    private static Statement ParseClause(SyntaxClause written, int number, Argument? impliedSubject, out NounPhrase? addressee)
+    private static Sentence ParseClause(SyntaxClause written, int number, Argument? impliedSubject, out NounPhrase? addressee)
     {
         if (written.Items is not [{ Role: null, Value.Value: SyntaxWord head }, ..])
         {
@@ -516,7 +516,7 @@ public static class ClauseFile
       over them all can't be said yet, since saying it on each changes what it says, and but joins
       only clauses
      */
-    private static Statement ParseJoined(Conjunction conjunction, string word, IReadOnlyList<Grammeme> glosses, SyntaxClause written, int number, Argument? impliedSubject, out NounPhrase? addressee)
+    private static Sentence ParseJoined(Conjunction conjunction, string word, IReadOnlyList<Grammeme> glosses, SyntaxClause written, int number, Argument? impliedSubject, out NounPhrase? addressee)
     {
         const string Example = "and.PST  subject:3SG.F  [turn]  [walk  goal:away]";
         //a verb after it is a clause joined to the one above, which the line can't follow when it's first
@@ -1058,7 +1058,7 @@ public static class ClauseFile
         int? ordinal = null;
         Quantifier? quantifier = null;
         Argument? possessor = null;
-        Statement? relative = null;
+        Sentence? relative = null;
         var adjectives = new List<Adjective>();
         foreach (var item in items.Skip(1))
         {

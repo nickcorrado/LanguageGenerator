@@ -211,5 +211,5 @@ public union Attribute(NounPhrase, Adjective, AdjectiveCoordination, Oblique, Co
 //a clause with one has obliques saying only when and for how long
 public record Being(Attribute Attribute);
 
-/// <summary>Anything a sentence can say.</summary>
-public union Statement(Clause, Coordinated<Statement>, Subordinated);
+/// <summary>A clause, or clauses joined or one under another, as a line says them.</summary>
+public union Sentence(Clause, Coordinated<Sentence>, Subordinated);

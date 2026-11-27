@@ -7,13 +7,13 @@ namespace LanguageGenerator.Tests;
 public class CopulaTests
 {
     //only the basic meanings, since coining new ones would add to the shared sample's lexicons
-    private static Sentence DogIsPerson(Language l, Tense tense, bool negative = false) =>
+    private static Rendering DogIsPerson(Language l, Tense tense, bool negative = false) =>
         Syntax.Realize(l, Declared(new Event(new Being(BareNoun("person", Number.Singular)), BareNoun("dog", Number.Singular), [], []), tense, Aspect.Imperfective, negative), "the dog is a person");
 
-    private static Sentence DogIsBig(Language l, Tense tense, bool negative = false) =>
+    private static Rendering DogIsBig(Language l, Tense tense, bool negative = false) =>
         Syntax.Realize(l, Declared(new Event(new Being(new Adjective("big", false)), BareNoun("dog", Number.Singular), [], []), tense, Aspect.Imperfective, negative), "the dog is big");
 
-    private static bool HasCopula(Sentence sentence) => IndexOf(sentence, "COP") >= 0;
+    private static bool HasCopula(Rendering sentence) => IndexOf(sentence, "COP") >= 0;
 
     [Fact]
     public void GeneratePredication_Copula_IsOneSyllable()
@@ -149,7 +149,7 @@ public class CopulaTests
         });
     }
 
-    private static Sentence DogIsInTheHouse(Language l, Tense tense, bool negative = false) =>
+    private static Rendering DogIsInTheHouse(Language l, Tense tense, bool negative = false) =>
         Syntax.Realize(l, Declared(new Event(new Being(new Oblique(Role.Location, BareNoun("house", Number.Singular), Configuration.At)), BareNoun("dog", Number.Singular), [], []), tense, Aspect.Imperfective, negative), "the dog is in the house");
 
     [Fact]

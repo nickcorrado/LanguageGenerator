@@ -11,14 +11,14 @@ public class AdverbTests
     private static readonly Adverb Now = new("now", AdverbKind.When);
     private static readonly Adverb Again = new("again", AdverbKind.Often);
 
-    private static Sentence Realized(Language l, Statement statement) => statement.Value switch
+    private static Rendering Realized(Language l, Sentence statement) => statement.Value switch
     {
         Clause c => Syntax.Realize(l, c, "x"),
         Subordinated s => Syntax.Realize(l, s, "x"),
         _ => throw new ArgumentException("Not a statement these tests realize.", nameof(statement)),
     };
 
-    private static Statement Parsed(string gloss) => Stated(Assert.Single(ClauseFile.Parse($"x\n  {gloss}")).Utterance);
+    private static Sentence Parsed(string gloss) => Stated(Assert.Single(ClauseFile.Parse($"x\n  {gloss}")).Utterance);
 
     [Fact]
     public void Realize_Adverb_IsItsBareRootWhereObliquesGo() =>
@@ -34,7 +34,7 @@ public class AdverbTests
         });
 
     //how far each of these roots is from the verb's, in words
-    private static int[] Distances(Sentence sentence, params string[] roots) =>
+    private static int[] Distances(Rendering sentence, params string[] roots) =>
         [.. roots.Select(r => Math.Abs(IndexOf(sentence, r) - IndexOf(sentence, "walk")))];
 
     [Fact]
@@ -115,7 +115,7 @@ public class AdverbTests
     }
 
     //where 'very' is in a sentence, relative to the word with this root: -1 right before it, 1 right after
-    private static int Intensifier(Language l, Sentence sentence, string root) =>
+    private static int Intensifier(Language l, Rendering sentence, string root) =>
         sentence.Words.ToList().FindIndex(w => w.Word.Morphemes.Any(m => m.Value is Particle p && p == l.Intensifier.Particle)) - IndexOf(sentence, root);
 
     [Fact]
@@ -123,7 +123,7 @@ public class AdverbTests
         Assert.All(GeneratedLanguages.Sample, l =>
         {
             var side = l.Intensifier.Side == Side.Before ? -1 : 1;
-            Statement[] statements =
+            Sentence[] statements =
             [
                 DogIsBig.WithEvent(e => e with { Predicate = new Being(new Adjective("big", true)) }),
                 DogWalks.WithEvent(e => e with { Subject = new NounPhrase(new Noun("dog", Number.Singular, [new Adjective("big", true)], null, null, null, null, null), null) }),
@@ -229,7 +229,7 @@ public class AdverbTests
     public void Realize_EveryKindOfClause_KeepsItsAdverbs() =>
         Assert.All(GeneratedLanguages.Sample, l =>
         {
-            Statement[] statements =
+            Sentence[] statements =
             [
                 Told(new Event(new Doing("eat", BareNoun("fish", Number.Singular)), new Pronoun(Person.Second, Number.Singular), [], [Now]), false),
                 Told(new Event(new Being(AtTheHouse), new Pronoun(Person.Second, Number.Plural), [], [Now]), false),

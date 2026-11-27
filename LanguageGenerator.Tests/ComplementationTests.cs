@@ -8,11 +8,11 @@ namespace LanguageGenerator.Tests;
 //how a clause says them
 public class ComplementationTests
 {
-    private static Statement Parsed(string text) => Stated(Assert.Single(ClauseFile.Parse(text)).Utterance);
+    private static Sentence Parsed(string text) => Stated(Assert.Single(ClauseFile.Parse(text)).Utterance);
 
     private static ClauseFormatException Error(string text) => Assert.Throws<ClauseFormatException>(() => ClauseFile.Parse(text));
 
-    private static T ObjectOf<T>(Statement statement) => Assert.IsType<T>(PredicateOf<Doing>(statement).Object.GetValueOrDefault().Value);
+    private static T ObjectOf<T>(Sentence statement) => Assert.IsType<T>(PredicateOf<Doing>(statement).Object.GetValueOrDefault().Value);
 
     [Fact]
     public void Parse_ThatInBrackets_IsAPropositionWithItsOwnSubject()
@@ -52,7 +52,7 @@ public class ComplementationTests
         var quotation = ObjectOf<Quotation>(Parsed("x\n  say  subject:3SG.F  quote:[go.IMP  goal:inn.DEF  addressee:marta]"));
 
         var addressed = Addressed(quotation.Utterance);
-        ForceOf<Directive>(StatementOf(addressed));
+        ForceOf<Directive>(SentenceOf(addressed));
     }
 
     [Fact]
@@ -123,7 +123,7 @@ public class ComplementationTests
 
     private static Clause Says(Argument said) => Declared(new Event(new Doing("say", said), BareNoun("woman", Number.Singular), [], []), Tense.Past, Aspect.Perfective, false);
 
-    private static Clause Wants(Argument wanter, Statement wanted, bool shares) =>
+    private static Clause Wants(Argument wanter, Sentence wanted, bool shares) =>
         Declared(new Event(new Doing("want", new ComplementClause(ComplementKind.Event, wanted, shares)), wanter, [], []), Tense.Present, Aspect.Imperfective, false);
 
     [Fact]
@@ -208,7 +208,7 @@ public class ComplementationTests
         var language = GeneratedLanguages.With(s => s.Fix(Settings.Quotative, QuotativeKind.None).Fix(Settings.ComplementsLast, true));
         var command = Told(new Event(new Doing("walk", null), new Pronoun(Person.Second, Number.Singular), [new(Role.Goal, BareNoun("house", Number.Singular), Configuration.At)], []), false);
         var alone = Syntax.Realize(language, command, "x").Words.Select(w => w.Gloss);
-        var quoted = Syntax.Realize(language, Says(new Quotation(new Message((Statement)command, null))), "x").Words.Select(w => w.Gloss);
+        var quoted = Syntax.Realize(language, Says(new Quotation(new Message((Sentence)command, null))), "x").Words.Select(w => w.Gloss);
 
         Assert.Equal(alone, quoted.TakeLast(alone.Count()));
     }
@@ -219,7 +219,7 @@ public class ComplementationTests
     public void Realize_MarkedQuotation_TakesTheQuotative(QuotativeKind kind)
     {
         var language = GeneratedLanguages.With(s => s.Fix(Settings.Quotative, kind).Fix(Settings.PropositionComplementizer, ComplementizerPosition.Initial, ComplementizerPosition.Final));
-        var sentence = Syntax.Realize(language, Says(new Quotation(new Message((Statement)DogSlept, null))), "x");
+        var sentence = Syntax.Realize(language, Says(new Quotation(new Message((Sentence)DogSlept, null))), "x");
         var quotative = Assert.Single(sentence.Words, w => w.Gloss == "QUOT");
 
         if (kind == QuotativeKind.Complementizer)

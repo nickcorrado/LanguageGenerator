@@ -7,13 +7,13 @@ namespace LanguageGenerator.Tests;
 public class PossessionTests
 {
     //only the basic meanings, since coining new ones would add to the shared sample's lexicons
-    private static Sentence Slept(Language l, Argument possessor, Number? number = null) =>
+    private static Rendering Slept(Language l, Argument possessor, Number? number = null) =>
         Syntax.Realize(l, Declared(new Event(new Doing("sleep", null), new NounPhrase(new Noun("dog", number ?? Number.Singular, [], null, null, null, null, possessor), null), [], []), Tense.Past, Aspect.Perfective, false), "x");
 
     private static readonly NounPhrase ThePerson = BareNoun("person", Number.Singular);
     private static readonly Pronoun Me = new(Person.First, Number.Singular);
 
-    private static IEnumerable<string> Glosses(Sentence sentence) => sentence.Words.SelectMany(w => w.Gloss.Split('-', '.', '[', ']'));
+    private static IEnumerable<string> Glosses(Rendering sentence) => sentence.Words.SelectMany(w => w.Gloss.Split('-', '.', '[', ']'));
 
     [Fact]
     public void GeneratePossession_MarkingThePossessed_HasAnAffixForEachPersonAndNumber()

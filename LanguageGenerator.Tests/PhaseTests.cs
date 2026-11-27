@@ -9,11 +9,11 @@ public class PhaseTests
 {
 
     //the dog begins or stops what's begun, which shares its subject
-    private static Clause Phased(string verb, Tense tense, Aspect aspect, Statement begun, bool negative) =>
+    private static Clause Phased(string verb, Tense tense, Aspect aspect, Sentence begun, bool negative) =>
         Declared(new Event(new Doing(verb, new ComplementClause(ComplementKind.Event, begun, SharesSubject: true)), Dog, [], []), tense, aspect, negative);
 
 
-    private static Sentence Realized(Language language, Statement statement) => Syntax.Realize(language, statement, "x");
+    private static Rendering Realized(Language language, Sentence statement) => Syntax.Realize(language, statement, "x");
 
     //a few languages marking beginning and ceasing as these say, each generated for the test
     private static IEnumerable<Language> Languages(AspectKind inceptive, AspectKind cessative, Func<LanguageSpec, LanguageSpec>? more = null) =>

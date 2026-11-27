@@ -14,7 +14,7 @@ public class VocativeTests
         var addressed = Addressed(Line("sleep subject:dog.DEF addressee:marta"));
 
         Assert.Equal(BareNoun("marta", Number.Singular), addressed.Addressee);
-        Assert.IsType<Clause>(StatementOf(addressed).Value);
+        Assert.IsType<Clause>(SentenceOf(addressed).Value);
     }
 
     [Fact]
@@ -24,7 +24,7 @@ public class VocativeTests
 
         Assert.Equal("man", NounOf(addressed.Addressee!).Meaning);
         Assert.Equal(["old"], NounOf(addressed.Addressee!).Adjectives.Select(a => a.Meaning));
-        PredicateOf<Being>(StatementOf(addressed));
+        PredicateOf<Being>(SentenceOf(addressed));
     }
 
     [Theory]
@@ -36,7 +36,7 @@ public class VocativeTests
     {
         var addressed = Addressed(Line(gloss));
 
-        Assert.Equal(number, Assert.IsType<Pronoun>(EventOf(StatementOf(addressed)).Subject.Value).Number.Name);
+        Assert.Equal(number, Assert.IsType<Pronoun>(EventOf(SentenceOf(addressed)).Subject.Value).Number.Name);
     }
 
     [Theory]
@@ -51,7 +51,7 @@ public class VocativeTests
     {
         Assert.All(GeneratedLanguages.Sample, l =>
         {
-            var sentence = Syntax.Realize(l, new Message((Statement)Declared(new Event(new Doing("sleep", null), BareNoun("dog", Number.Singular), [], []), Tense.Past, Aspect.Perfective, false),
+            var sentence = Syntax.Realize(l, new Message((Sentence)Declared(new Event(new Doing("sleep", null), BareNoun("dog", Number.Singular), [], []), Tense.Past, Aspect.Perfective, false),
                 BareNoun("person", Number.Singular)), "x");
             var (person, dog, sleep) = (IndexOf(sentence, "person"), IndexOf(sentence, "dog"), IndexOf(sentence, "sleep"));
             var vocative = sentence.Words.Any(w => w.Gloss.Contains("VOC"));
@@ -67,7 +67,7 @@ public class VocativeTests
         var language = GeneratedLanguages.Sample[0];
         var clause = Declared(new Event(new Doing("sleep", null), BareNoun("dog", Number.Singular), [], []), Tense.Past, Aspect.Perfective, false);
         var plain = Syntax.Realize(language, clause, "x");
-        var addressed = Syntax.Realize(language, new Message((Statement)clause, BareNoun("person", Number.Singular)), "x");
+        var addressed = Syntax.Realize(language, new Message((Sentence)clause, BareNoun("person", Number.Singular)), "x");
 
         Assert.Equal(plain.Words.Select(w => w.Gloss), addressed.Words.Skip(addressed.Words.Count - plain.Words.Count).Select(w => w.Gloss));
     }

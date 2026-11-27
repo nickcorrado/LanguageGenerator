@@ -4,19 +4,19 @@ namespace LanguageGenerator.Tests;
 
 public class SyntaxTests
 {
-    private static Sentence DogSawCat(Language l) =>
+    private static Rendering DogSawCat(Language l) =>
         Syntax.Realize(l, Declared(new Event(new Doing("see", BareNoun("cat", Number.Singular)), BareNoun("dog", Number.Singular), [], []), Tense.Past, Aspect.Perfective, false), "the dog saw the cat");
 
-    private static Sentence BirdsSleep(Language l) =>
+    private static Rendering BirdsSleep(Language l) =>
         Syntax.Realize(l, Declared(new Event(new Doing("sleep", null), BareNoun("bird", Number.Plural), [], []), Tense.Present, Aspect.Imperfective, false), "the birds are sleeping");
 
-    private static Sentence PersonSeesDogs(Language l) =>
+    private static Rendering PersonSeesDogs(Language l) =>
         Syntax.Realize(l, Declared(new Event(new Doing("see", BareNoun("dog", Number.Plural)), BareNoun("person", Number.Singular), [], []), Tense.Present, Aspect.Imperfective, false), "the person sees the dogs");
 
     //every gloss label in the sentence, including covert ones in brackets
-    private static HashSet<string> Glosses(Sentence sentence) => [.. sentence.Words.SelectMany(w => w.Gloss.Split('-', '.', '[', ']'))];
+    private static HashSet<string> Glosses(Rendering sentence) => [.. sentence.Words.SelectMany(w => w.Gloss.Split('-', '.', '[', ']'))];
 
-    private static int Position(Sentence sentence, string meaning) =>
+    private static int Position(Rendering sentence, string meaning) =>
         sentence.Words.ToList().FindIndex(w => w.Gloss.Split('-', '.', '[', ']').Contains(meaning));
 
     private static bool HasCategory(Paradigm paradigm, string category) =>

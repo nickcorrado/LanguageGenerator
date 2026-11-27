@@ -6,16 +6,16 @@ namespace LanguageGenerator.Tests;
 
 public class AspectTests
 {
-    private static Statement Parsed(string gloss) => Stated(Assert.Single(ClauseFile.Parse($"x\n  {gloss}")).Utterance);
+    private static Sentence Parsed(string gloss) => Stated(Assert.Single(ClauseFile.Parse($"x\n  {gloss}")).Utterance);
 
 
-    private static Sentence Realized(Language language, Statement statement) => Syntax.Realize(language, statement, "x");
+    private static Rendering Realized(Language language, Sentence statement) => Syntax.Realize(language, statement, "x");
 
     //a few languages marking the perfect and the progressive as these say, each generated for the test
     private static IEnumerable<Language> Languages(AspectKind perfect, AspectKind progressive, Func<LanguageSpec, LanguageSpec>? more = null) =>
         Enumerable.Range(0, 4).Select(seed => Generator.Generate(seed, (more ?? (s => s))(LanguageSpec.Free.Fix(Settings.Perfect, perfect).Fix(Settings.Progressive, progressive))));
 
-    private static IReadOnlyList<string> Glosses(Sentence sentence) => [.. sentence.Words.Select(w => w.Gloss)];
+    private static IReadOnlyList<string> Glosses(Rendering sentence) => [.. sentence.Words.Select(w => w.Gloss)];
 
     [Fact]
     public void Generate_IsolatingLanguages_HaveNoAspectAffixes() =>
@@ -156,7 +156,7 @@ public class AspectTests
     [Fact]
     public void Realize_EveryAspectInEveryLanguage_SaysIt()
     {
-        var clauses = new Func<Aspect, Statement>[]
+        var clauses = new Func<Aspect, Sentence>[]
         {
             aspect => DogEatsFish.At(Tense.Present, aspect),
             aspect => Declared(new Event(new Done("eat", Dog), Fish, [], []), Tense.Past, aspect, false),

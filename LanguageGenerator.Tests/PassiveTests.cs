@@ -6,12 +6,12 @@ namespace LanguageGenerator.Tests;
 
 public class PassiveTests
 {
-    private static Statement Parsed(string gloss) => Stated(Assert.Single(ClauseFile.Parse($"x\n  {gloss}")).Utterance);
+    private static Sentence Parsed(string gloss) => Stated(Assert.Single(ClauseFile.Parse($"x\n  {gloss}")).Utterance);
 
     //only the basic meanings, since coining new ones would add to the shared sample's lexicons
     private static Clause EatenBy(Argument? agent) => Declared(new Event(new Done("eat", agent), Fish, [], []), Tense.Past, Aspect.Perfective, false);
 
-    private static IEnumerable<string> Glosses(Sentence sentence) => sentence.Words.Select(w => w.Gloss);
+    private static IEnumerable<string> Glosses(Rendering sentence) => sentence.Words.Select(w => w.Gloss);
 
     [Theory]
     [InlineData(MorphosyntacticAlignment.NominativeAccusative)]

@@ -313,7 +313,7 @@ public partial class GlossTests
         Assert.Contains("repeated \"The dog slept.\", not its own sentence", model.Requests[1]);
         Assert.Contains("[1] The cat slept.", model.Requests[1]);
         Assert.Contains("[2] The bird slept.", model.Requests[1]);
-        Assert.Equal(["dog", "cat", "bird"], ClauseFile.Parse(result.Text).Select(e => e.Utterance is { Value: Message { Content.Value: Statement { Value: Clause { Event.Subject.Value: NounPhrase n } } } } ? n.Head.Meaning : ""));
+        Assert.Equal(["dog", "cat", "bird"], ClauseFile.Parse(result.Text).Select(e => e.Utterance is { Value: Message { Content.Value: Sentence { Value: Clause { Event.Subject.Value: NounPhrase n } } } } ? n.Head.Meaning : ""));
     }
 
     [Fact]

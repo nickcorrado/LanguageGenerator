@@ -199,7 +199,7 @@ public class PhonologyTests
         }
 
         //the example doesn't give any commands
-        Statement[] commands =
+        Sentence[] commands =
         [
             Told(new Event(new Doing("see", null), new Pronoun(Person.Second, Number.Singular), [], []), false),
             Told(new Event(new Doing("see", null), new Pronoun(Person.Second, Number.Plural), [], []), false),

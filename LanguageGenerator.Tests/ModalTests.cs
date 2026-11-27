@@ -6,14 +6,14 @@ namespace LanguageGenerator.Tests;
 
 public class ModalTests
 {
-    private static Statement Parsed(string gloss) => Stated(Assert.Single(ClauseFile.Parse($"x\n  {gloss}")).Utterance);
+    private static Sentence Parsed(string gloss) => Stated(Assert.Single(ClauseFile.Parse($"x\n  {gloss}")).Utterance);
 
     //only the basic meanings, since coining new ones would add to the shared sample's lexicons
 
-    private static Sentence Realized(Language language, Statement statement) => Syntax.Realize(language, statement, "x");
+    private static Rendering Realized(Language language, Sentence statement) => Syntax.Realize(language, statement, "x");
 
     //where the modal's marker is in a sentence: the modal verb's word, or the word with its affix or particle
-    private static int ModalAt(Sentence sentence) => sentence.Words.ToList().FindIndex(w => w.Word.Morphemes.Any(m => m.Value switch
+    private static int ModalAt(Rendering sentence) => sentence.Words.ToList().FindIndex(w => w.Word.Morphemes.Any(m => m.Value switch
     {
         Root r => r.Meaning is "can" or "may" or "must" or "should" or "might",
         Affix a => a.Grammemes.Any(g => g is Modality),
@@ -195,8 +195,8 @@ public class ModalTests
     {
         var addressed = Addressed(Line("carry.PASS.PERM  subject:box.DEF  addressee:marta"));
 
-        Assert.IsType<Modalized>(PropositionOf(StatementOf(addressed)).StateOfAffairs.Value);
-        PredicateOf<Done>(StatementOf(addressed));
+        Assert.IsType<Modalized>(PropositionOf(SentenceOf(addressed)).StateOfAffairs.Value);
+        PredicateOf<Done>(SentenceOf(addressed));
     }
 
     [Theory]

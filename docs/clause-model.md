@@ -214,9 +214,9 @@ The model has to take these without another redesign. For each, where it goes an
 
 This design retires `Statement`, `Force`, `Directive` as it stands, `Question`, `Modalized` as it stands, `Comparative`, `Addressed` and `ComplementClause`. It reuses `Directive` for the sentence type and `Modalized` for a modal over a state of affairs, which is what each term means. Settled:
 
-- **`Sentence`** is clause combining's, and the realized output takes another name.
+- **`Sentence`** is clause combining's, and the realized output becomes `Rendering`, its words `RenderedWord`.
 - **`Complement`** is a complement clause's, and be's complement becomes `Attribute`, what be says of its subject.
 - **`AdverbialClause`** is an adverbial clause's, and `Adverbial` stays an adverb or a manner.
 - **`Event` and `Proposition`** follow Noonan and `ComplementKind`, which they replace, and **`StateOfAffairs`** follows Dik and Hengeveld.
 
-Open: the realized output's new name, and the names in the names-to-revisit memory, `Done` for a passive's predicate among them, which could be settled at the same time.
+Open: the names in the names-to-revisit memory, `Done` for a passive's predicate among them, which could be settled at the same time.

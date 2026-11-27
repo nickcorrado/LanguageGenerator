@@ -93,8 +93,8 @@ public class Language
     public string Name => Capitalized(Endonym.Spell(Orthography));
 
     /// <summary>The word Name spells, for its gloss, said with the clitics its phrase leans on it.</summary>
-    public SentenceWord Endonym => Phonology.RealizePhrase(Syntax.Cited(this, new NounPhrase(new Noun("person", Number.Plural, [], null, null, null, null, null), null)))
-        .SelectMany(g => g.Words.Select(w => new SentenceWord(g, w))).First(w => w.Word.Root is not null);
+    public RenderedWord Endonym => Phonology.RealizePhrase(Syntax.Cited(this, new NounPhrase(new Noun("person", Number.Plural, [], null, null, null, null, null), null)))
+        .SelectMany(g => g.Words.Select(w => new RenderedWord(g, w))).First(w => w.Word.Root is not null);
 
     private static string Capitalized(string spelling) => spelling.Length == 0 ? spelling : char.ToUpperInvariant(spelling[0]) + spelling[1..];
 

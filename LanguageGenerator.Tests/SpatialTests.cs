@@ -9,14 +9,14 @@ public class SpatialTests
     //only the basic meanings, since coining new ones would add to the shared sample's lexicons
     private static readonly NounPhrase Stone = BareNoun("stone", Number.Singular);
 
-    private static Sentence Walk(Language language, Role role, Configuration configuration) =>
+    private static Rendering Walk(Language language, Role role, Configuration configuration) =>
         Syntax.Realize(language, Declared(new Event(new Doing("walk", null), BareNoun("dog", Number.Singular), [new(role, Stone, configuration)], []), Tense.Past, Aspect.Perfective, false), "x");
 
-    private static Statement Parsed(string gloss) => Stated(Assert.Single(ClauseFile.Parse($"x\n  {gloss}")).Utterance);
+    private static Sentence Parsed(string gloss) => Stated(Assert.Single(ClauseFile.Parse($"x\n  {gloss}")).Utterance);
 
     private static ClauseFormatException Error(string gloss) => Assert.Throws<ClauseFormatException>(() => ClauseFile.Parse($"x\n  {gloss}"));
 
-    private static string[] Glosses(Sentence sentence) => string.Join(" ", sentence.Words.Select(w => w.Gloss)).Split('-', '.', ' ', '[', ']');
+    private static string[] Glosses(Rendering sentence) => string.Join(" ", sentence.Words.Select(w => w.Gloss)).Split('-', '.', ' ', '[', ']');
 
     [Theory]
     [InlineData("goal.in", Role.Goal, Configuration.In)]

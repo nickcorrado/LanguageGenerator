@@ -20,5 +20,5 @@ public record Message(Content Content, NounPhrase? Addressee);
 //nearly every language
 public record Call(NounPhrase Addressee);
 
-/// <summary>What a message says: a statement, or a fragment, which has no clause.</summary>
-public union Content(Statement, Fragment);
+/// <summary>What a message says: a sentence, or a fragment, which has no clause.</summary>
+public union Content(Sentence, Fragment);

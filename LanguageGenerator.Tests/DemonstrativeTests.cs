@@ -8,7 +8,7 @@ namespace LanguageGenerator.Tests;
 //demonstrative standing alone, and 'here' and 'there' say them
 public class DemonstrativeTests
 {
-    private static Statement Parsed(string text) => Stated(Assert.Single(ClauseFile.Parse(text)).Utterance);
+    private static Sentence Parsed(string text) => Stated(Assert.Single(ClauseFile.Parse(text)).Utterance);
 
     private static ClauseFormatException Error(string text) => Assert.Throws<ClauseFormatException>(() => ClauseFile.Parse(text));
 

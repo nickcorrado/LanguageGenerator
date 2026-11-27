@@ -8,7 +8,7 @@ public class CommandTests
     private static IEnumerable<Language> Sample => GeneratedLanguages.Sample;
 
     //a language's own lexicon, since coining a word into a shared one is off limits
-    private static Sentence Say(Language language, Clause command) => Syntax.Realize(language, command, "");
+    private static Rendering Say(Language language, Clause command) => Syntax.Realize(language, command, "");
 
     //the first of a few languages with these settings fixed that also has what no setting says, as a
     //bare stem for an imperative
@@ -21,7 +21,7 @@ public class CommandTests
     private static bool Bare(Morpheme? marker) => marker.HasValue && marker.GetValueOrDefault().Form.Count == 0;
     private static bool Sounded(Morpheme? marker) => marker.HasValue && marker.GetValueOrDefault().Form.Count > 0;
 
-    private static string Glosses(Sentence sentence) => string.Join(" ", sentence.Words.Select(w => w.Gloss));
+    private static string Glosses(Rendering sentence) => string.Join(" ", sentence.Words.Select(w => w.Gloss));
 
     [Fact]
     public void GenerateCommands_ManyLanguages_UseBareStems()
@@ -172,7 +172,7 @@ public class CommandTests
         }
     }
 
-    private static Statement Parsed(string gloss) => Stated(Assert.Single(ClauseFile.Parse($"x\n  {gloss}")).Utterance);
+    private static Sentence Parsed(string gloss) => Stated(Assert.Single(ClauseFile.Parse($"x\n  {gloss}")).Utterance);
 
     [Fact]
     public void Parse_CommandWithBe_SaysWhatOrWhereToBe()

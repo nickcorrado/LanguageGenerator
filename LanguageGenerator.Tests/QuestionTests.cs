@@ -6,15 +6,15 @@ namespace LanguageGenerator.Tests;
 
 public class QuestionTests
 {
-    private static Statement Parsed(string gloss) => Stated(Assert.Single(ClauseFile.Parse($"x\n  {gloss}")).Utterance);
+    private static Sentence Parsed(string gloss) => Stated(Assert.Single(ClauseFile.Parse($"x\n  {gloss}")).Utterance);
 
     //only the basic meanings, since coining new ones would add to the shared sample's lexicons
     private static Clause DogEats(Argument food) => DogEatsFish.WithEvent(e => e with { Predicate = new Doing("eat", food) });
 
-    private static Sentence Realized(Language language, Statement statement) => Syntax.Realize(language, statement, "x");
+    private static Rendering Realized(Language language, Sentence statement) => Syntax.Realize(language, statement, "x");
 
     //where a yes-no question's marker is: the word with its particle or affix
-    private static int MarkerAt(Sentence sentence) => sentence.Words.ToList().FindIndex(w => w.Word.Morphemes.Any(m => m.Value switch
+    private static int MarkerAt(Rendering sentence) => sentence.Words.ToList().FindIndex(w => w.Word.Morphemes.Any(m => m.Value switch
     {
         Root => false,
         Affix a => a.Grammemes.Contains(Mood.Interrogative),
@@ -193,7 +193,7 @@ public class QuestionTests
     {
         var who = new QuestionWord(InterrogativeWord.Who);
         var house = BareNoun("house", Number.Singular);
-        var clauses = new Statement[]
+        var clauses = new Sentence[]
         {
             Asked(DogEatsFish, null),
             Asked(Declared(new Event(new Doing("eat", Fish), who, [], []), Tense.Past, Aspect.Perfective, false), null),
@@ -212,7 +212,7 @@ public class QuestionTests
             {
                 Assert.NotEmpty(Realized(l, clause).Words);
             }
-            Assert.NotEmpty(Syntax.Realize(l, new Message((Statement)Asked(DogEatsFish, null), Dog), "x").Words);
+            Assert.NotEmpty(Syntax.Realize(l, new Message((Sentence)Asked(DogEatsFish, null), Dog), "x").Words);
         });
     }
 
@@ -240,7 +240,7 @@ public class QuestionTests
     {
         var addressed = Addressed(Line("swim.ABIL.Q  subject:2SG  addressee:marta"));
 
-        Assert.IsType<Modalized>(ForceOf<Interrogative>(StatementOf(addressed)).Propositional.Proposition.StateOfAffairs.Value);
+        Assert.IsType<Modalized>(ForceOf<Interrogative>(SentenceOf(addressed)).Propositional.Proposition.StateOfAffairs.Value);
     }
 
     [Theory]

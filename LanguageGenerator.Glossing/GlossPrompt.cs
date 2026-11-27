@@ -449,7 +449,7 @@ public static class GlossPrompt
     }
 
     //sentences whose glosses didn't parse, with what was wrong, to try again
-    public static string Retry(IReadOnlyList<string> context, IReadOnlyList<(string Sentence, string Attempt, string Error)> failures)
+    public static string Retry(IReadOnlyList<string> context, IReadOnlyList<(string Rendering, string Attempt, string Error)> failures)
     {
         var lines = new List<string>();
         if (context.Count > 0)
@@ -462,7 +462,7 @@ public static class GlossPrompt
         foreach (var (failure, i) in failures.Select((f, i) => (f, i)))
         {
             lines.Add("");
-            lines.Add($"[{i + 1}] {failure.Sentence}");
+            lines.Add($"[{i + 1}] {failure.Rendering}");
             lines.Add("Your gloss:");
             lines.AddRange(failure.Attempt.Split('\n').Select(l => $"  {l}"));
             lines.Add($"The parser said: {failure.Error}");

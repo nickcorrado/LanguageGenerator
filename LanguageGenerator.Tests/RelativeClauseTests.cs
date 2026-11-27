@@ -8,11 +8,11 @@ namespace LanguageGenerator.Tests;
 //phrase says one
 public class RelativeClauseTests
 {
-    private static Statement Parsed(string text) => Stated(Assert.Single(ClauseFile.Parse(text)).Utterance);
+    private static Sentence Parsed(string text) => Stated(Assert.Single(ClauseFile.Parse(text)).Utterance);
 
     private static ClauseFormatException Error(string text) => Assert.Throws<ClauseFormatException>(() => ClauseFile.Parse(text));
 
-    private static NounPhrase ObjectOf(Statement statement) => Assert.IsType<NounPhrase>(PredicateOf<Doing>(statement).Object.GetValueOrDefault().Value);
+    private static NounPhrase ObjectOf(Sentence statement) => Assert.IsType<NounPhrase>(PredicateOf<Doing>(statement).Object.GetValueOrDefault().Value);
 
     [Fact]
     public void Parse_RelativeInANounPhrase_IsItsClauseWithTheGapInItsRole()
@@ -88,7 +88,7 @@ public class RelativeClauseTests
     public void GenerateRelativization_IsolatingLanguage_UsesNoAffix() =>
         Assert.All(Draws(s => s.Fix(Settings.Fusion, Fusion.Isolating)), r => Assert.NotEqual(RelativizerKind.Affix, r.RelativizerKind));
 
-    private static NounPhrase Head(string noun, Number number, Statement relative) => new NounPhrase(new Noun(noun, number, [], null, null, null, Definiteness.Definite, null), relative);
+    private static NounPhrase Head(string noun, Number number, Sentence relative) => new NounPhrase(new Noun(noun, number, [], null, null, null, Definiteness.Definite, null), relative);
 
     //'the dogs that sleep sleep', with the gap as the relative clause's subject
     private static readonly Clause Sleeps = Declared(new Event(new Doing("sleep", null), new Gap(null), [], []), Tense.Present, Aspect.Imperfective, false);

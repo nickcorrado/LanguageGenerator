@@ -4,11 +4,11 @@ namespace LanguageGenerator.Tests;
 
 public class NegationTests
 {
-    private static Sentence DogDidNotSeeCat(Language l, bool negative = true) =>
+    private static Rendering DogDidNotSeeCat(Language l, bool negative = true) =>
         Syntax.Realize(l, Declared(new Event(new Doing("see", BareNoun("cat", Number.Singular)), BareNoun("dog", Number.Singular), [], []), Tense.Past, Aspect.Perfective, negative), "the dog didn't see the cat");
 
     //which word is the verb itself, rather than a particle or an argument
-    private static int VerbIndex(Sentence sentence) => sentence.Words.ToList().FindIndex(w => w.Word.Root?.Meaning == "see");
+    private static int VerbIndex(Rendering sentence) => sentence.Words.ToList().FindIndex(w => w.Word.Root?.Meaning == "see");
 
     [Fact]
     public void Generate_IsolatingLanguages_NeverNegateWithAnAffix()

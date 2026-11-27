@@ -9,7 +9,7 @@ namespace LanguageGenerator.Tests;
 //has it
 public class IndefiniteTests
 {
-    private static Statement Parsed(string text) => Stated(Assert.Single(ClauseFile.Parse(text)).Utterance);
+    private static Sentence Parsed(string text) => Stated(Assert.Single(ClauseFile.Parse(text)).Utterance);
 
     private static ClauseFormatException Error(string text) => Assert.Throws<ClauseFormatException>(() => ClauseFile.Parse(text));
 
@@ -209,7 +209,7 @@ public class IndefiniteTests
     }
 
     //whether a clause's verb is negated, by the language's own negation marker
-    private static bool Negated(Language language, Statement statement) =>
+    private static bool Negated(Language language, Sentence statement) =>
         Syntax.Realize(language, statement, "x").Words.SelectMany(w => w.Word.Morphemes).Any(m => language.Negation.Markers.Any(n => n.Marker.Equals(m)));
 
     private static Language Concording(NegativeIndefiniteNegation negation) => GeneratedLanguages.With(s => s

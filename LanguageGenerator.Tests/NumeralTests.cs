@@ -90,7 +90,7 @@ public class NumeralTests
     }
 
     //only the basic meanings, since coining new ones would add to the shared sample's lexicons
-    private static Sentence ThreeBigDogsSlept(Language l) =>
+    private static Rendering ThreeBigDogsSlept(Language l) =>
         Syntax.Realize(l, Declared(new Event(new Doing("sleep", null), new NounPhrase(new Noun("dog", Number.Paucal, [new("big", false)], 3, null, null, null, null), null), [], []), Tense.Past, Aspect.Perfective, false), "x");
 
     [Fact]
