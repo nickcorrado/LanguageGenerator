@@ -457,10 +457,10 @@ public static class ClauseFile
           now of a past; a situational one with either is mostly a regret, as 'you should have gone'
           is, which can't be said yet
          */
-        if (features.Modality is { Epistemic: false } situational && features.Aspect is { } aspect && (aspect == Aspect.Perfect || aspect == Aspect.Progressive))
+        if (features.Modality is SituationalModality situational && features.Aspect is { } aspect && (aspect == Aspect.Perfect || aspect == Aspect.Progressive))
         {
             throw new ClauseFormatException($"{situational.Gloss} can't take {aspect.Gloss} yet, as in 'should have gone' or 'should be waiting'. " +
-                $"A modal that's sure or unsure of what happened, as in 'must have gone' or 'might be waiting', is {Modality.Presumptive.Gloss} or {Modality.Dubitative.Gloss}.", number);
+                $"A modal that's sure or unsure of what happened, as in 'must have gone' or 'might be waiting', is {EpistemicModality.Presumptive.Gloss} or {EpistemicModality.Dubitative.Gloss}.", number);
         }
         var asked = CheckQuestion(features, roles, adverb, number);
 
@@ -598,7 +598,8 @@ public static class ClauseFile
         {
             throw Unsupported(verb, unsupported, number);
         }
-        if (glosses.GroupBy(g => g.GetType()).FirstOrDefault(g => g.Count() > 1) is { } repeated)
+        //a modal of either kind is one category here, as a verb takes one of them
+        if (glosses.GroupBy(g => g is Modality ? typeof(Modality) : g.GetType()).FirstOrDefault(g => g.Count() > 1) is { } repeated)
         {
             throw new ClauseFormatException($"'{verb}' has more than one {repeated.Key.Name.ToLowerInvariant()}.", number);
         }
@@ -1502,9 +1503,9 @@ public static class ClauseFile
             : throw new ClauseFormatException($"'{gloss}' isn't a gloss.{Suggestion(gloss)}", number))]);
     }
 
-    //every value of every category, by its gloss
+    //every value of every category, by its gloss, a category being a kind of grammeme, or a kind of one, as a situational modality is
     private static readonly Dictionary<string, Grammeme> Glosses = typeof(Grammeme).Assembly.GetTypes()
-        .Where(t => t.BaseType == typeof(Grammeme))
+        .Where(t => t.IsSubclassOf(typeof(Grammeme)))
         .SelectMany(t => t.GetProperties(BindingFlags.Public | BindingFlags.Static).Where(p => p.PropertyType == t))
         .Select(p => (Grammeme)p.GetValue(null)!)
         .ToDictionary(t => t.Gloss);

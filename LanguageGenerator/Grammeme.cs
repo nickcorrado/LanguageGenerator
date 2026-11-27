@@ -79,34 +79,46 @@ public record Mood(string Name, string Gloss) : Grammeme(Name, Gloss)
 }
 
 /// <summary>
-/// What a clause says is possible or necessary for its subject: that they can do it, may do it,
+/// Possibility or necessity: of a state of affairs, as a situational modal says it, or of a
+/// proposition, as the speaker judges it with an epistemic one.
+/// </summary>
+/*
+  the two are said by one marking system, as a language often shares a marker between them, as
+  English must is both, so a language's markers are keyed by this. They sit at different layers,
+  so what holds one names its kind
+ */
+public closed record Modality(string Name, string Gloss) : Grammeme(Name, Gloss);
+
+/// <summary>
+/// What's possible or necessary for a state of affairs: that its subject can do it, may do it,
 /// must, or should.
 /// </summary>
 /*
   the Leipzig rules have no glosses for these, so they're the ones grammars commonly coin, except
-  ADVS, for which there's no common one. They're situational modality only, which WALS 74A counts;
-  epistemic modality, as in 'it may rain', isn't here yet
+  ADVS, for which there's no common one. WALS 74A counts how languages mark them
  */
-public record Modality(string Name, string Gloss) : Grammeme(Name, Gloss)
+public record SituationalModality(string Name, string Gloss) : Modality(Name, Gloss)
 {
     /// <summary>Able to, as in 'you can swim'.</summary>
-    public static Modality Ability { get; } = new("Ability", "ABIL");
+    public static SituationalModality Ability { get; } = new("Ability", "ABIL");
     /// <summary>Allowed to, as in 'you may go in the morning'.</summary>
-    public static Modality Permission { get; } = new("Permission", "PERM");
+    public static SituationalModality Permission { get; } = new("Permission", "PERM");
     /// <summary>Obliged to, as in 'you must find the key'.</summary>
-    public static Modality Obligation { get; } = new("Obligation", "OBLIG");
+    public static SituationalModality Obligation { get; } = new("Obligation", "OBLIG");
     /// <summary>Weakly obliged to, advised to, as in 'you should go' or 'you ought to go'.</summary>
-    public static Modality Advisability { get; } = new("Advisability", "ADVS");
-    /// <summary>
-    /// Possibly so, as the speaker judges it, as in 'he might have left' or 'maybe it's here': an
-    /// epistemic modal, which judges the clause, its tense and all, rather than taking the tense.
-    /// </summary>
-    public static Modality Dubitative { get; } = new("Dubitative", "DUB");
-    /// <summary>Surely so, as the speaker judges it, as in 'he must have left' or 'she must be tired'.</summary>
-    public static Modality Presumptive { get; } = new("Presumptive", "PRSM");
+    public static SituationalModality Advisability { get; } = new("Advisability", "ADVS");
+}
 
-    /// <summary>Whether a modality is the speaker's judgment of the clause rather than about its subject.</summary>
-    public bool Epistemic => this == Dubitative || this == Presumptive;
+/// <summary>
+/// How sure the speaker is that a proposition is so, which judges it whole, its tense and all,
+/// rather than taking the tense.
+/// </summary>
+public record EpistemicModality(string Name, string Gloss) : Modality(Name, Gloss)
+{
+    /// <summary>Possibly so, as in 'he might have left' or 'maybe it's here'.</summary>
+    public static EpistemicModality Dubitative { get; } = new("Dubitative", "DUB");
+    /// <summary>Surely so, as in 'he must have left' or 'she must be tired'.</summary>
+    public static EpistemicModality Presumptive { get; } = new("Presumptive", "PRSM");
 }
 
 /// <summary>

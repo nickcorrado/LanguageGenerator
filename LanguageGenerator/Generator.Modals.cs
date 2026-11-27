@@ -49,19 +49,19 @@ public static partial class Generator
 
         var markers = new Dictionary<Modality, ModalMarking>();
         //the situational edges each on their own, and the epistemic ones together, as WALS 76A counts them
-        var joined = SemanticMap.Joined(rand, ModalityMap.Edges.Where(e => !e.Second.Epistemic));
+        var joined = SemanticMap.Joined(rand, ModalityMap.Edges.Where(e => e.Second is not EpistemicModality));
         var (possibility, necessity) = Sampling.Categorical(rand, EpistemicOverlapCounts);
         if (possibility)
         {
-            joined.Add((Modality.Permission, Modality.Dubitative));
+            joined.Add((SituationalModality.Permission, EpistemicModality.Dubitative));
         }
         if (necessity)
         {
-            joined.Add((Modality.Obligation, Modality.Presumptive));
+            joined.Add((SituationalModality.Obligation, EpistemicModality.Presumptive));
         }
         foreach (var region in SemanticMap.Regions(ModalityMap.Modalities, joined))
         {
-            var kind = Sampling.Categorical(rand, region.All(m => m.Epistemic) ? EpistemicCounts : ModalCounts);
+            var kind = Sampling.Categorical(rand, region.All(m => m is EpistemicModality) ? EpistemicCounts : ModalCounts);
             if (kind == ModalKind.Affix && morphology.Fusion == Fusion.Isolating)
             {
                 kind = ModalKind.Particle;

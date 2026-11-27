@@ -313,7 +313,7 @@ public static class LanguageDescription
         {
             Bound b => OnVerb(b),
             Free f => OnVerb(f),
-            ModalVerb v when modality.Epistemic => $"the verb {SpelledWord(v.Verb)} said impersonally, with the clause as its complement",
+            ModalVerb v when modality is EpistemicModality => $"the verb {SpelledWord(v.Verb)} said impersonally, with the clause as its complement",
             ModalVerb v => $"the verb {SpelledWord(v.Verb)} {(v.BeforeVerb ? "before" : "after")} the bare verb",
         };
         output.WriteLine($"Modals: {string.Join(", ", lang.Modals.Markers.Select(m => $"{m.Key.Gloss} {Modal(m.Key, m.Value)}"))}");
@@ -494,14 +494,14 @@ public static class LanguageDescription
         ];
         (Statement Clause, string Translation)[] modalized =
         [
-            (new Modalized(new Clause(new Doing("drink", Phrase("water", Number.Singular)), new Declarative(Tense.Present, Aspect.Imperfective, Phrase("dog", Number.Singular)), false, [], []), Modality.Ability, true),
+            (new Modalized(new Clause(new Doing("drink", Phrase("water", Number.Singular)), new Declarative(Tense.Present, Aspect.Imperfective, Phrase("dog", Number.Singular)), false, [], []), SituationalModality.Ability, true),
                 "the dog can't drink the water"),
-            (new Modalized(new Clause(new Doing("sleep", null), new Declarative(Tense.Present, Aspect.Imperfective, Phrase("cat", Number.Singular)), false, [], []), Modality.Permission, false), "the cat may sleep"),
-            (new Modalized(new Clause(new Doing("eat", Phrase("fish", Number.Singular)), new Declarative(Tense.Present, Aspect.Imperfective, Phrase("dog", Number.Plural)), true, [], []), Modality.Obligation, false),
+            (new Modalized(new Clause(new Doing("sleep", null), new Declarative(Tense.Present, Aspect.Imperfective, Phrase("cat", Number.Singular)), false, [], []), SituationalModality.Permission, false), "the cat may sleep"),
+            (new Modalized(new Clause(new Doing("eat", Phrase("fish", Number.Singular)), new Declarative(Tense.Present, Aspect.Imperfective, Phrase("dog", Number.Plural)), true, [], []), SituationalModality.Obligation, false),
                 "the dogs must not eat the fish"),
-            (new Modalized(new Clause(new Doing("eat", Phrase("fish", Number.Singular)), new Declarative(Tense.Present, Aspect.Perfect, Phrase("cat", Number.Singular)), false, [], []), Modality.Presumptive, false),
+            (new Modalized(new Clause(new Doing("eat", Phrase("fish", Number.Singular)), new Declarative(Tense.Present, Aspect.Perfect, Phrase("cat", Number.Singular)), false, [], []), EpistemicModality.Presumptive, false),
                 "the cat must have eaten the fish"),
-            (new Modalized(new Clause(new Doing("sleep", null), new Declarative(Tense.Present, Aspect.Progressive, Phrase("dog", Number.Singular)), false, [], []), Modality.Dubitative, false), "the dog might be sleeping"),
+            (new Modalized(new Clause(new Doing("sleep", null), new Declarative(Tense.Present, Aspect.Progressive, Phrase("dog", Number.Singular)), false, [], []), EpistemicModality.Dubitative, false), "the dog might be sleeping"),
         ];
         (Statement Clause, string Translation)[] aspects =
         [

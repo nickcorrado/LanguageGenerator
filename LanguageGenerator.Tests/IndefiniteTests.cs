@@ -259,7 +259,7 @@ public class IndefiniteTests
     {
         var language = Concording(NegativeIndefiniteNegation.Always);
         var swims = new Clause(new Doing("swim", null), new Declarative(Tense.Present, Aspect.Imperfective, Indefinite(Quantifier.No, Ontology.Person)), false, [], []);
-        var morphemes = Syntax.Realize(language, new Modalized(swims, Modality.Ability, false), "x").Words.SelectMany(w => w.Word.Morphemes).ToList();
+        var morphemes = Syntax.Realize(language, new Modalized(swims, SituationalModality.Ability, false), "x").Words.SelectMany(w => w.Word.Morphemes).ToList();
 
         Assert.Equal(language.Negation.Markers.Count, morphemes.Count(m => language.Negation.Markers.Any(n => n.Marker.Equals(m))));
     }

@@ -1037,7 +1037,7 @@ public static class Syntax
 
     //the clause, with its modal where its verb is, or as the complement of an epistemic modal verb
     private static ClauseWords Words(Language language, Modalized modalized, IReadOnlyList<Word> adverbs) =>
-        language.Modals.Markers[modalized.Modality].Value is ModalVerb verb && modalized.Modality.Epistemic
+        language.Modals.Markers[modalized.Modality].Value is ModalVerb verb && modalized.Modality is EpistemicModality
             ? Impersonal(language, verb, modalized.Clause, modalized.Negative, adverbs)
             : Words(language, modalized.Clause, new Modal(language.Modals.Markers[modalized.Modality], modalized.Negative), adverbs);
 

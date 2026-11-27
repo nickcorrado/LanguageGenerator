@@ -73,11 +73,11 @@ public class QuestionTests
     [Fact]
     public void Realize_QuestionAffix_GoesOutsideEverythingOnTheModalVerb()
     {
-        var languages = GeneratedLanguages.Sample.Where(l => l.Questions.Polar.Value is QuestionAffix && l.Modals.Markers[Modality.Ability].Value is ModalVerb).ToList();
+        var languages = GeneratedLanguages.Sample.Where(l => l.Questions.Polar.Value is QuestionAffix && l.Modals.Markers[SituationalModality.Ability].Value is ModalVerb).ToList();
         Assert.NotEmpty(languages);
         Assert.All(languages, l =>
         {
-            var sentence = Realized(l, new Question(new Modalized(DogEatsFish, Modality.Ability, false), null));
+            var sentence = Realized(l, new Question(new Modalized(DogEatsFish, SituationalModality.Ability, false), null));
             var affix = (QuestionAffix)l.Questions.Polar.Value!;
             var morphemes = sentence.Words[MarkerAt(sentence)].Word.Morphemes;
 
@@ -204,7 +204,7 @@ public class QuestionTests
             new Question(new Clause(new Being(new Oblique(Role.Location, house, Configuration.At)), new Declarative(Tense.Present, Aspect.Imperfective, who), false, [], []), null),
             new Question(new Comparative(new Clause(new Being(new Adjective("big", false)), new Declarative(Tense.Present, Aspect.Imperfective, Dog), false, [], []), Fish), null),
             new Question(new Comparative(new Clause(new Being(new Adjective("big", false)), new Declarative(Tense.Present, Aspect.Imperfective, Dog), false, [], []), Fish), QuestionAdverb.Why),
-            new Question(new Modalized(DogEatsFish, Modality.Obligation, true), QuestionAdverb.Why),
+            new Question(new Modalized(DogEatsFish, SituationalModality.Obligation, true), QuestionAdverb.Why),
         };
         Assert.All(GeneratedLanguages.Sample, l =>
         {
