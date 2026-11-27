@@ -200,7 +200,7 @@ public static class LanguageDescription
         if (genders.Genders != NounGenders.None)
         {
             var markerSpellings = genders.Markers is null ? "no markers to agree with"
-                : string.Join(", ", genders.Values.Select(g => $"{g.Gloss} {(genders.Markers[g].Form.Count == 0 ? "∅" : ((Morpheme)genders.Markers[g]).Spell(orthography))}"));
+                : string.Join(", ", genders.Values.Select(g => $"{g.Gloss} {(genders.Markers.Affixes[g].Form.Count == 0 ? "∅" : ((Morpheme)genders.Markers.Affixes[g]).Spell(orthography))}"));
             var by = genders.Assignment == GenderAssignment.Semantic ? "by meaning" : "by meaning and form";
             output.WriteLine($"Genders: {string.Join("/", genders.Values.Select(g => g.Gloss))}, {by} ({markerSpellings}){(genders.VerbsAgree ? "; verbs agree" : "")}");
         }
@@ -223,10 +223,12 @@ public static class LanguageDescription
             { Exponent.Position: ExponentPosition.PrecedingParticle } p => $"Passive: {p.Exponent.Marker.Spell(orthography)} before the verb",
             var p => $"Passive: {p.Exponent.Marker.Spell(orthography)} after the verb",
         });
-        //an affix as Spelled spells it, or a word with the side of the verb it goes on
-        string OnVerb(Exponent exponent) => exponent.Value is Bound
+        //an affix as Spelled spells it, or a word with the side of what it marks it goes on
+        string On(Exponent exponent, string host) => exponent.Value is Bound
             ? Spelled(exponent.Position, exponent.Marker)
-            : $"{exponent.Marker.Spell(orthography)} {(exponent.Side == Side.Before ? "before" : "after")} the verb";
+            : $"{exponent.Marker.Spell(orthography)} {(exponent.Side == Side.Before ? "before" : "after")} {host}";
+        string OnVerb(Exponent exponent) => On(exponent, "the verb");
+        string OnAdjective(Exponent exponent) => exponent.Value is Bound ? $"{On(exponent, "the adjective")} on the adjective" : On(exponent, "the adjective");
         string SpelledWord(Lexeme word) => phonology.Realize(new Word([word.Root])).Spell(orthography);
         var conjunctions = lang.Conjunctions;
         var nounAnd = conjunctions.NounAnd.Value switch
@@ -299,25 +301,14 @@ public static class LanguageDescription
             ConjoinedComparison => "two clauses, 'X is big, Y is not big'",
             ExceedComparison e => $"the verb {SpelledWord(e.Exceed)} 'exceed' with the standard as its object",
         });
-        var degree = lang.Degree.Marker.Value switch
-        {
-            DegreeAffix a => $"{Spelled(a.Position, a.Marker)} on the adjective",
-            DegreeWord w => $"{((Morpheme)w.Marker).Spell(orthography)} {(w.BeforeAdjective ? "before" : "after")} the adjective",
-            _ => throw new InvalidOperationException(),
-        };
-        output.WriteLine($"Comparatives: {degree}, {(lang.Degree.WithStandard ? "with or without a standard" : "only without a standard")}");
+        output.WriteLine($"Comparatives: {OnAdjective(lang.Degree.Marker)}, {(lang.Degree.WithStandard ? "with or without a standard" : "only without a standard")}");
         output.WriteLine("Similes: " + lang.Similative switch
         {
             SimilativeWord w => $"the word {SpelledWord(w.Like)} {(w.BeforeStandard ? "before" : "after")} what something is like",
-            SimilativeAffix a => $"{Spelled(a.Position, a.Marker)} on what something is like",
+            SimilativeAffix a => $"{On(a.Marker, "what something is like")} on what something is like",
         });
-        output.WriteLine($"Very: {((Morpheme)lang.Intensifier.Marker).Spell(orthography)} {(lang.Intensifier.BeforeAdjective ? "before" : "after")} the adjective");
-        output.WriteLine("Manner adverbs: " + lang.Manner switch
-        {
-            MannerBare => "the adjective itself",
-            MannerAffix a => $"{Spelled(a.Position, a.Marker)} on the adjective",
-            MannerWord w => $"{((Morpheme)w.Marker).Spell(orthography)} {(w.BeforeAdjective ? "before" : "after")} the adjective",
-        });
+        output.WriteLine($"Very: {On(lang.Intensifier, "the adjective")}");
+        output.WriteLine($"Manner adverbs: {(lang.Manner is { } manner ? OnAdjective(manner) : "the adjective itself")}");
         string Modal(Modality modality, ModalMarking marking) => marking switch
         {
             Bound b => OnVerb(b),
@@ -348,7 +339,7 @@ public static class LanguageDescription
                 QuestionParticlePosition.Final => "last",
                 _ => "after the first word",
             }}",
-            QuestionAffix a => $"{Spelled(a.Position, a.Marker)} on the verb",
+            QuestionAffix a => $"{OnVerb(a.Marker)} on the verb",
             QuestionInversion => "the verb first",
             QuestionIntonation => "intonation alone",
         };

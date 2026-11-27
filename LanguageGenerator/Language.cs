@@ -35,9 +35,14 @@ public class Language
     public required DegreeMarking Degree { get; init; }
     public required Similative Similative { get; init; }
     /// <summary>The word for 'very', beside the adjective.</summary>
-    public required DegreeWord Intensifier { get; init; }
-    /// <summary>How an adverb saying how something is done is made from an adjective.</summary>
-    public required MannerMarking Manner { get; init; }
+    public required Free Intensifier { get; init; }
+    /// <summary>
+    /// How an adverb saying how something is done is made from an adjective: with an affix, as
+    /// English -ly and Turkish -ce make them, or a word beside it, as Mandarin de follows it in
+    /// man-man de 'slowly' and Japanese ni in shizuka ni 'quietly'. Null where it's the adjective
+    /// itself, as German schnell is 'quick' and 'quickly'.
+    /// </summary>
+    public required Exponent? Manner { get; init; }
     /// <summary>How the language marks a passive verb, or null where it has no passive.</summary>
     public required Passive? Passive { get; init; }
     public required Conjunctions Conjunctions { get; init; }

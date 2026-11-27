@@ -126,7 +126,7 @@ public class CopulaTests
                 var gender = l.GenderOf(l.Lexicon.Noun(noun));
 
                 Assert.Equal(Affixes(subject), Affixes(big));
-                Assert.Equal(gender is not null && l.Genders.Markers?[gender].Form.Count > 0 ? [gender.Gloss] : [], GenderGlosses(big));
+                Assert.Equal(gender is not null && l.Genders.Markers?.Affixes[gender].Form.Count > 0 ? [gender.Gloss] : [], GenderGlosses(big));
             }
         });
     }
@@ -144,7 +144,7 @@ public class CopulaTests
             var old = sentence.Words[IndexOf(sentence, "old")].Word;
 
             Assert.Equal(Affixes(plural.Words[IndexOf(plural, "old")].Word), Affixes(old));
-            Assert.Equal(feminine is not null && l.Genders.Markers?[feminine].Form.Count > 0 ? ["F"] : [], GenderGlosses(old));
+            Assert.Equal(feminine is not null && l.Genders.Markers?.Affixes[feminine].Form.Count > 0 ? ["F"] : [], GenderGlosses(old));
         });
     }
 

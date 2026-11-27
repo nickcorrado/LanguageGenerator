@@ -33,7 +33,7 @@ public static partial class Generator
       and after it in one whose are head-initial, which word order draws from WALS 83A and 91A
       together, so that it leans the way the language's verb and object go
      */
-    private static bool DegreeWordBefore(WordOrder wordOrder) => wordOrder.AdjectivePhraseDirectionality == HeadDirectionality.Final;
+    private static Side DegreeWordSide(WordOrder wordOrder) => wordOrder.AdjectivePhraseDirectionality == HeadDirectionality.Final ? Side.Before : Side.After;
 
     /*
       WALS doesn't count how a comparative adjective is marked, so these are guesses: most languages
@@ -58,10 +58,10 @@ public static partial class Generator
     public static DegreeMarking GenerateDegree(Random rand, Comparison comparison, MorphologicalProfile morphology, WordOrder wordOrder, Phonology phonology)
     {
         var affix = morphology.Fusion != Fusion.Isolating && rand.NextDouble() < DegreeAffixChance;
-        DegreeMarker marker = affix
-            ? new DegreeAffix(CoinAffix(rand, phonology, MarkerForm(rand, true, phonology), [Degree.Comparative]),
-                rand.NextDouble() < PrefixChance(morphology) ? ExponentPosition.Prefix : ExponentPosition.Suffix)
-            : new DegreeWord(new Particle(MarkerForm(rand, false, phonology), [Degree.Comparative]), DegreeWordBefore(wordOrder));
+        Exponent marker = affix
+            ? new Bound(CoinAffix(rand, phonology, MarkerForm(rand, true, phonology), [Degree.Comparative]),
+                rand.NextDouble() < PrefixChance(morphology) ? Side.Before : Side.After)
+            : new Free(new Particle(MarkerForm(rand, false, phonology), [Degree.Comparative]), DegreeWordSide(wordOrder));
         return new DegreeMarking(marker, rand.NextDouble() < DegreeWithStandardChance(comparison));
     }
 
@@ -77,8 +77,8 @@ public static partial class Generator
     {
         if (morphology.Fusion != Fusion.Isolating && rand.NextDouble() < SimilativeAffixChance)
         {
-            return new SimilativeAffix(CoinAffix(rand, phonology, MarkerForm(rand, true, phonology), [Case.Similative]),
-                rand.NextDouble() < PrefixChance(morphology) ? ExponentPosition.Prefix : ExponentPosition.Suffix);
+            return new SimilativeAffix(new Bound(CoinAffix(rand, phonology, MarkerForm(rand, true, phonology), [Case.Similative]),
+                rand.NextDouble() < PrefixChance(morphology) ? Side.Before : Side.After));
         }
         var forms = new DistinctForms();
         if (comparison.Value is ParticleComparison particle)

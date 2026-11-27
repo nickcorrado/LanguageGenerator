@@ -597,7 +597,7 @@ public static class Settings
 
     public static Stage<DegreeMarking> DegreeStage { get; } = new("degree", l => l.Degree, null);
     public static Setting<DegreeMarking, MarkerKind> Comparative { get; } = DegreeStage.Declare("comparative", Comparing,
-        d => d.Marker.Value is DegreeAffix ? MarkerKind.Affix : MarkerKind.Word, SettingWrites.WithComparative, Choice<MarkerKind>.Of(Enum.GetValues<MarkerKind>()));
+        d => d.Marker.Value is Bound ? MarkerKind.Affix : MarkerKind.Word, SettingWrites.WithComparative, Choice<MarkerKind>.Of(Enum.GetValues<MarkerKind>()));
 
     public static Stage<Similative> SimilativeStage { get; } = new("similative", l => l.Similative, null);
     public static Setting<Similative, MarkerKind> Similative { get; } = SimilativeStage.Declare("similative", Comparing,

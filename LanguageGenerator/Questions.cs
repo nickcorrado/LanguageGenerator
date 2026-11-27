@@ -18,8 +18,7 @@ public record QuestionParticle(Particle Marker, QuestionParticlePosition Positio
 /// A yes-no question marked by an affix on the finite verb, outside everything else on it, as
 /// West Greenlandic marks its interrogative mood.
 /// </summary>
-//Position is Prefix or Suffix
-public record QuestionAffix(Affix Marker, ExponentPosition Position);
+public record QuestionAffix(Bound Marker);
 
 /// <summary>A yes-no question marked by putting the finite verb first, as German does.</summary>
 public record QuestionInversion;

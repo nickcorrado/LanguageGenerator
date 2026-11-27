@@ -8,14 +8,14 @@ public static partial class Generator
       puts degree words, as its comparative's is where that's a word too. Its form is kept apart
       from the comparative's
      */
-    public static DegreeWord GenerateIntensifier(Random rand, DegreeMarking degree, WordOrder wordOrder, Phonology phonology)
+    public static Free GenerateIntensifier(Random rand, DegreeMarking degree, WordOrder wordOrder, Phonology phonology)
     {
         var forms = new DistinctForms();
-        if (degree.Marker.Value is DegreeWord comparative)
+        if (degree.Marker.Value is Free comparative)
         {
-            forms.Take(comparative.Marker.Form);
+            forms.Take(comparative.Particle.Form);
         }
-        return new DegreeWord(new Particle(forms.Draw(() => MarkerForm(rand, false, phonology)), [Degree.Intensive]), DegreeWordBefore(wordOrder));
+        return new Free(new Particle(forms.Draw(() => MarkerForm(rand, false, phonology)), [Degree.Intensive]), DegreeWordSide(wordOrder));
     }
 
     private enum MannerType { Bare, Affix, Word }
@@ -29,15 +29,17 @@ public static partial class Generator
     private static readonly (MannerType Value, int Weight)[] MannerCounts = [(MannerType.Bare, 40), (MannerType.Affix, 40), (MannerType.Word, 20)];
     private const double MannerWordBeforeChance = 0.3;
 
-    public static MannerMarking GenerateManner(Random rand, MorphologicalProfile morphology, Phonology phonology)
+    public static Exponent? GenerateManner(Random rand, MorphologicalProfile morphology, Phonology phonology)
     {
         var counts = morphology.Fusion == Fusion.Isolating ? MannerCounts.Where(c => c.Value != MannerType.Affix).ToArray() : MannerCounts;
         return Sampling.Categorical(rand, counts) switch
         {
-            MannerType.Bare => new MannerBare(),
-            MannerType.Affix => new MannerAffix(CoinAffix(rand, phonology, MarkerForm(rand, true, phonology), [Derivation.Adverbial]),
-                rand.NextDouble() < PrefixChance(morphology) ? ExponentPosition.Prefix : ExponentPosition.Suffix),
-            _ => new MannerWord(new Particle(MarkerForm(rand, false, phonology), [Derivation.Adverbial]), rand.NextDouble() < MannerWordBeforeChance),
+            MannerType.Bare => (Exponent?)null,
+            MannerType.Affix => new Bound(CoinAffix(rand, phonology, MarkerForm(rand, true, phonology), [Derivation.Adverbial]),
+                rand.NextDouble() < PrefixChance(morphology) ? Side.Before : Side.After),
+            MannerType.Word => new Free(new Particle(MarkerForm(rand, false, phonology), [Derivation.Adverbial]),
+                rand.NextDouble() < MannerWordBeforeChance ? Side.Before : Side.After),
+            var type => throw new ArgumentOutOfRangeException(nameof(type), type, null),
         };
     }
 
