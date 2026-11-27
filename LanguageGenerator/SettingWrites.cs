@@ -527,7 +527,8 @@ internal static class SettingWrites
     {
         (MarkerKind.Affix, Free word) => drawn with { Marker = new Bound(new Affix(word.Particle.Form, word.Particle.Grammemes, AffixAccent.None), Side.After) },
         (MarkerKind.Word, Bound) => throw NoForm("A comparative word"),
-        _ => drawn,
+        (MarkerKind.Affix, Bound) or (MarkerKind.Word, Free) => drawn,
+        _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
     };
 
     public static Similative WithSimilative(Similative drawn, MarkerKind kind) => (kind, drawn.Value) switch
