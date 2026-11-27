@@ -138,10 +138,10 @@ public class ComparisonTests
         var rand = new Random(1);
         DegreeMarking Draw(Comparison comparison) => Generator.GenerateDegree(rand, comparison, language.MorphologicalProfile, language.WordOrder, language.Phonology);
 
-        var words = Enumerable.Range(0, 1000).Select(_ => Draw(new LocationalComparison(Role.Source)).Marker.Value).OfType<DegreeWord>().ToList();
+        var words = Enumerable.Range(0, 1000).Select(_ => Draw(new LocationalComparison(Role.Source)).Marker.Value).OfType<Free>().ToList();
 
         Assert.NotEmpty(words);
-        Assert.All(words, w => Assert.Equal(language.WordOrder.AdjectivePhraseDirectionality == HeadDirectionality.Final, w.BeforeAdjective));
+        Assert.All(words, w => Assert.Equal(language.WordOrder.AdjectivePhraseDirectionality == HeadDirectionality.Final ? Side.Before : Side.After, w.Side));
         Assert.DoesNotContain(Enumerable.Range(0, 500).Select(_ => Draw(new ConjoinedComparison())), d => d.WithStandard);
     }
 
@@ -149,7 +149,7 @@ public class ComparisonTests
     public void Generate_IsolatingLanguages_MarkComparativesAndSimilesWithWords() =>
         Assert.All(GeneratedLanguages.Sample.Where(l => l.MorphologicalProfile.Fusion == Fusion.Isolating), l =>
         {
-            Assert.IsType<DegreeWord>(l.Degree.Marker.Value);
+            Assert.IsType<Free>(l.Degree.Marker.Value);
             Assert.IsType<SimilativeWord>(l.Similative.Value);
         });
 
@@ -163,17 +163,17 @@ public class ComparisonTests
         var big = IndexOf(sentence, "big");
         switch (l.Degree.Marker.Value)
         {
-            case DegreeAffix affix:
+            case Bound affix:
             {
                 var morphemes = sentence.Words[big].Word.Morphemes.ToList();
-                var at = morphemes.FindIndex(m => m.Value is Affix a && a == affix.Marker);
+                var at = morphemes.FindIndex(m => m.Value is Affix a && a == affix.Affix);
                 var root = morphemes.FindIndex(m => m.Value is Root);
-                return at < 0 ? null : at == root + (affix.Position == ExponentPosition.Prefix ? -1 : 1);
+                return at < 0 ? null : at == root + (affix.Side == Side.Before ? -1 : 1);
             }
-            case DegreeWord word:
+            case Free word:
             {
-                var at = sentence.Words.ToList().FindIndex(w => w.Word.Morphemes.Any(m => m.Value is Particle p && p == word.Marker));
-                return at < 0 ? null : at == big + (word.BeforeAdjective ? -1 : 1);
+                var at = sentence.Words.ToList().FindIndex(w => w.Word.Morphemes.Any(m => m.Value is Particle p && p == word.Particle));
+                return at < 0 ? null : at == big + (word.Side == Side.Before ? -1 : 1);
             }
             default:
                 throw new InvalidOperationException();

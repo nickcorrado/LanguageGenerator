@@ -223,10 +223,11 @@ public static class LanguageDescription
             { Exponent.Position: ExponentPosition.PrecedingParticle } p => $"Passive: {p.Exponent.Marker.Spell(orthography)} before the verb",
             var p => $"Passive: {p.Exponent.Marker.Spell(orthography)} after the verb",
         });
-        //an affix as Spelled spells it, or a word with the side of the verb it goes on
-        string OnVerb(Exponent exponent) => exponent.Value is Bound
+        //an affix as Spelled spells it, or a word with the side of what it marks it goes on
+        string On(Exponent exponent, string host) => exponent.Value is Bound
             ? Spelled(exponent.Position, exponent.Marker)
-            : $"{exponent.Marker.Spell(orthography)} {(exponent.Side == Side.Before ? "before" : "after")} the verb";
+            : $"{exponent.Marker.Spell(orthography)} {(exponent.Side == Side.Before ? "before" : "after")} {host}";
+        string OnVerb(Exponent exponent) => On(exponent, "the verb");
         string SpelledWord(Lexeme word) => phonology.Realize(new Word([word.Root])).Spell(orthography);
         var conjunctions = lang.Conjunctions;
         var nounAnd = conjunctions.NounAnd.Value switch
@@ -299,19 +300,14 @@ public static class LanguageDescription
             ConjoinedComparison => "two clauses, 'X is big, Y is not big'",
             ExceedComparison e => $"the verb {SpelledWord(e.Exceed)} 'exceed' with the standard as its object",
         });
-        var degree = lang.Degree.Marker.Value switch
-        {
-            DegreeAffix a => $"{Spelled(a.Position, a.Marker)} on the adjective",
-            DegreeWord w => $"{((Morpheme)w.Marker).Spell(orthography)} {(w.BeforeAdjective ? "before" : "after")} the adjective",
-            _ => throw new InvalidOperationException(),
-        };
+        var degree = lang.Degree.Marker.Value is Bound ? $"{On(lang.Degree.Marker, "the adjective")} on the adjective" : On(lang.Degree.Marker, "the adjective");
         output.WriteLine($"Comparatives: {degree}, {(lang.Degree.WithStandard ? "with or without a standard" : "only without a standard")}");
         output.WriteLine("Similes: " + lang.Similative switch
         {
             SimilativeWord w => $"the word {SpelledWord(w.Like)} {(w.BeforeStandard ? "before" : "after")} what something is like",
             SimilativeAffix a => $"{Spelled(a.Position, a.Marker)} on what something is like",
         });
-        output.WriteLine($"Very: {((Morpheme)lang.Intensifier.Marker).Spell(orthography)} {(lang.Intensifier.BeforeAdjective ? "before" : "after")} the adjective");
+        output.WriteLine($"Very: {On(lang.Intensifier, "the adjective")}");
         output.WriteLine("Manner adverbs: " + lang.Manner switch
         {
             MannerBare => "the adjective itself",

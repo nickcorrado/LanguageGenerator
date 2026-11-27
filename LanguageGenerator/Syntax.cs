@@ -864,7 +864,7 @@ public static class Syntax
       in bud' ostorozhen 'be careful'. Its verbal adjective takes the imperative itself, and its
       predicate noun or adjective is what it would be said of 'you'
      */
-    private static ClauseWords Copular(Language language, Clause clause, Being being, Rank rank, IReadOnlyList<Word> standard, DegreeMarker? degree)
+    private static ClauseWords Copular(Language language, Clause clause, Being being, Rank rank, IReadOnlyList<Word> standard, Exponent? degree)
     {
         if (rank.Value is not Balanced { Phase: null } balanced)
         {
@@ -950,7 +950,7 @@ public static class Syntax
             return Copular(language, clause, being, rank, [], language.Degree.Marker);
         }
         var standard = comparative.Standard.GetValueOrDefault();
-        var degree = language.Degree.WithStandard ? language.Degree.Marker : (DegreeMarker?)null;
+        var degree = language.Degree.WithStandard ? language.Degree.Marker : (Exponent?)null;
         return language.Comparison switch
         {
             LocationalComparison locational => Copular(language, clause, being, rank, Marked(language, standard, locational.Role), degree),
@@ -981,30 +981,8 @@ public static class Syntax
 
     //an adjective's words with a marker of degree, if it has one: an affix next to its root, inside
     //any agreement or tense, or a word beside it
-    private static IReadOnlyList<Word> Graded(IReadOnlyList<Word> words, Root adjective, DegreeMarker? degree)
-    {
-        if (degree is not { } marker)
-        {
-            return words;
-        }
-        List<Word> compared = [.. words];
-        var at = compared.FindIndex(w => w.Root == adjective);
-        switch (marker.Value)
-        {
-            case DegreeAffix affix:
-            {
-                var morphemes = compared[at].Morphemes.ToList();
-                var root = morphemes.FindIndex(m => m.Value is Root);
-                morphemes.Insert(affix.Position == ExponentPosition.Prefix ? root : root + 1, affix.Marker);
-                compared[at] = compared[at] with { Morphemes = morphemes };
-                break;
-            }
-            case DegreeWord word:
-                compared.Insert(word.BeforeAdjective ? at : at + 1, Word.Marker(word.Marker, word.BeforeAdjective ? Lean.Forward : Lean.Back));
-                break;
-        }
-        return compared;
-    }
+    private static IReadOnlyList<Word> Graded(IReadOnlyList<Word> words, Root adjective, Exponent? degree) =>
+        degree is { } marker ? marker.Place(words, words.ToList().FindIndex(w => w.Root == adjective), Reach.Root) : words;
 
     //a predicate noun or adjective, said of this subject
     private static IReadOnlyList<Word> PredicateComplement(Language language, Complement complement, Argument subject) => complement.Value switch

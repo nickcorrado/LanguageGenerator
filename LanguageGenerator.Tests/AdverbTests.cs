@@ -126,13 +126,13 @@ public class AdverbTests
 
     //where 'very' is in a sentence, relative to the word with this root: -1 right before it, 1 right after
     private static int Intensifier(Language l, Sentence sentence, string root) =>
-        sentence.Words.ToList().FindIndex(w => w.Word.Morphemes.Any(m => m.Value is Particle p && p == l.Intensifier.Marker)) - IndexOf(sentence, root);
+        sentence.Words.ToList().FindIndex(w => w.Word.Morphemes.Any(m => m.Value is Particle p && p == l.Intensifier.Particle)) - IndexOf(sentence, root);
 
     [Fact]
     public void Realize_Intensified_PutsVeryBesideTheAdjective() =>
         Assert.All(GeneratedLanguages.Sample, l =>
         {
-            var side = l.Intensifier.BeforeAdjective ? -1 : 1;
+            var side = l.Intensifier.Side == Side.Before ? -1 : 1;
             Statement[] statements =
             [
                 DogIsBig with { Predicate = new Being(new Adjective("big", true)) },
@@ -152,10 +152,10 @@ public class AdverbTests
 
     [Fact]
     public void Realize_IntensifiedComparative_PutsTheComparativeNearer() =>
-        Assert.All(GeneratedLanguages.Sample.Where(l => l.Degree.Marker.Value is DegreeWord), l =>
+        Assert.All(GeneratedLanguages.Sample.Where(l => l.Degree.Marker.Value is Free), l =>
         {
             var sentence = Realized(l, new Comparative(DogIsBig with { Predicate = new Being(new Adjective("big", true)) }, null));
-            var side = l.Intensifier.BeforeAdjective ? -1 : 1;
+            var side = l.Intensifier.Side == Side.Before ? -1 : 1;
 
             Assert.Equal(2 * side, Intensifier(l, sentence, "big"));
             Assert.Equal("CMPR", sentence.Words[IndexOf(sentence, "big") + side].Gloss);
@@ -166,15 +166,15 @@ public class AdverbTests
     {
         Assert.All(GeneratedLanguages.Sample, l =>
         {
-            var before = l.WordOrder.AdjectivePhraseDirectionality == HeadDirectionality.Final;
-            Assert.Equal(Degree.Intensive, Assert.Single(l.Intensifier.Marker.Grammemes));
-            Assert.Equal(before, l.Intensifier.BeforeAdjective);
-            if (l.Degree.Marker.Value is DegreeWord comparative)
+            var side = l.WordOrder.AdjectivePhraseDirectionality == HeadDirectionality.Final ? Side.Before : Side.After;
+            Assert.Equal(Degree.Intensive, Assert.Single(l.Intensifier.Particle.Grammemes));
+            Assert.Equal(side, l.Intensifier.Side);
+            if (l.Degree.Marker.Value is Free comparative)
             {
-                Assert.Equal(before, comparative.BeforeAdjective);
+                Assert.Equal(side, comparative.Side);
             }
         });
-        Assert.True(GeneratedLanguages.Sample.Count(l => l.Degree.Marker.Value is DegreeWord w && w.Marker.Form.SequenceEqual(l.Intensifier.Marker.Form)) < 5);
+        Assert.True(GeneratedLanguages.Sample.Count(l => l.Degree.Marker.Value is Free w && w.Particle.Form.SequenceEqual(l.Intensifier.Particle.Form)) < 5);
     }
 
     [Fact]

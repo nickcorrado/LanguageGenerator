@@ -48,22 +48,14 @@ public enum MarkerKind
     Word,
 }
 
-/// <summary>A comparative marked by an affix on the adjective, as English -er or Hungarian -bb.</summary>
-//Position is Prefix or Suffix; it goes next to the root, inside any agreement or tense
-public record DegreeAffix(Affix Marker, ExponentPosition Position);
-
-/// <summary>A comparative marked by a word beside the adjective, as Turkish daha or Japanese motto 'more'.</summary>
-public record DegreeWord(Particle Marker, bool BeforeAdjective);
-
-public union DegreeMarker(DegreeAffix, DegreeWord);
-
 /// <summary>
-/// How a language marks an adjective as comparative. Every language can say 'bigger' with no
-/// standard, as Turkish says daha büyük 'more big', but only some mark the adjective when a
-/// standard is said too, as English does in 'bigger than the house' and Turkish doesn't in evden
-/// büyük 'big from the house'.
+/// How a language marks an adjective as comparative: an affix next to its root, inside any
+/// agreement or tense, as English -er or Hungarian -bb, or a word beside it, as Turkish daha or
+/// Japanese motto 'more'. Every language can say 'bigger' with no standard, as Turkish says daha
+/// büyük 'more big', but only some mark the adjective when a standard is said too, as English does
+/// in 'bigger than the house' and Turkish doesn't in evden büyük 'big from the house'.
 /// </summary>
-public record DegreeMarking(DegreeMarker Marker, bool WithStandard);
+public record DegreeMarking(Exponent Marker, bool WithStandard);
 
 /// <summary>
 /// 'Like' as a word of its own, before or after what something is likened to as the language's

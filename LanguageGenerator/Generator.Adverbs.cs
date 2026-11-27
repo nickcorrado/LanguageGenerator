@@ -8,14 +8,14 @@ public static partial class Generator
       puts degree words, as its comparative's is where that's a word too. Its form is kept apart
       from the comparative's
      */
-    public static DegreeWord GenerateIntensifier(Random rand, DegreeMarking degree, WordOrder wordOrder, Phonology phonology)
+    public static Free GenerateIntensifier(Random rand, DegreeMarking degree, WordOrder wordOrder, Phonology phonology)
     {
         var forms = new DistinctForms();
-        if (degree.Marker.Value is DegreeWord comparative)
+        if (degree.Marker.Value is Free comparative)
         {
-            forms.Take(comparative.Marker.Form);
+            forms.Take(comparative.Particle.Form);
         }
-        return new DegreeWord(new Particle(forms.Draw(() => MarkerForm(rand, false, phonology)), [Degree.Intensive]), DegreeWordBefore(wordOrder));
+        return new Free(new Particle(forms.Draw(() => MarkerForm(rand, false, phonology)), [Degree.Intensive]), DegreeWordSide(wordOrder));
     }
 
     private enum MannerType { Bare, Affix, Word }

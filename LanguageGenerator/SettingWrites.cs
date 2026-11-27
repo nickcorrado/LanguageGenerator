@@ -527,8 +527,8 @@ internal static class SettingWrites
     //word order says, so only an affix can be written over a word
     public static DegreeMarking WithComparative(DegreeMarking drawn, MarkerKind kind) => (kind, drawn.Marker.Value) switch
     {
-        (MarkerKind.Affix, DegreeWord word) => drawn with { Marker = new DegreeAffix(new Affix(word.Marker.Form, word.Marker.Grammemes, AffixAccent.None), ExponentPosition.Suffix) },
-        (MarkerKind.Word, DegreeAffix) => throw NoForm("A comparative word"),
+        (MarkerKind.Affix, Free word) => drawn with { Marker = new Bound(new Affix(word.Particle.Form, word.Particle.Grammemes, AffixAccent.None), Side.After) },
+        (MarkerKind.Word, Bound) => throw NoForm("A comparative word"),
         _ => drawn,
     };
 
