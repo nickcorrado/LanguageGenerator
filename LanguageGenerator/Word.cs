@@ -74,6 +74,8 @@ public enum PartOfSpeech
     Numeral,
     Conjunction,
     Adverb,
+    //a word said on its own, as 'hello' or 'oh', with no part in a clause
+    Interjection,
 }
 
 public enum AdpositionType

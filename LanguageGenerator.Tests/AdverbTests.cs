@@ -7,8 +7,6 @@ namespace LanguageGenerator.Tests;
 public class AdverbTests
 {
     //only the basic meanings, since coining new ones would add to the shared sample's lexicons
-    private static readonly Clause DogWalks = new Clause(new Doing("walk", null), new Declarative(Tense.Present, Aspect.Imperfective, BareNoun("dog", Number.Singular)), false, [], []);
-    private static readonly Clause DogIsBig = new Clause(new Being(new Adjective("big", false)), new Declarative(Tense.Present, Aspect.Imperfective, BareNoun("dog", Number.Singular)), false, [], []);
     private static readonly Oblique AtTheHouse = new(Role.Location, BareNoun("house", Number.Singular), Configuration.At);
     private static readonly Adverb Now = new("now", AdverbKind.When);
     private static readonly Adverb Again = new("again", AdverbKind.Often);
@@ -21,7 +19,7 @@ public class AdverbTests
         _ => throw new ArgumentException("Not a statement these tests realize.", nameof(statement)),
     };
 
-    private static Statement Parsed(string gloss) => Assert.Single(ClauseFile.Parse($"x\n  {gloss}")).Statement;
+    private static Statement Parsed(string gloss) => Stated(Assert.Single(ClauseFile.Parse($"x\n  {gloss}")).Utterance);
 
     [Fact]
     public void Realize_Adverb_IsItsBareRootWhereObliquesGo() =>

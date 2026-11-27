@@ -6,14 +6,13 @@ namespace LanguageGenerator.Tests;
 
 public class ComparisonTests
 {
-    private static readonly Clause DogIsBig = new Clause(new Being(new Adjective("big", false)), new Declarative(Tense.Present, Aspect.Imperfective, BareNoun("dog", Number.Singular)), false, [], []);
     private static readonly NounPhrase Cats = BareNoun("cat", Number.Plural);
 
     //'the dog is bigger than the cats', in only the basic meanings, since coining new ones would add
     //to the shared sample's lexicons
     private static Sentence Bigger(Language l) => Syntax.Realize(l, new Comparative(DogIsBig, Cats), "x");
 
-    private static Statement Parsed(string gloss) => Assert.Single(ClauseFile.Parse($"x\n  {gloss}")).Statement;
+    private static Statement Parsed(string gloss) => Stated(Assert.Single(ClauseFile.Parse($"x\n  {gloss}")).Utterance);
 
     [Fact]
     public void Generate_Particles_GoOnTheirAdpositionsSide() =>
@@ -200,7 +199,6 @@ public class ComparisonTests
         Assert.Contains(languages, l => !l.Degree.WithStandard);
     }
 
-    private static readonly Clause DogWalks = new Clause(new Doing("walk", null), new Declarative(Tense.Present, Aspect.Imperfective, BareNoun("dog", Number.Singular)), false, [], []);
 
     //'the dog walks like a cat'
     private static Sentence WalksLikeACat(Language l) => Syntax.Realize(l, DogWalks with { Obliques = [new(Role.Similative, BareNoun("cat", Number.Singular), Configuration.At)] }, "x");

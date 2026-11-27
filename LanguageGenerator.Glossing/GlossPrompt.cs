@@ -124,8 +124,9 @@ public static class GlossPrompt
 
             Roles: {string.Join(", ", roles)}. A recipient is who something is given or said to, a
             goal where something goes, a source where it comes from, a route the way it goes, as in
-            'through the forest' or 'along the river', a companion who it's done with, and an
-            instrument what it's done with.
+            'through the forest' or 'along the river', a companion who it's done with, an
+            instrument what it's done with, and a beneficiary who or what it's for, as in 'made for
+            someone' or 'wax for your ears'.
 
             A location, goal, source or route can say where relative to its place, written after the
             role with a period: {string.Join(", ", ClauseFile.ConfigurationNames)}, where front is 'in
@@ -289,6 +290,33 @@ public static class GlossPrompt
 
                 where did you get that?
                   get.PST.PFV  subject:2SG  object:DIST  source:where
+            - A line with no verb, as in headings, item descriptions or replies, is a fragment: its
+              gloss line has roles only, and no verb. noun: is a phrase on its own, an oblique role
+              one on its own, label: with noun: a heading, interjection: a word like 'hello', 'oh'
+              or 'alas', answer:yes or answer:no a 'yes' or 'no', and addressee: alone calls someone. Keep a
+              fragment a fragment, never adding 'it is' or 'the item is', and write its English line
+              as the gloss says it:
+
+                an old iron key
+                  noun:(key.NDF old iron)
+                for your ears
+                  beneficiary:(ear.PL possessor:2SG)
+                item: rusty key
+                  label:item  noun:(key rusty)
+                new quest: the missing children
+                  label:(quest new)  noun:(child.PL.DEF missing)
+                stranger!
+                  addressee:stranger
+                hello, Marta
+                  interjection:hello  addressee:marta
+                "no," she says quietly
+                  say  subject:3SG.F  quote:[answer:no]  manner:quiet
+
+              A fragment says one noun:, one oblique, one interjection or one answer, can be said to someone with
+              addressee:, and can be quoted, as in '"for your ears," he says', which is
+              say  subject:3SG.M  quote:[beneficiary:(ear.PL possessor:2SG)]. A heading is said to no
+              one and can't be quoted, and no line starting with and, or, but or a subordinator can
+              follow a fragment.
             - A relative clause goes in its noun's parentheses as relative:[...], a clause of its own
               with _ in the role its noun fills in it, whether English says who, which, that, where
               or nothing. A clause that English shortens, as in 'a bow made of yew', is still a
@@ -341,14 +369,15 @@ public static class GlossPrompt
             - Never drop a modal that has no gloss, like a 'would' or 'could' that imagines
               something: 'would it be so terrible?' doesn't ask 'is it terrible?'.
             - Never drop or paraphrase away a word that negates, like 'nobody', 'nothing', 'never' or 'no':
-              'nobody believes him' is subject:nobody, not 'people do not believe him', and 'she
-              says no' keeps object:no.
+              'nobody believes him' is subject:nobody, not 'people do not believe him', and
+              'she says no' keeps her no, as quote:[answer:no].
             - When a sentence can't be said even loosely, as with a question asking two things, or
               how long, how often, how many, which or whose, or a question inside another clause that isn't quoted (like 'did anyone see what happened?'), a modal other than ABIL,
               PERM, OBLIG, ADVS, DUB or PRSM (like a 'would' or 'could' that imagines something), a relative clause with 'whose' or on a
               pronoun (like 'he who hesitates'), a comparison other than an adjective with be (like 'runs faster than',
               'stronger arms than yours' or 'as tall as'), a comparison with a clause (like 'warmer
-              than it should be' or 'slower than before'), the most or a superlative (like 'the
+              than it should be' or 'slower than before'), a subordinate clause with no main clause
+              (like 'if you come back.' on its own), the most or a superlative (like 'the
               tallest'), or a command to anyone but 'you', like 'let's go', write instead one line: {CantExpress} (what's missing): the sentence.
               This is better than a gloss that changes what the sentence means.
 

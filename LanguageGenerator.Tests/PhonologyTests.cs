@@ -1,4 +1,6 @@
-﻿namespace LanguageGenerator.Tests;
+﻿using static LanguageGenerator.Tests.Clauses;
+
+namespace LanguageGenerator.Tests;
 
 public class PhonologyTests
 {
@@ -205,7 +207,7 @@ public class PhonologyTests
             new Clause(new Doing("see", null), new Directive(Number.Plural), true, [], []),
         ];
         var example = ClauseFile.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "scene.txt")));
-        var statements = example.Select(e => e.Statement).Concat(commands).ToList();
+        var statements = example.Select(e => Stated(e.Utterance)).Concat(commands).ToList();
         foreach (var language in Enumerable.Range(0, 100).Select(seed => Generator.Generate(seed, LanguageSpec.Free)))
         {
             var said = statements.SelectMany(s => Syntax.Realize(language, s, "").Words.Select(w => w.Word));

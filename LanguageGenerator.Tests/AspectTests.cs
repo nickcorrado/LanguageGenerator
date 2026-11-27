@@ -6,11 +6,8 @@ namespace LanguageGenerator.Tests;
 
 public class AspectTests
 {
-    private static Statement Parsed(string gloss) => Assert.Single(ClauseFile.Parse($"x\n  {gloss}")).Statement;
+    private static Statement Parsed(string gloss) => Stated(Assert.Single(ClauseFile.Parse($"x\n  {gloss}")).Utterance);
 
-    private static readonly NounPhrase Dog = BareNoun("dog", Number.Singular);
-    private static readonly NounPhrase Fish = BareNoun("fish", Number.Singular);
-    private static Clause DogEatsFish(Tense tense, Aspect aspect, bool negative = false) => new Clause(new Doing("eat", Fish), new Declarative(tense, aspect, Dog), negative, [], []);
 
     private static Sentence Realized(Language language, Statement statement) => Syntax.Realize(language, statement, "x");
 
@@ -33,26 +30,26 @@ public class AspectTests
     [Fact]
     public void Realize_UnmarkedPerfect_IsAPerfectivePast() =>
         Assert.All(Languages(AspectKind.None, AspectKind.None), l =>
-            Assert.Equal(Glosses(Realized(l, DogEatsFish(Tense.Past, Aspect.Perfective))), Glosses(Realized(l, DogEatsFish(Tense.Present, Aspect.Perfect)))));
+            Assert.Equal(Glosses(Realized(l, DogEatsFish.At(Tense.Past, Aspect.Perfective))), Glosses(Realized(l, DogEatsFish.At(Tense.Present, Aspect.Perfect)))));
 
     [Fact]
     public void Realize_UnmarkedPastPerfect_StaysPast() =>
         Assert.All(Languages(AspectKind.None, AspectKind.None), l =>
-            Assert.Equal(Glosses(Realized(l, DogEatsFish(Tense.Future, Aspect.Perfective))), Glosses(Realized(l, DogEatsFish(Tense.Future, Aspect.Perfect)))));
+            Assert.Equal(Glosses(Realized(l, DogEatsFish.At(Tense.Future, Aspect.Perfective))), Glosses(Realized(l, DogEatsFish.At(Tense.Future, Aspect.Perfect)))));
 
     [Theory]
     [InlineData("Progressive")]
     [InlineData("Habitual")]
     public void Realize_UnmarkedProgressiveOrHabitual_IsAnImperfective(string aspect) =>
         Assert.All(Languages(AspectKind.None, AspectKind.None, s => s.Fix(Settings.Habitual, AspectKind.None)), l =>
-            Assert.Equal(Glosses(Realized(l, DogEatsFish(Tense.Past, Aspect.Imperfective))),
-                Glosses(Realized(l, DogEatsFish(Tense.Past, ClauseFile.ValuesOf<Aspect>().Single(a => a.Name == aspect))))));
+            Assert.Equal(Glosses(Realized(l, DogEatsFish.At(Tense.Past, Aspect.Imperfective))),
+                Glosses(Realized(l, DogEatsFish.At(Tense.Past, ClauseFile.ValuesOf<Aspect>().Single(a => a.Name == aspect))))));
 
     [Fact]
     public void Realize_HabitualBe_IsTheCopulaThatSaysWhat() =>
         Assert.All(Languages(AspectKind.None, AspectKind.None, s => s.Fix(Settings.Habitual, AspectKind.Be).Fix(Settings.LocationalCopula, true)), l =>
         {
-            var habitual = Realized(l, DogEatsFish(Tense.Past, Aspect.Habitual));
+            var habitual = Realized(l, DogEatsFish.At(Tense.Past, Aspect.Habitual));
             Assert.True(IndexOf(habitual, l.Predication.Copula.Root) >= 0);
             Assert.Equal([l.Lexicon.Verb("eat").Root], habitual.Words[IndexOf(habitual, l.Lexicon.Verb("eat").Root)].Word.Morphemes.Select(m => m.Value as Root));
         });
@@ -63,8 +60,8 @@ public class AspectTests
     public void Realize_PerfectAuxiliary_TakesTheTenseAndLeavesTheVerbBare(AspectKind kind, string meaning) =>
         Assert.All(Languages(kind, AspectKind.None), l =>
         {
-            var perfect = Realized(l, DogEatsFish(Tense.Past, Aspect.Perfect));
-            var plain = Realized(l, DogEatsFish(Tense.Past, Aspect.Imperfective));
+            var perfect = Realized(l, DogEatsFish.At(Tense.Past, Aspect.Perfect));
+            var plain = Realized(l, DogEatsFish.At(Tense.Past, Aspect.Imperfective));
             var eat = l.Lexicon.Verb("eat").Root;
 
             Assert.Equal([eat], perfect.Words[IndexOf(perfect, eat)].Word.Morphemes.Select(m => m.Value as Root));
@@ -77,7 +74,7 @@ public class AspectTests
     public void Realize_FinishAuxiliary_FollowsTheVerbInVOAndOV() =>
         Assert.All((bool[])[true, false], objectFirst => Assert.All(Languages(AspectKind.Finish, AspectKind.None, s => s.ObjectFirst(objectFirst)), l =>
         {
-            var perfect = Realized(l, DogEatsFish(Tense.Present, Aspect.Perfect));
+            var perfect = Realized(l, DogEatsFish.At(Tense.Present, Aspect.Perfect));
             Assert.True(IndexOf(perfect, "finish") > IndexOf(perfect, l.Lexicon.Verb("eat").Root));
         }));
 
@@ -85,7 +82,7 @@ public class AspectTests
     public void Realize_HaveAuxiliary_GoesBeforeTheVerbInVOAndAfterItInOV() =>
         Assert.All((bool[])[true, false], objectFirst => Assert.All(Languages(AspectKind.Have, AspectKind.None, s => s.ObjectFirst(objectFirst)), l =>
         {
-            var perfect = Realized(l, DogEatsFish(Tense.Present, Aspect.Perfect));
+            var perfect = Realized(l, DogEatsFish.At(Tense.Present, Aspect.Perfect));
             var before = IndexOf(perfect, "have") < IndexOf(perfect, l.Lexicon.Verb("eat").Root);
             Assert.Equal(l.WordOrder.VerbPhraseDirectionality == HeadDirectionality.Initial, before);
         }));
@@ -94,7 +91,7 @@ public class AspectTests
     public void Realize_ProgressiveBe_IsTheCopulaThatSaysWhere() =>
         Assert.All(Languages(AspectKind.None, AspectKind.Be, s => s.Fix(Settings.LocationalCopula, true)), l =>
         {
-            var progressive = Realized(l, DogEatsFish(Tense.Present, Aspect.Progressive));
+            var progressive = Realized(l, DogEatsFish.At(Tense.Present, Aspect.Progressive));
             Assert.True(IndexOf(progressive, l.Predication.LocationalCopula!.Root) >= 0);
         });
 
@@ -102,7 +99,7 @@ public class AspectTests
     public void Realize_NegatedPerfectAuxiliary_NegatesTheAuxiliaryAndNotTheVerb() =>
         Assert.All(Languages(AspectKind.Have, AspectKind.None, s => s.Fix(Settings.Negation, NegationStrategy.Prefix, NegationStrategy.Suffix)), l =>
         {
-            var hasNot = Realized(l, DogEatsFish(Tense.Present, Aspect.Perfect, negative: true));
+            var hasNot = Realized(l, DogEatsFish.At(Tense.Present, Aspect.Perfect) with { Negative = true });
             static bool Negated(Word word) => word.Morphemes.Any(m => m.Value is Affix { Grammemes: var g } && g.Contains(Polarity.Negative));
 
             Assert.True(Negated(hasNot.Words[IndexOf(hasNot, "have")].Word));
@@ -131,7 +128,7 @@ public class AspectTests
     public void Realize_AspectParticle_GoesBesideTheVerb() =>
         Assert.All(Languages(AspectKind.None, AspectKind.Particle), l =>
         {
-            var sentence = Realized(l, DogEatsFish(Tense.Present, Aspect.Progressive));
+            var sentence = Realized(l, DogEatsFish.At(Tense.Present, Aspect.Progressive));
             var at = sentence.Words.ToList().FindIndex(w => w.Word.Morphemes.Any(m => m.Value is Particle { Grammemes: [var g] } && g == Aspect.Progressive));
             var eat = IndexOf(sentence, l.Lexicon.Verb("eat").Root);
             Assert.True(at >= 0);
@@ -151,7 +148,7 @@ public class AspectTests
         Assert.All(Languages(AspectKind.Have, AspectKind.None, s => s.Fix(Settings.SubordinatorOf(Subordinator.If), ExponentPosition.Suffix).Fix(Settings.TemporalBalance, Balance.Balanced)), l =>
         {
             var main = new Clause(new Doing("sleep", null), new Declarative(Tense.Present, Aspect.Imperfective, BareNoun("cat", Number.Singular)), false, [], []);
-            var sentence = Realized(l, new Subordinated(main, Subordinator.If, DogEatsFish(Tense.Present, Aspect.Perfect), false));
+            var sentence = Realized(l, new Subordinated(main, Subordinator.If, DogEatsFish.At(Tense.Present, Aspect.Perfect), false));
 
             Assert.Contains(l.Subordination.Markers[Subordinator.If].Marker, sentence.Words[IndexOf(sentence, "have")].Word.Morphemes);
         });
@@ -161,10 +158,10 @@ public class AspectTests
     {
         var clauses = new Func<Aspect, Statement>[]
         {
-            aspect => DogEatsFish(Tense.Present, aspect),
+            aspect => DogEatsFish.At(Tense.Present, aspect),
             aspect => new Clause(new Done("eat", Dog), new Declarative(Tense.Past, aspect, Fish), false, [], []),
             aspect => new Clause(new Being(new Adjective("big", false)), new Declarative(Tense.Present, aspect, Dog), false, [], []),
-            aspect => new Question(DogEatsFish(Tense.Past, aspect), null),
+            aspect => new Question(DogEatsFish.At(Tense.Past, aspect), null),
         };
         Assert.All(GeneratedLanguages.Sample, l =>
         {

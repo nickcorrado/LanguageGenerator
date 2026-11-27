@@ -217,7 +217,8 @@ nobody who goes into the forest at night comes back
   say  subject:marta  quote:[go.ABIL  subject:2SG  when:then  time:morning.DEF]
 
 # > New quest: The Missing Children.
-# can't express yet (a title with no verb): New quest: The Missing Children.
+new quest: the missing children
+  label:(quest new)  noun:(child.PL.DEF missing)
 
 # > Find the watchtower and recover the map.
 find the watchtower and recover the map
@@ -338,20 +339,20 @@ small wet footprints are in the dust
   be  subject:(footprint.PL small wet)  location.in:dust.DEF
 
 # > Item: Rusty Key.
-the item is a rusty key
-  be  subject:item.DEF  noun:(key.NDF rusty)
+item: rusty key
+  label:item  noun:(key rusty)
 
 # > An old iron key.
-it is an old iron key
-  be  subject:3SG.N  noun:(key.NDF old iron)
+an old iron key
+  noun:(key.NDF old iron)
 
 # > It opens a door somewhere in the north.
 it opens a door that is in the north
   open  subject:3SG.N  object:(door.NDF relative:[be  subject:_  location.in:north.DEF])
 
 # > Item: Healing Moss.
-the item is healing moss
-  be  subject:item.DEF  noun:(moss healing)
+item: healing moss
+  label:item  noun:(moss healing)
 
 # > Grows on the shaded side of stones.
 it grows on the shaded side of stones
@@ -367,19 +368,19 @@ it tastes like a wet boot
   taste  subject:3SG.N  like:(boot.NDF wet)
 
 # > Item: Hunter's Bow.
-the item is the hunter's bow
-  be  subject:item.DEF  noun:(bow possessor:hunter)
+item: hunter's bow
+  label:item  noun:(bow possessor:hunter)
 
 # > A short bow made of yew.
-it is a short bow made of yew
-  be  subject:3SG.N  noun:(bow.NDF short relative:[make.PASS  subject:_  instrument:yew])
+a short bow made of yew
+  noun:(bow.NDF short relative:[make.PASS  subject:_  source:yew])
 
 # > It was made for someone with stronger arms than yours.
 # can't express yet (comparison other than an adjective with be): It was made for someone with stronger arms than yours.
 
 # > Item: Crow Feather.
-the item is a crow's feather
-  be  subject:item.DEF  noun:(feather possessor:crow)
+item: crow feather
+  label:item  noun:(feather possessor:crow)
 
 # > The old woman gave you this.
 the old woman gave you this
@@ -465,7 +466,8 @@ it contains wax
   contain  subject:3SG.N  object:wax
 
 # > "For your ears," he says.
-# can't express yet (a quoted fragment with no verb): "For your ears," he says.
+"for your ears," he says
+  say  subject:3SG.M  quote:[beneficiary:(ear.PL possessor:2SG)]
 
 # > "Buy me a drink when you come back.
 buy me a drink when you return
@@ -791,8 +793,8 @@ you gave it to me
   give.PST.PFV  subject:2SG  object:3SG.N  recipient:1SG
 
 # > "No," she says quietly.
-she says no quietly
-  say  subject:3SG.F  object:no  manner:quiet
+"no," she says quietly
+  say  subject:3SG.F  quote:[answer:no]  manner:quiet
 
 # > "I did not."
 I did not give it to you

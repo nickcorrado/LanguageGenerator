@@ -534,7 +534,7 @@ public static class LanguageDescription
                 new Clause(new Doing("sleep", null), new Declarative(Tense.Past, Aspect.Imperfective, Phrase("dog", Number.Singular)), false, [], []), false)), new Declarative(Tense.Past, Aspect.Perfective, Phrase("person", Number.Singular)), false, [], []), "the person said that the dog was sleeping"),
             (new Clause(new Doing("want", new ComplementClause(ComplementKind.Event,
                 new Clause(new Doing("eat", Phrase("fish", Number.Singular)), new Declarative(Tense.Present, Aspect.Imperfective, Phrase("cat", Number.Singular)), false, [], []), true)), new Declarative(Tense.Present, Aspect.Imperfective, Phrase("cat", Number.Singular)), false, [], []), "the cat wants to eat the fish"),
-            (new Clause(new Doing("say", new Quotation(new Clause(new Doing("walk", null), new Directive(Number.Singular), false, [new(Role.Goal, Phrase("house", Number.Singular), Configuration.At)], []))), new Declarative(Tense.Past, Aspect.Perfective, Phrase("bird", Number.Singular)), false, [], []), "the bird said, \"go to the house\""),
+            (new Clause(new Doing("say", new Quotation((Statement)new Clause(new Doing("walk", null), new Directive(Number.Singular), false, [new(Role.Goal, Phrase("house", Number.Singular), Configuration.At)], []))), new Declarative(Tense.Past, Aspect.Perfective, Phrase("bird", Number.Singular)), false, [], []), "the bird said, \"go to the house\""),
         ];
         Clause Gapped(string verb, Argument subject, Argument? @object = null, ValueList<Oblique> obliques = default) =>
             new Clause(new Doing(verb, @object), new Declarative(Tense.Past, Aspect.Perfective, subject), false, obliques, []);

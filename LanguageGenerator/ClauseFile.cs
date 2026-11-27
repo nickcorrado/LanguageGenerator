@@ -20,7 +20,7 @@ namespace LanguageGenerator;
  */
 public static class ClauseFile
 {
-    public record Entry(string Translation, Statement Statement, int Line);
+    public record Entry(string Translation, Utterance Utterance, int Line);
 
     public static IReadOnlyList<Entry> Parse(string text)
     {
@@ -56,17 +56,20 @@ public static class ClauseFile
                     throw new ClauseFormatException($"A line starting with '{line.Trim().Split(' ')[0]}' joins a clause to the one above it, so it can't come first.", number);
                 }
                 var previous = entries[^1];
-                var rest = line.Trim()[(line.Trim().IndexOf(' ') + 1)..];
-                entries[^1] = previous with
+                var main = previous.Utterance switch
                 {
-                    Statement = ConjunctionOf(line) is { } conjunction
-                        ? ToCoordinated(conjunction, previous.Statement, Ungapped(ParseClause(ClauseSyntax.Read(rest, number), number, null), number), number)
-                        : ToSubordinated(previous.Statement, SubordinatorOf(line).GetValueOrDefault(), ClauseSyntax.Read(rest, number), number),
+                    Statement statement => statement,
+                    Fragment => throw new ClauseFormatException($"A line starting with '{line.Trim().Split(' ')[0]}' joins a clause to the one above it, which a fragment with no verb isn't.", number),
                 };
+                var rest = line.Trim()[(line.Trim().IndexOf(' ') + 1)..];
+                Statement joined = ConjunctionOf(line) is { } conjunction
+                    ? ToCoordinated(conjunction, main, Ungapped(ParseClause(ClauseSyntax.Read(rest, number), number, null), number), number)
+                    : ToSubordinated(main, SubordinatorOf(line).GetValueOrDefault(), ClauseSyntax.Read(rest, number), number);
+                entries[^1] = previous with { Utterance = joined };
             }
             else if (translation is { } english)
             {
-                entries.Add(new Entry(english.Text, Ungapped(ParseClause(ClauseSyntax.Read(line, number), number, null), number), number));
+                entries.Add(new Entry(english.Text, ParseUtterance(ClauseSyntax.Read(line, number), number), number));
                 translation = null;
                 continuing = true;
             }
@@ -135,7 +138,27 @@ public static class ClauseFile
 
     //each noun these clauses use, with the English of the first clause to use it
     public static IReadOnlyList<(string Noun, string Translation)> Nouns(IEnumerable<Entry> entries) =>
-        [.. entries.SelectMany(e => ArgumentsOf(e.Statement).SelectMany(NounsIn).Select(n => (Noun: n, e.Translation))).DistinctBy(n => n.Noun)];
+        [.. entries.SelectMany(e => ArgumentsOf(e.Utterance).SelectMany(NounsIn).Select(n => (Noun: n, e.Translation))).DistinctBy(n => n.Noun)];
+
+    private static IEnumerable<Argument> ArgumentsOf(Utterance utterance) => utterance switch
+    {
+        Statement statement => ArgumentsOf(statement),
+        Fragment fragment => ArgumentsOf(fragment),
+    };
+
+    private static IEnumerable<Argument> ArgumentsOf(Fragment fragment) =>
+    [
+        .. fragment.Addressee is { } addressee ? [addressee] : Array.Empty<Argument>(),
+        .. fragment.Part is { } part
+            ? part switch
+            {
+                Standalone standalone => [standalone.Argument],
+                Oblique oblique => [oblique.Argument],
+                Heading heading => [heading.Label, heading.Title],
+                Interjection or Answer => Array.Empty<Argument>(),
+            }
+            : Array.Empty<Argument>(),
+    ];
 
     private static IEnumerable<Argument> ArgumentsOf(Statement statement) => statement switch
     {
@@ -159,7 +182,7 @@ public static class ClauseFile
         QuestionWord or DemonstrativePronoun or DemonstrativePlace => [],
         Coordination c => c.Items.SelectMany(NounsIn),
         ComplementClause c => ArgumentsOf(c.Clause).SelectMany(NounsIn),
-        Quotation q => ArgumentsOf(q.Statement).SelectMany(NounsIn),
+        Quotation q => ArgumentsOf(q.Utterance).SelectMany(NounsIn),
         Gap or RelativeWord => [],
     };
 
@@ -177,7 +200,7 @@ public static class ClauseFile
         Coordination c => c.Items.Sum(Gaps),
         ComplementClause { SharesSubject: true } c => Gaps(c.Clause) - (Syntax.SubjectOf(c.Clause).Value is Gap ? 1 : 0),
         ComplementClause c => Gaps(c.Clause),
-        Quotation q => Gaps(q.Statement),
+        Quotation q => ArgumentsOf(q.Utterance).Sum(Gaps),
         Pronoun or DemonstrativePronoun or QuestionWord or DemonstrativePlace or RelativeWord => 0,
     };
 
@@ -209,6 +232,126 @@ public static class ClauseFile
             { Role: var role } => throw new ArgumentOutOfRangeException(nameof(filler), role, null),
         };
     }
+
+    //a line with a verb first is a clause, and one that starts with a role has none, so it's a fragment
+    private static Utterance ParseUtterance(SyntaxClause written, int number) => written.Items is [{ Role: not null }, ..]
+        ? ParseFragment(written, number)
+        : Ungapped(ParseClause(written, number, null), number);
+
+    /*
+      a line with no verb: a phrase on its own, as noun:, or an oblique, as goal: or beneficiary:,
+      either of them said to someone or not, a heading, which is its label: and its title as noun:,
+      or just addressee:, calling someone. It asks nothing, and has no gap, which only a relative
+      clause has
+     */
+    private static Fragment ParseFragment(SyntaxClause written, int number)
+    {
+        const string Says = "A line with no verb is a fragment, which says a noun:, an oblique such as goal: or beneficiary:, a heading's label: and noun:, an interjection:, an answer:, or who's called, as addressee:";
+        NounPhrase? addressee = null;
+        //an interjection or an answer, which are said alike
+        FragmentPart? exclamation = null;
+        Argument? label = null;
+        Argument? noun = null;
+        Oblique? oblique = null;
+        foreach (var item in written.Items)
+        {
+            if (item.Role is not { } name)
+            {
+                throw new ClauseFormatException($"'{item.Text}' needs a role. {Says}. A clause starts with its verb.", number);
+            }
+            var (role, configuration) = ParseConfiguration(name, number);
+            var isOblique = ObliqueRoles.TryGetValue(role, out var obliqueRole);
+            if (configuration != Configuration.At && !(isOblique && Oblique.Spatial.Contains(obliqueRole)))
+            {
+                throw new ClauseFormatException($"Only a role saying where can say in, on or under, as location., goal., source. and route. do, not {role}.", number);
+            }
+            if (role is "addressee" && addressee is not null || role is "interjection" or "answer" && exclamation.HasValue || role is "label" && label.HasValue || role is "noun" && noun.HasValue || isOblique && oblique is not null)
+            {
+                throw new ClauseFormatException(isOblique ? "A fragment says one oblique."
+                    : role is "interjection" or "answer" ? "A fragment says one interjection: or answer:." : $"The fragment has more than one {role}.", number);
+            }
+            switch (role)
+            {
+                case "addressee":
+                    addressee = ToAddressee(ParseArgument(item.Value, number), number);
+                    break;
+                case "interjection":
+                    exclamation = ParseInterjection(item.Value, number);
+                    break;
+                case "answer":
+                    exclamation = ParseAnswer(item.Value, number);
+                    break;
+                case "label":
+                    label = Standing(ParseArgument(item.Value, number), number);
+                    break;
+                case "noun":
+                    noun = Standing(ParseArgument(item.Value, number), number);
+                    break;
+                case var _ when isOblique:
+                    oblique = new Oblique(obliqueRole, Standing(ParseObliqueArgument(item.Value, obliqueRole, configuration, number), number), configuration);
+                    break;
+                default:
+                    throw new ClauseFormatException($"{Says}, not {role}:. A clause starts with its verb.", number);
+            }
+        }
+        if (oblique is not null && (noun.HasValue || label.HasValue))
+        {
+            throw new ClauseFormatException("A fragment says a noun: or an oblique, not both.", number);
+        }
+        if (exclamation is { } exclaimed)
+        {
+            return noun.HasValue || label.HasValue || oblique is not null
+                ? throw new ClauseFormatException("An interjection: or answer: is said on its own, or to someone with addressee:, not with a noun: or an oblique yet.", number)
+                : new Fragment(exclaimed, addressee);
+        }
+        if (label is { } heading)
+        {
+            return noun is { } title
+                ? addressee is null ? new Fragment(new Heading(heading, title), null)
+                    : throw new ClauseFormatException("A heading is said to no one, so it takes no addressee:.", number)
+                : throw new ClauseFormatException("A heading's label: needs its title as noun:, as in label:item  noun:(key rusty).", number);
+        }
+        //each branch apart, since a null oblique would convert to a part holding nothing
+        if (noun is { } standing)
+        {
+            return new Fragment(new Standalone(standing), addressee);
+        }
+        if (oblique is { } placed)
+        {
+            return new Fragment(placed, addressee);
+        }
+        return new Fragment(null, addressee);
+    }
+
+    //an interjection is its meaning, a word with no glosses, as in interjection:hello, but for yes
+    //and no, which answer
+    private static Interjection ParseInterjection(SyntaxValue value, int number) => value.Value switch
+    {
+        SyntaxWord { Text: var text } when Answers.ContainsKey(text.ToLowerInvariant()) =>
+            throw new ClauseFormatException($"{text} answers, so it's answer:{text.ToLowerInvariant()}, not interjection:{text}.", number),
+        SyntaxWord { Text: var text } when !text.Contains('.') && text != "_" => new Interjection(text.ToLowerInvariant()),
+        _ => throw new ClauseFormatException($"An interjection is a word with no glosses, as in interjection:hello, not '{value.Text}'.", number),
+    };
+
+    private static readonly Dictionary<string, Polarity> Answers = new()
+    {
+        ["yes"] = Polarity.Affirmative,
+        ["no"] = Polarity.Negative,
+    };
+
+    //an answer is yes or no
+    private static Answer ParseAnswer(SyntaxValue value, int number) =>
+        value.Value is SyntaxWord { Text: var text } && Answers.TryGetValue(text, out var polarity)
+            ? new Answer(polarity)
+            : throw new ClauseFormatException($"An answer is answer:yes or answer:no, not answer:{value.Text}.", number);
+
+    //what a fragment says, which asks nothing yet and has no gap
+    private static Argument Standing(Argument argument, int number) => argument.Value switch
+    {
+        QuestionWord => throw new ClauseFormatException("A fragment can't ask anything yet, as 'where?' does.", number),
+        _ when Gaps(argument) > 0 => throw new ClauseFormatException("_ marks the role a relative clause's noun fills in it, so it goes only inside relative:[...].", number),
+        _ => argument,
+    };
 
     /*
       a relative clause: a clause of its own with one gap, in one of its own roles rather than in a
@@ -655,8 +798,14 @@ public static class ClauseFile
     {
         if (role == "quote")
         {
-            return embedded.Items.Count > 0 ? new Quotation(ParseClause(embedded, number, null))
-                : throw new ClauseFormatException("A quote: needs the clause that was said inside its brackets.", number);
+            if (embedded.Items.Count == 0)
+            {
+                throw new ClauseFormatException("A quote: needs what was said inside its brackets.", number);
+            }
+            var said = ParseUtterance(embedded, number);
+            return said.Value is Fragment { Part.Value: Heading }
+                ? throw new ClauseFormatException("A heading isn't said, so it can't be quoted: quote: takes a clause or a fragment.", number)
+                : new Quotation(said);
         }
         if (embedded.Items is not [{ Role: null, Value.Value: SyntaxWord { Text: var first } }, _, ..] || !Complementizers.TryGetValue(first, out var kind))
         {

@@ -120,6 +120,7 @@ place THING
 pole THING
 price THING
 purse THING
+quest THING
 rain THING
 rat ANIM
 rest THING

@@ -12,7 +12,7 @@ public class SpatialTests
     private static Sentence Walk(Language language, Role role, Configuration configuration) =>
         Syntax.Realize(language, new Clause(new Doing("walk", null), new Declarative(Tense.Past, Aspect.Perfective, BareNoun("dog", Number.Singular)), false, [new(role, Stone, configuration)], []), "x");
 
-    private static Statement Parsed(string gloss) => Assert.Single(ClauseFile.Parse($"x\n  {gloss}")).Statement;
+    private static Statement Parsed(string gloss) => Stated(Assert.Single(ClauseFile.Parse($"x\n  {gloss}")).Utterance);
 
     private static ClauseFormatException Error(string gloss) => Assert.Throws<ClauseFormatException>(() => ClauseFile.Parse($"x\n  {gloss}"));
 

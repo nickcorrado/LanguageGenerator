@@ -6,7 +6,7 @@ namespace LanguageGenerator.Tests;
 
 public class CoordinationTests
 {
-    private static Statement Parsed(string gloss) => Assert.Single(ClauseFile.Parse($"x\n  {gloss}")).Statement;
+    private static Statement Parsed(string gloss) => Stated(Assert.Single(ClauseFile.Parse($"x\n  {gloss}")).Utterance);
 
     private static ClauseFormatException Error(string text) => Assert.Throws<ClauseFormatException>(() => ClauseFile.Parse(text));
 
@@ -50,7 +50,7 @@ public class CoordinationTests
               but  sleep  subject:3SG.F
             """));
 
-        var outer = Assert.IsType<Coordinated>(entry.Statement.Value);
+        var outer = Assert.IsType<Coordinated>(Stated(entry.Utterance).Value);
         Assert.Equal(Conjunction.But, outer.Conjunction);
         var inner = Assert.IsType<Coordinated>(outer.First.Value);
         Assert.Equal(("sit", "argue"), (PredicateOf<Doing>(inner.First).Verb, PredicateOf<Doing>(inner.Second).Verb));
@@ -63,7 +63,7 @@ public class CoordinationTests
         var entries = ClauseFile.Parse("one\n  sit  subject:dog\n  and  sleep  subject:dog\ntwo\n  sleep  subject:cat");
 
         Assert.Equal(2, entries.Count);
-        Assert.IsType<Clause>(entries[1].Statement.Value);
+        Assert.IsType<Clause>(Stated(entries[1].Utterance).Value);
     }
 
     [Theory]
@@ -93,8 +93,6 @@ public class CoordinationTests
     }
 
     //only the basic meanings, since coining new ones would add to the shared sample's lexicons
-    private static readonly NounPhrase Dog = BareNoun("dog", Number.Singular);
-    private static readonly NounPhrase Cat = BareNoun("cat", Number.Singular);
     private static readonly NounPhrase Birds = BareNoun("bird", Number.Plural);
 
     private static Sentence Saw(Language l, Argument subject) => Syntax.Realize(l, new Clause(new Doing("see", Birds), new Declarative(Tense.Past, Aspect.Perfective, subject), false, [], []), "x");
