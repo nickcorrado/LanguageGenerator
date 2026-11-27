@@ -31,9 +31,8 @@ the gate is open
   be  subject:gate.DEF  adjective:open
 
 # > An old woman sits beside it, mending a net.
-an old woman sits beside it and is mending a net
-  sit  subject:(woman.NDF old)  location.beside:3SG.N
-  and  mend.PROG  subject:(woman.NDF old)  object:net.NDF
+an old woman sits beside it, mending a net
+  and  subject:(woman.NDF old)  [sit  location.beside:3SG.N]  [mend.PROG  object:net.NDF]
 
 # > "You're late," she says.
 "you are late," she says
@@ -73,8 +72,7 @@ the inn is warm and crowded
 
 # > Hunters sit by the fire and argue about the price of furs.
 hunters sit by the fire and argue
-  sit  subject:hunter.PL  location.beside:fire.DEF
-  and  argue  subject:hunter.PL
+  and  subject:hunter.PL  [sit  location.beside:fire.DEF]  [argue]
 
 # > A boy carries bread to the long table.
 a boy carries bread to the long table
@@ -162,9 +160,8 @@ why didn't you summon the king's soldiers?
   summon.PST.PFV.NEG  subject:2SG  object:(soldier.PL possessor:king.DEF)  why
 
 # > Marta laughs without smiling.
-Marta laughs and does not smile
-  laugh  subject:marta
-  and  smile.NEG  subject:marta
+Marta laughs without smiling
+  and  subject:marta  [laugh]  [smile.NEG]
 
 # > "The king doesn't know this village exists.
 the king doesn't know that this village exists
@@ -222,8 +219,7 @@ new quest: the missing children
 
 # > Find the watchtower and recover the map.
 find the watchtower and recover the map
-  find.IMP  object:watchtower.DEF
-  and  recover.IMP  object:map.DEF
+  and.IMP  [find  object:watchtower.DEF]  [recover  object:map.DEF]
 
 # > The watchtower stands on a hill north of the village.
 the watchtower stands on a hill
@@ -303,8 +299,7 @@ it wears the clothes of a child, but its face is wrong
 
 # > It tilts its head and begins to hum.
 it tilts its head and begins to hum
-  tilt  subject:3SG.N  object:(head possessor:3SG.N)
-  and  begin  subject:3SG.N  object:[to  hum]
+  and  subject:3SG.N  [tilt  object:(head possessor:3SG.N)]  [begin  object:[to  hum]]
 
 # > Your sword is in your hand before you know it.
 your sword is suddenly in your hand
@@ -316,13 +311,11 @@ the thing does not move
 
 # > Slowly, it raises one finger and points at the map.
 slowly, it raises one finger and points at the map
-  raise  subject:3SG.N  object:(finger 1)  manner:slow
-  and  point  subject:3SG.N  goal:map.DEF
+  and  subject:3SG.N  [raise  object:(finger 1)  manner:slow]  [point  goal:map.DEF]
 
 # > Then it turns and walks down the stairs, and the humming fades.
-then it turns and walks down the stairs, and the humming fades
-  turn  subject:3SG.N  when:then
-  and  walk  subject:3SG.N  route:stair.PL.DEF
+then it turns and walks down the stairs, and the hum fades
+  and  subject:3SG.N  [turn  when:then]  [walk  route:stair.PL.DEF]
   and  fade  subject:hum.DEF
 
 # > You wait a long time before you follow it.
@@ -482,14 +475,12 @@ the forest begins where the fields end
   begin  subject:forest.DEF  location:(place.DEF relative:[end  subject:field.PL.DEF  location:_])
 
 # > The trees here are older than the village, older than the kingdom.
-the trees here are older than the village and the trees here are older than the kingdom
-  be  subject:(tree.PL.DEF relative:[be  subject:_  location:here])  adjective:old.CMPR  standard:village.DEF
-  and  be  subject:(tree.PL.DEF relative:[be  subject:_  location:here])  adjective:old.CMPR  standard:kingdom.DEF
+the trees here are older than the village and older than the kingdom
+  and  subject:(tree.PL.DEF relative:[be  subject:_  location:here])  [be  adjective:old.CMPR  standard:village.DEF]  [be  adjective:old.CMPR  standard:kingdom.DEF]
 
 # > Their branches close over the path and shut out the sun.
 their branches close over the path and block the sun
-  close  subject:(branch.PL possessor:3PL.N)  location.over:path.DEF
-  and  block  subject:(branch.PL possessor:3PL.N)  object:sun.DEF
+  and  subject:(branch.PL possessor:3PL.N)  [close  location.over:path.DEF]  [block  object:sun.DEF]
 
 # > Birds do not sing here.
 birds do not sing here
@@ -553,9 +544,8 @@ you cross over the fallen tree
   cross  subject:2SG  route.over:(tree.DEF fallen)
 
 # > Halfway over, you look down and see faces in the water.
-you look and you see faces that are in the water
-  look  subject:2SG
-  and  see  subject:2SG  object:(face.PL relative:[be  subject:_  location.in:water.DEF])
+you look and see faces in the water
+  and  subject:2SG  [look]  [see  object:(face.PL relative:[be  subject:_  location.in:water.DEF])]
 
 # > They are looking up at you.
 they are looking at you
@@ -582,9 +572,8 @@ you camp in a hollow that is between two roots
   camp  subject:2SG  location.in:(hollow.NDF relative:[be  subject:_  location.between:(root 2)])
 
 # > You light a small fire and eat the last of the bread.
-you light a small fire and you eat the last bread
-  light  subject:2SG  object:(fire.NDF small)
-  and  eat  subject:2SG  object:(bread.DEF last)
+you light a small fire and eat the last bread
+  and  subject:2SG  [light  object:(fire.NDF small)]  [eat  object:(bread.DEF last)]
 
 # > Later, you wake suddenly.
 later you wake suddenly
