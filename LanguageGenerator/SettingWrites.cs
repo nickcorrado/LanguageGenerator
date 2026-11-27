@@ -535,9 +535,10 @@ internal static class SettingWrites
 
     public static Similative WithSimilative(Similative drawn, MarkerKind kind) => (kind, drawn.Value) switch
     {
-        (MarkerKind.Affix, SimilativeWord word) => new SimilativeAffix(new Affix(word.Like.Root.Form, [Case.Similative], AccentOf(word.Like.Root)), ExponentPosition.Suffix),
+        (MarkerKind.Affix, SimilativeWord word) => new SimilativeAffix(new Bound(new Affix(word.Like.Root.Form, [Case.Similative], AccentOf(word.Like.Root)), Side.After)),
         (MarkerKind.Word, SimilativeAffix) => throw NoForm("A similative word"),
-        _ => drawn,
+        (MarkerKind.Affix, SimilativeAffix) or (MarkerKind.Word, SimilativeWord) => drawn,
+        _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
     };
 
     public static Passive? WithPassive(Passive? drawn, bool has) => has ? drawn ?? throw NoForm("A passive") : null;

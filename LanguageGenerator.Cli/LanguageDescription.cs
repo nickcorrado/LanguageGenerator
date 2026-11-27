@@ -305,7 +305,7 @@ public static class LanguageDescription
         output.WriteLine("Similes: " + lang.Similative switch
         {
             SimilativeWord w => $"the word {SpelledWord(w.Like)} {(w.BeforeStandard ? "before" : "after")} what something is like",
-            SimilativeAffix a => $"{Spelled(a.Position, a.Marker)} on what something is like",
+            SimilativeAffix a => $"{On(a.Marker, "what something is like")} on what something is like",
         });
         output.WriteLine($"Very: {On(lang.Intensifier, "the adjective")}");
         output.WriteLine($"Manner adverbs: {(lang.Manner is { } manner ? OnAdjective(manner) : "the adjective itself")}");

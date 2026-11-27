@@ -77,8 +77,8 @@ public static partial class Generator
     {
         if (morphology.Fusion != Fusion.Isolating && rand.NextDouble() < SimilativeAffixChance)
         {
-            return new SimilativeAffix(CoinAffix(rand, phonology, MarkerForm(rand, true, phonology), [Case.Similative]),
-                rand.NextDouble() < PrefixChance(morphology) ? ExponentPosition.Prefix : ExponentPosition.Suffix);
+            return new SimilativeAffix(new Bound(CoinAffix(rand, phonology, MarkerForm(rand, true, phonology), [Case.Similative]),
+                rand.NextDouble() < PrefixChance(morphology) ? Side.Before : Side.After));
         }
         var forms = new DistinctForms();
         if (comparison.Value is ParticleComparison particle)

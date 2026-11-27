@@ -230,9 +230,9 @@ public class ComparisonTests
                 }
                 case SimilativeAffix affix:
                 {
-                    var marked = words.FindIndex(w => w.Word.Morphemes.Any(m => m.Value is Affix a && a == affix.Marker));
+                    var marked = words.FindIndex(w => w.Word.Morphemes.Any(m => m.Value is Affix a && a == affix.Marker.Affix));
                     var morphemes = words[marked].Word.Morphemes;
-                    Assert.Equal(affix.Marker, (affix.Position == ExponentPosition.Prefix ? morphemes[0] : morphemes[^1]).Value);
+                    Assert.Equal(affix.Marker.Affix, (affix.Marker.Side == Side.Before ? morphemes[0] : morphemes[^1]).Value);
                     Assert.Contains("SIM", words[marked].Gloss);
                     break;
                 }

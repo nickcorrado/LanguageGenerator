@@ -67,8 +67,7 @@ public record SimilativeWord(Lexeme Like, bool BeforeStandard);
 /// 'Like' as an affix on the edge of the phrase, as Quechua -hina is, outside the plain case a
 /// subject takes.
 /// </summary>
-//Position is Prefix or Suffix
-public record SimilativeAffix(Affix Marker, ExponentPosition Position);
+public record SimilativeAffix(Bound Marker);
 
 /// <summary>How a language says something is done like something else, as in 'it shines like water'.</summary>
 public union Similative(SimilativeWord, SimilativeAffix);

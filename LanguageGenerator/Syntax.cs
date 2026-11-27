@@ -831,17 +831,11 @@ public static class Syntax
     private static IReadOnlyList<Word> Likened(Language language, Argument argument)
     {
         var phrase = Inflect(language, argument, Role.IntransitiveSubject);
-        switch (language.Similative.Value)
+        return language.Similative switch
         {
-            case SimilativeWord word:
-                return word.BeforeStandard ? [new Word([word.Like.Root]), .. phrase] : [.. phrase, new Word([word.Like.Root])];
-            case SimilativeAffix { Position: ExponentPosition.Prefix } affix:
-                return [phrase[0] with { Morphemes = [affix.Marker, .. phrase[0].Morphemes] }, .. phrase.Skip(1)];
-            case SimilativeAffix affix:
-                return [.. phrase.SkipLast(1), phrase[^1] with { Morphemes = [.. phrase[^1].Morphemes, affix.Marker] }];
-            default:
-                throw new InvalidOperationException();
-        }
+            SimilativeWord word => word.BeforeStandard ? [new Word([word.Like.Root]), .. phrase] : [.. phrase, new Word([word.Like.Root])],
+            SimilativeAffix affix => ((Exponent)affix.Marker).Place(phrase, affix.Marker.Side == Side.Before ? 0 : phrase.Count - 1, Reach.Edge),
+        };
     }
 
 
