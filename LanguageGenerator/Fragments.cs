@@ -11,10 +11,13 @@ public union Utterance(Statement, Fragment);
 public record Fragment(FragmentPart? Part, NounPhrase? Addressee);
 
 /// <summary>
-/// What a fragment says: a phrase standing alone, an oblique, as in 'for your ears', or a heading,
-/// as in 'Item: Rusty Key'.
+/// What a fragment says: a phrase standing alone, an oblique, as in 'for your ears', a heading, as
+/// in 'Item: Rusty Key', or an interjection, as in 'hello'.
 /// </summary>
-public union FragmentPart(Standalone, Oblique, Heading);
+public union FragmentPart(Standalone, Oblique, Heading, Interjection);
+
+/// <summary>A word said on its own, as 'hello', 'oh' or 'alas', which has no part in a clause.</summary>
+public record Interjection(string Meaning);
 
 /// <summary>
 /// A noun phrase, a pronoun, a demonstrative or several of them joined, said on its own, as in 'an

@@ -26,10 +26,13 @@ public static partial class Generator
         var lexicon = new Lexicon((meaning, partOfSpeech) =>
         {
             var rand = Sampling.For(seed, $"{partOfSpeech}:{meaning}");
-            var root = CoinRoot(rand, phonology, GenerateForm(rand, phonology, extraSyllables), meaning);
+            //an interjection is a syllable, now and then two, as interjections mostly are, however
+            //long roots run; how often two is a guess
+            List<Phoneme> Form() => partOfSpeech == PartOfSpeech.Interjection ? GenerateForm(rand, phonology, 0.3, maxSyllables: 2) : GenerateForm(rand, phonology, extraSyllables);
+            var root = CoinRoot(rand, phonology, Form(), meaning);
             for (int attempt = 0; attempt < 10 && taken.TryGetValue(partOfSpeech, out var forms) && forms.Contains(Surface(root)); attempt++)
             {
-                root = CoinRoot(rand, phonology, GenerateForm(rand, phonology, extraSyllables), meaning);
+                root = CoinRoot(rand, phonology, Form(), meaning);
             }
             return root;
         });

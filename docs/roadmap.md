@@ -35,7 +35,7 @@ Roughly in the order to build them, since the later ones lean on the earlier one
 ## Game text
 
 - **Proper names.** *Marta* gets coined as a root like any word, and *Hollow* gets dropped. A name should come through recognizably, fitted to the language's sounds, and inflect or not as the language's names do.
-- **Interjections.** *No*, *hello*, *oh*, which a fragment can't say yet.
+- **Yes and no.** *No*, which a fragment can't say yet: answering *"No," she says* glosses as 'she says no' with *no* a thing she said.
 - **Insubordination.** A subordinate clause standing alone, as *If you come back.* follows *Buy me a drink when you come back*, which is refused today. It's mostly an afterthought joined to the clause before it, and in some languages a construction of its own, as a wish or a warning, which Evans calls insubordination.
 - **More fragments.** A fragment that asks, as 'where?' and 'what?' do, and punctuation besides a heading's colon, which nothing in the output has.
 - **Reference.** A pronoun's gender comes from the English, so 'it' stays neuter for a noun that's feminine in the language. Knowing what a pronoun refers to would fix that.

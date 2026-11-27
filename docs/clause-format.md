@@ -362,7 +362,7 @@ A relative clause is marked by a word at its edge beside its noun, as English *t
 
 ## Fragments
 
-Game text is full of lines with no verb: headings, item descriptions, replies and calls. A line that starts with a role instead of a verb is a fragment, which says one of these:
+Game text is full of lines with no verb: headings, item descriptions, replies, greetings and calls. A line that starts with a role instead of a verb is a fragment, which says one of these:
 
 | Written | Means |
 | --- | --- |
@@ -370,11 +370,12 @@ Game text is full of lines with no verb: headings, item descriptions, replies an
 | `beneficiary:(ear.PL possessor:2SG)` | 'for your ears', an oblique on its own |
 | `goal.in:river.DEF  addressee:marta` | 'Marta, into the river', either of them said to someone |
 | `label:item  noun:(key rusty)` | 'Item: Rusty Key', a heading |
+| `interjection:hello  addressee:marta` | 'hello, Marta', an interjection, said to someone or not |
 | `addressee:stranger` | 'stranger!', someone called with nothing else |
 
-`noun:` takes anything a role does but a clause: a noun phrase, a pronoun, a demonstrative or several of them joined. A fragment says one `noun:` or one oblique, not both, and asks nothing yet, as 'where?' would. A heading is its `label:`, what kind of thing follows, and its title as `noun:`, and is said to no one. A fragment can be quoted, as in `say  subject:3SG.M  quote:[beneficiary:(ear.PL possessor:2SG)]` for '"for your ears," he says', but a heading can't, and no clause can be joined to one with a conjunction or a subordinator.
+`noun:` takes anything a role does but a clause: a noun phrase, a pronoun, a demonstrative or several of them joined. An interjection is a word with no glosses, as `interjection:oh` and `interjection:alas` are, said on its own or to someone. A fragment says one `noun:`, one oblique or one interjection, and asks nothing yet, as 'where?' would. A heading is its `label:`, what kind of thing follows, and its title as `noun:`, and is said to no one. A fragment can be quoted, as in `say  subject:3SG.M  quote:[beneficiary:(ear.PL possessor:2SG)]` for '"for your ears," he says', but a heading can't, and no clause can be joined to one with a conjunction or a subordinator.
 
-A phrase on its own is in the case a noun is cited in, the nominative or the absolutive where the language has either, and an oblique is marked just as it would be in a clause. An addressee comes first, in the vocative where the language has one, as it does before a clause. A heading's label and title are each said as a noun is cited, apart from each other, with a pause between them that's written as a colon, so 'Item: Rusty Key' can come out as *mef: natki natkuf*; it's the only punctuation the output has.
+A phrase on its own is in the case a noun is cited in, the nominative or the absolutive where the language has either, and an oblique is marked just as it would be in a clause. An addressee comes first, in the vocative where the language has one, as it does before a clause, but after an interjection, as in 'hello, Marta'; nobody counts this, so it's a guess. An interjection is a root of its own, a syllable and now and then two, as interjections mostly are, however long the language's roots run. A heading's label and title are each said as a noun is cited, apart from each other, with a pause between them that's written as a colon, so 'Item: Rusty Key' can come out as *mef: natki natkuf*; it's the only punctuation the output has.
 
 ## Pronouns
 

@@ -50,6 +50,15 @@ public class FragmentTests
     }
 
     [Fact]
+    public void Parse_Interjection_IsItsMeaning()
+    {
+        var fragment = Parse("interjection:hello  addressee:marta");
+
+        Assert.Equal(new Interjection("hello"), fragment.Part.GetValueOrDefault().Value);
+        Assert.Equal(BareNoun("marta", Number.Singular), fragment.Addressee);
+    }
+
+    [Fact]
     public void Parse_QuotedFragment_IsWhatWasSaid()
     {
         var said = Stated(Assert.Single(ClauseFile.Parse("x\n  say  subject:3SG.M  quote:[beneficiary:(ear.PL possessor:2SG)]")).Utterance);
@@ -79,6 +88,10 @@ public class FragmentTests
     [InlineData("x\n  noun:(dog relative:[see  subject:_  object:cat])  goal:_", "_ marks")]
     [InlineData("x\n  say  subject:3SG  quote:[label:item  noun:key]", "can't be quoted")]
     [InlineData("x\n  noun:dog.DEF\n  and  sleep  subject:cat", "which a fragment with no verb isn't")]
+    [InlineData("x\n  interjection:oh  noun:dog", "said on its own")]
+    [InlineData("x\n  interjection:hello.PL", "with no glosses")]
+    [InlineData("x\n  interjection:(hello big)", "with no glosses")]
+    [InlineData("x\n  interjection:oh  interjection:hello", "more than one interjection")]
     public void Parse_BadFragments_SayWhy(string text, string message) => Assert.Contains(message, Error(text).Message);
 
     [Fact]
@@ -146,6 +159,20 @@ public class FragmentTests
             Assert.Contains(": ", sentence.Text);
             Assert.Contains(" | ", sentence.Transcribed());
             Assert.Contains(":", sentence.Interlinear(false).Split(Environment.NewLine)[1]);
+        });
+    }
+
+    [Fact]
+    public void Realize_Interjection_IsAShortWordBeforeWhoItsSaidTo()
+    {
+        //languages of the test's own, since the sample's have no interjections
+        Assert.All(Enumerable.Range(0, 30).Select(seed => Generator.Generate(seed, LanguageSpec.Free)), l =>
+        {
+            var sentence = Syntax.Realize(l, new Fragment(new Interjection("hello"), BareNoun("person", Number.Singular)), "x");
+
+            var hello = l.Lexicon.Interjection("hello");
+            Assert.True(IndexOf(sentence, hello.Root) < IndexOf(sentence, "person"));
+            Assert.InRange(l.Phonology.Realize(new Word([hello.Root])).Syllables.Count, 1, 2);
         });
     }
 

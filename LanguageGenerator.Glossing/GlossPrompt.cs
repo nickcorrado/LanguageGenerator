@@ -292,7 +292,8 @@ public static class GlossPrompt
                   get.PST.PFV  subject:2SG  object:DIST  source:where
             - A line with no verb, as in headings, item descriptions or replies, is a fragment: its
               gloss line has roles only, and no verb. noun: is a phrase on its own, an oblique role
-              one on its own, label: with noun: a heading, and addressee: alone calls someone. Keep a
+              one on its own, label: with noun: a heading, interjection: a word like 'hello', 'oh'
+              or 'alas', and addressee: alone calls someone. Keep a
               fragment a fragment, never adding 'it is' or 'the item is', and write its English line
               as the gloss says it:
 
@@ -306,8 +307,10 @@ public static class GlossPrompt
                   label:(quest new)  noun:(child.PL.DEF missing)
                 stranger!
                   addressee:stranger
+                hello, Marta
+                  interjection:hello  addressee:marta
 
-              A fragment says one noun: or one oblique, not both, can be said to someone with
+              A fragment says one noun:, one oblique or one interjection, can be said to someone with
               addressee:, and can be quoted, as in '"for your ears," he says', which is
               say  subject:3SG.M  quote:[beneficiary:(ear.PL possessor:2SG)]. A heading is said to no
               one and can't be quoted, and no line starting with and, or, but or a subordinator can
