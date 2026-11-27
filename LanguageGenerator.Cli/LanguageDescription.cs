@@ -472,12 +472,9 @@ public static class LanguageDescription
         ];
         (Sentence Clause, string Translation)[] subordinated =
         [
-            (new Subordinated(Declared(new Event(new Doing("eat", Phrase("fish", Number.Singular)), Phrase("cat", Number.Singular), [], []), Tense.Present, Aspect.Imperfective, false), Subordinator.If,
-                Declared(new Event(new Doing("sleep", null), Phrase("dog", Number.Singular), [], []), Tense.Present, Aspect.Imperfective, false), false), "if the dog sleeps, the cat eats the fish"),
-            (new Subordinated(Declared(new Event(new Doing("walk", null), Phrase("dog", Number.Singular), [new(Role.Goal, Phrase("water", Number.Singular), Configuration.At)], []), Tense.Past, Aspect.Perfective, false),
-                Subordinator.Purpose, Declared(new Event(new Doing("drink", null), Phrase("dog", Number.Singular), [], []), Tense.Past, Aspect.Perfective, false), true), "the dog walked to the water to drink"),
-            (new Subordinated(Declared(new Event(new Doing("sleep", null), Phrase("cat", Number.Singular), [], []), Tense.Past, Aspect.Perfective, false), Subordinator.Because,
-                Declared(new Event(new Being(new Adjective("big", false)), Phrase("dog", Number.Singular), [], []), Tense.Past, Aspect.Imperfective, false), false), "the cat slept because the dog was big"),
+            (Under(Declared(new Event(new Doing("eat", Phrase("fish", Number.Singular)), Phrase("cat", Number.Singular), [], []), Tense.Present, Aspect.Imperfective, false), Subordinator.If, Declared(new Event(new Doing("sleep", null), Phrase("dog", Number.Singular), [], []), Tense.Present, Aspect.Imperfective, false), false), "if the dog sleeps, the cat eats the fish"),
+            (Under(Declared(new Event(new Doing("walk", null), Phrase("dog", Number.Singular), [new(Role.Goal, Phrase("water", Number.Singular), Configuration.At)], []), Tense.Past, Aspect.Perfective, false), Subordinator.Purpose, Declared(new Event(new Doing("drink", null), Phrase("dog", Number.Singular), [], []), Tense.Past, Aspect.Perfective, false), true), "the dog walked to the water to drink"),
+            (Under(Declared(new Event(new Doing("sleep", null), Phrase("cat", Number.Singular), [], []), Tense.Past, Aspect.Perfective, false), Subordinator.Because, Declared(new Event(new Being(new Adjective("big", false)), Phrase("dog", Number.Singular), [], []), Tense.Past, Aspect.Imperfective, false), false), "the cat slept because the dog was big"),
         ];
         (Sentence Clause, string Translation)[] passives =
         [
@@ -511,9 +508,9 @@ public static class LanguageDescription
             (Asked(Declared(new Event(new Doing("eat", Phrase("fish", Number.Singular)), Phrase("cat", Number.Singular), [], []), Tense.Past, Aspect.Progressive, false), null),
                 "was the cat eating the fish?"),
             (Declared(new Event(new Doing("eat", new NounPhrase(new Noun("fish", Number.Singular, [], null, null, null, null, null), null)), Phrase("dog", Number.Plural), [], []), Tense.Past, Aspect.Habitual, false), "the dogs used to eat fish"),
-            (Declared(new Event(new Doing("begin", new ComplementClause(ComplementKind.Event, Declared(new Event(new Doing("sleep", null), Phrase("cat", Number.Singular), [], []), Tense.Present, Aspect.Imperfective, false), SharesSubject: true)), Phrase("cat", Number.Singular), [], []), Tense.Past, Aspect.Perfective, false),
+            (Declared(new Event(new Doing("begin", Complementing(ComplementKind.Event, Declared(new Event(new Doing("sleep", null), Phrase("cat", Number.Singular), [], []), Tense.Present, Aspect.Imperfective, false), true)), Phrase("cat", Number.Singular), [], []), Tense.Past, Aspect.Perfective, false),
                 "the cat began to sleep"),
-            (Declared(new Event(new Doing("stop", new ComplementClause(ComplementKind.Event, Declared(new Event(new Doing("eat", Phrase("fish", Number.Singular)), Phrase("dog", Number.Singular), [], []), Tense.Present, Aspect.Imperfective, false), SharesSubject: true)), Phrase("dog", Number.Singular), [], []), Tense.Present, Aspect.Imperfective, false),
+            (Declared(new Event(new Doing("stop", Complementing(ComplementKind.Event, Declared(new Event(new Doing("eat", Phrase("fish", Number.Singular)), Phrase("dog", Number.Singular), [], []), Tense.Present, Aspect.Imperfective, false), true)), Phrase("dog", Number.Singular), [], []), Tense.Present, Aspect.Imperfective, false),
                 "the dog stops eating the fish"),
         ];
         (Sentence Clause, string Translation)[] questions =
@@ -530,21 +527,19 @@ public static class LanguageDescription
         ];
         (Sentence Clause, string Translation)[] complements =
         [
-            (Declared(new Event(new Doing("say", new ComplementClause(ComplementKind.Proposition,
-                Declared(new Event(new Doing("sleep", null), Phrase("dog", Number.Singular), [], []), Tense.Past, Aspect.Imperfective, false), false)), Phrase("person", Number.Singular), [], []), Tense.Past, Aspect.Perfective, false), "the person said that the dog was sleeping"),
-            (Declared(new Event(new Doing("want", new ComplementClause(ComplementKind.Event,
-                Declared(new Event(new Doing("eat", Phrase("fish", Number.Singular)), Phrase("cat", Number.Singular), [], []), Tense.Present, Aspect.Imperfective, false), true)), Phrase("cat", Number.Singular), [], []), Tense.Present, Aspect.Imperfective, false), "the cat wants to eat the fish"),
+            (Declared(new Event(new Doing("say", Complementing(ComplementKind.Proposition, Declared(new Event(new Doing("sleep", null), Phrase("dog", Number.Singular), [], []), Tense.Past, Aspect.Imperfective, false), false)), Phrase("person", Number.Singular), [], []), Tense.Past, Aspect.Perfective, false), "the person said that the dog was sleeping"),
+            (Declared(new Event(new Doing("want", Complementing(ComplementKind.Event, Declared(new Event(new Doing("eat", Phrase("fish", Number.Singular)), Phrase("cat", Number.Singular), [], []), Tense.Present, Aspect.Imperfective, false), true)), Phrase("cat", Number.Singular), [], []), Tense.Present, Aspect.Imperfective, false), "the cat wants to eat the fish"),
             (Declared(new Event(new Doing("say", new Quotation(new Message((Sentence)Told(new Event(new Doing("walk", null), new Pronoun(Person.Second, Number.Singular), [new(Role.Goal, Phrase("house", Number.Singular), Configuration.At)], []), false), null))), Phrase("bird", Number.Singular), [], []), Tense.Past, Aspect.Perfective, false), "the bird said, \"go to the house\""),
         ];
         Clause Gapped(string verb, Argument subject, Argument? @object = null, ValueList<Oblique> obliques = default) =>
             Declared(new Event(new Doing(verb, @object), subject, obliques, []), Tense.Past, Aspect.Perfective, false);
         (Sentence Clause, string Translation)[] relatives =
         [
-            (Declared(new Event(new Doing("sleep", null), Phrase("dog", Number.Singular) with { Relative = Gapped("see", new Gap(null), Phrase("cat", Number.Plural)) }, [], []), Tense.Present, Aspect.Imperfective, false),
+            (Declared(new Event(new Doing("sleep", null), Phrase("dog", Number.Singular) with { Relative = Relating(Gapped("see", new Gap(null), Phrase("cat", Number.Plural))) }, [], []), Tense.Present, Aspect.Imperfective, false),
                 "the dog that saw the cats sleeps"),
-            (Declared(new Event(new Doing("see", Phrase("fish", Number.Singular) with { Relative = Gapped("eat", Phrase("dog", Number.Singular), new Gap(null)) }), Phrase("cat", Number.Singular), [], []), Tense.Present, Aspect.Imperfective, false),
+            (Declared(new Event(new Doing("see", Phrase("fish", Number.Singular) with { Relative = Relating(Gapped("eat", Phrase("dog", Number.Singular), new Gap(null))) }), Phrase("cat", Number.Singular), [], []), Tense.Present, Aspect.Imperfective, false),
                 "the cat sees the fish that the dog ate"),
-            (Declared(new Event(new Doing("walk", null), Phrase("person", Number.Singular), [new(Role.Goal, Phrase("house", Number.Singular) with { Relative = Gapped("sleep", Phrase("bird", Number.Plural), obliques: [new(Role.Location, new Gap(null), Configuration.In)]) }, Configuration.At)], []), Tense.Past, Aspect.Perfective, false),
+            (Declared(new Event(new Doing("walk", null), Phrase("person", Number.Singular), [new(Role.Goal, Phrase("house", Number.Singular) with { Relative = Relating(Gapped("sleep", Phrase("bird", Number.Plural), obliques: [new(Role.Location, new Gap(null), Configuration.In)])) }, Configuration.At)], []), Tense.Past, Aspect.Perfective, false),
                 "the person walked to the house that the birds slept in"),
         ];
         (Sentence Clause, string Translation)[] demonstrated =
@@ -641,5 +636,42 @@ public static class LanguageDescription
             }),
         },
         _ => throw new ArgumentException("Only a stated clause compares here.", nameof(clause)),
+    };
+
+    //a stated clause under another, as an adverbial clause of that kind, a purpose clause sharing the main clause's subject or not
+    private static Subordinated Under(Sentence main, Subordinator subordinator, Clause clause, bool sharesSubject) => (subordinator, clause) switch
+    {
+        (Subordinator.Purpose, Declarative stated) => new Subordinated(main, new Purpose(Sharing(stated.Propositional.Proposition.StateOfAffairs, sharesSubject))),
+        (_, Declarative stated) when !sharesSubject => new Subordinated(main, new Circumstance(RelationOf(subordinator), stated.Propositional)),
+        _ => throw new ArgumentException("Only a stated clause goes under another, and only a purpose clause shares its subject here.", nameof(clause)),
+    };
+
+    private static Relation RelationOf(Subordinator subordinator) => subordinator switch
+    {
+        Subordinator.If => Relation.If,
+        Subordinator.When => Relation.When,
+        Subordinator.Before => Relation.Before,
+        Subordinator.After => Relation.After,
+        Subordinator.Until => Relation.Until,
+        Subordinator.Because => Relation.Because,
+        _ => throw new ArgumentOutOfRangeException(nameof(subordinator), subordinator, "A purpose clause has no relation."),
+    };
+
+    //a stated clause as the object of a verb, what's said or what's wanted, the latter sharing the main clause's subject or not
+    private static Complement Complementing(ComplementKind kind, Clause clause, bool sharesSubject) => (kind, clause) switch
+    {
+        (ComplementKind.Proposition, Declarative stated) when !sharesSubject => new Said(stated.Propositional),
+        (ComplementKind.Event, Declarative { Propositional.Value: Proposition wanted }) => new Wanted(Sharing(wanted.StateOfAffairs, sharesSubject)),
+        _ => throw new ArgumentException("Only a stated clause is an object, and only what's wanted shares its subject here.", nameof(clause)),
+    };
+
+    //a state of affairs whose events have the subject of the clause they depend on, or their own
+    private static StateOfAffairs Sharing(StateOfAffairs layers, bool shares) => shares ? layers.Rebuilt(e => e with { Subject = new Shared() }) : layers;
+
+    //a stated clause as a relative clause, with its gap where it has one
+    private static Propositional Relating(Clause clause) => clause switch
+    {
+        Declarative stated => stated.Propositional,
+        _ => throw new ArgumentException("Only a stated clause is a relative clause.", nameof(clause)),
     };
 }

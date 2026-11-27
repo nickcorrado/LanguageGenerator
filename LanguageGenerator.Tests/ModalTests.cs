@@ -160,7 +160,7 @@ public class ModalTests
         Assert.All(Enumerable.Range(0, 5).Select(seed => Generator.Generate(seed, spec)), l =>
         {
             var main = Declared(new Event(new Doing("sleep", null), BareNoun("cat", Number.Singular), [], []), Tense.Present, Aspect.Imperfective, false);
-            var sentence = Realized(l, new Subordinated(main, Subordinator.If, WithModal(DogEatsFish, SituationalModality.Ability, false), false));
+            var sentence = Realized(l, Under(main, Subordinator.If, WithModal(DogEatsFish, SituationalModality.Ability, false), false));
             var marker = l.Subordination.Markers[Subordinator.If].Marker;
 
             Assert.Contains(marker, sentence.Words[ModalAt(sentence)].Word.Morphemes);

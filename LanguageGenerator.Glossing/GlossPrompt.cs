@@ -262,7 +262,7 @@ public static class GlossPrompt
             - A clause under another, saying if, when, before, after, until, because or in order to,
               goes on an indented line of its own starting with if, when, before, after, until,
               because or purpose, after the main clause, whichever order the English has. A purpose
-              clause can leave out its subject when it's the main clause's:
+              clause can leave out its subject when it's the main clause's, and takes no tense:
 
                 if you hear the song, cover your ears
                   cover.IMP  object:(ear.PL possessor:2SG)

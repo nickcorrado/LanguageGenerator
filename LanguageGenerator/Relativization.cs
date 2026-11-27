@@ -83,6 +83,13 @@ public record Relativization(bool BeforeNoun, RelativeStrategy Subject, Relative
 }
 
 /// <summary>
+/// The subject of the clause a dependent one depends on, which the dependent one shares, as 'to go
+/// home' shares 'they' in 'they want to go home': control, or PRO, as grammars call it. Syntax says
+/// it as a pronoun where the dependent clause keeps its verb, and leaves it out where it's deranked.
+/// </summary>
+public record Shared;
+
+/// <summary>
 /// The role a relative clause's noun fills in it, written _, as in 'the net [she was mending _]'.
 /// Head is the noun, which the clause file leaves out and Syntax fills in, for what agrees with it.
 /// </summary>

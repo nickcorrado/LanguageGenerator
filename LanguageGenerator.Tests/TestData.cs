@@ -163,6 +163,56 @@ internal static class Clauses
         _ => throw new ArgumentException("Only a stated clause compares here.", nameof(clause)),
     };
 
+    //a stated clause under another, as an adverbial clause of that kind, a purpose clause sharing the main clause's subject or not
+    public static Subordinated Under(Sentence main, Subordinator subordinator, Clause clause, bool sharesSubject) => (subordinator, clause) switch
+    {
+        (Subordinator.Purpose, Declarative stated) => new Subordinated(main, new Purpose(Sharing(stated.Propositional.Proposition.StateOfAffairs, sharesSubject))),
+        (_, Declarative stated) when !sharesSubject => new Subordinated(main, new Circumstance(RelationOf(subordinator), stated.Propositional)),
+        _ => throw new ArgumentException("Only a stated clause goes under another, and only a purpose clause shares its subject here.", nameof(clause)),
+    };
+
+    private static Relation RelationOf(Subordinator subordinator) => subordinator switch
+    {
+        Subordinator.If => Relation.If,
+        Subordinator.When => Relation.When,
+        Subordinator.Before => Relation.Before,
+        Subordinator.After => Relation.After,
+        Subordinator.Until => Relation.Until,
+        Subordinator.Because => Relation.Because,
+        _ => throw new ArgumentOutOfRangeException(nameof(subordinator), subordinator, "A purpose clause has no relation."),
+    };
+
+    //a stated clause as the object of a verb, what's said or what's wanted, the latter sharing the main clause's subject or not
+    public static Complement Complementing(ComplementKind kind, Clause clause, bool sharesSubject) => (kind, clause) switch
+    {
+        (ComplementKind.Proposition, Declarative stated) when !sharesSubject => new Said(stated.Propositional),
+        (ComplementKind.Event, Declarative { Propositional.Value: Proposition wanted }) => new Wanted(Sharing(wanted.StateOfAffairs, sharesSubject)),
+        _ => throw new ArgumentException("Only a stated clause is an object, and only what's wanted shares its subject here.", nameof(clause)),
+    };
+
+    //a state of affairs whose events have the subject of the clause they depend on, or their own
+    public static StateOfAffairs Sharing(StateOfAffairs layers, bool shares) => shares ? layers.Rebuilt(e => e with { Subject = new Shared() }) : layers;
+
+    //a stated clause as a relative clause, with its gap where it has one
+    public static Propositional Relating(Clause clause) => clause switch
+    {
+        Declarative stated => stated.Propositional,
+        _ => throw new ArgumentException("Only a stated clause is a relative clause.", nameof(clause)),
+    };
+
+    //the first event of a clause inside another
+    public static Event EventOf(Complement complement) => complement switch
+    {
+        Said said => said.Propositional.Proposition.StateOfAffairs.Event,
+        Wanted wanted => wanted.StateOfAffairs.Event,
+    };
+
+    public static Event EventOf(AdverbialClause clause) => clause switch
+    {
+        Purpose purpose => purpose.StateOfAffairs.Event,
+        Circumstance circumstance => circumstance.Propositional.Proposition.StateOfAffairs.Event,
+    };
+
     //a statement's clause, its event, its predicate, its sentence type and the proposition it states or asks, where it has each of these
     public static Clause ClauseOf(Sentence statement) => Assert.IsType<Clause>(statement.Value);
     public static Event EventOf(Sentence statement) => ClauseOf(statement).Event;

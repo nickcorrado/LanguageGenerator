@@ -202,7 +202,7 @@ public class IndefiniteTests
         var relative = Declared(new Event(new Doing("sleep", null), new Gap(null), [], []), Tense.Present, Aspect.Imperfective, false);
         Assert.All(GeneratedLanguages.Sample.Take(60), l => Assert.All(Indefinites.Series, series =>
         {
-            var sentence = Syntax.Realize(l, Declared(new Event(new Doing("see", Indefinite(series, Ontology.Thing)), Indefinite(series, Ontology.Person) with { Relative = relative }, [new(Role.Location, Indefinite(series, Ontology.Place), Configuration.At)], []), Tense.Past, Aspect.Perfective, false), "x");
+            var sentence = Syntax.Realize(l, Declared(new Event(new Doing("see", Indefinite(series, Ontology.Thing)), Indefinite(series, Ontology.Person) with { Relative = Relating(relative) }, [new(Role.Location, Indefinite(series, Ontology.Place), Configuration.At)], []), Tense.Past, Aspect.Perfective, false), "x");
 
             Assert.True(sentence.Words.Count >= 4);
         }));

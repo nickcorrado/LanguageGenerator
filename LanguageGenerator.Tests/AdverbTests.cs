@@ -234,7 +234,7 @@ public class AdverbTests
                 Told(new Event(new Doing("eat", BareNoun("fish", Number.Singular)), new Pronoun(Person.Second, Number.Singular), [], [Now]), false),
                 Told(new Event(new Being(AtTheHouse), new Pronoun(Person.Second, Number.Plural), [], [Now]), false),
                 Declared(new Event(new Done("see", null), BareNoun("dog", Number.Singular), [], [Now]), Tense.Past, Aspect.Perfective, false),
-                new Subordinated(DogWalks, Subordinator.Purpose, Declared(new Event(new Doing("drink", null), BareNoun("dog", Number.Singular), [], [Now]), Tense.Present, Aspect.Imperfective, false), true),
+                Under(DogWalks, Subordinator.Purpose, Declared(new Event(new Doing("drink", null), BareNoun("dog", Number.Singular), [], [Now]), Tense.Present, Aspect.Imperfective, false), true),
             ];
             Assert.All(statements, s => Assert.Single(Realized(l, s).Words, w => w.Word.Root?.Meaning == "now"));
         });

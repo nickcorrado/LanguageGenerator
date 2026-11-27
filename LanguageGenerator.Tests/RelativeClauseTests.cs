@@ -19,9 +19,9 @@ public class RelativeClauseTests
     {
         var net = ObjectOf(Parsed("x\n  lift  subject:3SG.F  object:(net.DEF relative:[mend.PST  subject:3SG.F  object:_])"));
 
-        var relative = Assert.IsType<Clause>(net.Relative?.Value);
-        Assert.Equal("mend", PredicateOf<Doing>(relative).Verb);
-        Assert.Equal(new Gap(null), PredicateOf<Doing>(relative).Object.GetValueOrDefault().Value);
+        var relative = Assert.IsType<Doing>(net.Relative.GetValueOrDefault().Proposition.StateOfAffairs.Event.Predicate.Value);
+        Assert.Equal("mend", relative.Verb);
+        Assert.Equal(new Gap(null), relative.Object.GetValueOrDefault().Value);
         Assert.Equal(Definiteness.Definite, NounOf(net).Determiner?.Value);
     }
 
@@ -30,7 +30,7 @@ public class RelativeClauseTests
     {
         var clearing = Assert.IsType<NounPhrase>(Assert.IsType<Clause>(Parsed("x\n  stand  subject:circle.DEF  location.in:(clearing.NDF relative:[grow  subject:nothing  location.in:_])").Value).Event.Obliques[0].Argument.Value);
 
-        var oblique = Assert.Single(Assert.IsType<Clause>(clearing.Relative?.Value).Event.Obliques);
+        var oblique = Assert.Single(clearing.Relative.GetValueOrDefault().Proposition.StateOfAffairs.Event.Obliques);
         Assert.Equal((Role.Location, Configuration.In), (oblique.Role, oblique.Configuration));
         Assert.IsType<Gap>(oblique.Argument.Value);
     }
@@ -40,7 +40,9 @@ public class RelativeClauseTests
     {
         var man = ObjectOf(Parsed("x\n  see.PST  subject:1SG  object:(man.DEF relative:[want  subject:_  object:[to  go  goal:home]])"));
 
-        Assert.IsType<Gap>(Assert.IsType<Clause>(man.Relative?.Value).Event.Subject.Value);
+        var wants = man.Relative.GetValueOrDefault().Proposition.StateOfAffairs.Event;
+        Assert.IsType<Gap>(wants.Subject.Value);
+        Assert.IsType<Shared>(Assert.IsType<Doing>(wants.Predicate.Value).Object is { Value: Complement wanted } ? EventOf(wanted).Subject.Value : null);
     }
 
     [Theory]
@@ -88,7 +90,7 @@ public class RelativeClauseTests
     public void GenerateRelativization_IsolatingLanguage_UsesNoAffix() =>
         Assert.All(Draws(s => s.Fix(Settings.Fusion, Fusion.Isolating)), r => Assert.NotEqual(RelativizerKind.Affix, r.RelativizerKind));
 
-    private static NounPhrase Head(string noun, Number number, Sentence relative) => new NounPhrase(new Noun(noun, number, [], null, null, null, Definiteness.Definite, null), relative);
+    private static NounPhrase Head(string noun, Number number, Clause relative) => new NounPhrase(new Noun(noun, number, [], null, null, null, Definiteness.Definite, null), Relating(relative));
 
     //'the dogs that sleep sleep', with the gap as the relative clause's subject
     private static readonly Clause Sleeps = Declared(new Event(new Doing("sleep", null), new Gap(null), [], []), Tense.Present, Aspect.Imperfective, false);

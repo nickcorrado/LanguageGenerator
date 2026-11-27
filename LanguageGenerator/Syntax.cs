@@ -9,7 +9,7 @@
 /// A noun or an indefinite pronoun, and a relative clause saying more of it, if it has one, as in
 /// 'the net she was mending' or 'nobody who goes into the forest'.
 /// </summary>
-public record NounPhrase(Nominal Head, Sentence? Relative);
+public record NounPhrase(Nominal Head, Propositional? Relative);
 
 /// <summary>What a noun phrase is of: a noun with what modifies it, or an indefinite pronoun.</summary>
 public union Nominal(Noun, IndefinitePronoun)
@@ -53,10 +53,11 @@ public union Determiner(Definiteness, Distance);
 /// What fills a role: a noun phrase, a pronoun, a demonstrative standing alone, several of them
 /// joined by 'and' or 'or', a question word asking what fills it, 'here' or 'there' saying a
 /// place, or, as an object, a clause or a quotation. In a relative clause, a gap is the role its
-/// noun fills, and a relative word what Syntax says in its place.
+/// noun fills, and a relative word what Syntax says in its place; in a dependent clause, a shared
+/// subject is the subject of the clause it depends on.
 /// </summary>
 //what agrees with one depends on the language, so that's Syntax.AgreementOf's to say
-public union Argument(NounPhrase, Pronoun, DemonstrativePronoun, Coordination, QuestionWord, DemonstrativePlace, ComplementClause, Quotation, Gap, RelativeWord);
+public union Argument(NounPhrase, Pronoun, DemonstrativePronoun, Coordination, QuestionWord, DemonstrativePlace, Complement, Quotation, Gap, RelativeWord, Shared);
 /// <summary>
 /// A phrase saying where, to where, from where, which way, to whom, with whom or with what something
 /// happened, what it was like, when it happened or for how long. A spatial one says where relative
@@ -344,18 +345,39 @@ public static class Syntax
      */
     private static ClauseWords Words(Language language, Subordinated subordinated)
     {
-        var marking = language.Subordination.Markers[subordinated.Subordinator];
-        var shared = subordinated.SharesSubject || SubjectOf(subordinated.Clause).Equals(SubjectOf(subordinated.Main));
+        var marking = language.Subordination.Markers[subordinated.Clause.Subordinator];
+        var main = SubjectOf(subordinated.Main);
+        var dependent = Stated(subordinated.Clause);
+        var shares = SubjectOf(dependent).Value is Shared;
+        var shared = shares || SubjectOf(dependent).Equals(main);
         var derank = marking.Balance == Balance.Deranked || marking.Balance == Balance.Either && shared;
-        var deranked = derank ? AsDeranked(language, subordinated.Clause, shared, marking.MarkedAs) : null;
-        var clause = deranked ?? Words(language, subordinated.SharesSubject ? WithSubject(subordinated.Clause, Pronominal(language, SubjectOf(subordinated.Main))) : subordinated.Clause);
+        var deranked = derank ? AsDeranked(language, shares ? WithSubject(dependent, main) : dependent, shared, marking.MarkedAs) : null;
+        var clause = deranked ?? Words(language, shares ? WithSubject(dependent, Pronominal(language, main)) : dependent);
         var marked = deranked is not null && marking.MarkedAs is not null
             ? deranked.Words
             : Subordinate(clause, marking.Marker, marking.Position);
-        var main = Words(language, subordinated.Main).Words;
+        var said = Words(language, subordinated.Main).Words;
         //TODO its finite verb is its main clause's, but a suffix marking it still goes on its last word
-        return new(marking.BeforeMain ? [.. marked, .. main] : [.. main, .. marked], null);
+        return new(marking.BeforeMain ? [.. marked, .. said] : [.. said, .. marked], null);
     }
+
+    /*
+      a dependent clause said as a clause that states it, which is how Syntax says one, at its own
+      time where it has one, and at the present where its time is set by the clause it's in
+      TODO the main clause's time, or a language's own way of saying a clause with none, would be truer
+      than the present
+     */
+    private static Sentence Stated(AdverbialClause clause) => clause switch
+    {
+        Purpose purpose => (Clause)new Declarative(new Proposition(purpose.StateOfAffairs, Tense.Present)),
+        Circumstance circumstance => (Clause)new Declarative(circumstance.Propositional),
+    };
+
+    private static Sentence Stated(Complement complement) => complement switch
+    {
+        Said said => (Clause)new Declarative(said.Propositional),
+        Wanted wanted => (Clause)new Declarative(new Proposition(wanted.StateOfAffairs, Tense.Present)),
+    };
 
     //a clause with its marker: a word at its start or end, or a suffix outside everything on its verb,
     //or on its last word where it has no verb, as a copular clause that drops its copula doesn't
@@ -382,7 +404,7 @@ public static class Syntax
         {
             return words;
         }
-        var relative = RelativeClause(language, clause, phrase.Head);
+        var relative = RelativeClause(language, (Clause)new Declarative(clause), phrase.Head);
         return language.Relativization.BeforeNoun ? [.. relative, .. words] : [.. words, .. relative];
     }
 
@@ -478,9 +500,9 @@ public static class Syntax
         var last = language.Complementation.Last;
         switch (argument.Value)
         {
-            case ComplementClause complement:
+            case Complement complement:
             {
-                var (words, balanced) = Complement(language, complement, subject);
+                var (words, balanced) = ComplementWords(language, complement, subject);
                 return balanced && last ? (null, words) : (words, []);
             }
             case Quotation quotation:
@@ -503,19 +525,20 @@ public static class Syntax
       that I go' says it in the verb
      */
     //subject is the main clause's, or null where it has none the complement could share, as an impersonal verb's 'it' isn't
-    private static (IReadOnlyList<Word> Words, bool Balanced) Complement(Language language, ComplementClause complement, Argument? subject)
+    private static (IReadOnlyList<Word> Words, bool Balanced) ComplementWords(Language language, Complement complement, Argument? subject)
     {
         var marking = language.Complementation.MarkingOf(complement.Kind);
-        var shared = complement.SharesSubject || subject is { } main && SubjectOf(complement.Clause).Equals(main);
+        var dependent = Stated(complement);
+        var shares = SubjectOf(dependent).Value is Shared;
+        Argument Main() => subject ?? throw new ArgumentException("A complement that shares its subject needs the main clause's.", nameof(subject));
+        var shared = shares || subject is { } main && SubjectOf(dependent).Equals(main);
         var derank = marking.Balance == Balance.Deranked || marking.Balance == Balance.Either && shared;
-        var deranked = derank ? AsDeranked(language, complement.Clause, shared, marking.MarkedAs) : null;
+        var deranked = derank ? AsDeranked(language, shares ? WithSubject(dependent, Main()) : dependent, shared, marking.MarkedAs) : null;
         if (deranked is not null && marking.MarkedAs is not null)
         {
             return (deranked.Words, false);
         }
-        var clause = deranked ?? Words(language, complement.SharesSubject
-            ? WithSubject(complement.Clause, Pronominal(language, subject ?? throw new ArgumentException("A complement that shares its subject needs the main clause's.", nameof(subject))))
-            : complement.Clause);
+        var clause = deranked ?? Words(language, shares ? WithSubject(dependent, Pronominal(language, Main())) : dependent);
         var marked = marking.Marker is { } complementizer ? Subordinate(clause, complementizer.Marker, complementizer.Position) : clause.Words;
         return (marked, deranked is null);
     }
@@ -564,14 +587,13 @@ public static class Syntax
      */
     private static (string Verb, Spine Event)? Embedded(Spine spine)
     {
-        if (spine is not { Event.Predicate.Value: Doing { Object: { Value: ComplementClause { Kind: ComplementKind.Event } embedded } } doing, Tense: { } tense }
-            || !(embedded.SharesSubject || SubjectOf(embedded.Clause).Equals(spine.Event.Subject))
-            || embedded.Clause.Value is not Clause { Value: Declarative { Propositional.Value: Proposition inner } }
-            || JoinsEvents(inner.StateOfAffairs))
+        if (spine is not { Event.Predicate.Value: Doing { Object: { Value: Complement { Value: Wanted embedded } } } doing, Tense: { } tense }
+            || embedded.StateOfAffairs.Event.Subject is var own && !(own.Value is Shared || own.Equals(spine.Event.Subject))
+            || JoinsEvents(embedded.StateOfAffairs))
         {
             return null;
         }
-        var wanted = Collected(inner.StateOfAffairs, tense);
+        var wanted = Collected(embedded.StateOfAffairs, tense);
         if (wanted.Modal is not null)
         {
             return null;
@@ -1114,7 +1136,7 @@ public static class Syntax
         }
         var marking = language.Modals.Markers[epistemic];
         return marking.Value is ModalVerb verb
-            ? Impersonal(language, verb, new Declarative(proposition), denied, adverbs)
+            ? Impersonal(language, verb, proposition, denied, adverbs)
             : Words(language, Fold(language, spine, new Modal(marking, denied)), adverbs, false);
     }
 
@@ -1137,12 +1159,12 @@ public static class Syntax
       and goes last or where the object goes, as one does; a language that deranks propositions
       loses the clause's tense, as it does in any complement
      */
-    private static ClauseWords Impersonal(Language language, ModalVerb modal, Clause clause, bool denied, IReadOnlyList<Word> adverbs)
+    private static ClauseWords Impersonal(Language language, ModalVerb modal, Proposition judged, bool denied, IReadOnlyList<Word> adverbs)
     {
         var it = new Pronoun(Person.Third, Number.Singular);
         var subject = Subject(language, it, Role.IntransitiveSubject);
         var verb = new VerbComplex(modal.Verb, [.. NegationLayers(language.Negation, denied)], new Finite(Tense.Present, Aspect.Imperfective, it));
-        var (complement, balanced) = Complement(language, new ComplementClause(ComplementKind.Proposition, clause, SharesSubject: false), null);
+        var (complement, balanced) = ComplementWords(language, new Said(judged), null);
         var last = balanced && language.Complementation.Last;
         return new([.. Flat(Order(language.WordOrder, subject, Linearized(language, verb), last ? null : complement, WhereObliquesGo(language, [(Closeness.Reason, adverbs)]))), .. last ? complement : []],
             verb.Outermost.Root);
@@ -1407,7 +1429,8 @@ public static class Syntax
         Gap => (Person.Third, Number.Singular),
         RelativeWord word => AgreementOf(language, word.Head),
         //a clause is agreed with as a third person singular, as English 'that he came is strange' is
-        ComplementClause or Quotation => (Person.Third, Number.Singular),
+        Complement or Quotation => (Person.Third, Number.Singular),
+        Shared _ => throw new ArgumentException("A shared subject is the main clause's, which is said in its place.", nameof(argument)),
         Coordination { Conjunction: Conjunction.Or } c => AgreementOf(language, c.Items[^1]),
         Coordination c => (c.Items.Select(i => AgreementOf(language, i).Person).MinBy(p => p == Person.First ? 0 : p == Person.Second ? 1 : 2)!,
             c.Items.Count == 2 ? Number.Dual : Number.Plural),
@@ -1487,7 +1510,8 @@ public static class Syntax
             DemonstrativePlace place => nouns.Inflect(language.Demonstratives.Place(place.Distance), Features(nouns, [Number.Singular, @case, localization])),
             Coordination coordination => Joined(language, coordination, @case, localization),
             QuestionWord question => nouns.Inflect(language.Questions.Words[question.Word], Features(nouns, [Number.Singular, @case, localization])),
-            ComplementClause or Quotation => throw new ArgumentException("A clause or a quotation can only be an object, which Object says.", nameof(argument)),
+            Complement or Quotation => throw new ArgumentException("A clause or a quotation can only be an object, which Object says.", nameof(argument)),
+            Shared _ => throw new ArgumentException("A shared subject is the main clause's, which is said in its place.", nameof(argument)),
             //a gap says nothing; a relative pronoun inflects as a noun does, in its noun's number
             Gap => [],
             RelativeWord word => nouns.Inflect(word.Word, Features(nouns, [AgreementOf(language, word.Head).Number, @case, localization])),

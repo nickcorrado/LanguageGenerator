@@ -43,7 +43,7 @@ What happens, and who and what take part: Hengeveld and Mackenzie's configuratio
 record Event(Predicate Predicate, Argument Subject, ValueList<Oblique> Obliques, ValueList<Adverbial> Adverbs)
 ```
 
-- **The subject is always there,** whatever the clause's type or rank. A directive's is 'you' unless it says otherwise, a hortative's 'we' and a jussive's anyone (see [Sentence types](#sentence-types)). A dependent clause whose subject is the one it depends on says so with a new `Argument` case, `Shared`, in place of the `SharesSubject` flags on `ComplementClause` and `Subordinated`. Syntax says a shared subject as a pronoun where the clause is balanced and leaves it out where it's deranked, as it does now.
+- **The subject is always there,** whatever the clause's type or rank. A directive's is 'you' unless it says otherwise, a hortative's 'we' and a jussive's anyone (see [Sentence types](#sentence-types)). A dependent clause whose subject is the one it depends on says so with an `Argument` case, `Shared`, which took the place of the `SharesSubject` flags on `ComplementClause` and `Subordinated`. Syntax says a shared subject as a pronoun where the clause is balanced and leaves it out where it's deranked, as it did before.
 - **Comparison is part of what be says of its subject:** be's `Complement` becomes `Attribute`, which gains `Compared(Adjective Adjective, Standard? Standard)`, and `Comparative` goes. A question or a modal on a comparison then needs no nesting rule.
 - **Phase stays as it is:** 'begin' and 'stop' are verbs with an event complement, folded into an inceptive or cessative where the language has one, which is the language's choice.
 
@@ -106,7 +106,7 @@ record Subordinated(Sentence Main, AdverbialClause Clause)
 
 union AdverbialClause(Purpose, Circumstance, Absolute)  // Thompson, Longacre and Hwang's adverbial clauses
 record Purpose(StateOfAffairs StateOfAffairs)          // its time is set by the main clause's
-record Circumstance(Relation Relation, Proposition Proposition)   // if, when, before, after, until, because
+record Circumstance(Relation Relation, Propositional Propositional)   // if, when, before, after, until, because
 record Absolute(StateOfAffairs StateOfAffairs, Taxis Taxis)   // 'the work done, we left'
 enum Taxis { Anterior, Simultaneous, Posterior }
 ```
@@ -160,7 +160,7 @@ Utterance = Message(Content, Addressee?) | Call(Addressee)
           StateOfAffairs = Event | Coordinated<StateOfAffairs>
                          | Negated(StateOfAffairs) | Modalized(SituationalModality, StateOfAffairs) | Aspected(Aspect, StateOfAffairs)
             Event(Predicate, Subject, Obliques, Adverbs)
-      AdverbialClause = Purpose(StateOfAffairs) | Circumstance(Relation, Proposition) | Absolute(StateOfAffairs, Taxis)
+      AdverbialClause = Purpose(StateOfAffairs) | Circumstance(Relation, Propositional) | Absolute(StateOfAffairs, Taxis)
   Fragment = Standalone | Oblique | Heading | Interjection | Answer
 in an event's roles:  Said(Proposition) | Wanted(StateOfAffairs) | Quotation(Utterance)
 in a noun phrase:     a relative Proposition with a Gap
@@ -206,7 +206,7 @@ The model has to take these without another redesign. For each, where it goes an
 
   An event with no subject has the shared one, and one with a subject of its own keeps it, which is how switch reference is written. Three or more events go in one head, as in `and [a] [b] [c]`. An oblique that applies to both is written in each, since sharing one would be ellipsis, which the model doesn't have. The glosser's rule is the one above: events where the conjuncts share their type and tense.
 - **The parser** builds layers instead of wrappers, and loses the refusals in the table above.
-- **Syntax** keeps everything it decides about form, and reads it from layers: finiteness from the sentence type and the clause's place, rank from the language as now, folding of 'want' and 'begin' as now. `Rank`, `Folded` and `ClauseWords` stay. It collects what a clause's verb says from the layers around its event into a `Spine`: the tense, the aspect, the negation, and a situational modal with its own, refusing layers stacked beyond what's built, as two aspects, the perfect over a modal, or a negation over a negation. An aspect is said the same on either side of a modal until stacked aspects are built.
+- **Syntax** says a dependent clause as a clause stating it, at its own time where it has one and at the present where the clause it's in sets its time, which the main clause's time would say more truly. It keeps everything it decides about form, and reads it from layers: finiteness from the sentence type and the clause's place, rank from the language as now, folding of 'want' and 'begin' as now. `Rank`, `Folded` and `ClauseWords` stay. It collects what a clause's verb says from the layers around its event into a `Spine`: the tense, the aspect, the negation, and a situational modal with its own, refusing layers stacked beyond what's built, as two aspects, the perfect over a modal, or a negation over a negation. An aspect is said the same on either side of a modal until stacked aspects are built.
 - **`LanguageDescription`** builds its sample sentences in the new types.
 - **Tests** change throughout, which is when parser tests can move to comparing whole values against shared ones.
 

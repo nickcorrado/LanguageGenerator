@@ -148,7 +148,7 @@ public class AspectTests
         Assert.All(Languages(AspectKind.Have, AspectKind.None, s => s.Fix(Settings.SubordinatorOf(Subordinator.If), ExponentPosition.Suffix).Fix(Settings.TemporalBalance, Balance.Balanced)), l =>
         {
             var main = Declared(new Event(new Doing("sleep", null), BareNoun("cat", Number.Singular), [], []), Tense.Present, Aspect.Imperfective, false);
-            var sentence = Realized(l, new Subordinated(main, Subordinator.If, DogEatsFish.At(Tense.Present, Aspect.Perfect), false));
+            var sentence = Realized(l, Under(main, Subordinator.If, DogEatsFish.At(Tense.Present, Aspect.Perfect), false));
 
             Assert.Contains(l.Subordination.Markers[Subordinator.If].Marker, sentence.Words[IndexOf(sentence, "have")].Word.Morphemes);
         });

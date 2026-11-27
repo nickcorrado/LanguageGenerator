@@ -380,9 +380,9 @@ public class ClauseFileTests
     [Fact]
     public void Parse_SubjectWrittenAfterAClauseThatSharesIt_IsShared()
     {
-        var complement = Assert.IsType<ComplementClause>(PredicateOf<Doing>(Verbal(Single("x\n  want  object:[to  go  goal:home]  subject:3PL"))).Object.GetValueOrDefault().Value);
+        var complement = Assert.IsType<Complement>(PredicateOf<Doing>(Verbal(Single("x\n  want  object:[to  go  goal:home]  subject:3PL"))).Object.GetValueOrDefault().Value);
 
-        Assert.Equal(new Pronoun(Person.Third, Number.Plural), EventOf(complement.Clause).Subject.Value);
+        Assert.IsType<Shared>(EventOf(complement).Subject.Value);
     }
 
     [Fact]

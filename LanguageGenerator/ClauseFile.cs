@@ -110,15 +110,36 @@ public static class ClauseFile
      */
     private static Subordinated ToSubordinated(Sentence main, Subordinator subordinator, SyntaxClause line, int number)
     {
-        var shares = subordinator == Subordinator.Purpose && !line.Items.Any(i => i.Role == "subject");
-        var clause = Ungapped(ParseClause(line, number, shares ? Syntax.SubjectOf(main) : (Argument?)null, "Say who's addressed in the main clause, not in one under it."), number);
+        var purpose = subordinator == Subordinator.Purpose;
+        var shares = purpose && !line.Items.Any(i => i.Role == "subject");
+        //a purpose clause's time is the main clause's
+        if (purpose && line.Items is [{ Role: null, Value.Value: SyntaxWord verb }, ..]
+            && ParseWord(verb.Text, number).Features.FirstOrDefault(f => f is Tense or EpistemicModality) is { } time)
+        {
+            throw new ClauseFormatException($"A purpose clause can't take {time.Gloss}: the clause it's under says when.", number);
+        }
+        var clause = Ungapped(ParseClause(line, number, shares ? new Shared() : (Argument?)null, "Say who's addressed in the main clause, not in one under it."), number);
         return clause.Value switch
         {
             Clause { Value: Directive } => throw new ClauseFormatException($"A clause under another can't be a command: {subordinator.ToString().ToLowerInvariant()} takes a clause with a subject.", number),
             Clause { Value: Interrogative } => throw new ClauseFormatException("A clause under another can't be a question: ask it in the main clause.", number),
-            _ => new Subordinated(main, subordinator, clause, shares),
+            Clause { Value: Declarative { Propositional: var said } } => new Subordinated(main, purpose
+                ? new Purpose(said.Proposition.StateOfAffairs)
+                : new Circumstance(Relations[subordinator], said)),
+            _ => throw new ClauseFormatException("A clause under another is one clause.", number),
         };
     }
+
+    //how a circumstance bears on the clause it's under, by the subordinator that says it
+    private static readonly Dictionary<Subordinator, Relation> Relations = new()
+    {
+        [Subordinator.If] = Relation.If,
+        [Subordinator.When] = Relation.When,
+        [Subordinator.Before] = Relation.Before,
+        [Subordinator.After] = Relation.After,
+        [Subordinator.Until] = Relation.Until,
+        [Subordinator.Because] = Relation.Because,
+    };
 
     //clauses joined by a conjunction, neither of them a question yet
     private static Coordinated<Sentence> ToCoordinated(Conjunction conjunction, Sentence first, Sentence second, int number) =>
@@ -166,6 +187,22 @@ public static class ClauseFile
         Subordinated s => [.. ArgumentsOf(s.Main), .. ArgumentsOf(s.Clause)],
     };
 
+    private static IEnumerable<Argument> ArgumentsOf(AdverbialClause clause) => clause switch
+    {
+        Purpose purpose => ArgumentsOf(purpose.StateOfAffairs),
+        Circumstance circumstance => ArgumentsOf(circumstance.Propositional),
+    };
+
+    private static IEnumerable<Argument> ArgumentsOf(Complement complement) => complement switch
+    {
+        Said said => ArgumentsOf(said.Propositional),
+        Wanted wanted => ArgumentsOf(wanted.StateOfAffairs),
+    };
+
+    private static IEnumerable<Argument> ArgumentsOf(Propositional propositional) => ArgumentsOf(propositional.Proposition.StateOfAffairs);
+
+    private static IEnumerable<Argument> ArgumentsOf(StateOfAffairs layers) => layers.Events.SelectMany(e => e.Arguments);
+
     private static IEnumerable<Argument> Given(Argument? argument) => argument.HasValue ? [argument.GetValueOrDefault()] : [];
 
     private static IEnumerable<string> NounsIn(Argument argument) => argument switch
@@ -176,15 +213,15 @@ public static class ClauseFile
         Pronoun => [],
         QuestionWord or DemonstrativePronoun or DemonstrativePlace => [],
         Coordination c => c.Items.SelectMany(NounsIn),
-        ComplementClause c => ArgumentsOf(c.Clause).SelectMany(NounsIn),
+        Complement c => ArgumentsOf(c).SelectMany(NounsIn),
         Quotation q => ArgumentsOf(q.Utterance).SelectMany(NounsIn),
-        Gap or RelativeWord => [],
+        Gap or RelativeWord or Shared => [],
     };
 
     /*
       the gaps in a statement outside its relative clauses, wherever they are: in its roles, in noun
-      phrases, joined to others, or in clauses inside it. A complement's subject that's the main
-      clause's is no gap of its own, even where the main clause's is one
+      phrases, joined to others, or in clauses inside it. A complement's shared subject is no gap of
+      its own, even where the main clause's is one
      */
     private static int Gaps(Sentence statement) => ArgumentsOf(statement).Sum(Gaps);
 
@@ -193,10 +230,9 @@ public static class ClauseFile
         Gap => 1,
         NounPhrase n => n.Head.Value is Noun { Possessor: { } possessor } ? Gaps(possessor) : 0,
         Coordination c => c.Items.Sum(Gaps),
-        ComplementClause { SharesSubject: true } c => Gaps(c.Clause) - (Syntax.SubjectOf(c.Clause).Value is Gap ? 1 : 0),
-        ComplementClause c => Gaps(c.Clause),
+        Complement c => ArgumentsOf(c).Sum(Gaps),
         Quotation q => ArgumentsOf(q.Utterance).Sum(Gaps),
-        Pronoun or DemonstrativePronoun or QuestionWord or DemonstrativePlace or RelativeWord => 0,
+        Pronoun or DemonstrativePronoun or QuestionWord or DemonstrativePlace or RelativeWord or Shared => 0,
     };
 
     //a clause that isn't relative has no gap, which marks only where a relative clause's noun goes
@@ -358,7 +394,7 @@ public static class ClauseFile
       noun phrase or a clause inside it, where its noun goes. It says something of its noun, so it
       can't be a command, a question or said to someone
      */
-    private static Sentence ParseRelative(SyntaxValue value, int number)
+    private static Propositional ParseRelative(SyntaxValue value, int number)
     {
         const string Example = "relative:[mend.PST  subject:3SG.F  object:_]";
         if (value.Value is not SyntaxClause written || written.Items.Count == 0)
@@ -375,7 +411,8 @@ public static class ClauseFile
             _ when roles.Count == 0 && Gaps(clause) == 0 => throw new ClauseFormatException($"A relative clause needs _ in the role its noun fills in it, as in {Example}.", number),
             _ when roles.Count != 1 || Gaps(clause) != 1 => throw new ClauseFormatException("A relative clause has one _, in a role of its own, not inside a noun phrase or another clause in it.", number),
             _ when roles[0] == "standard" => throw new ClauseFormatException("A relative clause's noun can't be what it compares something with yet.", number),
-            _ => clause,
+            Clause { Value: Declarative stated } => stated.Propositional,
+            _ => throw new ClauseFormatException("A relative clause is one clause.", number),
         };
     }
 
@@ -750,16 +787,6 @@ public static class ClauseFile
         Attribute? attribute = null;
         var compared = false;
         var quoted = false;
-        Argument Sharer()
-        {
-            var subject = arguments.TryGetValue("subject", out var said) ? said : impliedSubject;
-            if (imperative)
-            {
-                var addressee = arguments.TryGetValue("addressee", out var called) ? ToAddressee(called, number) : null;
-                return new Pronoun(Person.Second, Told(subject, addressee, number));
-            }
-            return subject ?? throw new ClauseFormatException("The clause needs a subject, as in subject:dog.", number);
-        }
         foreach (var item in items.OrderBy(i => i.Role is "subject" or "addressee" ? 0 : 1))
         {
             if (item.Role is not { } written)
@@ -794,7 +821,7 @@ public static class ClauseFile
             }
             if (value.Value is SyntaxClause embedded)
             {
-                arguments["object"] = role is "object" or "quote" ? ParseEmbedded(role, embedded, Sharer(), number)
+                arguments["object"] = role is "object" or "quote" ? ParseEmbedded(role, embedded, number)
                     : throw Misplaced($"{role}:", number);
                 quoted |= role == "quote";
                 continue;
@@ -913,7 +940,7 @@ public static class ClauseFile
       begun, whose time the main verb sets, so it has no tense or aspect; and only an event can leave
       out its subject, which is then the main clause's, as in 'they want to go home'
      */
-    private static Argument ParseEmbedded(string role, SyntaxClause embedded, Argument subject, int number)
+    private static Argument ParseEmbedded(string role, SyntaxClause embedded, int number)
     {
         if (role == "quote")
         {
@@ -938,12 +965,15 @@ public static class ClauseFile
             throw new ClauseFormatException($"A clause starting with to can't take {time.Gloss}: the verb it's the object of says when.", number);
         }
         var shares = kind == ComplementKind.Event && !rest.Items.Any(i => i.Role == "subject");
-        var clause = ParseClause(rest, number, shares ? subject : (Argument?)null, "Say who's addressed in the main clause, not in one inside it, unless it's quoted with quote:[...].");
+        var clause = ParseClause(rest, number, shares ? new Shared() : (Argument?)null, "Say who's addressed in the main clause, not in one inside it, unless it's quoted with quote:[...].");
         return clause.Value switch
         {
             Clause { Value: Directive } => throw new ClauseFormatException($"A clause in object: can't be a command: write {(kind == ComplementKind.Event ? "to" : "that")} with a subject, or quote the command with quote:[...].", number),
             Clause { Value: Interrogative } => throw new ClauseFormatException("A question inside another clause can't be said yet, unless it's quoted with quote:[...].", number),
-            _ => new ComplementClause(kind, clause, shares),
+            Clause { Value: Declarative { Propositional: var said } } when kind == ComplementKind.Proposition => (Complement)new Said(said),
+            Clause { Value: Declarative { Propositional.Value: Proposition wanted } } => (Complement)new Wanted(wanted.StateOfAffairs),
+            Clause { Value: Declarative } => throw new ClauseFormatException("A clause starting with to can't take an epistemic modal: what's wanted isn't judged so or not.", number),
+            _ => throw new ClauseFormatException("A clause in object: is one clause.", number),
         };
     }
 
@@ -1058,7 +1088,7 @@ public static class ClauseFile
         int? ordinal = null;
         Quantifier? quantifier = null;
         Argument? possessor = null;
-        Sentence? relative = null;
+        Propositional? relative = null;
         var adjectives = new List<Adjective>();
         foreach (var item in items.Skip(1))
         {

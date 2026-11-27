@@ -9,8 +9,8 @@ public class PhaseTests
 {
 
     //the dog begins or stops what's begun, which shares its subject
-    private static Clause Phased(string verb, Tense tense, Aspect aspect, Sentence begun, bool negative) =>
-        Declared(new Event(new Doing(verb, new ComplementClause(ComplementKind.Event, begun, SharesSubject: true)), Dog, [], []), tense, aspect, negative);
+    private static Clause Phased(string verb, Tense tense, Aspect aspect, Clause begun, bool negative) =>
+        Declared(new Event(new Doing(verb, Complementing(ComplementKind.Event, begun, true)), Dog, [], []), tense, aspect, negative);
 
 
     private static Rendering Realized(Language language, Sentence statement) => Syntax.Realize(language, statement, "x");
@@ -64,7 +64,7 @@ public class PhaseTests
     public static TheoryData<string, Clause> Unfoldable => new()
     {
         { "what's begun has its own subject", Declared(new Event(new Doing("begin",
-            new ComplementClause(ComplementKind.Event, Declared(new Event(new Doing("sleep", null), BareNoun("cat", Number.Singular), [], []), Tense.Present, Aspect.Imperfective, false), SharesSubject: false)),
+            Complementing(ComplementKind.Event, Declared(new Event(new Doing("sleep", null), BareNoun("cat", Number.Singular), [], []), Tense.Present, Aspect.Imperfective, false), false)),
             Dog, [], []), Tense.Past, Aspect.Perfective, false) },
         { "what's begun is negated", Phased("begin", Tense.Past, Aspect.Perfective, DogEatsFish.Not(), negative: false) },
         { "what's begun is said with be", Phased("begin", Tense.Past, Aspect.Perfective,
@@ -122,7 +122,7 @@ public class PhaseTests
         Assert.All(Languages(AspectKind.Affix, AspectKind.None, s => s.Inflecting().Fix(Settings.SubordinatorOf(Subordinator.If), ExponentPosition.Suffix).Fix(Settings.TemporalBalance, Balance.Balanced)), l =>
         {
             var main = Declared(new Event(new Doing("sleep", null), BareNoun("cat", Number.Singular), [], []), Tense.Present, Aspect.Imperfective, false);
-            var sentence = Realized(l, new Subordinated(main, Subordinator.If, Phased("begin", Tense.Present, Aspect.Imperfective, DogEatsFish, negative: false), false));
+            var sentence = Realized(l, Under(main, Subordinator.If, Phased("begin", Tense.Present, Aspect.Imperfective, DogEatsFish, negative: false), false));
 
             Assert.Contains(l.Subordination.Markers[Subordinator.If].Marker, sentence.Words[IndexOf(sentence, l.Lexicon.Verb("eat").Root)].Word.Morphemes);
         });
@@ -131,7 +131,7 @@ public class PhaseTests
     public void Realize_DerankedPhase_FoldsToo() =>
         Assert.All(Languages(AspectKind.Affix, AspectKind.None, s => s.Inflecting().Fix(Settings.EventBalance, Balance.Deranked).Fix(Settings.Desiderative, DesiderativeKind.Verb)), l =>
         {
-            var wanted = new ComplementClause(ComplementKind.Event, Phased("begin", Tense.Present, Aspect.Imperfective, DogEatsFish, negative: false), SharesSubject: true);
+            var wanted = Complementing(ComplementKind.Event, Phased("begin", Tense.Present, Aspect.Imperfective, DogEatsFish, negative: false), true);
             var sentence = Realized(l, Declared(new Event(new Doing("want", wanted), Dog, [], []), Tense.Present, Aspect.Imperfective, false));
 
             Assert.Equal(-1, IndexOf(sentence, "begin"));
