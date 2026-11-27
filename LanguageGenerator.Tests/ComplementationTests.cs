@@ -22,9 +22,8 @@ public class ComplementationTests
         Assert.Equal(ComplementKind.Proposition, complement.Kind);
         Assert.False(complement.SharesSubject);
         PredicateOf<Being>(complement.Clause);
-        var clause = ForceOf<Declarative>(complement.Clause);
-        Assert.Equal(Tense.Past, clause.Tense);
-        Assert.Equal(new Pronoun(Person.Second, Number.Singular), clause.Subject.Value);
+        Assert.Equal(Tense.Past, PropositionOf(complement.Clause).Tense);
+        Assert.Equal(new Pronoun(Person.Second, Number.Singular), EventOf(complement.Clause).Subject.Value);
     }
 
     [Fact]
@@ -34,7 +33,7 @@ public class ComplementationTests
 
         Assert.Equal(ComplementKind.Event, complement.Kind);
         Assert.True(complement.SharesSubject);
-        Assert.Equal(new Pronoun(Person.Third, Number.Plural), ForceOf<Declarative>(complement.Clause).Subject.Value);
+        Assert.Equal(new Pronoun(Person.Third, Number.Plural), EventOf(complement.Clause).Subject.Value);
     }
 
     [Fact]
@@ -44,7 +43,7 @@ public class ComplementationTests
         ForceOf<Directive>(command);
         var complement = Assert.IsType<ComplementClause>(PredicateOf<Doing>(command).Object.GetValueOrDefault().Value);
 
-        Assert.Equal(new Pronoun(Person.Second, Number.Plural), ForceOf<Declarative>(complement.Clause).Subject.Value);
+        Assert.Equal(new Pronoun(Person.Second, Number.Plural), EventOf(complement.Clause).Subject.Value);
     }
 
     [Fact]
@@ -68,9 +67,10 @@ public class ComplementationTests
     [Fact]
     public void Parse_QuestionAboutAClause_AsksTheMainOne()
     {
-        var question = Assert.IsType<Question>(Parsed("x\n  tell.PST  subject:who  recipient:2SG  object:[that  come.PST  subject:1SG]").Value);
+        var question = Parsed("x\n  tell.PST  subject:who  recipient:2SG  object:[that  come.PST  subject:1SG]");
 
-        Assert.IsType<ComplementClause>(PredicateOf<Doing>(question.Statement).Object.GetValueOrDefault().Value);
+        ForceOf<Interrogative>(question);
+        Assert.IsType<ComplementClause>(PredicateOf<Doing>(question).Object.GetValueOrDefault().Value);
     }
 
     [Theory]
@@ -121,10 +121,10 @@ public class ComplementationTests
 
     private static readonly Clause DogSlept = DogSleeps.At(Tense.Past, Aspect.Imperfective);
 
-    private static Clause Says(Argument said) => new Clause(new Doing("say", said), new Declarative(Tense.Past, Aspect.Perfective, BareNoun("woman", Number.Singular)), false, [], []);
+    private static Clause Says(Argument said) => Declared(new Event(new Doing("say", said), BareNoun("woman", Number.Singular), [], []), Tense.Past, Aspect.Perfective, false);
 
     private static Clause Wants(Argument wanter, Statement wanted, bool shares) =>
-        new Clause(new Doing("want", new ComplementClause(ComplementKind.Event, wanted, shares)), new Declarative(Tense.Present, Aspect.Imperfective, wanter), false, [], []);
+        Declared(new Event(new Doing("want", new ComplementClause(ComplementKind.Event, wanted, shares)), wanter, [], []), Tense.Present, Aspect.Imperfective, false);
 
     [Fact]
     public void Realize_PropositionWithItsComplementizerFirst_PutsItBetweenTheClauses()
@@ -156,7 +156,7 @@ public class ComplementationTests
         var language = GeneratedLanguages.With(s => s.Fix(Settings.EventBalance, Balance.Balanced).Fix(Settings.Desiderative, DesiderativeKind.Verb)
             .Fix(Settings.EventComplementizer, ComplementizerPosition.None).Fix(Settings.ComplementsLast, true));
         var it = new Pronoun(Person.Third, Number.Singular);
-        var alone = Syntax.Realize(language, CatEatsFish with { Force = new Declarative(Tense.Present, Aspect.Imperfective, it) }, "x");
+        var alone = Syntax.Realize(language, CatEatsFish.WithEvent(e => e with { Subject = it }), "x");
         var wanted = Syntax.Realize(language, Wants(BareNoun("cat", Number.Singular), CatEatsFish, true), "x");
 
         Assert.Equal(alone.Words[IndexOf(alone, "eat")].Gloss, wanted.Words[IndexOf(wanted, "eat")].Gloss);
@@ -206,7 +206,7 @@ public class ComplementationTests
     public void Realize_UnmarkedQuotationLast_IsSaidAsItWouldBeAlone()
     {
         var language = GeneratedLanguages.With(s => s.Fix(Settings.Quotative, QuotativeKind.None).Fix(Settings.ComplementsLast, true));
-        var command = new Clause(new Doing("walk", null), new Directive(Number.Singular), false, [new(Role.Goal, BareNoun("house", Number.Singular), Configuration.At)], []);
+        var command = Told(new Event(new Doing("walk", null), new Pronoun(Person.Second, Number.Singular), [new(Role.Goal, BareNoun("house", Number.Singular), Configuration.At)], []), false);
         var alone = Syntax.Realize(language, command, "x").Words.Select(w => w.Gloss);
         var quoted = Syntax.Realize(language, Says(new Quotation(new Message((Statement)command, null))), "x").Words.Select(w => w.Gloss);
 

@@ -1,4 +1,5 @@
-﻿using static LanguageGenerator.Tests.Phrases;
+﻿using static LanguageGenerator.Tests.Clauses;
+using static LanguageGenerator.Tests.Phrases;
 using static LanguageGenerator.Tests.Sentences;
 
 namespace LanguageGenerator.Tests;
@@ -90,7 +91,7 @@ public class NumeralTests
 
     //only the basic meanings, since coining new ones would add to the shared sample's lexicons
     private static Sentence ThreeBigDogsSlept(Language l) =>
-        Syntax.Realize(l, new Clause(new Doing("sleep", null), new Declarative(Tense.Past, Aspect.Perfective, new NounPhrase(new Noun("dog", Number.Paucal, [new("big", false)], 3, null, null, null, null), null)), false, [], []), "x");
+        Syntax.Realize(l, Declared(new Event(new Doing("sleep", null), new NounPhrase(new Noun("dog", Number.Paucal, [new("big", false)], 3, null, null, null, null), null), [], []), Tense.Past, Aspect.Perfective, false), "x");
 
     [Fact]
     public void Realize_Numeral_GoesOutsideTheAdjectivesOnItsSide()
@@ -113,7 +114,7 @@ public class NumeralTests
         {
             var counted = ThreeBigDogsSlept(language);
             var expected = BareNoun("dog", language.Numerals.NounStaysSingular ? Number.Singular : Number.Paucal);
-            var plain = Syntax.Realize(language, new Clause(new Doing("sleep", null), new Declarative(Tense.Past, Aspect.Perfective, expected), false, [], []), "x");
+            var plain = Syntax.Realize(language, Declared(new Event(new Doing("sleep", null), expected, [], []), Tense.Past, Aspect.Perfective, false), "x");
 
             Assert.Equal(plain.Words[IndexOf(plain, "dog")].Gloss, counted.Words[IndexOf(counted, "dog")].Gloss);
             Assert.Equal(plain.Words[IndexOf(plain, "sleep")].Gloss, counted.Words[IndexOf(counted, "sleep")].Gloss);
@@ -124,7 +125,7 @@ public class NumeralTests
     public void Realize_Numerals_AreGlossedByTheirNumbers()
     {
         var decimalLanguage = GeneratedLanguages.With(s => s.Fix(Settings.NumeralBase, NumeralBase.Decimal));
-        var sentence = Syntax.Realize(decimalLanguage, new Clause(new Doing("sleep", null), new Declarative(Tense.Past, Aspect.Perfective, new NounPhrase(new Noun("dog", Number.Plural, [], 37, null, null, null, null), null)), false, [], []), "x");
+        var sentence = Syntax.Realize(decimalLanguage, Declared(new Event(new Doing("sleep", null), new NounPhrase(new Noun("dog", Number.Plural, [], 37, null, null, null, null), null), [], []), Tense.Past, Aspect.Perfective, false), "x");
 
         //a language that marks the noun phrase at its edge can put the marking on a numeral, as in ten-PL-NOM
         var glosses = sentence.Words.SelectMany(w => w.Gloss.Split('-', '[', ']')).Where(g => g is "three" or "ten" or "seven").ToList();
@@ -201,7 +202,7 @@ public class NumeralTests
     {
         Assert.All(GeneratedLanguages.Sample, l =>
         {
-            var sentence = Syntax.Realize(l, new Clause(new Doing("sleep", null), new Declarative(Tense.Past, Aspect.Perfective, new NounPhrase(new Noun("dog", Number.Dual, [new("big", false)], 2, 3, null, null, null), null)), false, [], []), "x");
+            var sentence = Syntax.Realize(l, Declared(new Event(new Doing("sleep", null), new NounPhrase(new Noun("dog", Number.Dual, [new("big", false)], 2, 3, null, null, null), null), [], []), Tense.Past, Aspect.Perfective, false), "x");
             var (two, third, big, dog) = (IndexOf(sentence, "two"), IndexOf(sentence, "three"), IndexOf(sentence, "big"), IndexOf(sentence, "dog"));
             var headFirst = l.WordOrder.NounPhraseDirectionality == HeadDirectionality.Initial;
 

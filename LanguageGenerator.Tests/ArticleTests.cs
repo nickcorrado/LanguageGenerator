@@ -1,3 +1,4 @@
+using static LanguageGenerator.Tests.Clauses;
 using static LanguageGenerator.Tests.Phrases;
 using static LanguageGenerator.Tests.Sentences;
 
@@ -150,7 +151,7 @@ public class ArticleTests
     {
         Assert.All(GeneratedLanguages.Sample.Where(l => l.Articles.Definite is { } d && FirstForm(d).Value is Particle), l =>
         {
-            var sentence = Syntax.Realize(l, new Clause(new Doing("sleep", null), new Declarative(Tense.Past, Aspect.Perfective, new NounPhrase(new Noun("dog", Number.Dual, [new("big", false)], 2, null, null, Definiteness.Definite, null), null)), false, [], []), "x");
+            var sentence = Syntax.Realize(l, Declared(new Event(new Doing("sleep", null), new NounPhrase(new Noun("dog", Number.Dual, [new("big", false)], 2, null, null, Definiteness.Definite, null), null), [], []), Tense.Past, Aspect.Perfective, false), "x");
             var article = sentence.Words.ToList().FindIndex(w => w.Word.Morphemes.Any(IsArticle));
             var others = new[] { IndexOf(sentence, "two"), IndexOf(sentence, "big"), IndexOf(sentence, "dog") };
 
@@ -163,7 +164,7 @@ public class ArticleTests
     {
         Assert.All(GeneratedLanguages.Sample.Where(l => l.Articles.Definite is not null), l =>
         {
-            var sentence = Syntax.Realize(l, new Clause(new Doing("sleep", null), new Declarative(Tense.Past, Aspect.Perfective, new NounPhrase(new Noun("dog", Number.Plural, [], null, null, null, Definiteness.Definite, null), null)), false, [], []), "x");
+            var sentence = Syntax.Realize(l, Declared(new Event(new Doing("sleep", null), new NounPhrase(new Noun("dog", Number.Plural, [], null, null, null, Definiteness.Definite, null), null), [], []), Tense.Past, Aspect.Perfective, false), "x");
             var expected = l.Articles.Definite!.For(l.GenderOf(l.Lexicon.Noun("dog")), Number.Plural);
 
             Assert.Contains(expected, sentence.Words.SelectMany(w => w.Word.Morphemes));
@@ -175,7 +176,7 @@ public class ArticleTests
     {
         Assert.All(GeneratedLanguages.Sample, l =>
         {
-            var sentence = Syntax.Realize(l, new Clause(new Doing("sleep", null), new Declarative(Tense.Past, Aspect.Perfective, BareNoun("dog", Number.Singular)), false, [], []), "x");
+            var sentence = Syntax.Realize(l, Declared(new Event(new Doing("sleep", null), BareNoun("dog", Number.Singular), [], []), Tense.Past, Aspect.Perfective, false), "x");
 
             Assert.DoesNotContain(sentence.Words.SelectMany(w => w.Word.Morphemes), IsArticle);
         });

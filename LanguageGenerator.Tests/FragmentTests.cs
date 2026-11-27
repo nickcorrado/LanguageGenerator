@@ -138,7 +138,7 @@ public class FragmentTests
         Assert.All(GeneratedLanguages.Sample, l =>
         {
             var oblique = new Oblique(Role.Beneficiary, Definite("dog"), Configuration.At);
-            var clause = Syntax.Realize(l, new Clause(new Doing("sleep", null), new Declarative(Tense.Present, Aspect.Imperfective, BareNoun("person", Number.Singular)), false, [oblique], []), "x");
+            var clause = Syntax.Realize(l, Declared(new Event(new Doing("sleep", null), BareNoun("person", Number.Singular), [oblique], []), Tense.Present, Aspect.Imperfective, false), "x");
             var fragment = Syntax.Realize(l, new Message((Fragment)oblique, null), "x");
 
             //the fragment is the oblique's words, together in the clause as they are on their own
@@ -220,7 +220,7 @@ public class FragmentTests
         Assert.All(Enumerable.Range(0, 10).Select(seed => Generator.Generate(seed, LanguageSpec.Free)), l =>
         {
             var said = new Quotation(new Message((Fragment)new Oblique(Role.Goal, Definite("house"), Configuration.At), null));
-            var sentence = Syntax.Realize(l, new Clause(new Doing("say", said), new Declarative(Tense.Past, Aspect.Perfective, BareNoun("person", Number.Singular)), false, [], []), "x");
+            var sentence = Syntax.Realize(l, Declared(new Event(new Doing("say", said), BareNoun("person", Number.Singular), [], []), Tense.Past, Aspect.Perfective, false), "x");
 
             Assert.True(IndexOf(sentence, "house") >= 0);
         });

@@ -36,7 +36,7 @@ public class VocativeTests
     {
         var addressed = Addressed(Line(gloss));
 
-        Assert.Equal(number, ForceOf<Directive>(StatementOf(addressed)).Number.Name);
+        Assert.Equal(number, Assert.IsType<Pronoun>(EventOf(StatementOf(addressed)).Subject.Value).Number.Name);
     }
 
     [Theory]
@@ -51,7 +51,7 @@ public class VocativeTests
     {
         Assert.All(GeneratedLanguages.Sample, l =>
         {
-            var sentence = Syntax.Realize(l, new Message((Statement)new Clause(new Doing("sleep", null), new Declarative(Tense.Past, Aspect.Perfective, BareNoun("dog", Number.Singular)), false, [], []),
+            var sentence = Syntax.Realize(l, new Message((Statement)Declared(new Event(new Doing("sleep", null), BareNoun("dog", Number.Singular), [], []), Tense.Past, Aspect.Perfective, false),
                 BareNoun("person", Number.Singular)), "x");
             var (person, dog, sleep) = (IndexOf(sentence, "person"), IndexOf(sentence, "dog"), IndexOf(sentence, "sleep"));
             var vocative = sentence.Words.Any(w => w.Gloss.Contains("VOC"));
@@ -65,7 +65,7 @@ public class VocativeTests
     public void Realize_Addressed_KeepsTheClauseAsItWas()
     {
         var language = GeneratedLanguages.Sample[0];
-        var clause = new Clause(new Doing("sleep", null), new Declarative(Tense.Past, Aspect.Perfective, BareNoun("dog", Number.Singular)), false, [], []);
+        var clause = Declared(new Event(new Doing("sleep", null), BareNoun("dog", Number.Singular), [], []), Tense.Past, Aspect.Perfective, false);
         var plain = Syntax.Realize(language, clause, "x");
         var addressed = Syntax.Realize(language, new Message((Statement)clause, BareNoun("person", Number.Singular)), "x");
 

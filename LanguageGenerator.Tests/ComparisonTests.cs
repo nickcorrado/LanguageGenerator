@@ -10,7 +10,7 @@ public class ComparisonTests
 
     //'the dog is bigger than the cats', in only the basic meanings, since coining new ones would add
     //to the shared sample's lexicons
-    private static Sentence Bigger(Language l) => Syntax.Realize(l, new Comparative(DogIsBig, Cats), "x");
+    private static Sentence Bigger(Language l) => Syntax.Realize(l, Comparing(DogIsBig, Cats), "x");
 
     private static Statement Parsed(string gloss) => Stated(Assert.Single(ClauseFile.Parse($"x\n  {gloss}")).Utterance);
 
@@ -22,9 +22,9 @@ public class ComparisonTests
     [Fact]
     public void Parse_Standard_MakesAComparative()
     {
-        var comparative = Assert.IsType<Comparative>(Parsed("be  subject:marta  adjective:tall.CMPR  standard:man.PL.DEF").Value);
+        var comparative = Assert.IsType<Compared>(PredicateOf<Being>(Parsed("be  subject:marta  adjective:tall.CMPR  standard:man.PL.DEF")).Attribute.Value);
 
-        Assert.Equal(new Adjective("tall", false), PredicateOf<Being>(comparative.Clause).Complement.Value);
+        Assert.Equal(new Adjective("tall", false), comparative.Adjective);
         Assert.Equal(new NounPhrase(new Noun("man", Number.Plural, [], null, null, null, Definiteness.Definite, null), null), comparative.Standard.Value);
     }
 
@@ -33,7 +33,7 @@ public class ComparisonTests
     {
         var addressed = Addressed(Line("be  subject:2SG  adjective:tall.CMPR  standard:1SG  addressee:marta"));
 
-        Assert.Equal(new Pronoun(Person.First, Number.Singular), Assert.IsType<Comparative>(StatementOf(addressed).Value).Standard.Value);
+        Assert.Equal(new Pronoun(Person.First, Number.Singular), Assert.IsType<Compared>(PredicateOf<Being>(StatementOf(addressed)).Attribute.Value).Standard.Value);
     }
 
     [Theory]
@@ -95,7 +95,7 @@ public class ComparisonTests
         Assert.All(GeneratedLanguages.Sample.Where(l => l.Comparison.Value is ConjoinedComparison), l =>
         {
             var first = Syntax.Realize(l, DogIsBig, "x");
-            var second = Syntax.Realize(l, DogIsBig with { Force = new Declarative(Tense.Present, Aspect.Imperfective, Cats), Negative = true }, "x");
+            var second = Syntax.Realize(l, DogIsBig.WithEvent(e => e with { Subject = Cats }).Not(), "x");
 
             Assert.Equal(first.Words.Concat(second.Words).Select(w => w.Gloss), Bigger(l).Words.Select(w => w.Gloss));
         });
@@ -115,7 +115,7 @@ public class ComparisonTests
             Assert.True(verb >= 0);
             Assert.True(l.WordOrder.VerbPhraseDirectionality == HeadDirectionality.Initial ? verb < cat : verb > cat);
             //the standard is said as an object is
-            var seen = Syntax.Realize(l, new Clause(new Doing("see", Cats), new Declarative(Tense.Present, Aspect.Imperfective, BareNoun("dog", Number.Singular)), false, [], []), "x");
+            var seen = Syntax.Realize(l, Declared(new Event(new Doing("see", Cats), BareNoun("dog", Number.Singular), [], []), Tense.Present, Aspect.Imperfective, false), "x");
             Assert.Equal(seen.Words[IndexOf(seen, "cat")].Gloss, sentence.Words[cat].Gloss);
         });
         Assert.NotEmpty(languages);
@@ -153,7 +153,7 @@ public class ComparisonTests
         });
 
     //'the dog is bigger', with nothing it's compared with
-    private static Sentence BiggerAlone(Language l) => Syntax.Realize(l, new Comparative(DogIsBig, null), "x");
+    private static Sentence BiggerAlone(Language l) => Syntax.Realize(l, Comparing(DogIsBig, null), "x");
 
     //where the comparative's marker is in a sentence: next to the adjective's root in its word, or a
     //word right beside it. Null if it isn't there
@@ -201,7 +201,7 @@ public class ComparisonTests
 
 
     //'the dog walks like a cat'
-    private static Sentence WalksLikeACat(Language l) => Syntax.Realize(l, DogWalks with { Obliques = [new(Role.Similative, BareNoun("cat", Number.Singular), Configuration.At)] }, "x");
+    private static Sentence WalksLikeACat(Language l) => Syntax.Realize(l, DogWalks.WithEvent(e => e with { Obliques = [new(Role.Similative, BareNoun("cat", Number.Singular), Configuration.At)] }), "x");
 
     [Fact]
     public void Generate_SimilativeWords_GoOnTheirAdpositionsSide() =>
@@ -245,7 +245,7 @@ public class ComparisonTests
         Assert.All(GeneratedLanguages.Sample, l =>
         {
             var simile = WalksLikeACat(l);
-            var located = Syntax.Realize(l, DogWalks with { Obliques = [new(Role.Location, BareNoun("cat", Number.Singular), Configuration.At)] }, "x");
+            var located = Syntax.Realize(l, DogWalks.WithEvent(e => e with { Obliques = [new(Role.Location, BareNoun("cat", Number.Singular), Configuration.At)] }), "x");
 
             Assert.Equal(IndexOf(located, "walk") < IndexOf(located, "cat"), IndexOf(simile, "walk") < IndexOf(simile, "cat"));
         });
@@ -253,9 +253,9 @@ public class ComparisonTests
     [Fact]
     public void Parse_Comparative_WithoutAStandard_HasNone()
     {
-        var comparative = Assert.IsType<Comparative>(Parsed("be  subject:marta  adjective:tall.CMPR").Value);
+        var comparative = Assert.IsType<Compared>(PredicateOf<Being>(Parsed("be  subject:marta  adjective:tall.CMPR")).Attribute.Value);
 
-        Assert.Equal(new Adjective("tall", false), PredicateOf<Being>(comparative.Clause).Complement.Value);
+        Assert.Equal(new Adjective("tall", false), comparative.Adjective);
         Assert.Null(comparative.Standard);
     }
 
@@ -264,7 +264,7 @@ public class ComparisonTests
     {
         var clause = Assert.IsType<Clause>(Parsed("shine  subject:3SG.N  like:water").Value);
 
-        Assert.Equal(new Oblique(Role.Similative, BareNoun("water", Number.Singular), Configuration.At), Assert.Single(clause.Obliques));
+        Assert.Equal(new Oblique(Role.Similative, BareNoun("water", Number.Singular), Configuration.At), Assert.Single(clause.Event.Obliques));
     }
 
     [Theory]

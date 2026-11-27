@@ -64,9 +64,9 @@ public static partial class Generator
         var forms = new DistinctForms();
         Lexeme Word(string meaning) => new(CoinRoot(rand, phonology, forms.Draw(() => GenerateForm(rand, phonology, 0.5, maxSyllables: 2)), meaning), PartOfSpeech.Noun);
         //drawn in the order each was added, so that a new one leaves the others' forms as they were
-        var words = new[] { Interrogative.Who, Interrogative.What, Interrogative.Where }.ToDictionary(w => w, w => Word(w.ToString().ToLowerInvariant()));
+        var words = new[] { InterrogativeWord.Who, InterrogativeWord.What, InterrogativeWord.Where }.ToDictionary(w => w, w => Word(w.ToString().ToLowerInvariant()));
         var adverbs = new Dictionary<QuestionAdverb, Lexeme> { [QuestionAdverb.Why] = Word("why") };
-        words[Interrogative.When] = Word("when");
+        words[InterrogativeWord.When] = Word("when");
         adverbs[QuestionAdverb.How] = Word("how");
         return new Questions(polar, fronts, words, adverbs);
     }

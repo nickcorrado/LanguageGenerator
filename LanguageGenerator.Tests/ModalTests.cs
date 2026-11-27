@@ -49,12 +49,12 @@ public class ModalTests
     [Fact]
     public void Realize_EveryModalInEveryLanguage_SaysIt()
     {
-        var clauses = new Statement[]
+        var clauses = new Clause[]
         {
             DogEatsFish,
-            new Clause(new Done("eat", Dog), new Declarative(Tense.Past, Aspect.Perfective, Fish), false, [], []),
-            new Clause(new Being(new Adjective("big", false)), new Declarative(Tense.Present, Aspect.Imperfective, Dog), false, [], []),
-            new Clause(new Being(new Oblique(Role.Location, BareNoun("house", Number.Singular), Configuration.At)), new Declarative(Tense.Present, Aspect.Imperfective, Dog), false, [], []),
+            Declared(new Event(new Done("eat", Dog), Fish, [], []), Tense.Past, Aspect.Perfective, false),
+            Declared(new Event(new Being(new Adjective("big", false)), Dog, [], []), Tense.Present, Aspect.Imperfective, false),
+            Declared(new Event(new Being(new Oblique(Role.Location, BareNoun("house", Number.Singular), Configuration.At)), Dog, [], []), Tense.Present, Aspect.Imperfective, false),
         };
         Assert.All(GeneratedLanguages.Sample, l =>
         {
@@ -62,7 +62,8 @@ public class ModalTests
             {
                 foreach (var clause in clauses)
                 {
-                    Assert.True(ModalAt(Realized(l, new Modalized(clause, modality, false))) >= 0);
+                    var modal = modality is SituationalModality situational ? WithModal(clause, situational, false) : Judging(clause, (EpistemicModality)modality, false);
+                    Assert.True(ModalAt(Realized(l, modal)) >= 0);
                 }
             }
         });
@@ -75,7 +76,7 @@ public class ModalTests
         Assert.NotEmpty(languages);
         Assert.All(languages, l =>
         {
-            var sentence = Realized(l, new Modalized(DogEatsFish, SituationalModality.Obligation, false));
+            var sentence = Realized(l, WithModal(DogEatsFish, SituationalModality.Obligation, false));
             var before = ModalAt(sentence) < IndexOf(sentence, l.Lexicon.Verb("eat").Root);
             Assert.Equal(l.WordOrder.VerbPhraseDirectionality == HeadDirectionality.Initial, before);
         });
@@ -88,7 +89,7 @@ public class ModalTests
         Assert.All(languages, l =>
         {
             var clause = DogEatsFish.At(Tense.Past, Aspect.Imperfective);
-            var sentence = Realized(l, new Modalized(clause, SituationalModality.Ability, false));
+            var sentence = Realized(l, WithModal(clause, SituationalModality.Ability, false));
             var plain = Realized(l, clause);
             var eat = l.Lexicon.Verb("eat").Root;
 
@@ -106,7 +107,7 @@ public class ModalTests
         Assert.NotEmpty(languages);
         Assert.All(languages, l =>
         {
-            var sentence = Realized(l, new Modalized(new Clause(new Done("eat", null), new Declarative(Tense.Past, Aspect.Perfective, Fish), false, [], []), SituationalModality.Ability, false));
+            var sentence = Realized(l, WithModal(Declared(new Event(new Done("eat", null), Fish, [], []), Tense.Past, Aspect.Perfective, false), SituationalModality.Ability, false));
             var morphemes = sentence.Words[ModalAt(sentence)].Word.Morphemes.Select(m => m.Value).ToList();
             var root = morphemes.FindIndex(m => m is Root);
             var prefix = ((Bound)l.Modals.Markers[SituationalModality.Ability].Value!).Side == Side.Before;
@@ -126,8 +127,8 @@ public class ModalTests
         Assert.All(languages, l =>
         {
             var eat = l.Lexicon.Verb("eat").Root;
-            var cannot = Realized(l, new Modalized(DogEatsFish, SituationalModality.Ability, true));
-            var mustNot = Realized(l, new Modalized(DogEatsFish with { Negative = true }, SituationalModality.Ability, false));
+            var cannot = Realized(l, WithModal(DogEatsFish, SituationalModality.Ability, true));
+            var mustNot = Realized(l, WithModal(DogEatsFish.Not(), SituationalModality.Ability, false));
 
             Assert.True(IsNegated(cannot.Words[ModalAt(cannot)].Word));
             Assert.False(IsNegated(cannot.Words[IndexOf(cannot, eat)].Word));
@@ -143,8 +144,8 @@ public class ModalTests
         Assert.NotEmpty(languages);
         Assert.All(languages, l =>
         {
-            var big = new Clause(new Being(new Adjective("big", false)), new Declarative(Tense.Present, Aspect.Imperfective, Dog), false, [], []);
-            var sentence = Realized(l, new Modalized(big, SituationalModality.Obligation, false));
+            var big = Declared(new Event(new Being(new Adjective("big", false)), Dog, [], []), Tense.Present, Aspect.Imperfective, false);
+            var sentence = Realized(l, WithModal(big, SituationalModality.Obligation, false));
 
             Assert.True(IndexOf(sentence, l.Predication.Copula.Root) >= 0);
         });
@@ -158,8 +159,8 @@ public class ModalTests
 
         Assert.All(Enumerable.Range(0, 5).Select(seed => Generator.Generate(seed, spec)), l =>
         {
-            var main = new Clause(new Doing("sleep", null), new Declarative(Tense.Present, Aspect.Imperfective, BareNoun("cat", Number.Singular)), false, [], []);
-            var sentence = Realized(l, new Subordinated(main, Subordinator.If, new Modalized(DogEatsFish, SituationalModality.Ability, false), false));
+            var main = Declared(new Event(new Doing("sleep", null), BareNoun("cat", Number.Singular), [], []), Tense.Present, Aspect.Imperfective, false);
+            var sentence = Realized(l, new Subordinated(main, Subordinator.If, WithModal(DogEatsFish, SituationalModality.Ability, false), false));
             var marker = l.Subordination.Markers[Subordinator.If].Marker;
 
             Assert.Contains(marker, sentence.Words[ModalAt(sentence)].Word.Morphemes);
@@ -173,19 +174,20 @@ public class ModalTests
     [InlineData("follow.NEG.ADVS  subject:2SG  object:3PL", false, true)]
     public void Parse_Modal_NegatesWhatTheNegationFollows(string gloss, bool modalNegative, bool verbNegative)
     {
-        var modalized = Assert.IsType<Modalized>(Parsed(gloss).Value);
+        var layers = PropositionOf(Parsed(gloss)).StateOfAffairs;
+        var modalized = Assert.IsType<Modalized>((layers.Value is Negated negated ? negated.StateOfAffairs : layers).Value);
 
-        Assert.Equal(modalNegative, modalized.Negative);
-        Assert.Equal(verbNegative, Assert.IsType<Clause>(modalized.Clause.Value).Negative);
+        Assert.Equal(modalNegative, layers.Value is Negated);
+        Assert.Equal(verbNegative, modalized.StateOfAffairs.Value is Negated);
     }
 
     [Fact]
     public void Parse_ModalWithBe_IsAModalCopularClause()
     {
-        var modalized = Assert.IsType<Modalized>(Parsed("be.OBLIG  subject:2SG  adjective:careful").Value);
+        var statement = Parsed("be.OBLIG  subject:2SG  adjective:careful");
 
-        Assert.Equal(SituationalModality.Obligation, modalized.Modality);
-        PredicateOf<Being>(modalized.Clause);
+        Assert.Equal(SituationalModality.Obligation, Assert.IsType<Modalized>(PropositionOf(statement).StateOfAffairs.Value).Modality);
+        PredicateOf<Being>(statement);
     }
 
     [Fact]
@@ -193,7 +195,8 @@ public class ModalTests
     {
         var addressed = Addressed(Line("carry.PASS.PERM  subject:box.DEF  addressee:marta"));
 
-        PredicateOf<Done>(Assert.IsType<Modalized>(StatementOf(addressed).Value).Clause);
+        Assert.IsType<Modalized>(PropositionOf(StatementOf(addressed)).StateOfAffairs.Value);
+        PredicateOf<Done>(StatementOf(addressed));
     }
 
     [Theory]
@@ -218,7 +221,7 @@ public class ModalTests
         {
             var epistemic = ClauseFile.ValuesOf<Modality>().Single(m => m.Name == modality);
             var clause = DogEatsFish.At(Tense.Past, Aspect.Imperfective);
-            var sentence = Realized(l, new Modalized(clause, epistemic, negative));
+            var sentence = Realized(l, Judging(clause, (EpistemicModality)epistemic, negative));
             var plain = Realized(l, clause);
             var eat = l.Lexicon.Verb("eat").Root;
             var modal = sentence.Words[ModalAt(sentence)];
@@ -237,7 +240,7 @@ public class ModalTests
         Assert.All(Epistemic(EpistemicModality.Presumptive, kind, s => kind == ModalKind.Affix ? s.Inflecting() : s), l =>
         {
             var clause = DogEatsFish.At(Tense.Past, Aspect.Perfect);
-            var sentence = Realized(l, new Modalized(clause, EpistemicModality.Presumptive, false));
+            var sentence = Realized(l, Judging(clause, EpistemicModality.Presumptive, false));
             var plain = Realized(l, clause);
             var eat = l.Lexicon.Verb("eat").Root;
 
@@ -251,9 +254,9 @@ public class ModalTests
     [InlineData("wait.PROG.DUB  subject:3PL  object:1PL", "Dubitative", "Progressive")]
     public void Parse_EpistemicModal_JudgesThePerfectOrProgressive(string gloss, string modality, string aspect)
     {
-        var modalized = Assert.IsType<Modalized>(Parsed(gloss).Value);
+        var statement = Parsed(gloss);
 
-        Assert.Equal(modality, modalized.Modality.Name);
-        Assert.Equal(aspect, ForceOf<Declarative>(modalized.Clause).Aspect.Name);
+        Assert.Equal(modality, JudgmentOf(statement)?.Name);
+        Assert.Equal(aspect, AspectOf(statement).Name);
     }
 }

@@ -82,11 +82,3 @@ public static class ModalityMap
         : throw new ArgumentOutOfRangeException(nameof(modality), modality, null);
 }
 
-/// <summary>
-/// A statement said to be possible or necessary, as in 'you must find the key'. Negative negates
-/// the modal, as in 'you cannot swim', and the statement's own negation its verb, as in 'you must
-/// not sing'. An epistemic one judges the statement whole, its tense and aspect too, as in 'he
-/// must have left'.
-/// </summary>
-//a clause with a verb, a passive or a copular clause
-public record Modalized(Statement Clause, Modality Modality, bool Negative);

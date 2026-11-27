@@ -17,7 +17,7 @@ public class DemonstrativeTests
     [Fact]
     public void Parse_DemonstrativeOnANoun_IsItsDistanceWithNoDefiniteness()
     {
-        var village = NounOf(ClauseOf("sleep  subject:village.PROX").Force.Subject);
+        var village = NounOf(ClauseOf("sleep  subject:village.PROX").Event.Subject);
         var trees = NounOf(PredicateOf<Doing>(ClauseOf("see  subject:1SG  object:(tree.PL.DIST old)")).Object.GetValueOrDefault());
 
         Assert.Equal(Distance.Proximal, village.Determiner?.Value);
@@ -39,7 +39,7 @@ public class DemonstrativeTests
     [InlineData("location:there.MED", "Location", "Medial")]
     public void Parse_HereAndThere_AreAPlaceInTheirRole(string written, string role, string distance)
     {
-        var oblique = Assert.Single(ClauseOf($"walk  subject:3PL  {written}").Obliques);
+        var oblique = Assert.Single(ClauseOf($"walk  subject:3PL  {written}").Event.Obliques);
 
         Assert.Equal(Enum.Parse<Role>(role), oblique.Role);
         Assert.Equal(new DemonstrativePlace(ClauseFile.ValuesOf<Distance>().Single(d => d.Name == distance)), oblique.Argument.Value);
@@ -48,7 +48,7 @@ public class DemonstrativeTests
     [Fact]
     public void Parse_HereWithBe_IsWhereItsSubjectIs() =>
         Assert.Equal(new DemonstrativePlace(Distance.Proximal),
-            Assert.IsType<Oblique>(PredicateOf<Being>(Parsed("x\n  be  subject:1SG  location:here")).Complement.Value).Argument.Value);
+            Assert.IsType<Oblique>(PredicateOf<Being>(Parsed("x\n  be  subject:1SG  location:here")).Attribute.Value).Argument.Value);
 
     [Theory]
     [InlineData("sleep  subject:village.PROX.DEF", "not both")]
@@ -122,7 +122,7 @@ public class DemonstrativeTests
 
     //'these three big dogs sleep'
     private static Clause TheseDogsSleep(Distance distance) =>
-        new Clause(new Doing("sleep", null), new Declarative(Tense.Present, Aspect.Imperfective, new NounPhrase(new Noun("dog", Number.Paucal, [new("big", false)], 3, null, null, distance, null), null)), false, [], []);
+        Declared(new Event(new Doing("sleep", null), new NounPhrase(new Noun("dog", Number.Paucal, [new("big", false)], 3, null, null, distance, null), null), [], []), Tense.Present, Aspect.Imperfective, false);
 
     private static bool IsDemonstrative(Morpheme m) => m.Value is Affix { Grammemes: [Distance, ..] } or Particle { Grammemes: [Distance, ..] };
 
@@ -144,7 +144,7 @@ public class DemonstrativeTests
     public void Realize_DemonstrativeSuffix_GoesOnTheNounOutsideItsNumber()
     {
         var language = WithGender(s => s.Fix(Settings.DemonstrativePosition, ExponentPosition.Suffix).Fix(Settings.NounNumber, NounNumber.SingularPlural));
-        var sentence = Syntax.Realize(language, new Clause(new Doing("sleep", null), new Declarative(Tense.Present, Aspect.Imperfective, new NounPhrase(new Noun("dog", Number.Plural, [], null, null, null, Distance.Distal, null), null)), false, [], []), "x");
+        var sentence = Syntax.Realize(language, Declared(new Event(new Doing("sleep", null), new NounPhrase(new Noun("dog", Number.Plural, [], null, null, null, Distance.Distal, null), null), [], []), Tense.Present, Aspect.Imperfective, false), "x");
         var dog = sentence.Words[IndexOf(sentence, "dog")].Word.Morphemes.ToList();
         var marker = dog.FindIndex(IsDemonstrative);
 
@@ -157,7 +157,7 @@ public class DemonstrativeTests
     {
         Assert.All(GeneratedLanguages.Sample.Take(100), l =>
         {
-            var sentence = Syntax.Realize(l, new Clause(new Doing("sleep", null), new Declarative(Tense.Present, Aspect.Imperfective, new NounPhrase(new Noun("dog", Number.Plural, [], null, null, null, Distance.Medial, null), null)), false, [], []), "x");
+            var sentence = Syntax.Realize(l, Declared(new Event(new Doing("sleep", null), new NounPhrase(new Noun("dog", Number.Plural, [], null, null, null, Distance.Medial, null), null), [], []), Tense.Present, Aspect.Imperfective, false), "x");
             var expected = l.Demonstratives.For(Distance.Medial, l.GenderOf(l.Lexicon.Noun("dog")), Number.Plural);
 
             Assert.Contains(expected, sentence.Words.SelectMany(w => w.Word.Morphemes));
@@ -201,7 +201,7 @@ public class DemonstrativeTests
     public void Realize_DemonstrativeAlone_IsItsPronounInflectedAsANoun(bool ownStem)
     {
         var language = GeneratedLanguages.With(s => s.Fix(Settings.DemonstrativePosition, ExponentPosition.PrecedingParticle).Fix(Settings.DemonstrativePronounsOwnStem, ownStem));
-        var sentence = Syntax.Realize(language, new Clause(new Doing("eat", new DemonstrativePronoun(Distance.Distal, Number.Singular)), new Declarative(Tense.Past, Aspect.Perfective, BareNoun("dog", Number.Singular)), false, [], []), "x");
+        var sentence = Syntax.Realize(language, Declared(new Event(new Doing("eat", new DemonstrativePronoun(Distance.Distal, Number.Singular)), BareNoun("dog", Number.Singular), [], []), Tense.Past, Aspect.Perfective, false), "x");
         var pronoun = language.Demonstratives.Pronoun(Distance.Distal);
 
         Assert.True(IndexOf(sentence, pronoun.Root) >= 0);
@@ -214,7 +214,7 @@ public class DemonstrativeTests
     public void Realize_Here_IsItsPlaceWordMarkedAsALocation(bool fromDemonstratives)
     {
         var language = GeneratedLanguages.With(s => s.Fix(Settings.PlacesFromDemonstratives, fromDemonstratives));
-        Clause SleepsAt(Argument place) => new Clause(new Doing("sleep", null), new Declarative(Tense.Present, Aspect.Imperfective, BareNoun("cat", Number.Plural)), false, [new(Role.Location, place, Configuration.At)], []);
+        Clause SleepsAt(Argument place) => Declared(new Event(new Doing("sleep", null), BareNoun("cat", Number.Plural), [new(Role.Location, place, Configuration.At)], []), Tense.Present, Aspect.Imperfective, false);
         var here = Syntax.Realize(language, SleepsAt(new DemonstrativePlace(Distance.Proximal)), "x");
         var house = Syntax.Realize(language, SleepsAt(BareNoun("house", Number.Singular)), "x");
         var place = language.Demonstratives.Place(Distance.Proximal);

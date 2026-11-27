@@ -67,7 +67,7 @@ public class NounFileTests
         Assert.Equal(["marta", "wolf"], ClauseFile.Nouns(entries).Select(n => n.Noun));
         var (first, second) = ((Clause)Stated(entries[0].Utterance).Value!, (Clause)Stated(entries[1].Utterance).Value!);
         Assert.Equal(PredicateOf<Doing>(second).Verb, PredicateOf<Doing>(first).Verb);
-        Assert.Equal(second.Force.Subject, first.Force.Subject);
+        Assert.Equal(second.Event.Subject, first.Event.Subject);
         Assert.Equal("big", Assert.Single(NounOf(PredicateOf<Doing>(first).Object.GetValueOrDefault()).Adjectives).Meaning);
         PredicateOf<Being>(Stated(entries[2].Utterance));
         Assert.Throws<ClauseFormatException>(() => ClauseFile.Parse("one\n  see.pst  subject:marta"));

@@ -69,11 +69,15 @@ record Aspected(Aspect Aspect, StateOfAffairs StateOfAffairs)                   
 A state of affairs placed in time, which can be true or false: Hengeveld and Mackenzie's episode and propositional content together, and Noonan's proposition.
 
 ```
-record Proposition(StateOfAffairs StateOfAffairs, Tense Tense, EpistemicModality? Epistemic)   // dubitative or presumptive
+record Proposition(StateOfAffairs StateOfAffairs, Tense Tense)
+union Propositional(Proposition, Judged, Denied)
+record Judged(EpistemicModality Modality, Propositional Propositional)   // dubitative or presumptive
+record Denied(Propositional Propositional)                              // 'he can't have left'
 ```
 
 - **Tense is here, not on the event,** since only a proposition has a time of its own. That's Noonan's split between independent and dependent time reference: an event complement's time is set by the verb it's the object of, a purpose clause's by its main clause, and a directive's by the act of telling.
-- **An epistemic modal is here,** since it judges the proposition whole, tense and all, as 'he must have left' does. That's what the code says today in a comment and the type will now say.
+- **An epistemic modal is a layer over the proposition,** since it judges it whole, tense and all, as 'he must have left' does.
+- **The proposition's operators nest as the state of affairs' do,** so a negation over a judgment, as in 'he can't have left', which says it isn't possible that he left, is `Denied(Judged(DUB, ...))`, and a negation under one, as in 'he might not have left', is the state of affairs' own. Only one judgment, denied or not, is said yet.
 
 ### Sentence types
 
@@ -81,13 +85,13 @@ What an independent clause does: König and Siemund's sentence types, which each
 
 ```
 union Clause(Declarative, Interrogative, Directive)
-record Declarative(Proposition Proposition)
-record Interrogative(Proposition Proposition)          // yes-no with no question word, a content question with one
+record Declarative(Propositional Propositional)
+record Interrogative(Propositional Propositional)      // yes-no with no question word, a content question with one
 record Directive(StateOfAffairs StateOfAffairs)        // no tense, since its time is the telling's
 ```
 
 - **Each type holds the layer it needs,** so a directive can't have a tense and a declarative can't lack one, with no check.
-- **A content question is one with a question word in a role,** as now. 'Why' and 'how' become question words among the adverbs, in place of `Question.Adverb`, so a question is only its type.
+- **A content question is one with a question word in a role,** as now. 'Why' and 'how' become question words among the adverbs, a `QuestionAdverbial`, in place of `Question.Adverb`, so a question is only its type. The question words that fill roles are `InterrogativeWord`, which was `Interrogative` before the sentence type took the name.
 - **A directive is any person's.** 'Go!' has a second person subject, 'let's go' a first person inclusive one, and 'let him go' a third person one, which WALS 72A counts as imperative-hortative systems: some languages have a form for each person, some only the imperative and say the rest with a word like 'let' or with the subjunctive, as Latin *eat* 'let him go' does. The model has them all today; saying them is a generator stage of its own (see [Roadmap items](#roadmap-items)).
 - **An optative,** a wish, as in 'may you live long', and an **exclamative**, as in 'how tall you are!', would be further types. Grammars differ on whether a wish is a directive in the third person, so the union leaves room rather than deciding.
 
@@ -150,8 +154,9 @@ record Quotation(Utterance Utterance)
 Utterance = Message(Content, Addressee?) | Call(Addressee)
   Content = Sentence | Fragment
     Sentence = Clause | Coordinated<Sentence> | Subordinated(Sentence, AdverbialClause)
-      Clause = Declarative(Proposition) | Interrogative(Proposition) | Directive(StateOfAffairs)
-        Proposition(StateOfAffairs, Tense, EpistemicModality?)
+      Clause = Declarative(Propositional) | Interrogative(Propositional) | Directive(StateOfAffairs)
+        Propositional = Proposition | Judged(EpistemicModality, Propositional) | Denied(Propositional)
+        Proposition(StateOfAffairs, Tense)
           StateOfAffairs = Event | Coordinated<StateOfAffairs>
                          | Negated(StateOfAffairs) | Modalized(SituationalModality, StateOfAffairs) | Aspected(Aspect, StateOfAffairs)
             Event(Predicate, Subject, Obliques, Adverbs)
@@ -201,7 +206,7 @@ The model has to take these without another redesign. For each, where it goes an
 
   An event with no subject has the shared one, and one with a subject of its own keeps it, which is how switch reference is written. Three or more events go in one head, as in `and [a] [b] [c]`. An oblique that applies to both is written in each, since sharing one would be ellipsis, which the model doesn't have. The glosser's rule is the one above: events where the conjuncts share their type and tense.
 - **The parser** builds layers instead of wrappers, and loses the refusals in the table above.
-- **Syntax** keeps everything it decides about form, and reads it from layers: finiteness from the sentence type and the clause's place, rank from the language as now, folding of 'want' and 'begin' as now. `Rank`, `Folded` and `ClauseWords` stay.
+- **Syntax** keeps everything it decides about form, and reads it from layers: finiteness from the sentence type and the clause's place, rank from the language as now, folding of 'want' and 'begin' as now. `Rank`, `Folded` and `ClauseWords` stay. It collects what a clause's verb says from the layers around its event into a `Spine`: the tense, the aspect, the negation, and a situational modal with its own, refusing layers stacked beyond what's built, as two aspects, the perfect over a modal, or a negation over a negation. An aspect is said the same on either side of a modal until stacked aspects are built.
 - **`LanguageDescription`** builds its sample sentences in the new types.
 - **Tests** change throughout, which is when parser tests can move to comparing whole values against shared ones.
 

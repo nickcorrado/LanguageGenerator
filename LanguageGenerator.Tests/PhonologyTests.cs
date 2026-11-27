@@ -201,10 +201,10 @@ public class PhonologyTests
         //the example doesn't give any commands
         Statement[] commands =
         [
-            new Clause(new Doing("see", null), new Directive(Number.Singular), false, [], []),
-            new Clause(new Doing("see", null), new Directive(Number.Plural), false, [], []),
-            new Clause(new Doing("see", null), new Directive(Number.Singular), true, [], []),
-            new Clause(new Doing("see", null), new Directive(Number.Plural), true, [], []),
+            Told(new Event(new Doing("see", null), new Pronoun(Person.Second, Number.Singular), [], []), false),
+            Told(new Event(new Doing("see", null), new Pronoun(Person.Second, Number.Plural), [], []), false),
+            Told(new Event(new Doing("see", null), new Pronoun(Person.Second, Number.Singular), [], []), true),
+            Told(new Event(new Doing("see", null), new Pronoun(Person.Second, Number.Plural), [], []), true),
         ];
         var example = ClauseFile.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "scene.txt")));
         var utterances = example.Select(e => e.Utterance).Concat(commands.Select(c => (Utterance)new Message(c, null))).ToList();

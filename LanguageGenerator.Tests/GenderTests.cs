@@ -1,4 +1,5 @@
-﻿using static LanguageGenerator.Tests.Phrases;
+﻿using static LanguageGenerator.Tests.Clauses;
+using static LanguageGenerator.Tests.Phrases;
 namespace LanguageGenerator.Tests;
 
 public class GenderTests
@@ -98,7 +99,7 @@ public class GenderTests
             foreach (var noun in new[] { "sun", "person", "dog" })
             {
                 var gender = language.GenderOf(language.Lexicon.Noun(noun))!;
-                var sentence = Syntax.Realize(language, new Clause(new Doing("sleep", null), new Declarative(Tense.Present, Aspect.Imperfective, new NounPhrase(new Noun(noun, Number.Singular, [new("big", false)], null, null, null, null, null), null)), false, [], []), "x");
+                var sentence = Syntax.Realize(language, Declared(new Event(new Doing("sleep", null), new NounPhrase(new Noun(noun, Number.Singular, [new("big", false)], null, null, null, null, null), null), [], []), Tense.Present, Aspect.Imperfective, false), "x");
                 var big = sentence.Words.Single(w => w.Word.Root?.Meaning == "big").Word;
 
                 Assert.Equal(language.Genders.Markers!.Affixes[gender].Form.Count == 0 ? [] : [gender.Gloss], GenderGlosses(big));
@@ -111,7 +112,7 @@ public class GenderTests
     {
         foreach (var language in GeneratedLanguages.Sample.Where(l => l.Genders.Markers is not null && l.AdjectiveAgreement != AdjectiveAgreement.Agreement))
         {
-            var sentence = Syntax.Realize(language, new Clause(new Doing("sleep", null), new Declarative(Tense.Present, Aspect.Imperfective, new NounPhrase(new Noun("sun", Number.Singular, [new("big", false)], null, null, null, null, null), null)), false, [], []), "x");
+            var sentence = Syntax.Realize(language, Declared(new Event(new Doing("sleep", null), new NounPhrase(new Noun("sun", Number.Singular, [new("big", false)], null, null, null, null, null), null), [], []), Tense.Present, Aspect.Imperfective, false), "x");
 
             //the verb may agree in gender, but the adjective doesn't
             var big = sentence.Words.Single(w => w.Word.Root?.Meaning == "big").Word;
@@ -130,7 +131,7 @@ public class GenderTests
             foreach (var subject in new Argument[] { BareNoun("person", Number.Singular), BareNoun("sun", Number.Singular), new Pronoun(Person.Third, Number.Singular, Gender: l.Genders.Values[^1]) })
             {
                 var gender = subject.Value is NounPhrase n ? l.GenderOf(l.Lexicon.Noun(n.Head.Meaning))! : l.Genders.Values[^1];
-                var sentence = Syntax.Realize(l, new Clause(new Doing("sleep", null), new Declarative(Tense.Present, Aspect.Imperfective, subject), false, [], []), "x");
+                var sentence = Syntax.Realize(l, Declared(new Event(new Doing("sleep", null), subject, [], []), Tense.Present, Aspect.Imperfective, false), "x");
                 var sleep = sentence.Words.Single(w => w.Word.Root?.Meaning == "sleep").Word;
 
                 Assert.Equal(l.Genders.Markers!.Affixes[gender].Form.Count == 0 ? [] : [gender.Gloss], GenderGlosses(sleep));

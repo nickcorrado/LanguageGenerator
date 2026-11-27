@@ -27,7 +27,7 @@ public class SubordinationTests
         var subordinated = Assert.IsType<Subordinated>(Parsed("x\n  need  subject:2SG  object:rope.NDF\n  purpose  cross  object:river.DEF").Value);
 
         Assert.True(subordinated.SharesSubject);
-        Assert.Equal(new Pronoun(Person.Second, Number.Singular), ForceOf<Declarative>(subordinated.Clause).Subject.Value);
+        Assert.Equal(new Pronoun(Person.Second, Number.Singular), EventOf(subordinated.Clause).Subject.Value);
     }
 
     [Fact]

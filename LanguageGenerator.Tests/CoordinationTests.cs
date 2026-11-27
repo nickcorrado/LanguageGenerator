@@ -10,7 +10,7 @@ public class CoordinationTests
 
     private static ClauseFormatException Error(string text) => Assert.Throws<ClauseFormatException>(() => ClauseFile.Parse(text));
 
-    private static Argument SubjectOf(Statement statement) => ForceOf<Declarative>(statement).Subject;
+    private static Argument SubjectOf(Statement statement) => EventOf(statement).Subject;
 
     [Fact]
     public void Parse_NounsJoined_AreACoordinationInOrder()
@@ -37,7 +37,7 @@ public class CoordinationTests
     {
         var clause = PredicateOf<Being>(Parsed("be  subject:inn.DEF  adjective:(and warm crowded)"));
 
-        Assert.Equal(new AdjectiveCoordination(Conjunction.And, [new("warm", false), new("crowded", false)]), clause.Complement.Value);
+        Assert.Equal(new AdjectiveCoordination(Conjunction.And, [new("warm", false), new("crowded", false)]), clause.Attribute.Value);
     }
 
     [Fact]
@@ -95,7 +95,7 @@ public class CoordinationTests
     //only the basic meanings, since coining new ones would add to the shared sample's lexicons
     private static readonly NounPhrase Birds = BareNoun("bird", Number.Plural);
 
-    private static Sentence Saw(Language l, Argument subject) => Syntax.Realize(l, new Clause(new Doing("see", Birds), new Declarative(Tense.Past, Aspect.Perfective, subject), false, [], []), "x");
+    private static Sentence Saw(Language l, Argument subject) => Syntax.Realize(l, Declared(new Event(new Doing("see", Birds), subject, [], []), Tense.Past, Aspect.Perfective, false), "x");
 
     private static string VerbGloss(Sentence sentence) => sentence.Words[IndexOf(sentence, "see")].Gloss;
 
@@ -176,8 +176,8 @@ public class CoordinationTests
     [Fact]
     public void Realize_ClausesJoined_AreEachAsTheyWouldBeAloneWithTheConjunctionBetween()
     {
-        var first = new Clause(new Doing("sleep", null), new Declarative(Tense.Past, Aspect.Imperfective, Dog), false, [], []);
-        var second = new Clause(new Doing("sleep", null), new Declarative(Tense.Past, Aspect.Imperfective, Cat), false, [], []);
+        var first = Declared(new Event(new Doing("sleep", null), Dog, [], []), Tense.Past, Aspect.Imperfective, false);
+        var second = Declared(new Event(new Doing("sleep", null), Cat, [], []), Tense.Past, Aspect.Imperfective, false);
 
         Assert.All(GeneratedLanguages.Sample, l =>
         {
@@ -197,7 +197,7 @@ public class CoordinationTests
     {
         Assert.All(GeneratedLanguages.Sample, l =>
         {
-            var sentence = Syntax.Realize(l, new Clause(new Being(new AdjectiveCoordination(Conjunction.And, [new("big", false), new("old", false)])), new Declarative(Tense.Present, Aspect.Imperfective, Dog), false, [], []), "x");
+            var sentence = Syntax.Realize(l, Declared(new Event(new Being(new AdjectiveCoordination(Conjunction.And, [new("big", false), new("old", false)])), Dog, [], []), Tense.Present, Aspect.Imperfective, false), "x");
 
             Assert.True(IndexOf(sentence, "big") >= 0 && IndexOf(sentence, "old") > IndexOf(sentence, "big"));
         });

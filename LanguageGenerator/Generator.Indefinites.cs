@@ -72,7 +72,7 @@ public static partial class Generator
         }
         //persons and things made from question words share their series' markers
         InterrogativeIndefinites? interrogative = null;
-        InterrogativeIndefinites Interrogative() => interrogative ??= InterrogativeMarkers(rand, morphology, phonology, forms);
+        InterrogativeIndefinites InterrogativeWord() => interrogative ??= InterrogativeMarkers(rand, morphology, phonology, forms);
         SpecialIndefinites Special(params Ontology[] kinds) => new((
             from series in Indefinites.Series
             from kind in kinds
@@ -80,10 +80,10 @@ public static partial class Generator
                 new Lexeme(CoinRoot(rand, phonology, forms.Draw(() => GenerateForm(rand, phonology, 0, maxSyllables: 2)), IndefiniteGloss(k.series, k.kind)), PartOfSpeech.Noun)));
         IndefiniteSource Source(bool fromNoun, params Ontology[] kinds) => type switch
         {
-            IndefinitePronouns.InterrogativeBased => Interrogative(),
+            IndefinitePronouns.InterrogativeBased => InterrogativeWord(),
             IndefinitePronouns.GenericNounBased => new GenericNounIndefinites(),
             IndefinitePronouns.Special => Special(kinds),
-            IndefinitePronouns.Mixed => fromNoun ? new GenericNounIndefinites() : Interrogative(),
+            IndefinitePronouns.Mixed => fromNoun ? new GenericNounIndefinites() : InterrogativeWord(),
             _ => throw new ArgumentOutOfRangeException(nameof(type), type, null),
         };
         var persons = Source(personsFromNoun, Ontology.Person);
