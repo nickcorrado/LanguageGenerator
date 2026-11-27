@@ -21,19 +21,3 @@ public record Manner(Adjective Adjective);
 
 /// <summary>Something said of a whole clause that fills no role: an adverb, or how it's done.</summary>
 public union Adverbial(Adverb, Manner);
-
-/// <summary>A manner adverb that's the adjective itself, as German schnell is 'quick' and 'quickly'.</summary>
-public record MannerBare;
-
-/// <summary>A manner adverb made from the adjective by an affix, as English -ly and Turkish -ce make them.</summary>
-//Position is Prefix or Suffix
-public record MannerAffix(Affix Marker, ExponentPosition Position);
-
-/// <summary>
-/// A manner adverb marked by a word beside the adjective, as Mandarin de follows it in man-man de
-/// 'slowly' and Japanese ni in shizuka ni 'quietly'.
-/// </summary>
-public record MannerWord(Particle Marker, bool BeforeAdjective);
-
-/// <summary>How a language makes an adverb saying how something is done from an adjective.</summary>
-public union MannerMarking(MannerBare, MannerAffix, MannerWord);

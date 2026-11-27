@@ -740,13 +740,8 @@ public static class Syntax
             case Manner manner:
             {
                 var root = language.Lexicon.Adjective(manner.Adjective.Meaning).Root;
-                IReadOnlyList<Word> words = language.Manner switch
-                {
-                    MannerBare => [new Word([root])],
-                    MannerAffix { Position: ExponentPosition.Prefix } affix => [new Word([affix.Marker, root])],
-                    MannerAffix affix => [new Word([root, affix.Marker])],
-                    MannerWord word => word.BeforeAdjective ? [Word.Marker(word.Marker, Lean.Forward), new Word([root])] : [new Word([root]), Word.Marker(word.Marker, Lean.Back)],
-                };
+                IReadOnlyList<Word> adjective = [new Word([root])];
+                var words = language.Manner is { } marker ? marker.Place(adjective, 0, Reach.Root) : adjective;
                 return Intensified(language, words, root, manner.Adjective);
             }
             default:

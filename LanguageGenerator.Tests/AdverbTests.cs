@@ -101,27 +101,27 @@ public class AdverbTests
             var words = sentence.Words.ToList();
             var good = IndexOf(sentence, "good");
             var morphemes = words[good].Word.Morphemes;
-            switch (l.Manner.Value)
+            switch (l.Manner?.Value)
             {
-                case MannerBare:
+                case null:
                     Assert.Single(morphemes);
                     Assert.DoesNotContain(words, w => w.Gloss.Contains("ADV"));
                     break;
-                case MannerAffix affix:
-                    Assert.Equal(affix.Marker, (affix.Position == ExponentPosition.Prefix ? morphemes[0] : morphemes[^1]).Value);
+                case Bound affix:
+                    Assert.Equal(affix.Affix, (affix.Side == Side.Before ? morphemes[0] : morphemes[^1]).Value);
                     Assert.Equal(2, morphemes.Count);
                     Assert.Contains("ADV", words[good].Gloss);
                     break;
-                case MannerWord word:
-                    var at = words.FindIndex(w => w.Word.Morphemes.Any(m => m.Value is Particle p && p == word.Marker));
-                    Assert.Equal(good + (word.BeforeAdjective ? -1 : 1), at);
+                case Free word:
+                    var at = words.FindIndex(w => w.Word.Morphemes.Any(m => m.Value is Particle p && p == word.Particle));
+                    Assert.Equal(good + (word.Side == Side.Before ? -1 : 1), at);
                     Assert.Equal("ADV", words[at].Gloss);
                     break;
             }
         });
-        Assert.Contains(GeneratedLanguages.Sample, l => l.Manner.Value is MannerBare);
-        Assert.Contains(GeneratedLanguages.Sample, l => l.Manner.Value is MannerAffix);
-        Assert.Contains(GeneratedLanguages.Sample, l => l.Manner.Value is MannerWord);
+        Assert.Contains(GeneratedLanguages.Sample, l => l.Manner is null);
+        Assert.Contains(GeneratedLanguages.Sample, l => l.Manner?.Value is Bound);
+        Assert.Contains(GeneratedLanguages.Sample, l => l.Manner?.Value is Free);
     }
 
     //where 'very' is in a sentence, relative to the word with this root: -1 right before it, 1 right after
@@ -184,7 +184,7 @@ public class AdverbTests
         var rand = new Random(1);
 
         Assert.DoesNotContain(Enumerable.Range(0, 500).Select(_ => Generator.GenerateManner(rand, isolating.MorphologicalProfile, isolating.Phonology)),
-            m => m.Value is MannerAffix);
+            m => m?.Value is Bound);
     }
 
     [Fact]

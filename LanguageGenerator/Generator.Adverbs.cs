@@ -29,15 +29,17 @@ public static partial class Generator
     private static readonly (MannerType Value, int Weight)[] MannerCounts = [(MannerType.Bare, 40), (MannerType.Affix, 40), (MannerType.Word, 20)];
     private const double MannerWordBeforeChance = 0.3;
 
-    public static MannerMarking GenerateManner(Random rand, MorphologicalProfile morphology, Phonology phonology)
+    public static Exponent? GenerateManner(Random rand, MorphologicalProfile morphology, Phonology phonology)
     {
         var counts = morphology.Fusion == Fusion.Isolating ? MannerCounts.Where(c => c.Value != MannerType.Affix).ToArray() : MannerCounts;
         return Sampling.Categorical(rand, counts) switch
         {
-            MannerType.Bare => new MannerBare(),
-            MannerType.Affix => new MannerAffix(CoinAffix(rand, phonology, MarkerForm(rand, true, phonology), [Derivation.Adverbial]),
-                rand.NextDouble() < PrefixChance(morphology) ? ExponentPosition.Prefix : ExponentPosition.Suffix),
-            _ => new MannerWord(new Particle(MarkerForm(rand, false, phonology), [Derivation.Adverbial]), rand.NextDouble() < MannerWordBeforeChance),
+            MannerType.Bare => (Exponent?)null,
+            MannerType.Affix => new Bound(CoinAffix(rand, phonology, MarkerForm(rand, true, phonology), [Derivation.Adverbial]),
+                rand.NextDouble() < PrefixChance(morphology) ? Side.Before : Side.After),
+            MannerType.Word => new Free(new Particle(MarkerForm(rand, false, phonology), [Derivation.Adverbial]),
+                rand.NextDouble() < MannerWordBeforeChance ? Side.Before : Side.After),
+            var type => throw new ArgumentOutOfRangeException(nameof(type), type, null),
         };
     }
 
