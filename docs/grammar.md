@@ -14,7 +14,7 @@ How fusional or isolating the language is, whether it prefixes or suffixes, whic
 
 Nominative–accusative, ergative–absolutive or neither, in WALS's proportions, which cases exist, and whether each semantic role is marked by a case, an adposition or nothing.
 
-The oblique roles sit on a semantic map, a graph whose edges are the ways languages mark two roles alike: recipients with goals, as English *to* does, goals with locations, as Japanese *ni* does, possessors with sources, as Romance *de* does, companions with instruments, as English *with* does in about a quarter of languages, and a few more. Each language divides the map into connected regions, one marker apiece, so a role without a marker of its own takes its neighbors'.
+The oblique roles sit on a semantic map, a graph whose edges are the ways languages mark two roles alike: recipients with goals, as English *to* does, goals with locations, as Japanese *ni* does, possessors with sources, as Romance *de* does, companions with instruments, as English *with* does in about a quarter of languages, beneficiaries with recipients, as the Latin dative does, and a few more. Each language divides the map into connected regions, one marker apiece, so a role without a marker of its own takes its neighbors'.
 
 How many regions get a case follows WALS's counts of case inventories, favoring the genitive, dative and locative as Blake's case hierarchy does, and the rest get an adposition, a short word of its own, before or after its noun as the language's adpositional phrases go.
 

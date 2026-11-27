@@ -41,7 +41,7 @@ public static partial class Generator
       a language with any oblique case most likely has a genitive and a dative. A guess: Blake's
       hierarchy is a tendency, and an instrumental without a dative is rare but real
      */
-    private static readonly int[] CaseWeightsByRank = [8, 6, 5, 4, 3, 2, 2, 2];
+    private static readonly int[] CaseWeightsByRank = [8, 6, 5, 4, 3, 2, 2, 2, 1];
 
     /// <summary>
     /// A language's cases: the core ones its alignment needs, a case for each of some of its regions,

@@ -83,6 +83,7 @@ public class ClauseFileTests
     [InlineData("source", Role.Source)]
     [InlineData("companion", Role.Companion)]
     [InlineData("instrument", Role.Instrument)]
+    [InlineData("beneficiary", Role.Beneficiary)]
     public void Parse_ObliqueRole_IsTheRoleOfThatName(string name, Role role)
     {
         Assert.Equal(role, Assert.Single(Verbal(Single($"x\n  see subject:dog object:cat {name}:stone")).Obliques).Role);

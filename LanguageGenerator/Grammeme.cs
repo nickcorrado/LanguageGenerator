@@ -142,6 +142,8 @@ public record Case(string Name, string Gloss) : Grammeme(Name, Gloss)
     /// <summary>The way something goes, as in 'through the forest' or 'along the river'.</summary>
     //the Leipzig rules have none; PERL is what grammars of Australian and Uralic languages use
     public static Case Perlative { get; } = new("Perlative", "PERL");
+    /// <summary>Who or what something is for, as in 'made for someone' or 'for your ears'.</summary>
+    public static Case Benefactive { get; } = new("Benefactive", "BEN");
     /// <summary>
     /// The plain form in a language with only peripheral cases, covering everything they don't.
     /// </summary>
@@ -176,6 +178,8 @@ public enum Role
     Route,
     Companion,
     Instrument,
+    //who or what something is for, as in 'made for someone' or 'wax for your ears'
+    Beneficiary,
     //who does what a passive verb says is done, as in 'carried by a figure'
     Agent,
     //what something is or does something like, as in 'it shines like water'. It has a marker of

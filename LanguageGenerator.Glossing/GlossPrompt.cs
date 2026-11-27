@@ -124,8 +124,9 @@ public static class GlossPrompt
 
             Roles: {string.Join(", ", roles)}. A recipient is who something is given or said to, a
             goal where something goes, a source where it comes from, a route the way it goes, as in
-            'through the forest' or 'along the river', a companion who it's done with, and an
-            instrument what it's done with.
+            'through the forest' or 'along the river', a companion who it's done with, an
+            instrument what it's done with, and a beneficiary who or what it's for, as in 'made for
+            someone' or 'wax for your ears'.
 
             A location, goal, source or route can say where relative to its place, written after the
             role with a period: {string.Join(", ", ClauseFile.ConfigurationNames)}, where front is 'in

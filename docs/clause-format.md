@@ -160,7 +160,7 @@ A localization is glossed as grammars of Daghestanian languages gloss them: `IN`
 Languages largely agree on which modifiers go nearest their head, and differ mostly in which side they put them, so the order on one side mirrors the order on the other. `ModifierOrder` says this once for every language. Everything where obliques go is ranked by how near the verb it goes, nearest first:
 
 1. what the verb calls for: `recipient:`, `goal:`, `source:`, `route:`, `agent:`, and a `standard:` in a VO language
-2. how: `manner:`, `like:`, `instrument:`, `companion:`
+2. how: `manner:`, `like:`, `instrument:`, `companion:`, `beneficiary:`
 3. where: `location:`
 4. how often or how long: `often:`, `duration:`
 5. when: `when:`, `time:`
@@ -187,6 +187,7 @@ Adjectives are written in English order, which already puts the nearest last, so
 | `recipient:` | To whom |
 | `companion:` | With whom |
 | `instrument:` | With what |
+| `beneficiary:` | For whom or for what, as in 'made for someone' or 'wax for your ears' |
 | `like:` | Like what |
 | `time:` | When |
 | `duration:` | For how long |

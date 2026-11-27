@@ -68,13 +68,13 @@ public static class SubordinatorMap
 
     /// <summary>
     /// The roles whose marker a deranked clause of each kind can take, and how often, with null for
-    /// none: purpose like a goal or recipient ('for drinking', English to drink), a reason like a
-    /// source or instrument ('from his drinking'), 'when' like a place, 'after' like a source, and
-    /// 'until' like a goal, as English till and Latin usque ad.
+    /// none: purpose like a goal, recipient or beneficiary ('for drinking', English to drink), a
+    /// reason like a source or instrument ('from his drinking'), 'when' like a place, 'after' like a
+    /// source, and 'until' like a goal, as English till and Latin usque ad.
     /// </summary>
     public static (Role? Role, int Weight)[] AttachmentsOf(Subordinator subordinator) => subordinator switch
     {
-        Subordinator.Purpose => [(Role.Goal, 25), (Role.Recipient, 15), (null, 60)],
+        Subordinator.Purpose => [(Role.Goal, 25), (Role.Recipient, 10), (Role.Beneficiary, 10), (null, 55)],
         Subordinator.Because => [(Role.Source, 25), (Role.Instrument, 10), (null, 65)],
         Subordinator.When => [(Role.Location, 20), (null, 80)],
         Subordinator.After => [(Role.Source, 15), (null, 85)],

@@ -65,7 +65,7 @@ public union Argument(NounPhrase, Pronoun, DemonstrativePronoun, Coordination, Q
 public record Oblique(Role Role, Argument Argument, Configuration Configuration)
 {
     public static IReadOnlyList<Role> Roles { get; } =
-        [Role.Recipient, Role.Location, Role.Goal, Role.Source, Role.Route, Role.Companion, Role.Instrument, Role.Similative, Role.Time, Role.Duration];
+        [Role.Recipient, Role.Location, Role.Goal, Role.Source, Role.Route, Role.Companion, Role.Instrument, Role.Beneficiary, Role.Similative, Role.Time, Role.Duration];
 
     /// <summary>The roles that say where, which can take a configuration.</summary>
     public static IReadOnlyList<Role> Spatial { get; } = [Role.Location, Role.Goal, Role.Source, Role.Route];
