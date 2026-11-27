@@ -9,8 +9,6 @@ public class PassiveTests
     private static Statement Parsed(string gloss) => Stated(Assert.Single(ClauseFile.Parse($"x\n  {gloss}")).Utterance);
 
     //only the basic meanings, since coining new ones would add to the shared sample's lexicons
-    private static readonly NounPhrase Fish = BareNoun("fish", Number.Singular);
-    private static readonly NounPhrase Cat = BareNoun("cat", Number.Singular);
     private static Clause EatenBy(Argument? agent) => new Clause(new Done("eat", agent), new Declarative(Tense.Past, Aspect.Perfective, Fish), false, [], []);
 
     private static IEnumerable<string> Glosses(Sentence sentence) => sentence.Words.Select(w => w.Gloss);

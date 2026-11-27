@@ -116,13 +116,12 @@ public class SubordinationTests
     [Fact]
     public void Realize_DerankedClauseMarkedLikeARole_TakesItsCaseOrAdposition()
     {
-        var dogEats = CatEats with { Force = new Declarative(Tense.Present, Aspect.Imperfective, BareNoun("dog", Number.Singular)) };
         var marked = GeneratedLanguages.Sample.Where(l => l.Subordination.Markers[Subordinator.Purpose] is { Balance: not Balance.Balanced, MarkedAs: not null }).ToList();
 
         Assert.NotEmpty(marked);
         Assert.All(marked, l =>
         {
-            var sentence = Syntax.Realize(l, new Subordinated(dogEats, Subordinator.Purpose, DogSleeps, true), "x");
+            var sentence = Syntax.Realize(l, new Subordinated(DogEatsFish, Subordinator.Purpose, DogSleeps, true), "x");
             var sleep = IndexOf(sentence, "sleep");
 
             Assert.DoesNotContain(sentence.Words, w => w.Word.Morphemes.Any(IsMarker));
@@ -145,8 +144,6 @@ public class SubordinationTests
             l => Assert.DoesNotContain(l.Subordination.Markers.Values, m => m.Position == ExponentPosition.Suffix));
 
     //only the basic meanings, since coining new ones would add to the shared sample's lexicons
-    private static readonly Clause CatEats = new Clause(new Doing("eat", BareNoun("fish", Number.Singular)), new Declarative(Tense.Present, Aspect.Imperfective, BareNoun("cat", Number.Singular)), false, [], []);
-    private static readonly Clause DogSleeps = new Clause(new Doing("sleep", null), new Declarative(Tense.Present, Aspect.Imperfective, BareNoun("dog", Number.Singular)), false, [], []);
 
     private static bool IsMarker(Morpheme m) => m.Value is Affix { Grammemes: [Linkage] } or Particle { Grammemes: [Linkage] };
 
@@ -158,7 +155,7 @@ public class SubordinationTests
             foreach (var subordinator in Enum.GetValues<Subordinator>())
             {
                 var marking = l.Subordination.Markers[subordinator];
-                var sentence = Syntax.Realize(l, new Subordinated(CatEats, subordinator, DogSleeps, false), "x");
+                var sentence = Syntax.Realize(l, new Subordinated(CatEatsFish, subordinator, DogSleeps, false), "x");
                 var (dog, cat, sleep) = (IndexOf(sentence, "dog"), IndexOf(sentence, "cat"), IndexOf(sentence, "sleep"));
                 var marker = sentence.Words.ToList().FindIndex(w => w.Word.Morphemes.Any(IsMarker));
 
@@ -185,7 +182,7 @@ public class SubordinationTests
     {
         Assert.All(GeneratedLanguages.Sample.Where(l => l.Subordination.Markers[Subordinator.If].Balance == Balance.Deranked), l =>
         {
-            var sentence = Syntax.Realize(l, new Subordinated(CatEats, Subordinator.If, DogSleeps, false), "x");
+            var sentence = Syntax.Realize(l, new Subordinated(CatEatsFish, Subordinator.If, DogSleeps, false), "x");
             var verb = sentence.Words[IndexOf(sentence, "sleep")].Word;
 
             Assert.All(verb.Morphemes, m => Assert.True(m.Value is Root || IsMarker(m)));
@@ -196,11 +193,10 @@ public class SubordinationTests
     [Fact]
     public void Realize_SharedSubject_IsSaidOnlyOnce()
     {
-        var dogEats = CatEats with { Force = new Declarative(Tense.Present, Aspect.Imperfective, BareNoun("dog", Number.Singular)) };
 
         Assert.All(GeneratedLanguages.Sample, l =>
         {
-            var sentence = Syntax.Realize(l, new Subordinated(dogEats, Subordinator.Purpose, DogSleeps, true), "x");
+            var sentence = Syntax.Realize(l, new Subordinated(DogEatsFish, Subordinator.Purpose, DogSleeps, true), "x");
 
             Assert.Single(sentence.Words, w => w.Word.Root?.Meaning == "dog");
         });
@@ -211,7 +207,7 @@ public class SubordinationTests
     {
         Assert.All(GeneratedLanguages.Sample.Where(l => l.Subordination.Markers[Subordinator.When] is { Balance: Balance.Balanced, Position: not ExponentPosition.Suffix }), l =>
         {
-            var sentence = Syntax.Realize(l, new Subordinated(CatEats, Subordinator.When, DogSleeps, false), "x");
+            var sentence = Syntax.Realize(l, new Subordinated(CatEatsFish, Subordinator.When, DogSleeps, false), "x");
             var alone = Syntax.Realize(l, DogSleeps, "x").Words.Select(w => w.Gloss);
 
             Assert.Contains(string.Join(" ", alone), string.Join(" ", sentence.Words.Select(w => w.Gloss)));

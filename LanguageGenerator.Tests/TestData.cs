@@ -47,9 +47,30 @@ internal static class Sentences
     public static int IndexOf(Sentence sentence, Root root) => sentence.Words.ToList().FindIndex(w => w.Word.Root == root);
 }
 
-//a statement's predicate or force, where it's a clause with one of that kind
+/*
+  clauses tests share, each present, imperfective and affirmative, to vary with `with` or At, and a
+  statement's predicate or force, where it's a clause with one of that kind. They're immutable
+  values, so sharing them shares nothing a test can change
+ */
 internal static class Clauses
 {
+    public static Clause DogWalks { get; } = Stating(Phrases.Dog, new Doing("walk", null));
+    public static Clause DogSleeps { get; } = Stating(Phrases.Dog, new Doing("sleep", null));
+    public static Clause DogIsBig { get; } = Stating(Phrases.Dog, new Being(new Adjective("big", false)));
+    public static Clause DogEatsFish { get; } = Stating(Phrases.Dog, new Doing("eat", Phrases.Fish));
+    public static Clause CatEatsFish { get; } = Stating(Phrases.Cat, new Doing("eat", Phrases.Fish));
+
+    private static Clause Stating(Argument subject, Predicate predicate) =>
+        new(predicate, new Declarative(Tense.Present, Aspect.Imperfective, subject), false, [], []);
+
+    //a clause stating something at another time, or with another aspect
+    public static Clause At(this Clause clause, Tense tense, Aspect aspect) => clause with
+    {
+        Force = clause.Force.Value is Declarative stated
+            ? stated with { Tense = tense, Aspect = aspect }
+            : throw new ArgumentException("Only a clause that states something has a tense and an aspect.", nameof(clause)),
+    };
+
     //what a line or a quotation states, where it's a statement and not a fragment
     public static Statement Stated(Utterance utterance) => utterance switch
     {
@@ -65,6 +86,11 @@ internal static class Clauses
 internal static class Phrases
 {
     public static NounPhrase BareNoun(string meaning, Number number) => new(new Noun(meaning, number, [], null, null, null, null, null), null);
+
+    //the nouns tests use most, bare and singular
+    public static NounPhrase Dog { get; } = BareNoun("dog", Number.Singular);
+    public static NounPhrase Cat { get; } = BareNoun("cat", Number.Singular);
+    public static NounPhrase Fish { get; } = BareNoun("fish", Number.Singular);
 
     //the noun a phrase is of, where it's a noun phrase of a noun
     public static Noun NounOf(Argument argument) => NounOf(Assert.IsType<NounPhrase>(argument.Value));
