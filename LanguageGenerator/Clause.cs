@@ -50,23 +50,30 @@ public record Filler(Argument Argument, Role Role, Oblique? Oblique);
 /// An event with the operators that scope over it: negation, a situational modal and aspect, each
 /// wrapping the state of affairs it scopes over, so the order they nest in is their scope, as in
 /// 'you must not sing', a modal over a negation, and 'you don't have to sing', a negation over a
-/// modal. One with no aspect has the unmarked one, the imperfective.
+/// modal; or states of affairs joined under one tense and sentence type, as in 'she turns and
+/// walks away', which Haspelmath tells apart from clauses joined. One with no aspect has the
+/// unmarked one, the imperfective.
 /// </summary>
-public union StateOfAffairs(Event, Negated, Modalized, Aspected)
+public union StateOfAffairs(Event, Coordinated<StateOfAffairs>, Negated, Modalized, Aspected)
 {
-    /// <summary>The event the operators scope over.</summary>
-    public Event Event => this switch
+    /// <summary>The events the operators scope over, in order: one, or each of those joined.</summary>
+    public IEnumerable<Event> Events => this switch
     {
-        Event happening => happening,
-        Negated negated => negated.StateOfAffairs.Event,
-        Modalized modalized => modalized.StateOfAffairs.Event,
-        Aspected aspected => aspected.StateOfAffairs.Event,
+        Event happening => [happening],
+        Coordinated<StateOfAffairs> joined => [.. joined.First.Events, .. joined.Second.Events],
+        Negated negated => negated.StateOfAffairs.Events,
+        Modalized modalized => modalized.StateOfAffairs.Events,
+        Aspected aspected => aspected.StateOfAffairs.Events,
     };
 
-    /// <summary>The same operators over what this makes of the event.</summary>
+    /// <summary>The first event, which is the only one where nothing's joined.</summary>
+    public Event Event => Events.First();
+
+    /// <summary>The same operators over what this makes of each event.</summary>
     public StateOfAffairs Rebuilt(Func<Event, Event> rebuild) => this switch
     {
         Event happening => rebuild(happening),
+        Coordinated<StateOfAffairs> joined => joined with { First = joined.First.Rebuilt(rebuild), Second = joined.Second.Rebuilt(rebuild) },
         Negated negated => negated with { StateOfAffairs = negated.StateOfAffairs.Rebuilt(rebuild) },
         Modalized modalized => modalized with { StateOfAffairs = modalized.StateOfAffairs.Rebuilt(rebuild) },
         Aspected aspected => aspected with { StateOfAffairs = aspected.StateOfAffairs.Rebuilt(rebuild) },
@@ -131,7 +138,7 @@ public union Clause(Declarative, Interrogative, Directive)
         Directive told => told.StateOfAffairs,
     };
 
-    /// <summary>The event at the clause's heart.</summary>
+    /// <summary>The event at the clause's heart, the first where events are joined.</summary>
     public Event Event => StateOfAffairs.Event;
 }
 
@@ -205,4 +212,4 @@ public union Attribute(NounPhrase, Adjective, AdjectiveCoordination, Oblique, Co
 public record Being(Attribute Attribute);
 
 /// <summary>Anything a sentence can say.</summary>
-public union Statement(Clause, Coordinated, Subordinated);
+public union Statement(Clause, Coordinated<Statement>, Subordinated);

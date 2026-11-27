@@ -152,7 +152,7 @@ public static class Syntax
     private static ClauseWords Words(Language language, Statement statement) => statement switch
     {
         Clause c => Words(language, c),
-        Coordinated c => Words(language, c),
+        Coordinated<Statement> c => Words(language, c),
         Subordinated s => Words(language, s),
     };
 
@@ -163,14 +163,16 @@ public static class Syntax
     {
         Declarative stated => Words(language, stated.Propositional, []),
         Interrogative asked => Words(language, asked),
-        Directive told => Words(language, Collected(told.StateOfAffairs, null), new Balanced(null, null, [])),
+        Directive told => JoinedUnder(told.StateOfAffairs) is var (aspects, joined)
+            ? Joined(language, joined, aspects, null)
+            : Words(language, Collected(told.StateOfAffairs, null), new Balanced(null, null, [], false)),
     };
 
     /// <summary>Who or what a statement is about: its first clause's subject, which is 'you' for a command.</summary>
     public static Argument SubjectOf(Statement statement) => statement switch
     {
         Clause c => c.Event.Subject,
-        Coordinated c => SubjectOf(c.First),
+        Coordinated<Statement> c => SubjectOf(c.First),
         Subordinated s => SubjectOf(s.Main),
     };
 
@@ -206,6 +208,8 @@ public static class Syntax
                     operators.Add(aspected);
                     at = aspected.StateOfAffairs;
                     break;
+                case Coordinated<StateOfAffairs>:
+                    throw new ArgumentException("Joined states of affairs are said one at a time, as Joined says them.", nameof(layers));
                 default:
                     throw new ArgumentOutOfRangeException(nameof(layers), at, null);
             }
@@ -242,6 +246,78 @@ public static class Syntax
     //a proposition with its judgments, and each event in it what this makes of it
     private static Propositional Rebuilt(Propositional propositional, Func<Event, Event> rebuild) =>
         propositional.Rebuilt(p => p with { StateOfAffairs = p.StateOfAffairs.Rebuilt(rebuild) });
+
+    //whether a state of affairs joins events, anywhere in it
+    private static bool JoinsEvents(StateOfAffairs layers) => layers.Events.Skip(1).Any();
+
+    /*
+      what's joined at the top of a state of affairs, under the aspects over it all, outermost
+      first, or null where nothing's joined there. A negation or a modal over joined states of
+      affairs can't be said yet, since saying it on each changes what it says: 'can't eat and
+      drink', 'not both', isn't 'can't eat and can't drink'
+     */
+    private static (IReadOnlyList<Aspect> Aspects, Coordinated<StateOfAffairs> Joined)? JoinedUnder(StateOfAffairs layers)
+    {
+        List<Aspect> aspects = [];
+        var at = layers;
+        while (true)
+        {
+            switch (at)
+            {
+                case Coordinated<StateOfAffairs> joined:
+                    return (aspects, joined);
+                case Aspected aspected:
+                    aspects.Add(aspected.Aspect);
+                    at = aspected.StateOfAffairs;
+                    break;
+                case Negated or Modalized:
+                    return JoinsEvents(at)
+                        ? throw new ArgumentException("A negation or a modal over joined states of affairs can't be said yet.", nameof(layers))
+                        : null;
+                case Event:
+                    return null;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(layers), at, null);
+            }
+        }
+    }
+
+    //the states of affairs joined, each with the conjunction before it, none for the first
+    private static IEnumerable<(StateOfAffairs Conjunct, Conjunction? Before)> Conjuncts(StateOfAffairs layers, Conjunction? before) =>
+        layers.Value is Coordinated<StateOfAffairs> joined
+            ? [.. Conjuncts(joined.First, before), .. Conjuncts(joined.Second, joined.Conjunction)]
+            : [(layers, before)];
+
+    /*
+      states of affairs joined under one tense and sentence type, each said as a clause of its own
+      at that tense, or told, with the aspects over them all on each, as 'had eaten and drunk' has
+      its perfect on both, and the language's word for the conjunction between, as clauses are
+      joined. A subject the one before it has isn't said again, as in 'she turns and walks away'.
+      TODO languages that chain clauses, as Turkic and Papuan ones do, say the tense only on the
+      last verb, and many mark whether the next subject is the same, as switch reference does;
+      others serialize the verbs, as Yoruba and Mandarin do
+     */
+    private static ClauseWords Joined(Language language, Coordinated<StateOfAffairs> joined, IReadOnlyList<Aspect> aspects, Tense? tense)
+    {
+        List<Word> words = [];
+        Argument? previous = null;
+        foreach (var (conjunct, before) in Conjuncts(joined, null))
+        {
+            var layered = Enumerable.Reverse(aspects).Aggregate(conjunct, (inner, aspect) => new Aspected(aspect, inner));
+            var spine = Collected(layered, tense);
+            var drop = previous is { } said && said.Equals(spine.Event.Subject);
+            if (before is { } conjunction && language.Conjunctions.BetweenClauses(conjunction) is { } between)
+            {
+                words.Add(new Word([between.Root]));
+            }
+            words.AddRange(tense is null
+                ? Words(language, spine, new Balanced(null, null, [], drop)).Words
+                : Words(language, Fold(language, spine, ModalOf(language, spine)), [], drop).Words);
+            previous = spine.Event.Subject;
+        }
+        //TODO each has a finite verb of its own, but a suffix marking them together still goes on the last word
+        return new(words, null);
+    }
 
     //a spine's situational modal, as the language marks it
     private static Modal? ModalOf(Language language, Spine spine) =>
@@ -490,7 +566,8 @@ public static class Syntax
     {
         if (spine is not { Event.Predicate.Value: Doing { Object: { Value: ComplementClause { Kind: ComplementKind.Event } embedded } } doing, Tense: { } tense }
             || !(embedded.SharesSubject || SubjectOf(embedded.Clause).Equals(spine.Event.Subject))
-            || embedded.Clause.Value is not Clause { Value: Declarative { Propositional.Value: Proposition inner } })
+            || embedded.Clause.Value is not Clause { Value: Declarative { Propositional.Value: Proposition inner } }
+            || JoinsEvents(inner.StateOfAffairs))
         {
             return null;
         }
@@ -528,7 +605,7 @@ public static class Syntax
      */
     private static ClauseWords? AsDeranked(Language language, Statement statement, bool dropSubject, Role? markedAs)
     {
-        if (statement.Value is not Clause { Value: Declarative { Propositional.Value: Proposition proposition } })
+        if (statement.Value is not Clause { Value: Declarative { Propositional.Value: Proposition proposition } } || JoinsEvents(proposition.StateOfAffairs))
         {
             return null;
         }
@@ -584,9 +661,9 @@ public static class Syntax
 
     //each statement as it would be said alone, with the language's word for the conjunction between,
     //or nothing where it sets clauses side by side
-    public static Sentence Realize(Language language, Coordinated coordinated, string translation) => Sentence(language, Words(language, coordinated).Words, translation);
+    public static Sentence Realize(Language language, Coordinated<Statement> coordinated, string translation) => Sentence(language, Words(language, coordinated).Words, translation);
 
-    private static ClauseWords Words(Language language, Coordinated coordinated)
+    private static ClauseWords Words(Language language, Coordinated<Statement> coordinated)
     {
         IReadOnlyList<Word> between = language.Conjunctions.BetweenClauses(coordinated.Conjunction) is { } word ? [new Word([word.Root])] : [];
         //TODO each clause has a finite verb of its own, but a suffix marking the two together still goes on the last word
@@ -636,11 +713,11 @@ public static class Syntax
         Phased(language, spine) is var (begun, phase) ? new(begun, modal, phase) : new(spine, modal, null);
 
     //a clause that states something, as it's folded, with words said where its obliques go, before them
-    private static ClauseWords Words(Language language, Folded folded, IReadOnlyList<Word> adverbs)
+    private static ClauseWords Words(Language language, Folded folded, IReadOnlyList<Word> adverbs, bool dropSubject)
     {
         var spine = Voiced(language, folded.Clause);
         return spine.Tense is not null
-            ? Words(language, spine, new Balanced(folded.Modal, folded.Phase, adverbs))
+            ? Words(language, spine, new Balanced(folded.Modal, folded.Phase, adverbs, dropSubject))
             : throw new ArgumentException("A command is said with no modal or phase.", nameof(folded));
     }
 
@@ -653,7 +730,8 @@ public static class Syntax
       subject where it shares the main clause's, and the whole clause in the role's adposition
      */
     private union Rank(Balanced, Deranked);
-    private record Balanced(Modal? Modal, AspectMarking? Phase, IReadOnlyList<Word> Adverbs);
+    //a balanced clause leaves out its subject where the one joined before it has said it
+    private record Balanced(Modal? Modal, AspectMarking? Phase, IReadOnlyList<Word> Adverbs, bool DropSubject);
     private record Deranked(AspectMarking? Phase, bool DropSubject, RoleMarker? Marker);
 
     /*
@@ -679,7 +757,7 @@ public static class Syntax
 
     //a clause's subject's words, unsaid in a command, even in a language that says its pronouns, as in English, and in a deranked clause that shares its subject
     private static IReadOnlyList<Word> SubjectWords(Language language, Spine spine, Rank rank, Role role) =>
-        spine.Tense is null || rank.Value is Deranked { DropSubject: true } ? [] : Subject(language, spine.Event.Subject, role);
+        spine.Tense is null || rank.Value is Deranked { DropSubject: true } or Balanced { DropSubject: true } ? [] : Subject(language, spine.Event.Subject, role);
 
     //the words said where a statement's obliques go, before them, as a question's 'why' or 'how' is
     private static IReadOnlyList<Word> AdverbsOf(Rank rank) => rank.Value is Balanced balanced ? balanced.Adverbs : [];
@@ -966,7 +1044,7 @@ public static class Syntax
             ParticleComparison particle => Copular(language, spine, being, rank, Than(particle, Inflect(language, standard, Role.IntransitiveSubject)), degree),
             ExceedComparison exceed => Copular(language, spine, being, rank, Exceeding(language, exceed, standard), degree),
             ConjoinedComparison => Conjoined(Copular(language, spine, being, rank, [], null),
-                Copular(language, spine with { Event = spine.Event with { Subject = standard, Obliques = [], Adverbs = [] }, Negative = !spine.Negative }, being, new Balanced(null, null, []), [], null)),
+                Copular(language, spine with { Event = spine.Event with { Subject = standard, Obliques = [], Adverbs = [] }, Negative = !spine.Negative }, being, new Balanced(null, null, [], false), [], null)),
         };
 
         //both clauses say the same verb, so either's will do, where the first dropped its copula and the second didn't
@@ -1019,10 +1097,16 @@ public static class Syntax
     private static ClauseWords Words(Language language, Propositional propositional, IReadOnlyList<Word> adverbs)
     {
         var (proposition, epistemic, denied) = Judgment(propositional);
+        if (JoinedUnder(proposition.StateOfAffairs) is var (aspects, joined))
+        {
+            return epistemic is null && adverbs.Count == 0
+                ? Joined(language, joined, aspects, proposition.Tense)
+                : throw new ArgumentException("A judgment or a question over joined states of affairs can't be said yet.", nameof(propositional));
+        }
         var spine = Collected(proposition.StateOfAffairs, proposition.Tense);
         if (epistemic is null)
         {
-            return Words(language, Fold(language, spine, ModalOf(language, spine)), adverbs);
+            return Words(language, Fold(language, spine, ModalOf(language, spine)), adverbs, false);
         }
         if (spine.Modal is not null)
         {
@@ -1031,7 +1115,7 @@ public static class Syntax
         var marking = language.Modals.Markers[epistemic];
         return marking.Value is ModalVerb verb
             ? Impersonal(language, verb, new Declarative(proposition), denied, adverbs)
-            : Words(language, Fold(language, spine, new Modal(marking, denied)), adverbs);
+            : Words(language, Fold(language, spine, new Modal(marking, denied)), adverbs, false);
     }
 
     //a proposition, its judgment, if it has one, and whether that's denied, which is as much as is said yet

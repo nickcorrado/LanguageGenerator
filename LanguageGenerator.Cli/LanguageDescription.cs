@@ -465,7 +465,7 @@ public static class LanguageDescription
         [
             (Declared(new Event(new Doing("see", Phrase("bird", Number.Plural)), new Coordination(Conjunction.And, [Phrase("dog", Number.Singular), Phrase("cat", Number.Singular)]), [], []), Tense.Past, Aspect.Perfective, false),
                 "the dog and the cat saw the birds"),
-            (new Coordinated(Conjunction.But, Declared(new Event(new Doing("sleep", null), Phrase("dog", Number.Singular), [], []), Tense.Past, Aspect.Imperfective, false),
+            (new Coordinated<Statement>(Conjunction.But, Declared(new Event(new Doing("sleep", null), Phrase("dog", Number.Singular), [], []), Tense.Past, Aspect.Imperfective, false),
                 Declared(new Event(new Doing("eat", Phrase("fish", Number.Singular)), Phrase("cat", Number.Singular), [], []), Tense.Past, Aspect.Imperfective, false)), "the dog was sleeping, but the cat was eating the fish"),
             (Declared(new Event(new Being(new AdjectiveCoordination(Conjunction.And, [new("big", false), new("old", false)])), Phrase("house", Number.Singular), [], []), Tense.Present, Aspect.Imperfective, false),
                 "the house is big and old"),

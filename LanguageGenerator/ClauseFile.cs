@@ -47,7 +47,8 @@ public static class ClauseFile
                 translation = (line.Trim(), number);
                 continuing = false;
             }
-            else if (ConjunctionOf(line) is not null || SubordinatorOf(line) is not null)
+            //an entry's first gloss line can be headed by a conjunction, joining events, but never by a subordinator
+            else if (SubordinatorOf(line) is not null || translation is null && ConjunctionOf(line) is not null)
             {
                 //a line starting with a conjunction joins its clause to the ones above it, and one
                 //starting with a subordinator puts its clause under them
@@ -120,15 +121,15 @@ public static class ClauseFile
     }
 
     //clauses joined by a conjunction, neither of them a question yet
-    private static Coordinated ToCoordinated(Conjunction conjunction, Statement first, Statement second, int number) =>
+    private static Coordinated<Statement> ToCoordinated(Conjunction conjunction, Statement first, Statement second, int number) =>
         IsQuestion(first) || IsQuestion(second)
             ? throw new ClauseFormatException("A question can't be joined to another clause yet.", number)
-            : new Coordinated(conjunction, first, second);
+            : new Coordinated<Statement>(conjunction, first, second);
 
     private static bool IsQuestion(Statement statement) => statement.Value switch
     {
         Clause { Value: Interrogative } => true,
-        Coordinated c => IsQuestion(c.First) || IsQuestion(c.Second),
+        Coordinated<Statement> c => IsQuestion(c.First) || IsQuestion(c.Second),
         Subordinated s => IsQuestion(s.Main),
         _ => false,
     };
@@ -160,8 +161,8 @@ public static class ClauseFile
 
     private static IEnumerable<Argument> ArgumentsOf(Statement statement) => statement switch
     {
-        Clause c => c.Event.Arguments,
-        Coordinated c => [.. ArgumentsOf(c.First), .. ArgumentsOf(c.Second)],
+        Clause c => c.StateOfAffairs.Events.SelectMany(e => e.Arguments),
+        Coordinated<Statement> c => [.. ArgumentsOf(c.First), .. ArgumentsOf(c.Second)],
         Subordinated s => [.. ArgumentsOf(s.Main), .. ArgumentsOf(s.Clause)],
     };
 
@@ -210,8 +211,8 @@ public static class ClauseFile
     {
         return statement.Value switch
         {
-            Clause c => [.. c.Event.Fillers.Where(f => f.Argument.Value is Gap).Select(NameOf),
-                .. c.Event.Predicate.Value is Being { Attribute.Value: Compared { Standard.Value: Gap } } ? ["standard"] : Array.Empty<string>()],
+            Clause c => [.. c.StateOfAffairs.Events.SelectMany(e => e.Fillers).Where(f => f.Argument.Value is Gap).Select(NameOf),
+                .. c.StateOfAffairs.Events.Any(e => e.Predicate.Value is Being { Attribute.Value: Compared { Standard.Value: Gap } }) ? ["standard"] : Array.Empty<string>()],
             _ => [],
         };
 
@@ -370,6 +371,7 @@ public static class ClauseFile
         {
             Clause { Value: Directive } => throw new ClauseFormatException("A relative clause can't be a command: it says something of its noun.", number),
             Clause { Value: Interrogative } => throw new ClauseFormatException("A relative clause can't be a question.", number),
+            Clause c when c.StateOfAffairs.Events.Skip(1).Any() => throw new ClauseFormatException("A relative clause can't join events yet.", number),
             _ when roles.Count == 0 && Gaps(clause) == 0 => throw new ClauseFormatException($"A relative clause needs _ in the role its noun fills in it, as in {Example}.", number),
             _ when roles.Count != 1 || Gaps(clause) != 1 => throw new ClauseFormatException("A relative clause has one _, in a role of its own, not inside a noun phrase or another clause in it.", number),
             _ when roles[0] == "standard" => throw new ClauseFormatException("A relative clause's noun can't be what it compares something with yet.", number),
@@ -408,6 +410,10 @@ public static class ClauseFile
                 : new ClauseFormatException($"A clause starts with its verb, not with '{written.Items[0].Text}'.", number);
         }
         var (verb, glosses) = ParseWord(head.Text, number);
+        if (Conjunctions.TryGetValue(verb, out var conjunction))
+        {
+            return ParseJoined(conjunction, verb, glosses, written, number, impliedSubject, out addressee);
+        }
         var features = ParseVerbFeatures(verb, glosses, number);
         //why and how fill no role, so they're written on their own
         static bool IsAdverb(SyntaxItem item) => item is { Role: null, Value.Value: SyntaxWord { Text: var text } } && QuestionAdverbs.ContainsKey(text);
@@ -499,6 +505,86 @@ public static class ClauseFile
             proposition = features.Denied ? new Denied(proposition) : proposition;
         }
         return asked ? (Clause)new Interrogative(proposition) : new Declarative(proposition);
+    }
+
+    /*
+      states of affairs joined under one tense and sentence type, as in 'she turns and walks away':
+      the conjunction heads them, glossed with what they share, the tense, the mood and any aspect
+      over them all, with the subject they share, if they do, and who's addressed, and each event
+      goes in brackets with its own roles and its own negation, modal, aspect or passive. An event
+      with no subject has the shared one, or a command's 'you'. A negation, a modal or a question
+      over them all can't be said yet, since saying it on each changes what it says, and but joins
+      only clauses
+     */
+    private static Statement ParseJoined(Conjunction conjunction, string word, IReadOnlyList<Grammeme> glosses, SyntaxClause written, int number, Argument? impliedSubject, out NounPhrase? addressee)
+    {
+        const string Example = "and.PST  subject:3SG.F  [turn]  [walk  goal:away]";
+        //a verb after it is a clause joined to the one above, which the line can't follow when it's first
+        if (written.Items.Skip(1).FirstOrDefault() is { Role: null, Value.Value: SyntaxWord })
+        {
+            throw new ClauseFormatException($"A line starting with '{word}' joins a clause to the one above it, so it can't come first.", number);
+        }
+        if (conjunction == Conjunction.But)
+        {
+            throw new ClauseFormatException("but joins only clauses, on a line of its own starting with but.", number);
+        }
+        var features = ParseVerbFeatures(word, glosses, number);
+        if (features.Question || features.Modality is not null || features.Negated)
+        {
+            throw new ClauseFormatException("A negation, a modal or Q over joined events can't be said yet, since saying it on each changes what it says: "
+                + "write it on each event, or join whole clauses on lines of their own.", number);
+        }
+        if (features.Imperative && features.Aspect is not null || features.Passive)
+        {
+            throw new ClauseFormatException(features.Passive ? "PASS goes on the event that's passive, not on the conjunction." : "A command has no aspect.", number);
+        }
+        List<SyntaxClause> events = [];
+        Argument? subject = impliedSubject;
+        addressee = null;
+        foreach (var item in written.Items.Skip(1))
+        {
+            switch (item)
+            {
+                case { Role: null, Value.Value: SyntaxClause @event }:
+                    events.Add(@event);
+                    break;
+                case { Role: "subject" }:
+                    subject = ParseArgument(item.Value, number);
+                    break;
+                case { Role: "addressee" }:
+                    addressee = ToAddressee(ParseArgument(item.Value, number), number);
+                    break;
+                default:
+                    throw new ClauseFormatException($"Joined events share only their subject: and who's addressed, on the conjunction; '{item.Text}' goes in the brackets of the event it's part of.", number);
+            }
+        }
+        if (events.Count < 2)
+        {
+            throw new ClauseFormatException($"A conjunction heading a clause joins two events or more, each in brackets, as in {Example}.", number);
+        }
+        var shared = features.Imperative ? new Pronoun(Person.Second, Told(subject, addressee, number)) : subject;
+        StateOfAffairs? layers = null;
+        foreach (var @event in events)
+        {
+            if (@event.Items is [{ Role: null, Value.Value: SyntaxWord verb }, ..]
+                && ParseWord(verb.Text, number).Features.FirstOrDefault(f => f is Tense or EpistemicModality || f == Mood.Imperative || f == Mood.Interrogative) is { } whole)
+            {
+                throw new ClauseFormatException($"{whole.Gloss} is what joined events share, so it goes on the conjunction, as in and.{whole.Gloss}, not on one of them.", number);
+            }
+            var clause = ParseClause(@event, number, shared, "Who's addressed goes on the conjunction, not on one of the events it joins.");
+            var joined = clause.Value is Clause { Value: Declarative { Propositional.Value: Proposition proposition } }
+                ? proposition.StateOfAffairs
+                : throw new ClauseFormatException("An event in brackets says something, and can't ask yet.", number);
+            layers = layers is { } before ? new Coordinated<StateOfAffairs>(conjunction, before, joined) : joined;
+        }
+        //an aspect on the conjunction is over them all
+        foreach (var aspect in features.Operators.OfType<Aspect>())
+        {
+            layers = new Aspected(aspect, layers!.Value);
+        }
+        return features.Imperative
+            ? (Clause)new Directive(layers!.Value)
+            : new Declarative(new Proposition(layers!.Value, features.Tense ?? Tense.Present));
     }
 
     //the question words, in the roles they ask about

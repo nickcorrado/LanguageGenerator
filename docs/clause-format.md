@@ -289,6 +289,25 @@ hunters sit by the fire and argue
 
 'But' joins only clauses.
 
+### Joined events
+
+Events that share their tense and sentence type can be joined under one clause instead, which Haspelmath tells apart from clauses joined. The conjunction heads them, glossed with what they share, the tense, `IMP` and any aspect over them all, with the subject they share, if they do, and who's addressed; each event goes in brackets, with its own roles and its own `NEG`, modal, aspect or `PASS`:
+
+```
+she turns and walks away
+  and.PST  subject:3SG.F  [turn]  [walk  goal:away]
+
+the dog ate and the cat slept
+  and.PST  [eat  subject:dog.DEF]  [sleep  subject:cat.DEF]
+
+sit down and eat
+  and.IMP  [sit]  [eat]
+```
+
+An event with no subject has the shared one, or a command's 'you'. Three or more go under one conjunction, as in `and  subject:dog  [see]  [eat]  [sleep]`, and a line starting with `and`, `or` or `but` can join a clause to them. An oblique that applies to all of them is written in each.
+
+Each event is said as a clause of its own at the shared tense, with the aspect on the conjunction on each, as 'had eaten and drunk' has, and the language's word for the conjunction between, as clauses are joined. A subject the event before it has isn't said again. A negation, a modal or `Q` on the conjunction can't be said yet, since saying it on each changes what it says: 'you can't eat and drink here', meaning not both, isn't 'you can't eat and you can't drink here'. Nor can a question word in one of the events, joined events in a relative clause, or 'but' heading them.
+
 ## Subordinate clauses
 
 A clause under another goes on an indented line of its own after the main clause, starting with what it says. The language decides which comes first, so the main clause is always written first, whatever order the English has:

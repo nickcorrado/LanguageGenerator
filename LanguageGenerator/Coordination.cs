@@ -18,9 +18,12 @@ public record Coordination(Conjunction Conjunction, ValueList<Argument> Items);
 /// <summary>Adjectives said of a subject together, as in 'the inn is warm and crowded'.</summary>
 public record AdjectiveCoordination(Conjunction Conjunction, ValueList<Adjective> Adjectives);
 
-/// <summary>Two statements joined, as in 'hunters sit by the fire and argue'.</summary>
-//a third is joined to the first two, so a list of clauses nests to the left
-public record Coordinated(Conjunction Conjunction, Statement First, Statement Second);
+/// <summary>
+/// Two things joined: statements, as in 'I'm leaving, but will you come?', or states of affairs
+/// under one tense and sentence type, as in 'she turns and walks away'.
+/// </summary>
+//a third is joined to the first two, so a list nests to the left
+public record Coordinated<T>(Conjunction Conjunction, T First, T Second);
 
 /// <summary>'And' between nouns is a word of its own, as English and is.</summary>
 public record AndWord(Lexeme Word);

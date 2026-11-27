@@ -184,7 +184,7 @@ The model has to take these without another redesign. For each, where it goes an
 | A situational modal with a perfect, as in 'you should have gone' | A modal over the perfect, already, and the perfect over a modal, as in 'she has had to leave' | Saying an auxiliary chain where both are verbs |
 | Comparison with a clause as its standard, as in 'warmer than it should be' | `Compared`'s standard as a proposition, beside a noun phrase | The standard's case, and ellipsis in it |
 | Comparison of adverbs and inside a noun phrase | `Compared` for a manner and for an adjective in a noun phrase | The same, in those places |
-| Dropping a repeated subject, as in 'she turns and walks away' | A joined `StateOfAffairs`, already | Saying one: chaining, serializing, or each event with what's shared left out; switch reference |
+| Dropping a repeated subject, as in 'she turns and walks away' | A joined `StateOfAffairs`, built: each event said at the shared tense, a shared subject once | Chaining, serializing and switch reference; a negation, a modal or a question over joined events |
 | A negated comparison, or one with a modal | `Negated` and `Modalized` over it, already | Saying them |
 
 

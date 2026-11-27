@@ -177,6 +177,7 @@ internal static class Clauses
         Aspected aspected => aspected.Aspect,
         Negated negated => AspectOf(negated.StateOfAffairs),
         Modalized modalized => AspectOf(modalized.StateOfAffairs),
+        Coordinated<StateOfAffairs> => throw new Xunit.Sdk.XunitException("Joined states of affairs each have an aspect of their own."),
     };
 
     public static Proposition PropositionOf(Statement statement) => ClauseOf(statement).Value switch

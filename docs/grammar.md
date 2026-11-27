@@ -110,6 +110,8 @@ Questions with 'who', 'what', 'where', 'when', 'why' and 'how' put their questio
 
 'And', 'or' and 'but' between noun phrases, adjectives and clauses. 'And' between nouns is the word for 'with' in nearly half of languages, as WALS 63A counts them, so 'the dog with the cat slept', and the same word joins clauses in some languages and not others, or none at all, as WALS 64A has it. Things joined by 'and' are plural to what agrees with them, or dual where the language has one, and 'you and I' is 'we'.
 
+Events joined under one tense and sentence type, as in 'she turns and walks away', are each said as a clause at the shared tense, with a subject the one before shares left unsaid.
+
 ### Subordinate clauses
 
 Clauses saying if, when, before, after, until, because and in order to, each marked by a word at the start of the clause, a word at its end or a suffix on its verb, as WALS 94A counts them by word order. In OV languages they nearly always come first; in VO languages conditionals do, as Greenberg's Universal 14 has it, and reason and purpose clauses mostly follow.
