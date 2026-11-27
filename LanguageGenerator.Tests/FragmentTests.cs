@@ -58,6 +58,26 @@ public class FragmentTests
         Assert.Equal(BareNoun("marta", Number.Singular), fragment.Addressee);
     }
 
+    [Theory]
+    [InlineData("yes", "Affirmative")]
+    [InlineData("no", "Negative")]
+    public void Parse_Answer_IsItsPolarity(string word, string polarity)
+    {
+        var answer = Assert.IsType<Answer>(Parse($"answer:{word}").Part.GetValueOrDefault().Value);
+
+        Assert.Equal(polarity, answer.Polarity.Name);
+        Assert.Equal(word, answer.Meaning);
+    }
+
+    [Fact]
+    public void Parse_QuotedAnswer_IsWhatWasSaid()
+    {
+        var said = Stated(Assert.Single(ClauseFile.Parse("x\n  say  subject:3SG.F  quote:[answer:no]  manner:quiet")).Utterance);
+
+        var quotation = Assert.IsType<Quotation>(PredicateOf<Doing>(said).Object.GetValueOrDefault().Value);
+        Assert.Equal(new Answer(Polarity.Negative), Assert.IsType<Fragment>(quotation.Utterance.Value).Part.GetValueOrDefault().Value);
+    }
+
     [Fact]
     public void Parse_QuotedFragment_IsWhatWasSaid()
     {
@@ -91,7 +111,11 @@ public class FragmentTests
     [InlineData("x\n  interjection:oh  noun:dog", "said on its own")]
     [InlineData("x\n  interjection:hello.PL", "with no glosses")]
     [InlineData("x\n  interjection:(hello big)", "with no glosses")]
-    [InlineData("x\n  interjection:oh  interjection:hello", "more than one interjection")]
+    [InlineData("x\n  interjection:oh  interjection:hello", "one interjection: or answer:")]
+    [InlineData("x\n  interjection:oh  answer:no", "one interjection: or answer:")]
+    [InlineData("x\n  interjection:no", "so it's answer:no")]
+    [InlineData("x\n  answer:maybe", "answer:yes or answer:no")]
+    [InlineData("x\n  answer:no  goal:house", "said on its own")]
     public void Parse_BadFragments_SayWhy(string text, string message) => Assert.Contains(message, Error(text).Message);
 
     [Fact]
@@ -173,6 +197,18 @@ public class FragmentTests
             var hello = l.Lexicon.Interjection("hello");
             Assert.True(IndexOf(sentence, hello.Root) < IndexOf(sentence, "person"));
             Assert.InRange(l.Phonology.Realize(new Word([hello.Root])).Syllables.Count, 1, 2);
+        });
+    }
+
+    [Fact]
+    public void Realize_Answer_IsAWordOfItsOwnBeforeWhoItsSaidTo()
+    {
+        //languages of the test's own, since the sample's have no answers
+        Assert.All(Enumerable.Range(0, 30).Select(seed => Generator.Generate(seed, LanguageSpec.Free)), l =>
+        {
+            var sentence = Syntax.Realize(l, new Fragment(new Answer(Polarity.Negative), BareNoun("person", Number.Singular)), "no, person");
+
+            Assert.True(IndexOf(sentence, "no") < IndexOf(sentence, "person"));
         });
     }
 

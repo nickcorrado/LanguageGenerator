@@ -155,7 +155,7 @@ public static class ClauseFile
                 Standalone standalone => [standalone.Argument],
                 Oblique oblique => [oblique.Argument],
                 Heading heading => [heading.Label, heading.Title],
-                Interjection => Array.Empty<Argument>(),
+                Interjection or Answer => Array.Empty<Argument>(),
             }
             : Array.Empty<Argument>(),
     ];
@@ -246,9 +246,10 @@ public static class ClauseFile
      */
     private static Fragment ParseFragment(SyntaxClause written, int number)
     {
-        const string Says = "A line with no verb is a fragment, which says a noun:, an oblique such as goal: or beneficiary:, a heading's label: and noun:, an interjection:, or who's called, as addressee:";
+        const string Says = "A line with no verb is a fragment, which says a noun:, an oblique such as goal: or beneficiary:, a heading's label: and noun:, an interjection:, an answer:, or who's called, as addressee:";
         NounPhrase? addressee = null;
-        Interjection? interjection = null;
+        //an interjection or an answer, which are said alike
+        FragmentPart? exclamation = null;
         Argument? label = null;
         Argument? noun = null;
         Oblique? oblique = null;
@@ -264,9 +265,10 @@ public static class ClauseFile
             {
                 throw new ClauseFormatException($"Only a role saying where can say in, on or under, as location., goal., source. and route. do, not {role}.", number);
             }
-            if (role is "addressee" && addressee is not null || role is "interjection" && interjection is not null || role is "label" && label.HasValue || role is "noun" && noun.HasValue || isOblique && oblique is not null)
+            if (role is "addressee" && addressee is not null || role is "interjection" or "answer" && exclamation.HasValue || role is "label" && label.HasValue || role is "noun" && noun.HasValue || isOblique && oblique is not null)
             {
-                throw new ClauseFormatException(isOblique ? "A fragment says one oblique." : $"The fragment has more than one {role}.", number);
+                throw new ClauseFormatException(isOblique ? "A fragment says one oblique."
+                    : role is "interjection" or "answer" ? "A fragment says one interjection: or answer:." : $"The fragment has more than one {role}.", number);
             }
             switch (role)
             {
@@ -274,7 +276,10 @@ public static class ClauseFile
                     addressee = ToAddressee(ParseArgument(item.Value, number), number);
                     break;
                 case "interjection":
-                    interjection = ParseInterjection(item.Value, number);
+                    exclamation = ParseInterjection(item.Value, number);
+                    break;
+                case "answer":
+                    exclamation = ParseAnswer(item.Value, number);
                     break;
                 case "label":
                     label = Standing(ParseArgument(item.Value, number), number);
@@ -293,10 +298,10 @@ public static class ClauseFile
         {
             throw new ClauseFormatException("A fragment says a noun: or an oblique, not both.", number);
         }
-        if (interjection is { } exclaimed)
+        if (exclamation is { } exclaimed)
         {
             return noun.HasValue || label.HasValue || oblique is not null
-                ? throw new ClauseFormatException("An interjection: is said on its own, or to someone with addressee:, not with a noun: or an oblique yet.", number)
+                ? throw new ClauseFormatException("An interjection: or answer: is said on its own, or to someone with addressee:, not with a noun: or an oblique yet.", number)
                 : new Fragment(exclaimed, addressee);
         }
         if (label is { } heading)
@@ -318,10 +323,27 @@ public static class ClauseFile
         return new Fragment(null, addressee);
     }
 
-    //an interjection is its meaning, a word with no glosses, as in interjection:hello
-    private static Interjection ParseInterjection(SyntaxValue value, int number) => value.Value is SyntaxWord { Text: var text } && !text.Contains('.') && text != "_"
-        ? new Interjection(text.ToLowerInvariant())
-        : throw new ClauseFormatException($"An interjection is a word with no glosses, as in interjection:hello, not '{value.Text}'.", number);
+    //an interjection is its meaning, a word with no glosses, as in interjection:hello, but for yes
+    //and no, which answer
+    private static Interjection ParseInterjection(SyntaxValue value, int number) => value.Value switch
+    {
+        SyntaxWord { Text: var text } when Answers.ContainsKey(text.ToLowerInvariant()) =>
+            throw new ClauseFormatException($"{text} answers, so it's answer:{text.ToLowerInvariant()}, not interjection:{text}.", number),
+        SyntaxWord { Text: var text } when !text.Contains('.') && text != "_" => new Interjection(text.ToLowerInvariant()),
+        _ => throw new ClauseFormatException($"An interjection is a word with no glosses, as in interjection:hello, not '{value.Text}'.", number),
+    };
+
+    private static readonly Dictionary<string, Polarity> Answers = new()
+    {
+        ["yes"] = Polarity.Affirmative,
+        ["no"] = Polarity.Negative,
+    };
+
+    //an answer is yes or no
+    private static Answer ParseAnswer(SyntaxValue value, int number) =>
+        value.Value is SyntaxWord { Text: var text } && Answers.TryGetValue(text, out var polarity)
+            ? new Answer(polarity)
+            : throw new ClauseFormatException($"An answer is answer:yes or answer:no, not answer:{value.Text}.", number);
 
     //what a fragment says, which asks nothing yet and has no gap
     private static Argument Standing(Argument argument, int number) => argument.Value switch

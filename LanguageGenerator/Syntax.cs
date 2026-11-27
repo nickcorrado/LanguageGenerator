@@ -235,8 +235,9 @@ public static class Syntax
     /*
       a fragment's words: who it's said to first, as a statement's addressee is, then what it says,
       which is a phrase as a noun is cited, or an oblique marked as its role is in a clause. An
-      interjection goes before who it's said to instead, as in 'hello, Marta' and 'oh, Marta', which
-      is a guess, since nobody counts it. It has no verb, so a marker of the whole goes on its last
+      interjection or an answer goes before who it's said to instead, as in 'hello, Marta' and 'no,
+      Marta', which is a guess, since nobody counts it. An answer is a word of its own, as an
+      interjection is. It has no verb, so a marker of the whole goes on its last
       word. A heading is said only as a sentence of its own, since its label is said apart
      */
     private static ClauseWords Words(Language language, Fragment fragment)
@@ -248,6 +249,7 @@ public static class Syntax
                 Standalone standalone => Cited(language, standalone.Argument),
                 Oblique oblique => Oblique(language, oblique),
                 Interjection interjection => [new Word([language.Lexicon.Interjection(interjection.Meaning).Root])],
+                Answer answer => [new Word([language.Lexicon.Interjection(answer.Meaning).Root])],
                 Heading => throw new ArgumentException("A heading is said only as a sentence of its own.", nameof(fragment)),
             }
             : [];
@@ -255,7 +257,7 @@ public static class Syntax
         {
             throw new ArgumentException("A fragment says something, or calls someone.", nameof(fragment));
         }
-        return new(fragment.Part is { Value: Interjection } ? [.. said, .. called] : [.. called, .. said], null);
+        return new(fragment.Part is { Value: Interjection or Answer } ? [.. said, .. called] : [.. called, .. said], null);
     }
 
     /// <summary>

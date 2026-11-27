@@ -293,7 +293,7 @@ public static class GlossPrompt
             - A line with no verb, as in headings, item descriptions or replies, is a fragment: its
               gloss line has roles only, and no verb. noun: is a phrase on its own, an oblique role
               one on its own, label: with noun: a heading, interjection: a word like 'hello', 'oh'
-              or 'alas', and addressee: alone calls someone. Keep a
+              or 'alas', answer:yes or answer:no a 'yes' or 'no', and addressee: alone calls someone. Keep a
               fragment a fragment, never adding 'it is' or 'the item is', and write its English line
               as the gloss says it:
 
@@ -309,8 +309,10 @@ public static class GlossPrompt
                   addressee:stranger
                 hello, Marta
                   interjection:hello  addressee:marta
+                "no," she says quietly
+                  say  subject:3SG.F  quote:[answer:no]  manner:quiet
 
-              A fragment says one noun:, one oblique or one interjection, can be said to someone with
+              A fragment says one noun:, one oblique, one interjection or one answer, can be said to someone with
               addressee:, and can be quoted, as in '"for your ears," he says', which is
               say  subject:3SG.M  quote:[beneficiary:(ear.PL possessor:2SG)]. A heading is said to no
               one and can't be quoted, and no line starting with and, or, but or a subordinator can
@@ -367,8 +369,8 @@ public static class GlossPrompt
             - Never drop a modal that has no gloss, like a 'would' or 'could' that imagines
               something: 'would it be so terrible?' doesn't ask 'is it terrible?'.
             - Never drop or paraphrase away a word that negates, like 'nobody', 'nothing', 'never' or 'no':
-              'nobody believes him' is subject:nobody, not 'people do not believe him', and 'she
-              says no' keeps object:no.
+              'nobody believes him' is subject:nobody, not 'people do not believe him', and
+              'she says no' keeps her no, as quote:[answer:no].
             - When a sentence can't be said even loosely, as with a question asking two things, or
               how long, how often, how many, which or whose, or a question inside another clause that isn't quoted (like 'did anyone see what happened?'), a modal other than ABIL,
               PERM, OBLIG, ADVS, DUB or PRSM (like a 'would' or 'could' that imagines something), a relative clause with 'whose' or on a
