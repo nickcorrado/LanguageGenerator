@@ -93,8 +93,6 @@ public class CoordinationTests
     }
 
     //only the basic meanings, since coining new ones would add to the shared sample's lexicons
-    private static readonly NounPhrase Dog = BareNoun("dog", Number.Singular);
-    private static readonly NounPhrase Cat = BareNoun("cat", Number.Singular);
     private static readonly NounPhrase Birds = BareNoun("bird", Number.Plural);
 
     private static Sentence Saw(Language l, Argument subject) => Syntax.Realize(l, new Clause(new Doing("see", Birds), new Declarative(Tense.Past, Aspect.Perfective, subject), false, [], []), "x");
