@@ -6,7 +6,9 @@ namespace LanguageGenerator.Tests;
 
 public class FragmentTests
 {
-    private static Fragment Parse(string gloss) => Assert.IsType<Fragment>(Assert.Single(ClauseFile.Parse($"x\n  {gloss}")).Utterance.Value);
+    private static Message Parse(string gloss) => Assert.IsType<Message>(Line(gloss).Value);
+
+    private static Fragment FragmentOf(Message message) => Assert.IsType<Fragment>(message.Content.Value);
 
     private static ClauseFormatException Error(string text) => Assert.Throws<ClauseFormatException>(() => ClauseFile.Parse(text));
 
@@ -17,7 +19,7 @@ public class FragmentTests
     {
         var fragment = Parse("noun:(key.NDF old iron)");
 
-        var standing = Assert.IsType<Standalone>(fragment.Part.GetValueOrDefault().Value);
+        var standing = Assert.IsType<Standalone>(FragmentOf(fragment).Value);
         Assert.Equal(["old", "iron"], NounOf(standing.Argument).Adjectives.Select(a => a.Meaning));
         Assert.Null(fragment.Addressee);
     }
@@ -27,14 +29,14 @@ public class FragmentTests
     {
         var fragment = Parse("goal.in:river.DEF  addressee:marta");
 
-        Assert.Equal(new Oblique(Role.Goal, Definite("river"), Configuration.In), fragment.Part.GetValueOrDefault().Value);
+        Assert.Equal(new Oblique(Role.Goal, Definite("river"), Configuration.In), FragmentOf(fragment).Value);
         Assert.Equal(BareNoun("marta", Number.Singular), fragment.Addressee);
     }
 
     [Fact]
     public void Parse_LabelAndNoun_IsAHeading()
     {
-        var heading = Assert.IsType<Heading>(Parse("label:item  noun:(key rusty)").Part.GetValueOrDefault().Value);
+        var heading = Assert.IsType<Heading>(FragmentOf(Parse("label:item  noun:(key rusty)")).Value);
 
         Assert.Equal(BareNoun("item", Number.Singular), heading.Label.Value);
         Assert.Equal("key", NounOf(heading.Title).Meaning);
@@ -43,10 +45,9 @@ public class FragmentTests
     [Fact]
     public void Parse_AddresseeAlone_CallsThem()
     {
-        var fragment = Parse("addressee:stranger");
+        var call = Assert.IsType<Call>(Line("addressee:stranger").Value);
 
-        Assert.Null(fragment.Part);
-        Assert.Equal(BareNoun("stranger", Number.Singular), fragment.Addressee);
+        Assert.Equal(BareNoun("stranger", Number.Singular), call.Addressee);
     }
 
     [Fact]
@@ -54,7 +55,7 @@ public class FragmentTests
     {
         var fragment = Parse("interjection:hello  addressee:marta");
 
-        Assert.Equal(new Interjection("hello"), fragment.Part.GetValueOrDefault().Value);
+        Assert.Equal(new Interjection("hello"), FragmentOf(fragment).Value);
         Assert.Equal(BareNoun("marta", Number.Singular), fragment.Addressee);
     }
 
@@ -63,7 +64,7 @@ public class FragmentTests
     [InlineData("no", "Negative")]
     public void Parse_Answer_IsItsPolarity(string word, string polarity)
     {
-        var answer = Assert.IsType<Answer>(Parse($"answer:{word}").Part.GetValueOrDefault().Value);
+        var answer = Assert.IsType<Answer>(FragmentOf(Parse($"answer:{word}")).Value);
 
         Assert.Equal(polarity, answer.Polarity.Name);
         Assert.Equal(word, answer.Meaning);
@@ -75,7 +76,7 @@ public class FragmentTests
         var said = Stated(Assert.Single(ClauseFile.Parse("x\n  say  subject:3SG.F  quote:[answer:no]  manner:quiet")).Utterance);
 
         var quotation = Assert.IsType<Quotation>(PredicateOf<Doing>(said).Object.GetValueOrDefault().Value);
-        Assert.Equal(new Answer(Polarity.Negative), Assert.IsType<Fragment>(quotation.Utterance.Value).Part.GetValueOrDefault().Value);
+        Assert.Equal(new Answer(Polarity.Negative), FragmentOf(Assert.IsType<Message>(quotation.Utterance.Value)).Value);
     }
 
     [Fact]
@@ -84,8 +85,8 @@ public class FragmentTests
         var said = Stated(Assert.Single(ClauseFile.Parse("x\n  say  subject:3SG.M  quote:[beneficiary:(ear.PL possessor:2SG)]")).Utterance);
 
         var quotation = Assert.IsType<Quotation>(PredicateOf<Doing>(said).Object.GetValueOrDefault().Value);
-        var fragment = Assert.IsType<Fragment>(quotation.Utterance.Value);
-        Assert.Equal(Role.Beneficiary, Assert.IsType<Oblique>(fragment.Part.GetValueOrDefault().Value).Role);
+        var fragment = FragmentOf(Assert.IsType<Message>(quotation.Utterance.Value));
+        Assert.Equal(Role.Beneficiary, Assert.IsType<Oblique>(fragment.Value).Role);
     }
 
     [Fact]
@@ -93,7 +94,7 @@ public class FragmentTests
     {
         var entries = ClauseFile.Parse("x\n  label:item  noun:(key rusty)\ny\n  beneficiary:ear.PL  addressee:stranger");
 
-        Assert.Equal(["item", "key", "stranger", "ear"], ClauseFile.Nouns(entries).Select(n => n.Noun));
+        Assert.Equal(["item", "key", "ear", "stranger"], ClauseFile.Nouns(entries).Select(n => n.Noun));
     }
 
     [Theory]
@@ -124,7 +125,7 @@ public class FragmentTests
         Assert.All(GeneratedLanguages.Sample, l =>
         {
             var dog = Definite("dog");
-            var sentence = Syntax.Realize(l, new Fragment(new Standalone(dog), null), "the dog");
+            var sentence = Syntax.Realize(l, new Message((Fragment)new Standalone(dog), null), "the dog");
 
             Assert.Equal(Syntax.Cited(l, dog).Select(w => w.Gloss), sentence.Words.Select(w => w.Gloss));
             Assert.Empty(sentence.Label);
@@ -138,7 +139,7 @@ public class FragmentTests
         {
             var oblique = new Oblique(Role.Beneficiary, Definite("dog"), Configuration.At);
             var clause = Syntax.Realize(l, new Clause(new Doing("sleep", null), new Declarative(Tense.Present, Aspect.Imperfective, BareNoun("person", Number.Singular)), false, [oblique], []), "x");
-            var fragment = Syntax.Realize(l, new Fragment(oblique, null), "x");
+            var fragment = Syntax.Realize(l, new Message((Fragment)oblique, null), "x");
 
             //the fragment is the oblique's words, together in the clause as they are on their own
             var (said, alone) = (clause.Words.Select(w => w.Gloss).ToList(), fragment.Words.Select(w => w.Gloss).ToList());
@@ -152,7 +153,7 @@ public class FragmentTests
     {
         Assert.All(GeneratedLanguages.Sample, l =>
         {
-            var sentence = Syntax.Realize(l, new Fragment(null, BareNoun("person", Number.Singular)), "x");
+            var sentence = Syntax.Realize(l, new Call(BareNoun("person", Number.Singular)), "x");
 
             Assert.Equal(l.RoleMarkers[Role.Addressee].Case is { Name: "Vocative" }, sentence.Words.Any(w => w.Gloss.Contains("VOC")));
             Assert.Equal("person", Assert.Single(sentence.Words, w => w.Word.Root is not null).Word.Root!.Meaning);
@@ -164,7 +165,7 @@ public class FragmentTests
     {
         Assert.All(GeneratedLanguages.Sample, l =>
         {
-            var sentence = Syntax.Realize(l, new Fragment(new Standalone(Definite("dog")), BareNoun("person", Number.Singular)), "x");
+            var sentence = Syntax.Realize(l, new Message((Fragment)new Standalone(Definite("dog")), BareNoun("person", Number.Singular)), "x");
 
             Assert.True(IndexOf(sentence, "person") < IndexOf(sentence, "dog"));
         });
@@ -176,7 +177,7 @@ public class FragmentTests
         Assert.All(GeneratedLanguages.Sample, l =>
         {
             var (item, dog) = (BareNoun("house", Number.Singular), Definite("dog"));
-            var sentence = Syntax.Realize(l, new Fragment(new Heading(item, dog), null), "house: the dog");
+            var sentence = Syntax.Realize(l, new Message((Fragment)new Heading(item, dog), null), "house: the dog");
 
             Assert.Equal(Syntax.Cited(l, item).Select(w => w.Gloss), sentence.Label.SelectMany(g => g.Words).Select(w => w.Gloss));
             Assert.Equal(Syntax.Cited(l, dog).Select(w => w.Gloss), sentence.Said.SelectMany(g => g.Words).Select(w => w.Gloss));
@@ -192,7 +193,7 @@ public class FragmentTests
         //languages of the test's own, since the sample's have no interjections
         Assert.All(Enumerable.Range(0, 30).Select(seed => Generator.Generate(seed, LanguageSpec.Free)), l =>
         {
-            var sentence = Syntax.Realize(l, new Fragment(new Interjection("hello"), BareNoun("person", Number.Singular)), "x");
+            var sentence = Syntax.Realize(l, new Message((Fragment)new Interjection("hello"), BareNoun("person", Number.Singular)), "x");
 
             var hello = l.Lexicon.Interjection("hello");
             Assert.True(IndexOf(sentence, hello.Root) < IndexOf(sentence, "person"));
@@ -206,7 +207,7 @@ public class FragmentTests
         //languages of the test's own, since the sample's have no answers
         Assert.All(Enumerable.Range(0, 30).Select(seed => Generator.Generate(seed, LanguageSpec.Free)), l =>
         {
-            var sentence = Syntax.Realize(l, new Fragment(new Answer(Polarity.Negative), BareNoun("person", Number.Singular)), "no, person");
+            var sentence = Syntax.Realize(l, new Message((Fragment)new Answer(Polarity.Negative), BareNoun("person", Number.Singular)), "no, person");
 
             Assert.True(IndexOf(sentence, "no") < IndexOf(sentence, "person"));
         });
@@ -218,7 +219,7 @@ public class FragmentTests
         //languages of the test's own, since the sample's have no word for 'say'
         Assert.All(Enumerable.Range(0, 10).Select(seed => Generator.Generate(seed, LanguageSpec.Free)), l =>
         {
-            var said = new Quotation(new Fragment(new Oblique(Role.Goal, Definite("house"), Configuration.At), null));
+            var said = new Quotation(new Message((Fragment)new Oblique(Role.Goal, Definite("house"), Configuration.At), null));
             var sentence = Syntax.Realize(l, new Clause(new Doing("say", said), new Declarative(Tense.Past, Aspect.Perfective, BareNoun("person", Number.Singular)), false, [], []), "x");
 
             Assert.True(IndexOf(sentence, "house") >= 0);

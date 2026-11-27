@@ -56,16 +56,15 @@ public static class ClauseFile
                     throw new ClauseFormatException($"A line starting with '{line.Trim().Split(' ')[0]}' joins a clause to the one above it, so it can't come first.", number);
                 }
                 var previous = entries[^1];
-                var main = previous.Utterance switch
-                {
-                    Statement statement => statement,
-                    Fragment => throw new ClauseFormatException($"A line starting with '{line.Trim().Split(' ')[0]}' joins a clause to the one above it, which a fragment with no verb isn't.", number),
-                };
+                var message = previous.Utterance.Value is Message { Content.Value: Statement } said ? said
+                    : throw new ClauseFormatException($"A line starting with '{line.Trim().Split(' ')[0]}' joins a clause to the one above it, which a fragment with no verb isn't.", number);
+                var main = (Statement)message.Content.Value!;
                 var rest = line.Trim()[(line.Trim().IndexOf(' ') + 1)..];
                 Statement joined = ConjunctionOf(line) is { } conjunction
-                    ? ToCoordinated(conjunction, main, Ungapped(ParseClause(ClauseSyntax.Read(rest, number), number, null), number), number)
+                    ? ToCoordinated(conjunction, main, Ungapped(ParseClause(ClauseSyntax.Read(rest, number), number, null,
+                        "Say who's addressed on the first line, not on one joined to it: the whole sentence is said to them."), number), number)
                     : ToSubordinated(main, SubordinatorOf(line).GetValueOrDefault(), ClauseSyntax.Read(rest, number), number);
-                entries[^1] = previous with { Utterance = joined };
+                entries[^1] = previous with { Utterance = message with { Content = joined } };
             }
             else if (translation is { } english)
             {
@@ -111,11 +110,10 @@ public static class ClauseFile
     private static Subordinated ToSubordinated(Statement main, Subordinator subordinator, SyntaxClause line, int number)
     {
         var shares = subordinator == Subordinator.Purpose && !line.Items.Any(i => i.Role == "subject");
-        var clause = Ungapped(ParseClause(line, number, shares ? Syntax.SubjectOf(main) : (Argument?)null), number);
+        var clause = Ungapped(ParseClause(line, number, shares ? Syntax.SubjectOf(main) : (Argument?)null, "Say who's addressed in the main clause, not in one under it."), number);
         return clause.Value switch
         {
             Clause { Force.Value: Directive } => throw new ClauseFormatException($"A clause under another can't be a command: {subordinator.ToString().ToLowerInvariant()} takes a clause with a subject.", number),
-            Addressed => throw new ClauseFormatException("Say who's addressed in the main clause, not in one under it.", number),
             Question => throw new ClauseFormatException("A clause under another can't be a question: ask it in the main clause.", number),
             _ => new Subordinated(main, subordinator, clause, shares),
         };
@@ -130,7 +128,6 @@ public static class ClauseFile
     private static bool IsQuestion(Statement statement) => statement.Value switch
     {
         Question => true,
-        Addressed a => IsQuestion(a.Statement),
         Coordinated c => IsQuestion(c.First) || IsQuestion(c.Second),
         Subordinated s => IsQuestion(s.Main),
         _ => false,
@@ -140,31 +137,31 @@ public static class ClauseFile
     public static IReadOnlyList<(string Noun, string Translation)> Nouns(IEnumerable<Entry> entries) =>
         [.. entries.SelectMany(e => ArgumentsOf(e.Utterance).SelectMany(NounsIn).Select(n => (Noun: n, e.Translation))).DistinctBy(n => n.Noun)];
 
+    //what an utterance says, then who it's said to
     private static IEnumerable<Argument> ArgumentsOf(Utterance utterance) => utterance switch
+    {
+        Message message => [.. ArgumentsOf(message.Content), .. message.Addressee is { } addressee ? [addressee] : Array.Empty<Argument>()],
+        Call call => [call.Addressee],
+    };
+
+    private static IEnumerable<Argument> ArgumentsOf(Content content) => content switch
     {
         Statement statement => ArgumentsOf(statement),
         Fragment fragment => ArgumentsOf(fragment),
     };
 
-    private static IEnumerable<Argument> ArgumentsOf(Fragment fragment) =>
-    [
-        .. fragment.Addressee is { } addressee ? [addressee] : Array.Empty<Argument>(),
-        .. fragment.Part is { } part
-            ? part switch
-            {
-                Standalone standalone => [standalone.Argument],
-                Oblique oblique => [oblique.Argument],
-                Heading heading => [heading.Label, heading.Title],
-                Interjection or Answer => Array.Empty<Argument>(),
-            }
-            : Array.Empty<Argument>(),
-    ];
+    private static IEnumerable<Argument> ArgumentsOf(Fragment fragment) => fragment switch
+    {
+        Standalone standalone => [standalone.Argument],
+        Oblique oblique => [oblique.Argument],
+        Heading heading => [heading.Label, heading.Title],
+        Interjection or Answer => [],
+    };
 
     private static IEnumerable<Argument> ArgumentsOf(Statement statement) => statement switch
     {
         Clause c => c.Arguments,
         Comparative c => [.. ArgumentsOf(c.Clause), .. Given(c.Standard)],
-        Addressed a => [.. ArgumentsOf(a.Statement), a.Addressee],
         Coordinated c => [.. ArgumentsOf(c.First), .. ArgumentsOf(c.Second)],
         Subordinated s => [.. ArgumentsOf(s.Main), .. ArgumentsOf(s.Clause)],
         Modalized m => ArgumentsOf(m.Clause),
@@ -234,9 +231,15 @@ public static class ClauseFile
     }
 
     //a line with a verb first is a clause, and one that starts with a role has none, so it's a fragment
-    private static Utterance ParseUtterance(SyntaxClause written, int number) => written.Items is [{ Role: not null }, ..]
-        ? ParseFragment(written, number)
-        : Ungapped(ParseClause(written, number, null), number);
+    private static Utterance ParseUtterance(SyntaxClause written, int number)
+    {
+        if (written.Items is [{ Role: not null }, ..])
+        {
+            return ParseFragment(written, number);
+        }
+        var statement = Ungapped(ParseClause(written, number, null, out var addressee), number);
+        return new Message(statement, addressee);
+    }
 
     /*
       a line with no verb: a phrase on its own, as noun:, or an oblique, as goal: or beneficiary:,
@@ -244,12 +247,12 @@ public static class ClauseFile
       or just addressee:, calling someone. It asks nothing, and has no gap, which only a relative
       clause has
      */
-    private static Fragment ParseFragment(SyntaxClause written, int number)
+    private static Utterance ParseFragment(SyntaxClause written, int number)
     {
         const string Says = "A line with no verb is a fragment, which says a noun:, an oblique such as goal: or beneficiary:, a heading's label: and noun:, an interjection:, an answer:, or who's called, as addressee:";
         NounPhrase? addressee = null;
         //an interjection or an answer, which are said alike
-        FragmentPart? exclamation = null;
+        Fragment? exclamation = null;
         Argument? label = null;
         Argument? noun = null;
         Oblique? oblique = null;
@@ -302,25 +305,25 @@ public static class ClauseFile
         {
             return noun.HasValue || label.HasValue || oblique is not null
                 ? throw new ClauseFormatException("An interjection: or answer: is said on its own, or to someone with addressee:, not with a noun: or an oblique yet.", number)
-                : new Fragment(exclaimed, addressee);
+                : new Message(exclaimed, addressee);
         }
         if (label is { } heading)
         {
             return noun is { } title
-                ? addressee is null ? new Fragment(new Heading(heading, title), null)
+                ? addressee is null ? new Message((Fragment)new Heading(heading, title), null)
                     : throw new ClauseFormatException("A heading is said to no one, so it takes no addressee:.", number)
                 : throw new ClauseFormatException("A heading's label: needs its title as noun:, as in label:item  noun:(key rusty).", number);
         }
-        //each branch apart, since a null oblique would convert to a part holding nothing
         if (noun is { } standing)
         {
-            return new Fragment(new Standalone(standing), addressee);
+            return new Message((Fragment)new Standalone(standing), addressee);
         }
         if (oblique is { } placed)
         {
-            return new Fragment(placed, addressee);
+            return new Message((Fragment)placed, addressee);
         }
-        return new Fragment(null, addressee);
+        //every item says something, so a line with none of the others calls someone
+        return new Call(addressee ?? throw new InvalidOperationException("A fragment's line has at least one item."));
     }
 
     //an interjection is its meaning, a word with no glosses, as in interjection:hello, but for yes
@@ -365,13 +368,12 @@ public static class ClauseFile
         {
             throw new ClauseFormatException($"relative: is a clause in brackets with _ where its noun goes, as in (net.DEF {Example}), not '{value.Text}'.", number);
         }
-        var clause = ParseClause(written, number, null);
+        var clause = ParseClause(written, number, null, "A relative clause can't be said to someone: say who's addressed in the main clause.");
         var roles = GapRoles(clause).ToList();
         return clause.Value switch
         {
             Clause { Force.Value: Directive } => throw new ClauseFormatException("A relative clause can't be a command: it says something of its noun.", number),
             Question => throw new ClauseFormatException("A relative clause can't be a question.", number),
-            Addressed => throw new ClauseFormatException("A relative clause can't be said to someone: say who's addressed in the main clause.", number),
             _ when roles.Count == 0 && Gaps(clause) == 0 => throw new ClauseFormatException($"A relative clause needs _ in the role its noun fills in it, as in {Example}.", number),
             _ when roles.Count != 1 || Gaps(clause) != 1 => throw new ClauseFormatException("A relative clause has one _, in a role of its own, not inside a noun phrase or another clause in it.", number),
             _ when roles[0] == "standard" => throw new ClauseFormatException("A relative clause's noun can't be what it compares something with yet.", number),
@@ -393,8 +395,15 @@ public static class ClauseFile
     public static IReadOnlyList<string> RoleNames => Roles;
     public static IReadOnlyList<T> ValuesOf<T>() where T : Grammeme => [.. Glosses.Values.OfType<T>()];
 
-    //a subject that isn't said is the given one, if there is one
-    private static Statement ParseClause(SyntaxClause written, int number, Argument? impliedSubject)
+    //a clause that can't be said to anyone, as one inside another can't, with what to say where it is
+    private static Statement ParseClause(SyntaxClause written, int number, Argument? impliedSubject, string unaddressable)
+    {
+        var statement = ParseClause(written, number, impliedSubject, out var addressee);
+        return addressee is null ? statement : throw new ClauseFormatException(unaddressable, number);
+    }
+
+    //a clause, and who it's said to, if anyone. A subject that isn't said is the given one, if there is one
+    private static Statement ParseClause(SyntaxClause written, int number, Argument? impliedSubject, out NounPhrase? addressee)
     {
         if (written.Items is not [{ Role: null, Value.Value: SyntaxWord head }, ..])
         {
@@ -413,7 +422,7 @@ public static class ClauseFile
             _ => throw new ClauseFormatException("A question can only ask one thing yet: one why or how.", number),
         };
         var roles = ParseRoles(verb, written.Items.Skip(1).Where(i => !IsAdverb(i)), features.Imperative, impliedSubject, number);
-        var addressee = roles.Arguments.TryGetValue("addressee", out var called) ? ToAddressee(called, number) : null;
+        addressee = roles.Arguments.TryGetValue("addressee", out var called) ? ToAddressee(called, number) : null;
         Argument? standard = roles.Arguments.TryGetValue("standard", out var than) ? than : (Argument?)null;
         if (roles.Arguments.ContainsKey("agent") && !features.Passive)
         {
@@ -473,7 +482,7 @@ public static class ClauseFile
         {
             statement = new Question(statement, adverb);
         }
-        return addressee is null ? statement : new Addressed(statement, addressee);
+        return statement;
     }
 
     //the question words, in the roles they ask about
@@ -803,7 +812,7 @@ public static class ClauseFile
                 throw new ClauseFormatException("A quote: needs what was said inside its brackets.", number);
             }
             var said = ParseUtterance(embedded, number);
-            return said.Value is Fragment { Part.Value: Heading }
+            return said.Value is Message { Content.Value: Fragment { Value: Heading } }
                 ? throw new ClauseFormatException("A heading isn't said, so it can't be quoted: quote: takes a clause or a fragment.", number)
                 : new Quotation(said);
         }
@@ -819,11 +828,10 @@ public static class ClauseFile
             throw new ClauseFormatException($"A clause starting with to can't take {time.Gloss}: the verb it's the object of says when.", number);
         }
         var shares = kind == ComplementKind.Event && !rest.Items.Any(i => i.Role == "subject");
-        var clause = ParseClause(rest, number, shares ? subject : (Argument?)null);
+        var clause = ParseClause(rest, number, shares ? subject : (Argument?)null, "Say who's addressed in the main clause, not in one inside it, unless it's quoted with quote:[...].");
         return clause.Value switch
         {
             Clause { Force.Value: Directive } => throw new ClauseFormatException($"A clause in object: can't be a command: write {(kind == ComplementKind.Event ? "to" : "that")} with a subject, or quote the command with quote:[...].", number),
-            Addressed => throw new ClauseFormatException("Say who's addressed in the main clause, not in one inside it, unless it's quoted with quote:[...].", number),
             Question => throw new ClauseFormatException("A question inside another clause can't be said yet, unless it's quoted with quote:[...].", number),
             _ => new ComplementClause(kind, clause, shares),
         };

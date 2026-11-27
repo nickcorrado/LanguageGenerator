@@ -198,7 +198,7 @@ Adjectives are written in English order, which already puts the nearest last, so
 | `often:` | How often, or whether still, as a word of its own |
 | `manner:` | How, as an adjective |
 
-Any clause can be said to someone, with `addressee:marta` or `addressee:(man old)`, a bare noun that comes first in the vocative case where the language has one. A command to a plural addressee, as in `addressee:child.PL`, is to all of them.
+Any clause can be said to someone, with `addressee:marta` or `addressee:(man old)`, a bare noun that comes first in the vocative case where the language has one. A command to a plural addressee, as in `addressee:child.PL`, is to all of them. Who's addressed is the whole sentence's, so it goes on the first line, not on a line joined to it, nor in a clause inside another unless that clause is quoted.
 
 ## Noun phrases
 

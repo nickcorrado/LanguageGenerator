@@ -205,7 +205,6 @@ public class QuestionTests
             new Question(new Comparative(new Clause(new Being(new Adjective("big", false)), new Declarative(Tense.Present, Aspect.Imperfective, Dog), false, [], []), Fish), null),
             new Question(new Comparative(new Clause(new Being(new Adjective("big", false)), new Declarative(Tense.Present, Aspect.Imperfective, Dog), false, [], []), Fish), QuestionAdverb.Why),
             new Question(new Modalized(DogEatsFish, Modality.Obligation, true), QuestionAdverb.Why),
-            new Addressed(new Question(DogEatsFish, null), Dog),
         };
         Assert.All(GeneratedLanguages.Sample, l =>
         {
@@ -213,6 +212,7 @@ public class QuestionTests
             {
                 Assert.NotEmpty(Realized(l, clause).Words);
             }
+            Assert.NotEmpty(Syntax.Realize(l, new Message((Statement)new Question(DogEatsFish, null), Dog), "x").Words);
         });
     }
 
@@ -237,9 +237,9 @@ public class QuestionTests
     [Fact]
     public void Parse_QuestionWithAModalAndAnAddressee_NestsThemInThatOrder()
     {
-        var addressed = Assert.IsType<Addressed>(Parsed("swim.ABIL.Q  subject:2SG  addressee:marta").Value);
+        var addressed = Addressed(Line("swim.ABIL.Q  subject:2SG  addressee:marta"));
 
-        Assert.IsType<Modalized>(Assert.IsType<Question>(addressed.Statement.Value).Statement.Value);
+        Assert.IsType<Modalized>(Assert.IsType<Question>(StatementOf(addressed).Value).Statement.Value);
     }
 
     [Theory]

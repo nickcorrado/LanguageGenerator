@@ -191,9 +191,9 @@ public class ModalTests
     [Fact]
     public void Parse_ModalPassiveWithAnAddressee_KeepsTheAddresseeOutside()
     {
-        var addressed = Assert.IsType<Addressed>(Parsed("carry.PASS.PERM  subject:box.DEF  addressee:marta").Value);
+        var addressed = Addressed(Line("carry.PASS.PERM  subject:box.DEF  addressee:marta"));
 
-        PredicateOf<Done>(Assert.IsType<Modalized>(addressed.Statement.Value).Clause);
+        PredicateOf<Done>(Assert.IsType<Modalized>(StatementOf(addressed).Value).Clause);
     }
 
     [Theory]

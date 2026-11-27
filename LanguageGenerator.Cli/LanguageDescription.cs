@@ -454,11 +454,11 @@ public static class LanguageDescription
         [
             (new Clause(new Being(new Adjective("good", false)), new Directive(Number.Singular), false, [], []), "be good"),
         ];
-        (Statement Clause, string Translation)[] addressed =
+        (Utterance Said, string Translation)[] addressed =
         [
-            (new Addressed(new Clause(new Being(new Oblique(Role.Location, Phrase("house", Number.Singular), Configuration.In)), new Declarative(Tense.Present, Aspect.Imperfective, Phrase("dog", Number.Singular)), false, [], []),
+            (new Message((Statement)new Clause(new Being(new Oblique(Role.Location, Phrase("house", Number.Singular), Configuration.In)), new Declarative(Tense.Present, Aspect.Imperfective, Phrase("dog", Number.Singular)), false, [], []),
                 new NounPhrase(new Noun("woman", Number.Singular, [new("old", false)], null, null, null, null, null), null)), "old woman, the dog is in the house"),
-            (new Addressed(new Clause(new Doing("walk", null), new Directive(Number.Plural), false, [new(Role.Goal, Phrase("water", Number.Singular), Configuration.At)], []), new NounPhrase(new Noun("person", Number.Plural, [], null, null, null, null, null), null)),
+            (new Message((Statement)new Clause(new Doing("walk", null), new Directive(Number.Plural), false, [new(Role.Goal, Phrase("water", Number.Singular), Configuration.At)], []), new NounPhrase(new Noun("person", Number.Plural, [], null, null, null, null, null), null)),
                 "people, go to the water"),
         ];
         (Statement Clause, string Translation)[] coordinated =
@@ -534,7 +534,7 @@ public static class LanguageDescription
                 new Clause(new Doing("sleep", null), new Declarative(Tense.Past, Aspect.Imperfective, Phrase("dog", Number.Singular)), false, [], []), false)), new Declarative(Tense.Past, Aspect.Perfective, Phrase("person", Number.Singular)), false, [], []), "the person said that the dog was sleeping"),
             (new Clause(new Doing("want", new ComplementClause(ComplementKind.Event,
                 new Clause(new Doing("eat", Phrase("fish", Number.Singular)), new Declarative(Tense.Present, Aspect.Imperfective, Phrase("cat", Number.Singular)), false, [], []), true)), new Declarative(Tense.Present, Aspect.Imperfective, Phrase("cat", Number.Singular)), false, [], []), "the cat wants to eat the fish"),
-            (new Clause(new Doing("say", new Quotation((Statement)new Clause(new Doing("walk", null), new Directive(Number.Singular), false, [new(Role.Goal, Phrase("house", Number.Singular), Configuration.At)], []))), new Declarative(Tense.Past, Aspect.Perfective, Phrase("bird", Number.Singular)), false, [], []), "the bird said, \"go to the house\""),
+            (new Clause(new Doing("say", new Quotation(new Message((Statement)new Clause(new Doing("walk", null), new Directive(Number.Singular), false, [new(Role.Goal, Phrase("house", Number.Singular), Configuration.At)], []), null))), new Declarative(Tense.Past, Aspect.Perfective, Phrase("bird", Number.Singular)), false, [], []), "the bird said, \"go to the house\""),
         ];
         Clause Gapped(string verb, Argument subject, Argument? @object = null, ValueList<Oblique> obliques = default) =>
             new Clause(new Doing(verb, @object), new Declarative(Tense.Past, Aspect.Perfective, subject), false, obliques, []);
@@ -576,13 +576,17 @@ public static class LanguageDescription
                 "the cats sleep at night"),
             (new Clause(new Doing("sleep", null), new Declarative(Tense.Past, Aspect.Perfective, Phrase("bird", Number.Singular)), false, [new(Role.Duration, new NounPhrase(new Noun("year", ClauseFile.NumberFor(3), [], 3, null, null, null, null), null), Configuration.At)], []), "the bird slept for three years"),
         ];
-        (Statement Clause, string Translation)[] all =
-            [.. examples, .. copular, .. commands, .. copularCommands, .. coordinated, .. subordinated, .. passives, .. comparatives, .. addressed, .. modalized, .. aspects, .. questions,
-                .. complements, .. relatives, .. demonstrated, .. quantified, .. adverbs];
-        foreach (var (clause, translation) in all)
+        (Utterance Said, string Translation)[] all =
+            [.. Said(examples), .. Said(copular), .. Said(commands), .. Said(copularCommands), .. Said(coordinated), .. Said(subordinated), .. Said(passives), .. Said(comparatives),
+                .. addressed, .. Said(modalized), .. Said(aspects), .. Said(questions), .. Said(complements), .. Said(relatives), .. Said(demonstrated), .. Said(quantified), .. Said(adverbs)];
+        foreach (var (said, translation) in all)
         {
             output.WriteLine();
-            output.WriteLine(Syntax.Realize(lang, clause, translation).Interlinear(phonetic));
+            output.WriteLine(Syntax.Realize(lang, said, translation).Interlinear(phonetic));
         }
+
+        //statements said to no one
+        static IEnumerable<(Utterance Said, string Translation)> Said(IEnumerable<(Statement Clause, string Translation)> statements) =>
+            statements.Select(s => ((Utterance)new Message(s.Clause, null), s.Translation));
     }
 }

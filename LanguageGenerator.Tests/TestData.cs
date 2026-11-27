@@ -71,12 +71,23 @@ internal static class Clauses
             : throw new ArgumentException("Only a clause that states something has a tense and an aspect.", nameof(clause)),
     };
 
-    //what a line or a quotation states, where it's a statement and not a fragment
-    public static Statement Stated(Utterance utterance) => utterance switch
-    {
-        Statement statement => statement,
-        Fragment fragment => throw new Xunit.Sdk.XunitException($"Expected a statement, but got {fragment}."),
-    };
+    //what a line or a quotation states, where it's a statement said to no one
+    public static Statement Stated(Utterance utterance) => utterance.Value is Message { Addressee: null } message
+        ? StatementOf(message)
+        : throw new Xunit.Sdk.XunitException($"Expected a statement said to no one, but got {utterance.Value}.");
+
+    //a line said to someone, with who it's said to
+    public static Message Addressed(Utterance utterance) => utterance.Value is Message { Addressee: not null } message
+        ? message
+        : throw new Xunit.Sdk.XunitException($"Expected a message said to someone, but got {utterance.Value}.");
+
+    //what a message states, where it's a statement and not a fragment
+    public static Statement StatementOf(Message message) => message.Content.Value is Statement statement
+        ? statement
+        : throw new Xunit.Sdk.XunitException($"Expected a statement, but got {message.Content.Value}.");
+
+    //what the parser makes of one gloss line, as it is
+    public static Utterance Line(string gloss) => Assert.Single(ClauseFile.Parse($"x\n  {gloss}")).Utterance;
 
     public static T PredicateOf<T>(Statement statement) => Assert.IsType<T>(Assert.IsType<Clause>(statement.Value).Predicate.Value);
     public static T ForceOf<T>(Statement statement) => Assert.IsType<T>(Assert.IsType<Clause>(statement.Value).Force.Value);

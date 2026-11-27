@@ -31,9 +31,9 @@ public class ComparisonTests
     [Fact]
     public void Parse_StandardWithAnAddressee_IsAnAddressedComparative()
     {
-        var addressed = Assert.IsType<Addressed>(Parsed("be  subject:2SG  adjective:tall.CMPR  standard:1SG  addressee:marta").Value);
+        var addressed = Addressed(Line("be  subject:2SG  adjective:tall.CMPR  standard:1SG  addressee:marta"));
 
-        Assert.Equal(new Pronoun(Person.First, Number.Singular), Assert.IsType<Comparative>(addressed.Statement.Value).Standard.Value);
+        Assert.Equal(new Pronoun(Person.First, Number.Singular), Assert.IsType<Comparative>(StatementOf(addressed).Value).Standard.Value);
     }
 
     [Theory]

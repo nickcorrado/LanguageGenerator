@@ -131,20 +131,23 @@ record NounPhrase(Nominal Head, Proposition? Relative) // with a Gap in the rela
 What a line says, and who it's said to: the discourse level, above the sentence.
 
 ```
-record Utterance(Content Content, NounPhrase? Addressee)
+union Utterance(Message, Call)
+record Message(Content Content, NounPhrase? Addressee)
+record Call(NounPhrase Addressee)                       // 'stranger!', someone called with nothing else said
 union Content(Sentence, Fragment)
 union Fragment(Standalone, Oblique, Heading, Interjection, Answer)
 record Quotation(Utterance Utterance)
 ```
 
 - **The addressee is here once,** for a sentence or a fragment, so `Addressed` goes and so does `Fragment.Addressee`. Fragment loses its record and becomes the union of its parts, since its only other field was the addressee.
+- **A call has an addressee and nothing else,** and a message has content and maybe an addressee, so the types can't say an utterance with neither.
 - **A heading still can't have one,** which stays a check, since it's a fact about headings rather than a type that allows too much.
 - **A quotation holds an utterance,** as it does now, so it can be any of these.
 
 ## The whole
 
 ```
-Utterance(Content, Addressee?)
+Utterance = Message(Content, Addressee?) | Call(Addressee)
   Content = Sentence | Fragment
     Sentence = Clause | Coordinated<Sentence> | Subordinated(Sentence, AdverbialClause)
       Clause = Declarative(Proposition) | Interrogative(Proposition) | Directive(StateOfAffairs)

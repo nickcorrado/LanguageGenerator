@@ -185,80 +185,78 @@ public union Complement(NounPhrase, Adjective, AdjectiveCoordination, Oblique);
 //a clause with one has obliques saying only when and for how long
 public record Being(Complement Complement);
 
-/// <summary>
-/// A statement said to someone called by name or by what they are, as in 'Marta, come here' or 'old
-/// man, the wolves are in the village'.
-/// </summary>
-//the addressee is a noun phrase, never a pronoun, and bare, since a vocative takes no article in
-//nearly every language
-public record Addressed(Statement Statement, NounPhrase Addressee);
-
 /// <summary>Anything a sentence can say.</summary>
-public union Statement(Clause, Comparative, Addressed, Coordinated, Subordinated, Modalized, Question);
+public union Statement(Clause, Comparative, Coordinated, Subordinated, Modalized, Question);
 
 public static class Syntax
 {
     public static Sentence Realize(Language language, Statement statement, string translation) => Sentence(language, Words(language, statement).Words, translation);
 
-    public static Sentence Realize(Language language, Utterance utterance, string translation) => utterance switch
-    {
-        Statement statement => Realize(language, statement, translation),
-        Fragment fragment => Realize(language, fragment, translation),
-    };
-
     /*
       a heading is its label, then its title, each as a noun is cited, said apart as phrases of their
-      own, as a pause comes between them, which is written as a colon. Anything else a fragment says
-      is said as one phrase
+      own, as a pause comes between them, which is written as a colon, and is said to no one.
+      Anything else is said as one phrase
      */
-    public static Sentence Realize(Language language, Fragment fragment, string translation)
+    public static Sentence Realize(Language language, Utterance utterance, string translation)
     {
-        if (fragment.Part is not { Value: Heading heading })
+        if (utterance.Value is not Message { Content.Value: Fragment { Value: Heading heading } } message)
         {
-            return Sentence(language, Words(language, fragment).Words, translation);
+            return Sentence(language, Words(language, utterance).Words, translation);
         }
-        if (fragment.Addressee is not null)
+        if (message.Addressee is not null)
         {
-            throw new ArgumentException("A heading is said to no one.", nameof(fragment));
+            throw new ArgumentException("A heading is said to no one.", nameof(utterance));
         }
         var phonology = language.Phonology;
         return new(phonology.RealizePhrase(Cited(language, heading.Label)), phonology.RealizePhrase(Cited(language, heading.Title)), translation, language.Orthography);
     }
 
-    //what an utterance says, so that it can be quoted
-    private static ClauseWords Words(Language language, Utterance utterance) => utterance switch
+    /*
+      an utterance's words, as a sentence of its own or quoted: who it's said to first, in the
+      addressee's case, the vocative where the language has one, and otherwise the case a noun is
+      cited in, then what it says. Where a vocative goes is a matter of discourse more than grammar,
+      which WALS doesn't count, and first is the commonest place. An interjection or an answer goes
+      before who it's said to instead, as in 'hello, Marta' and 'no, Marta', which is a guess, since
+      nobody counts it either
+     */
+    private static ClauseWords Words(Language language, Utterance utterance)
+    {
+        switch (utterance)
+        {
+            case Call call:
+                return new(Marked(language, call.Addressee, Role.Addressee), null);
+            case Message { Addressee: null } message:
+                return Words(language, message.Content);
+            case Message { Addressee: { } addressee } message:
+                var called = Marked(language, addressee, Role.Addressee);
+                var said = Words(language, message.Content);
+                //TODO its finite verb is the message's, but a suffix marking it still goes on its last word
+                return new(message.Content.Value is Fragment { Value: Interjection or Answer } ? [.. said.Words, .. called] : [.. called, .. said.Words], null);
+            default:
+                throw new ArgumentOutOfRangeException(nameof(utterance), utterance, null);
+        }
+    }
+
+    private static ClauseWords Words(Language language, Content content) => content switch
     {
         Statement statement => Words(language, statement),
-        Fragment fragment => Words(language, fragment),
+        Fragment fragment => new(Words(language, fragment), null),
     };
 
     /*
-      a fragment's words: who it's said to first, as a statement's addressee is, then what it says,
-      which is a phrase as a noun is cited, or an oblique marked as its role is in a clause. An
-      interjection or an answer goes before who it's said to instead, as in 'hello, Marta' and 'no,
-      Marta', which is a guess, since nobody counts it. An answer is a word of its own, as an
-      interjection is. It has no verb, so a marker of the whole goes on its last
-      word. A heading is said only as a sentence of its own, since its label is said apart
+      what a fragment says: a phrase as a noun is cited, an oblique marked as its role is in a
+      clause, or an interjection or an answer, each a word of its own. It has no verb, so a marker of
+      the whole goes on its last word. A heading is said only as a sentence of its own, since its
+      label is said apart
      */
-    private static ClauseWords Words(Language language, Fragment fragment)
+    private static IReadOnlyList<Word> Words(Language language, Fragment fragment) => fragment switch
     {
-        IReadOnlyList<Word> called = fragment.Addressee is { } addressee ? Marked(language, addressee, Role.Addressee) : [];
-        IReadOnlyList<Word> said = fragment.Part is { } part
-            ? part switch
-            {
-                Standalone standalone => Cited(language, standalone.Argument),
-                Oblique oblique => Oblique(language, oblique),
-                Interjection interjection => [new Word([language.Lexicon.Interjection(interjection.Meaning).Root])],
-                Answer answer => [new Word([language.Lexicon.Interjection(answer.Meaning).Root])],
-                Heading => throw new ArgumentException("A heading is said only as a sentence of its own.", nameof(fragment)),
-            }
-            : [];
-        if (called.Count + said.Count == 0)
-        {
-            throw new ArgumentException("A fragment says something, or calls someone.", nameof(fragment));
-        }
-        return new(fragment.Part is { Value: Interjection or Answer } ? [.. said, .. called] : [.. called, .. said], null);
-    }
+        Standalone standalone => Cited(language, standalone.Argument),
+        Oblique oblique => Oblique(language, oblique),
+        Interjection interjection => [new Word([language.Lexicon.Interjection(interjection.Meaning).Root])],
+        Answer answer => [new Word([language.Lexicon.Interjection(answer.Meaning).Root])],
+        Heading => throw new ArgumentException("A heading is said only as a sentence of its own.", nameof(fragment)),
+    };
 
     /// <summary>
     /// A clause's words, and the root of its finite verb where one is said, for what goes on that
@@ -276,7 +274,6 @@ public static class Syntax
             Directive => Words(language, c, new Balanced(null, null, [])),
         },
         Comparative c => Words(language, c, []),
-        Addressed a => Words(language, a),
         Coordinated c => Words(language, c),
         Subordinated s => Words(language, s),
         Modalized m => Words(language, m, []),
@@ -288,7 +285,6 @@ public static class Syntax
     {
         Clause c => c.Force.Subject,
         Comparative c => c.Clause.Force.Subject,
-        Addressed a => SubjectOf(a.Statement),
         Coordinated c => SubjectOf(c.First),
         Subordinated s => SubjectOf(s.Main),
         Modalized m => SubjectOf(m.Clause),
@@ -637,19 +633,6 @@ public static class Syntax
         AdjectiveCoordination together => ([.. together.Adjectives], language.Conjunctions.BetweenClauses(together.Conjunction)),
         _ => null,
     };
-
-    /*
-      the addressee comes first, in the addressee's case: the vocative, where the language has one,
-      and otherwise the case a noun is cited in. Where a vocative goes is a matter of discourse more
-      than grammar, which WALS doesn't count, and first is the commonest place
-     */
-    public static Sentence Realize(Language language, Addressed addressed, string translation) => Sentence(language, Words(language, addressed).Words, translation);
-
-    private static ClauseWords Words(Language language, Addressed addressed)
-    {
-        //TODO its finite verb is the statement's, but a suffix marking it still goes on its last word
-        return new([.. Marked(language, addressed.Addressee, Role.Addressee), .. Words(language, addressed.Statement).Words], null);
-    }
 
     /*
       the verb takes the language's imperative, or its ordinary second person where it has none for
