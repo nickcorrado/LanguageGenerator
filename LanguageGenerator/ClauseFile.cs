@@ -182,7 +182,7 @@ public static class ClauseFile
 
     private static IEnumerable<Argument> ArgumentsOf(Sentence statement) => statement switch
     {
-        Clause c => c.StateOfAffairs.Events.SelectMany(e => e.Arguments),
+        Clause c => c.StateOfAffairs.Events.SelectMany(ArgumentsOf),
         Coordinated<Sentence> c => [.. ArgumentsOf(c.First), .. ArgumentsOf(c.Second)],
         Subordinated s => [.. ArgumentsOf(s.Main), .. ArgumentsOf(s.Clause)],
     };
@@ -201,7 +201,10 @@ public static class ClauseFile
 
     private static IEnumerable<Argument> ArgumentsOf(Propositional propositional) => ArgumentsOf(propositional.Proposition.StateOfAffairs);
 
-    private static IEnumerable<Argument> ArgumentsOf(StateOfAffairs layers) => layers.Events.SelectMany(e => e.Arguments);
+    private static IEnumerable<Argument> ArgumentsOf(StateOfAffairs layers) => layers.Events.SelectMany(ArgumentsOf);
+
+    //an event's arguments, with those of the clauses its adjectives and manners are compared with
+    private static IEnumerable<Argument> ArgumentsOf(Event @event) => [.. @event.Arguments, .. @event.Adjectives.SelectMany(a => a.Clauses).SelectMany(ArgumentsOf)];
 
     private static IEnumerable<Argument> Given(Argument? argument) => argument.HasValue ? [argument.GetValueOrDefault()] : [];
 
@@ -210,6 +213,7 @@ public static class ClauseFile
         //an indefinite pronoun's noun is the language's to say, and no noun of the text's
         NounPhrase { Head.Value: IndefinitePronoun } n => n.Relative is { } relative ? ArgumentsOf(relative).SelectMany(NounsIn) : [],
         NounPhrase { Head.Value: Noun noun } n => [noun.Meaning, .. Given(noun.Possessor).SelectMany(NounsIn), .. noun.Adjectives.SelectMany(a => a.Arguments).SelectMany(NounsIn),
+            .. noun.Adjectives.SelectMany(a => a.Clauses).SelectMany(ArgumentsOf).SelectMany(NounsIn),
             .. n.Relative is { } relative ? ArgumentsOf(relative).SelectMany(NounsIn) : []],
         Pronoun => [],
         QuestionWord or DemonstrativePronoun or DemonstrativePlace => [],
@@ -237,9 +241,64 @@ public static class ClauseFile
         Pronoun or DemonstrativePronoun or QuestionWord or DemonstrativePlace or RelativeWord or Shared => 0,
     };
 
-    //a clause that isn't relative has no gap, which marks only where a relative clause's noun goes
-    private static Sentence Ungapped(Sentence statement, int number) => Gaps(statement) == 0 ? statement
+    //a clause that isn't relative has no gap, which marks only where a relative clause's noun goes,
+    //and no degree gap, which goes only in a standard
+    private static Sentence Ungapped(Sentence statement, int number) => Gaps(statement) == 0 ? WithoutDegreeGap(statement, number)
         : throw new ClauseFormatException("_ marks the role a relative clause's noun fills in it, so it goes only inside relative:[...], as in object:(net.DEF relative:[mend.PST  subject:3SG.F  object:_]).", number);
+
+    //the degree gaps in a statement's own events, outside the clauses inside it, which are read on their own
+    private static int DegreeGaps(Sentence statement) => statement switch
+    {
+        Clause c => c.StateOfAffairs.Events.Sum(e => e.Adjectives.Count(a => a.Grade is { Value: DegreeGap })),
+        Coordinated<Sentence> c => DegreeGaps(c.First) + DegreeGaps(c.Second),
+        Subordinated s => DegreeGaps(s.Main),
+    };
+
+    private static Sentence WithoutDegreeGap(Sentence statement, int number) => DegreeGaps(statement) == 0 ? statement : throw DegreeGapOutsideStandard(number);
+
+    private static ClauseFormatException DegreeGapOutsideStandard(int number) =>
+        new($"_ as an adjective: or manner: goes only in a clause in standard:[...], where it stands for what's compared, as in {StandardExample}.", number);
+
+    private const string StandardExample = "adjective:warm.CMPR  standard:[be.ADVS  subject:3SG.N  adjective:_] for 'warmer than it should be'";
+
+    /*
+      a clause a comparison is with, as in 'warmer than it should be': a clause of its own that says
+      something, with _ as its one adjective: or manner:, where its degree goes. The clause it's in
+      gives _ its word
+     */
+    private static Propositional ParseStandard(SyntaxClause written, int number)
+    {
+        if (written.Items.Count == 0)
+        {
+            throw new ClauseFormatException($"A standard:[...] needs a clause inside its brackets, as in {StandardExample}.", number);
+        }
+        var clause = ParseClause(written, number, null, "A standard can't be said to someone: say who's addressed in the main clause.");
+        return clause.Value switch
+        {
+            Clause { Value: Directive } => throw new ClauseFormatException("A standard can't be a command.", number),
+            Clause { Value: Interrogative } => throw new ClauseFormatException("A standard can't be a question.", number),
+            Clause c when c.StateOfAffairs.Events.Skip(1).Any() => throw new ClauseFormatException("A standard can't join events yet.", number),
+            _ when Gaps(clause) > 0 => throw new ClauseFormatException($"A standard's _ is its adjective: or manner:, not one of its roles, as in {StandardExample}.", number),
+            _ when DegreeGaps(clause) != 1 => throw new ClauseFormatException($"A standard:[...] has one _, as its adjective: or manner:, as in {StandardExample}.", number),
+            Clause { Value: Declarative stated } => stated.Propositional,
+            _ => throw new ClauseFormatException("A standard is one clause.", number),
+        };
+    }
+
+    //a standard's clause with the word its degree gap stands for
+    private static Propositional Gapped(Propositional clause, string meaning) => clause.Rebuilt(p => p with
+    {
+        StateOfAffairs = p.StateOfAffairs.Rebuilt(e => e with
+        {
+            Predicate = e.Predicate.Value is Being { Attribute.Value: Adjective { Grade.Value: DegreeGap } gap } being ? being with { Attribute = gap with { Meaning = meaning } } : e.Predicate,
+            Adverbs = [.. e.Adverbs.Select(a => a.Value is Manner { Adjective: { Grade.Value: DegreeGap } gap } ? new Manner(gap with { Meaning = meaning }) : a)],
+        }),
+    });
+
+    //a standard that's an argument: anything but a question word, yet
+    private static Argument StandardArgument(SyntaxValue value, int number) => ParseArgument(value, number) is var standard && standard.Value is QuestionWord
+        ? throw new ClauseFormatException("A comparison can't ask about its standard yet.", number)
+        : standard;
 
     /*
       the roles of a relative clause's own that its gap is in. It can be its subject, its object, the
@@ -250,7 +309,7 @@ public static class ClauseFile
         return statement.Value switch
         {
             Clause c => [.. c.StateOfAffairs.Events.SelectMany(e => e.Fillers).Where(f => f.Argument.Value is Gap).Select(NameOf),
-                .. c.StateOfAffairs.Events.Any(e => e.Predicate.Value is Being { Attribute.Value: Adjective { Grade.Value: Comparative { Standard.Value: Gap } } }) ? ["standard"] : Array.Empty<string>()],
+                .. c.StateOfAffairs.Events.Any(e => e.Predicate.Value is Being { Attribute.Value: Adjective { Grade.Value: Comparative { Standard.Value: Argument { Value: Gap } } } }) ? ["standard"] : Array.Empty<string>()],
             _ => [],
         };
 
@@ -413,6 +472,7 @@ public static class ClauseFile
             _ when roles.Count == 0 && Gaps(clause) == 0 => throw new ClauseFormatException($"A relative clause needs _ in the role its noun fills in it, as in {Example}.", number),
             _ when roles.Count != 1 || Gaps(clause) != 1 => throw new ClauseFormatException("A relative clause has one _, in a role of its own, not inside a noun phrase or another clause in it.", number),
             _ when roles[0] == "standard" => throw new ClauseFormatException("A relative clause's noun can't be what it compares something with yet.", number),
+            _ when DegreeGaps(clause) > 0 => throw DegreeGapOutsideStandard(number),
             Clause { Value: Declarative stated } => stated.Propositional,
             _ => throw new ClauseFormatException("A relative clause is one clause.", number),
         };
@@ -464,7 +524,7 @@ public static class ClauseFile
         };
         var roles = ParseRoles(verb, written.Items.Skip(1).Where(i => !IsAdverb(i)), features.Imperative, impliedSubject, number);
         addressee = roles.Arguments.TryGetValue("addressee", out var called) ? ToAddressee(called, number) : null;
-        Argument? standard = roles.Arguments.TryGetValue("standard", out var than) ? than : (Argument?)null;
+        var standard = roles.Standard;
         if (roles.Arguments.ContainsKey("agent") && !features.Passive)
         {
             throw new ClauseFormatException($"Only a passive verb takes an agent:, as in {verb}.PASS subject:light agent:figure for 'the light is {verb}ed by a figure'.", number);
@@ -685,10 +745,6 @@ public static class ClauseFile
         if (questioned is [var (role, argument)])
         {
             var word = ((QuestionWord)argument.Value!).Word;
-            if (role == "standard")
-            {
-                throw new ClauseFormatException("A comparison can't ask about its standard yet.", number);
-            }
             if (role == "like")
             {
                 throw new ClauseFormatException($"A question can't ask what something is like yet, as in like:{WordOf(argument)}.", number);
@@ -721,7 +777,7 @@ public static class ClauseFile
       'Marta is taller than the men': be's comparative adjective, said of the subject more than of the
       standard, or with no standard, 'Marta is taller', more than of something already known
      */
-    private static Being ToCompared(Being being, Argument? standard, VerbFeatures features, int number)
+    private static Being ToCompared(Being being, Standard? standard, VerbFeatures features, int number)
     {
         if (features.Negated)
         {
@@ -730,10 +786,13 @@ public static class ClauseFile
         return standard is { } than ? being with { Attribute = Compared((Adjective)being.Attribute.Value!, than) } : being;
     }
 
-    //a comparative adjective compared with this standard
-    private static Adjective Compared(Adjective adjective, Argument standard) =>
-        adjective.Grade is { Value: Comparative compared } ? adjective with { Grade = compared with { Standard = standard } }
-            : throw new ArgumentException("Only a comparative adjective takes a standard.", nameof(adjective));
+    //a comparative adjective compared with this standard, whose degree gap, if it's a clause, stands for the adjective
+    private static Adjective Compared(Adjective adjective, Standard standard) => adjective.Grade is { Value: Comparative compared }
+        ? adjective with { Grade = compared with { Standard = standard.Value is Propositional clause ? Gapped(clause, adjective.Meaning) : standard } }
+        : throw new ArgumentException("Only a comparative adjective takes a standard.", nameof(adjective));
+
+    //the word a standard's clause compares, written _, until the clause it's in gives it its own
+    private static Adjective DegreeGapped => new("_", new DegreeGap());
 
     //who a clause is said to: a noun phrase, bare, since vocatives take no article
     private static NounPhrase ToAddressee(Argument argument, int number) => argument.Value switch
@@ -760,7 +819,7 @@ public static class ClauseFile
     }
 
     //the obliques keep the role they were written with, which is how be finds its location:
-    private record ClauseRoles(Dictionary<string, Argument> Arguments, List<(string Role, Oblique Oblique)> Obliques, Attribute? Attribute, List<Adverbial> Adverbs)
+    private record ClauseRoles(Dictionary<string, Argument> Arguments, List<(string Role, Oblique Oblique)> Obliques, Attribute? Attribute, List<Adverbial> Adverbs, Standard? Standard)
     {
         public Argument? Object => Arguments.TryGetValue("object", out var argument) ? argument : (Argument?)null;
         public ValueList<Oblique> AllObliques => [.. Obliques.Select(o => o.Oblique)];
@@ -817,6 +876,7 @@ public static class ClauseFile
         var obliques = new List<(string Role, Oblique Oblique)>();
         var adverbs = new List<Adverbial>();
         Attribute? attribute = null;
+        Standard? standard = null;
         var quoted = false;
         foreach (var item in items.OrderBy(i => i.Role is "subject" or "addressee" ? 0 : 1))
         {
@@ -841,6 +901,16 @@ public static class ClauseFile
             if (arguments.ContainsKey(role) || obliques.Any(o => o.Role == role) || role is "noun" or "adjective" && attribute.HasValue)
             {
                 throw new ClauseFormatException(role is "noun" or "adjective" ? "The clause has more than one noun or adjective." : $"The clause has more than one {role}.", number);
+            }
+            //a standard is an argument or a clause, which the clause's comparative takes
+            if (role == "standard")
+            {
+                if (standard.HasValue)
+                {
+                    throw new ClauseFormatException("The clause has more than one standard.", number);
+                }
+                standard = value.Value is SyntaxClause than ? ParseStandard(than, number) : StandardArgument(value, number);
+                continue;
             }
             if (verb == "be" && role is "noun" or "adjective" or "location" && (attribute.HasValue || obliques.Any(o => o.Role == "location")))
             {
@@ -867,7 +937,7 @@ public static class ClauseFile
                     adverbs.Add(ParseAdverb(value, kind, number));
                     break;
                 case "manner":
-                    adverbs.Add(ParseManner(value, number));
+                    adverbs.Add(value.Text == "_" ? new Manner(DegreeGapped) : ParseManner(value, number));
                     break;
                 case "noun":
                     attribute = ParseArgument(value, number).Value switch
@@ -881,7 +951,7 @@ public static class ClauseFile
                     attribute = ParseAdjectiveCoordination(together, number);
                     break;
                 case "adjective":
-                    attribute = ParseAdjective(value.Text, number);
+                    attribute = value.Text == "_" ? DegreeGapped : ParseAdjective(value.Text, number);
                     break;
                 case var name when ObliqueRoles.TryGetValue(name, out var oblique):
                     if (configuration != Configuration.At && !Oblique.Spatial.Contains(oblique))
@@ -897,7 +967,7 @@ public static class ClauseFile
                     break;
             }
         }
-        return new ClauseRoles(arguments, obliques, attribute, adverbs);
+        return new ClauseRoles(arguments, obliques, attribute, adverbs, standard);
     }
 
     //where relative to a place a spatial role says, written after the role with a period, as in
@@ -992,7 +1062,7 @@ public static class ClauseFile
             throw new ClauseFormatException($"A clause starting with to can't take {time.Gloss}: the verb it's the object of says when.", number);
         }
         var shares = kind == ComplementKind.Event && !rest.Items.Any(i => i.Role == "subject");
-        var clause = ParseClause(rest, number, shares ? new Shared() : (Argument?)null, "Say who's addressed in the main clause, not in one inside it, unless it's quoted with quote:[...].");
+        var clause = WithoutDegreeGap(ParseClause(rest, number, shares ? new Shared() : (Argument?)null, "Say who's addressed in the main clause, not in one inside it, unless it's quoted with quote:[...]."), number);
         return clause.Value switch
         {
             Clause { Value: Directive } => throw new ClauseFormatException($"A clause in object: can't be a command: write {(kind == ComplementKind.Event ? "to" : "that")} with a subject, or quote the command with quote:[...].", number),
@@ -1075,7 +1145,7 @@ public static class ClauseFile
     private static NounPhrase ParseModifiedNounPhrase(SyntaxGroup group, int number)
     {
         var items = group.Items;
-        if (items.FirstOrDefault(i => i.Value.Value is SyntaxClause && i.Role != "relative") is { } clause)
+        if (items.FirstOrDefault(i => i.Value.Value is SyntaxClause && i.Role is not ("relative" or "standard")) is { } clause)
         {
             throw Misplaced($"'{clause.Text}' in a noun phrase", number);
         }
@@ -1115,7 +1185,7 @@ public static class ClauseFile
         int? ordinal = null;
         Quantifier? quantifier = null;
         Argument? possessor = null;
-        Argument? standard = null;
+        Standard? standard = null;
         Propositional? relative = null;
         var adjectives = new List<Adjective>();
         foreach (var item in items.Skip(1))
@@ -1144,11 +1214,7 @@ public static class ClauseFile
                 {
                     throw new ClauseFormatException($"'{head}' has more than one standard.", number);
                 }
-                standard = ParseArgument(item.Value, number);
-                if (standard.GetValueOrDefault().Value is QuestionWord)
-                {
-                    throw new ClauseFormatException("A comparison can't ask about its standard yet.", number);
-                }
+                standard = item.Value.Value is SyntaxClause compared ? ParseStandard(compared, number) : StandardArgument(item.Value, number);
             }
             else if (word.All(char.IsAsciiDigit))
             {
@@ -1320,6 +1386,10 @@ public static class ClauseFile
         if (QuestionWords.ContainsKey(meaning) || QuestionAdverbs.ContainsKey(meaning))
         {
             throw new ClauseFormatException($"{meaning} isn't an adjective: a question word goes in the role it asks about, as in subject:who.", number);
+        }
+        if (meaning == "_")
+        {
+            throw new ClauseFormatException($"_ stands for what's compared only as a standard's own adjective: or manner:, bare, as in {StandardExample}.", number);
         }
         if (features.Contains(Derivation.Adverbial))
         {

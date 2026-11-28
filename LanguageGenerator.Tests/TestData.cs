@@ -156,7 +156,7 @@ internal static class Clauses
             Propositional = stated.Propositional.Rebuilt(p => p with
             {
                 StateOfAffairs = p.StateOfAffairs.Rebuilt(e => e.Predicate.Value is Being { Attribute.Value: Adjective { Grade: null } adjective } being
-                    ? e with { Predicate = being with { Attribute = adjective with { Grade = new Comparative(standard, null) } } }
+                    ? e with { Predicate = being with { Attribute = adjective with { Grade = new Comparative(standard is { } than ? (Argument)than : (Standard?)null, null) } } }
                     : throw new ArgumentException("Only an adjective said with be, with no grade yet, is compared.", nameof(clause))),
             }),
         },

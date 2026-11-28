@@ -76,7 +76,7 @@ public union Similative(SimilativeWord, SimilativeAffix);
 /// How much of its property an adjective says, as the degree words and markers of comparison say
 /// it: much of it, as in 'very big', or more of it than something else has, as in 'bigger'.
 /// </summary>
-public union Grade(Intensified, Comparative);
+public union Grade(Intensified, Comparative, DegreeGap);
 
 /// <summary>Much of a property, as English very says, one of Bolinger's degree words.</summary>
 public record Intensified;
@@ -87,7 +87,21 @@ public record Intensified;
 /// it says, as in 'much taller'.
 /// </summary>
 //the comparee is what the adjective is said of, so it isn't written here
-public record Comparative(Argument? Standard, Differential? Differential);
+public record Comparative(Standard? Standard, Differential? Differential);
+
+/// <summary>
+/// What a comparative compares with: something else's degree of the same property, as in 'taller
+/// than the men', or a degree a clause says, as in 'warmer than it should be', whose own adjective
+/// or manner has the DegreeGap grade where its degree goes.
+/// </summary>
+public union Standard(Argument, Propositional);
+
+/// <summary>
+/// The degree a standard's clause says, on its own adjective or manner, as 'than it should be _'
+/// has it, the way a relative clause's gap is where its noun goes. Comparative deletion then leaves
+/// the word out where it's the comparison's own.
+/// </summary>
+public record DegreeGap;
 
 /// <summary>By how much a comparative's comparee has more of its property than the standard.</summary>
 public union Differential(Much);

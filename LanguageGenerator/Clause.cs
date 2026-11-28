@@ -38,6 +38,16 @@ public record Event(Predicate Predicate, Argument Subject, ValueList<Oblique> Ob
         .. Adverbs.SelectMany(a => a.Value is Manner manner ? manner.Adjective.Arguments : []),
     ];
 
+    /// <summary>The adjectives it says outside its noun phrases: what be says its subject is, alone or joined, and its manners'.</summary>
+    public IEnumerable<Adjective> Adjectives => [.. Attributed, .. Adverbs.Select(a => a.Value).OfType<Manner>().Select(m => m.Adjective)];
+
+    private IEnumerable<Adjective> Attributed => Predicate.Value switch
+    {
+        Being { Attribute.Value: Adjective adjective } => [adjective],
+        Being { Attribute.Value: AdjectiveCoordination together } => together.Adjectives,
+        Doing or Done or Being => [],
+    };
+
     /// <summary>The event with each of its roles filled with what this makes of what fills it now, and its manners' standards.</summary>
     public Event Refilled(Func<Argument, Argument> fill) => this with
     {
@@ -207,11 +217,14 @@ public record Doing(string Verb, Argument? Object);
 /// </summary>
 public record Adjective(string Meaning, Grade? Grade)
 {
-    /// <summary>The argument it says, if it says one: a comparative's standard.</summary>
-    public IEnumerable<Argument> Arguments => Grade is { Value: Comparative { Standard: { } standard } } ? [standard] : [];
+    /// <summary>The argument it says, if it says one: a comparative's standard, where that's a noun phrase or another argument.</summary>
+    public IEnumerable<Argument> Arguments => Grade is { Value: Comparative { Standard.Value: Argument standard } } ? [standard] : [];
 
-    /// <summary>It with its standard, if it has one, what this makes of it.</summary>
-    public Adjective Refilled(Func<Argument, Argument> fill) => Grade is { Value: Comparative { Standard: { } standard } compared }
+    /// <summary>The clause it says, if it says one: a comparative's standard, where that's a clause.</summary>
+    public IEnumerable<Propositional> Clauses => Grade is { Value: Comparative { Standard.Value: Propositional standard } } ? [standard] : [];
+
+    /// <summary>It with its standard, if that's an argument, what this makes of it.</summary>
+    public Adjective Refilled(Func<Argument, Argument> fill) => Grade is { Value: Comparative { Standard.Value: Argument standard } compared }
         ? this with { Grade = compared with { Standard = fill(standard) } }
         : this;
 }

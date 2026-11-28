@@ -24,7 +24,7 @@ public class ComparisonTests
     {
         var men = new NounPhrase(new Noun("man", Number.Plural, [], null, null, null, Definiteness.Definite, null), null);
 
-        Assert.Equal(new Adjective("tall", new Comparative(men, null)), PredicateOf<Being>(Parsed("be  subject:marta  adjective:tall.CMPR  standard:man.PL.DEF")).Attribute.Value);
+        Assert.Equal(new Adjective("tall", new Comparative((Argument)men, null)), PredicateOf<Being>(Parsed("be  subject:marta  adjective:tall.CMPR  standard:man.PL.DEF")).Attribute.Value);
     }
 
     [Fact]
@@ -32,7 +32,7 @@ public class ComparisonTests
     {
         var addressed = Addressed(Line("be  subject:2SG  adjective:tall.CMPR  standard:1SG  addressee:marta"));
 
-        Assert.Equal(new Adjective("tall", new Comparative(new Pronoun(Person.First, Number.Singular), null)), PredicateOf<Being>(SentenceOf(addressed)).Attribute.Value);
+        Assert.Equal(new Adjective("tall", new Comparative((Argument)new Pronoun(Person.First, Number.Singular), null)), PredicateOf<Being>(SentenceOf(addressed)).Attribute.Value);
     }
 
     [Theory]
@@ -288,8 +288,8 @@ public class ComparisonTests
     public void Parse_Comparatives_GoOnAnyAdjective()
     {
         Assert.Equal(new Event(new Doing("walk", null), DogThat(new Adjective("big", new Comparative(null, null))), [], []), EventOf(Parsed("walk  subject:(dog big.CMPR)")));
-        Assert.Equal(new Event(new Doing("walk", null), DogThat(new Adjective("big", new Comparative(Cat, null))), [], []), EventOf(Parsed("walk  subject:(dog big.CMPR  standard:cat)")));
-        Assert.Equal(new Event(new Doing("walk", null), Dog, [], [new Manner(new Adjective("slow", new Comparative(Cat, new Much())))]),
+        Assert.Equal(new Event(new Doing("walk", null), DogThat(new Adjective("big", new Comparative((Argument)Cat, null))), [], []), EventOf(Parsed("walk  subject:(dog big.CMPR  standard:cat)")));
+        Assert.Equal(new Event(new Doing("walk", null), Dog, [], [new Manner(new Adjective("slow", new Comparative((Argument)Cat, new Much())))]),
             EventOf(Parsed("walk  subject:dog  manner:slow.CMPR.INTS  standard:cat")));
         Assert.Equal(new Event(new Being(new AdjectiveCoordination(Conjunction.And, [new("big", new Comparative(null, null)), new("old", null)])), Dog, [], []),
             EventOf(Parsed("be  subject:dog  adjective:(and big.CMPR old)")));
@@ -302,10 +302,10 @@ public class ComparisonTests
     //'the bigger dog walks' and 'the dog walks bigger', with the comparative where be doesn't say it,
     //and the same with 'than the cats'
     private static Rendering BiggerDog(Language l, Argument? standard) =>
-        Syntax.Realize(l, DogWalks.WithEvent(e => e with { Subject = DogThat(new Adjective("big", new Comparative(standard, null))) }), "x");
+        Syntax.Realize(l, DogWalks.WithEvent(e => e with { Subject = DogThat(new Adjective("big", new Comparative(standard is { } than ? (Argument)than : (Standard?)null, null))) }), "x");
 
     private static Rendering WalksBigger(Language l, Argument? standard) =>
-        Syntax.Realize(l, DogWalks.WithEvent(e => e with { Adverbs = [new Manner(new Adjective("big", new Comparative(standard, null)))] }), "x");
+        Syntax.Realize(l, DogWalks.WithEvent(e => e with { Adverbs = [new Manner(new Adjective("big", new Comparative(standard is { } than ? (Argument)than : (Standard?)null, null)))] }), "x");
 
     [Fact]
     public void Realize_ComparativeOutsideBe_MarksTheAdjective() =>
@@ -357,7 +357,7 @@ public class ComparisonTests
     {
         var languages = GeneratedLanguages.Sample.Where(l => l.Comparison.Value is ExceedComparison).ToList();
         Assert.All(languages, l => Assert.Equal(
-            Syntax.Realize(l, DogThatIs(new Adjective("big", new Comparative(Cats, null))), "x").Words.Select(w => w.Gloss),
+            Syntax.Realize(l, DogThatIs(new Adjective("big", new Comparative((Argument)Cats, null))), "x").Words.Select(w => w.Gloss),
             BiggerDog(l, Cats).Words.Select(w => w.Gloss)));
         Assert.NotEmpty(languages);
     }
@@ -384,7 +384,7 @@ public class ComparisonTests
         Assert.All(GeneratedLanguages.Sample.Where(l => l.Comparison.Value is ExceedComparison or ConjoinedComparison), l =>
         {
             var sleeping = new Proposition(new Event(new Doing("sleep", null), new Gap(null), [], []), Tense.Present);
-            var both = DogWalks.WithEvent(e => e with { Subject = DogThat(new Adjective("big", new Comparative(Cats, null))) with { Relative = sleeping } });
+            var both = DogWalks.WithEvent(e => e with { Subject = DogThat(new Adjective("big", new Comparative((Argument)Cats, null))) with { Relative = sleeping } });
             Assert.Throws<ArgumentException>(() => Syntax.Realize(l, both, "x"));
         });
 
@@ -424,4 +424,107 @@ public class ComparisonTests
     [InlineData("walk.IMP  manner:slow.CMPR  standard:cat", "A command can't compare yet")]
     public void Parse_MannerComparedWithAStandard_IsAStatementYet(string gloss, string message) =>
         Assert.Contains(message, Assert.Throws<ClauseFormatException>(() => ClauseFile.Parse($"x\n  {gloss}")).Message);
+
+    //'than the cat should be', which can't be deranked yet, and 'than the cat walked', which can
+    private static Propositional CatShouldBe { get; } = new Proposition(new Modalized(SituationalModality.Advisability, new Event(new Being(new Adjective("big", new DegreeGap())), Cat, [], [])), Tense.Present);
+    private static Propositional CatWalked { get; } = new Proposition(new Event(new Doing("walk", null), Cat, [], [new Manner(new Adjective("big", new DegreeGap()))]), Tense.Past);
+
+    private static Rendering BiggerThan(Language l, Propositional standard) =>
+        Syntax.Realize(l, DogIsBig.WithEvent(e => e with { Predicate = new Being(new Adjective("big", new Comparative(standard, null))) }), "x");
+
+    private static Rendering WalksBiggerThan(Language l, Propositional standard) =>
+        Syntax.Realize(l, DogWalks.WithEvent(e => e with { Adverbs = [new Manner(new Adjective("big", new Comparative(standard, null)))] }), "x");
+
+    [Fact]
+    public void Parse_ClauseStandard_HasItsComparisonsWordAsItsGap()
+    {
+        Propositional catIs = new Proposition(new Event(new Being(new Adjective("big", new DegreeGap())), Cat, [], []), Tense.Present);
+        Propositional catWalked = new Proposition(new Event(new Doing("walk", null), Cat, [], [new Manner(new Adjective("slow", new DegreeGap()))]), Tense.Past);
+
+        Assert.Equal(new Adjective("big", new Comparative(catIs, null)), PredicateOf<Being>(Parsed("be  subject:dog  adjective:big.CMPR  standard:[be  subject:cat  adjective:_]")).Attribute.Value);
+        Assert.Equal(new Event(new Doing("walk", null), Dog, [], [new Manner(new Adjective("slow", new Comparative(catWalked, null)))]),
+            EventOf(Parsed("walk  subject:dog  manner:slow.CMPR  standard:[walk.PST  subject:cat  manner:_]")));
+        Assert.Equal(new Event(new Doing("walk", null), DogThat(new Adjective("big", new Comparative(catIs, null))), [], []),
+            EventOf(Parsed("walk  subject:(dog big.CMPR  standard:[be  subject:cat  adjective:_])")));
+    }
+
+    [Fact]
+    public void Nouns_IncludeAClauseStandards() =>
+        Assert.Equal(["cat", "dog", "night"], ClauseFile.Nouns(ClauseFile.Parse("x\n  be  subject:dog  adjective:big.CMPR  standard:[be  subject:cat  adjective:_  time:night]")).Select(n => n.Noun).Order());
+
+    [Theory]
+    [InlineData("be  subject:dog  adjective:_", "goes only in a clause in standard:[...]")]
+    [InlineData("walk  subject:dog  manner:_", "goes only in a clause in standard:[...]")]
+    [InlineData("walk  subject:(dog relative:[be  subject:_  adjective:_])", "goes only in a clause in standard:[...]")]
+    [InlineData("say  subject:dog  object:[that  be  subject:cat  adjective:_]", "goes only in a clause in standard:[...]")]
+    [InlineData("walk  subject:(dog _)", "only as a standard's own adjective: or manner:")]
+    [InlineData("be  subject:dog  adjective:big.CMPR  standard:[be  subject:cat  adjective:big]", "has one _")]
+    [InlineData("be  subject:dog  adjective:big.CMPR  standard:[be  subject:cat  adjective:_.INTS]", "only as a standard's own adjective: or manner:")]
+    [InlineData("be  subject:dog  adjective:big.CMPR  standard:[be  subject:_  adjective:_]", "not one of its roles")]
+    [InlineData("be  subject:dog  adjective:big.CMPR  standard:[be.IMP  adjective:_]", "can't be a command")]
+    [InlineData("be  subject:dog  adjective:big.CMPR  standard:[be.Q  subject:cat  adjective:_]", "can't be a question")]
+    [InlineData("be  subject:dog  adjective:big.CMPR  standard:[]", "needs a clause inside its brackets")]
+    [InlineData("be  subject:dog  adjective:big.CMPR  standard:cat  standard:fish", "more than one standard")]
+    public void Parse_BadClauseStandards_SayWhy(string gloss, string message) =>
+        Assert.Contains(message, Assert.Throws<ClauseFormatException>(() => ClauseFile.Parse($"x\n  {gloss}")).Message);
+
+    [Fact]
+    public void Realize_ClauseStandardAfterAParticle_IsTheClauseWithItsWordLeftOut()
+    {
+        var languages = GeneratedLanguages.Sample.Where(l => l.Comparison.Value is ParticleComparison).ToList();
+        Assert.All(languages, l =>
+        {
+            var particle = (ParticleComparison)l.Comparison.Value!;
+            var said = BiggerThan(l, CatShouldBe).Words.Select(w => w.Gloss).ToList();
+            var standard = Syntax.Realize(l, (Clause)new Declarative(CatShouldBe), "x").Words.Select(w => w.Gloss).ToList();
+            var at = Enumerable.Range(0, said.Count - standard.Count + 1).Single(i => said.Skip(i).Take(standard.Count).SequenceEqual(standard));
+            var than = IndexOf(BiggerThan(l, CatShouldBe), particle.Than.Root);
+
+            Assert.Equal(particle.BeforeStandard ? at - 1 : at + standard.Count, than);
+            //the standard's 'big' is left out, unless it's the verb
+            Assert.Equal(l.Predication.Adjectives == PredicativeAdjectives.Verbal ? 2 : 1, BiggerThan(l, CatShouldBe).Words.Count(w => w.Word.Root?.Meaning == "big"));
+        });
+        Assert.NotEmpty(languages);
+    }
+
+    [Fact]
+    public void Realize_ClauseStandardThatCantBeDeranked_IsTwoClausesOutsideAParticleLanguage() =>
+        Assert.All(GeneratedLanguages.Sample.Where(l => l.Comparison.Value is not ParticleComparison), l =>
+        {
+            var first = Syntax.Realize(l, DogIsBig, "x");
+            var denial = new Proposition(new Negated(new Modalized(SituationalModality.Advisability, new Event(new Being(new Adjective("big", null)), Cat, [], []))), Tense.Present);
+            var second = Syntax.Realize(l, (Clause)new Declarative(denial), "x");
+
+            Assert.Equal(first.Words.Concat(second.Words).Select(w => w.Gloss), BiggerThan(l, CatShouldBe).Words.Select(w => w.Gloss));
+        });
+
+    [Fact]
+    public void Realize_ClauseStandardThatCanBeDeranked_IsOneClauseWhereTheLanguageDeranksIt()
+    {
+        var languages = GeneratedLanguages.Sample.Where(l => l.Comparison.Value is LocationalComparison or ExceedComparison).ToList();
+        Assert.All(languages, l =>
+        {
+            var sentence = WalksBiggerThan(l, CatWalked);
+
+            Assert.Single(sentence.Words, w => w.Word.Root?.Meaning == "big");
+            Assert.True(IndexOf(sentence, "cat") >= 0);
+            Assert.DoesNotContain(sentence.Words, w => w.Gloss.Split('-', '.', '=', '[', ']').Contains("NEG"));
+        });
+        Assert.NotEmpty(languages);
+    }
+
+    [Fact]
+    public void Realize_ClauseStandardOfAManner_IsDeniedInAConjoinedLanguage()
+    {
+        var languages = GeneratedLanguages.Sample.Where(l => l.Comparison.Value is ConjoinedComparison).ToList();
+        Assert.All(languages, l =>
+        {
+            var first = Syntax.Realize(l, DogWalks.WithEvent(e => e with { Adverbs = [new Manner(new Adjective("big", null))] }), "x");
+            var denial = new Proposition(new Negated(new Event(new Doing("walk", null), Cat, [], [new Manner(new Adjective("big", null))])), Tense.Past);
+            var second = Syntax.Realize(l, (Clause)new Declarative(denial), "x");
+
+            Assert.Equal(first.Words.Concat(second.Words).Select(w => w.Gloss), WalksBiggerThan(l, CatWalked).Words.Select(w => w.Gloss));
+        });
+        Assert.NotEmpty(languages);
+    }
 }
