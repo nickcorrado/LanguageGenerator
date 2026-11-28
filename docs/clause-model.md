@@ -44,7 +44,7 @@ record Event(Predicate Predicate, Argument Subject, ValueList<Oblique> Obliques,
 ```
 
 - **The subject is always there,** whatever the clause's type or rank. A directive's is 'you' unless it says otherwise, a hortative's 'we' and a jussive's anyone (see [Sentence types](#sentence-types)). A dependent clause whose subject is the one it depends on says so with an `Argument` case, `Shared`, which took the place of the `SharesSubject` flags on `ComplementClause` and `Subordinated`. Syntax says a shared subject as a pronoun where the clause is balanced and leaves it out where it's deranked, as it did before.
-- **Comparison is part of what be says of its subject:** be's complement is an `Attribute`, one of which is `Compared(Adjective Adjective, Argument? Standard)`, in place of the `Comparative` wrapper there was. A question or a modal on a comparison then needs no nesting rule.
+- **Comparison is a grade of the adjective,** wherever it is, as the [degree model](degree-model.md) lays out, in place of the `Comparative` wrapper there was. A question or a modal on a comparison then needs no nesting rule.
 - **Phase stays as it is:** 'begin' and 'stop' are verbs with an event complement, folded into an inceptive or cessative where the language has one, which is the language's choice.
 
 ### The state of affairs
@@ -184,10 +184,9 @@ The model has to take these without another redesign. For each, where it goes an
 | Experiencers, as in 'I like it' or Spanish *me gusta* | An event's participant, in a role of its own | The role, and verbs that take one |
 | Predicative possession, as in 'I have a book' | A predicate of its own, having, which a language says as 'have', 'at me is' or the others WALS 117A counts | The predicate and its marking |
 | A situational modal with a perfect, as in 'you should have gone' | A modal over the perfect, already, and the perfect over a modal, as in 'she has had to leave' | Saying an auxiliary chain where both are verbs |
-| Comparison with a clause as its standard, as in 'warmer than it should be' | `Compared`'s standard as a proposition, beside a noun phrase | The standard's case, and ellipsis in it |
-| Comparison of adverbs and inside a noun phrase | `Compared` for a manner and for an adjective in a noun phrase | The same, in those places |
+| Comparison with a clause as its standard, as in 'warmer than it should be', of a manner and inside a noun phrase | A comparative's standard as a clause, and a grade on any adjective, built: see the [degree model](degree-model.md) | Ellipsis in the standard's clause |
 | Dropping a repeated subject, as in 'she turns and walks away' | A joined `StateOfAffairs`, built: each event said at the shared tense, a shared subject once | Chaining, serializing and switch reference; a negation, a modal or a question over joined events |
-| A negated comparison, or one with a modal | `Negated` and `Modalized` over it, already | Saying them |
+| A negated comparison, or one with a modal | `Negated` and `Modalized` over it, already | Saying them, in two clauses where the language compares that way |
 
 
 ## How it's read and said

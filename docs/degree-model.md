@@ -1,15 +1,15 @@
-# The degree model: a design
+# The degree model
 
-A proposal for what comparison and the other degrees of a property mean before any language says them, as the [clause model](clause-model.md) is for the clause: the types `ClauseFile` builds and `Syntax` realizes. It replaces `Compared`, `Attribute`'s case for a comparison, and `Adjective.Intensified`. Nothing here is built yet, and [What's built first](#whats-built-first) says what a first change would build and what it would leave for later.
+What comparison and the other degrees of a property mean before any language says them, as the [clause model](clause-model.md) is for the clause: the types `ClauseFile` builds from the [clause format](clause-format.md) and `Syntax` realizes. It replaced `Compared`, `Attribute`'s case for a comparison, and `Adjective.Intensified`, for the reasons [Why](#why) gives. [What's built](#whats-built) says which parts are built; the rest is the model the roadmap's degrees go into.
 
 ## Why
 
-A comparison is `Compared(Adjective Adjective, Argument? Standard)`, one of the things be can say of its subject. That was the right step from the `Comparative` wrapper there was, but it's comparison in one place, where Stassen's types count it, and not comparison as such:
+A comparison was `Compared(Adjective Adjective, Argument? Standard)`, one of the things be can say of its subject. That was the right step from the `Comparative` wrapper there was, but it was comparison in one place, where Stassen's types count it, and not comparison as such:
 
-- **Only be's adjective has a degree.** An adjective in a noun phrase and one a manner is made from can't be compared at all, so *stronger arms than yours* and *slower than before* are refused. The parser refuses `CMPR` everywhere but on be's adjective, and the refusal patches what the type can't hold.
-- **A standard is only a noun phrase.** *Warmer than it should* and *slower than before* compare with what a clause says, and are refused.
-- **'Very' and 'much' are one flag.** `small.CMPR.INTS`, 'much smaller', is a comparative of an intensified adjective, said with the language's word for 'very'. Many languages tell them apart, as German *sehr groß* 'very big' and *viel größer* 'much bigger' do, and French *très* and *beaucoup plus*, and some don't, as Turkish *çok* is both.
-- **A comparison is the only degree.** Equatives, superlatives, 'too' and 'enough' have nowhere to go, and neither does the 'so' of *so close that you could touch them*, which Hollow glosses as 'very close'.
+- **Only be's adjective had a degree.** An adjective in a noun phrase and one a manner is made from couldn't be compared at all, so *stronger arms than yours* and *slower than before* were refused. The parser refused `CMPR` everywhere but on be's adjective, and the refusal patched what the type couldn't hold.
+- **A standard was only a noun phrase.** *Warmer than it should* and *slower than before* compare with what a clause says, and were refused.
+- **'Very' and 'much' were one flag.** `small.CMPR.INTS`, 'much smaller', was a comparative of an intensified adjective, said with the language's word for 'very'. Many languages tell them apart, as German *sehr groß* 'very big' and *viel größer* 'much bigger' do, and French *très* and *beaucoup plus*, and some don't, as Turkish *çok* is both.
+- **A comparison was the only degree.** Equatives, superlatives, 'too' and 'enough' had nowhere to go, and neither does the 'so' of *so close that you could touch them*, which Hollow glosses as 'very close'.
 
 ## Principles
 
@@ -39,7 +39,10 @@ Stassen's types are about form, how a language says a comparison across its clau
 
 ```
 record Adjective(string Meaning, Grade? Grade)       // a plain adjective has none
-union Grade(Intensified, Comparative, Equative, Superlative, Excessive, Sufficient, Consecutive, DegreeGap)
+union Grade(Intensified, Comparative, DegreeGap)
+
+//not built yet, further cases of Grade
+Equative, Superlative, Excessive, Sufficient, Consecutive
 ```
 
 Every adjective has a grade or none, wherever it is: what be says of its subject, one of a noun's adjectives, a manner's, or one of a coordination's. The comparee is what the adjective is said of: be's subject, the noun, or for a manner the event's subject, so *she runs faster than me* compares her with me.
@@ -55,7 +58,9 @@ record Intensified                         // 'very big'
 ### Comparative
 
 ```
-record Comparative(Direction Direction, Standard? Standard, Differential? Differential)   // 'bigger (than the house)', 'much bigger'
+record Comparative(Standard? Standard, Differential? Differential)   // 'bigger (than the house)', 'much bigger'
+
+//not built yet: its direction, a field of its own
 enum Direction { More, Less }
 ```
 
@@ -65,6 +70,8 @@ enum Direction { More, Less }
 
 ### Equative
 
+Not built yet.
+
 ```
 record Equative(Standard? Standard)        // 'as big as the house'
 ```
@@ -73,6 +80,8 @@ Haspelmath's equatives, which mark the parameter, as *as big*, and the standard,
 
 ### Superlative
 
+Not built yet.
+
 ```
 record Superlative(Direction Direction, Argument? Domain)   // 'the biggest (of the houses)', 'the least'
 ```
@@ -80,6 +89,8 @@ record Superlative(Direction Direction, Argument? Domain)   // 'the biggest (of 
 The domain is what it's the most of, as *of the houses* or *in the village* is. Bobaljik argues a superlative's form contains the comparative's, as Czech *nej-větší* 'most-bigger' shows it, and many languages say it as a comparative whose standard is everything else, 'bigger than all', which is a choice of form, not a difference in meaning. Szabolcsi's and Heim's relative readings, as in *who climbed the highest mountain?*, where the mountain is higher than anyone else climbed, aren't provided for here; they compare the clause's participants rather than the mountains, and would want a domain of their own.
 
 ### Excessive, sufficient and consecutive
+
+Not built yet.
 
 ```
 record Excessive(StateOfAffairs? Prevented)   // 'too heavy (to lift)'
@@ -108,20 +119,23 @@ union Standard(Argument, Propositional)    // 'than the men'; 'than it should be
 - **The standard's clause keeps its own adjective,** because it can differ from the comparison's: *the table is longer than it is wide* is a subcomparative, which compares two properties on one scale. Where the two are the same, as they nearly always are, leaving the second out is form, and Syntax's to do.
 - **Both kinds overlap,** as *taller than the men* and *taller than the men are* mean the same thing, as an adjective and a relative clause saying it do. Languages tell them apart, as English *than me* and *than I am* are, and many have only the phrasal kind, so both stay, and the clause file writes what the English says.
 
-A gap and a standard depend on each other the way a relative clause and its gap do: exactly one `DegreeGap` in a standard's clause and none elsewhere. The parser checks it, as it checks a relative clause's `Gap`; the types can't say 'one hole' without a clause type for each place a hole can be.
+A gap and a standard depend on each other the way a relative clause and its gap do: exactly one `DegreeGap` in a standard's clause and none elsewhere. The parser checks it, as it checks a relative clause's `Gap`; the types can't say 'one hole' without a clause type for each place a hole can be. The gap is in the standard's own clause, its adjective or a manner, and not yet deeper, as *taller than I thought he was* has it.
 
 ## The differential
 
 ```
-union Differential(Much, Little, Measure)   // 'much bigger', 'a little bigger', 'two years older'
-record Measure(NounPhrase Amount)
+union Differential(Much)                    // 'much bigger'
+
+//not built yet, further cases of Differential
+record Little                               // 'a little bigger'
+record Measure(NounPhrase Amount)           // 'two years older'
 ```
 
-By how much the comparee exceeds the standard, which the degree semantics calls the differential, apart from the degree words of a plain adjective. *Much* is what `CMPR.INTS` glosses today.
+By how much the comparee exceeds the standard, which the degree semantics calls the differential, apart from the degree words of a plain adjective. *Much* is what `CMPR.INTS` glosses, and Syntax says it with the language's 'very' until a language has a word of its own for it, as Turkish *çok* is both.
 
 ## Copula-like verbs
 
-Dixon's copula-like verbs say an attribute of their subject as be does, with a meaning of their own: *the moss grows thicker*, *you look terrible*, *your footsteps sound very loud*, *it feels warmer than it should*. Hollow says each of these with be today, losing the verb, and says *tastes like a wet boot* and *smells of beer* with verbs of their own and a `like:`, which are the same verbs.
+Not built yet. Dixon's copula-like verbs say an attribute of their subject as be does, with a meaning of their own: *the moss grows thicker*, *you look terrible*, *your footsteps sound very loud*, *it feels warmer than it should*. Hollow says each of these with be today, losing the verb, and says *tastes like a wet boot* and *smells of beer* with verbs of their own and a `like:`, which are the same verbs.
 
 ```
 record Being(Attribute Attribute, Copula Copula)
@@ -141,22 +155,24 @@ This is a change to be's predicate, apart from grade, and only one of Hollow's c
 ```
 Adjective(Meaning, Grade?)                in be's Attribute, a noun's adjectives, a manner, an adjective coordination
   Grade = Intensified
-        | Comparative(Direction, Standard?, Differential?)
-        | Equative(Standard?)
-        | Superlative(Direction, Domain?)
-        | Excessive(StateOfAffairs?) | Sufficient(StateOfAffairs?) | Consecutive(Propositional)
+        | Comparative(Direction*, Standard?, Differential?)
+        | Equative(Standard?)*
+        | Superlative(Direction, Domain?)*
+        | Excessive(StateOfAffairs?)* | Sufficient(StateOfAffairs?)* | Consecutive(Propositional)*
         | DegreeGap                        in a standard's clause only
     Standard = Argument | Propositional, with one DegreeGap
-    Differential = Much | Little | Measure(NounPhrase)
-Being(Attribute, Copula)
+    Differential = Much | Little* | Measure(NounPhrase)*
+Being(Attribute, Copula*)
   Copula = Plain | Becoming | Remaining | Appearing(Sense?)
+
+* not built yet
 ```
 
 `Attribute` loses `Compared`. Similes stay as they are: *like water* is the similative role, likeness in manner or kind, which Haspelmath separates from an equative's likeness in degree, and *she is like her mother* is be with that oblique as its attribute.
 
 ## Roadmap items
 
-What the model has to take without another redesign, beyond what's built first:
+What the model has to take without another redesign, beyond what's built:
 
 | Item | Where it goes | Still to build |
 | --- | --- | --- |
@@ -172,16 +188,20 @@ What the model has to take without another redesign, beyond what's built first:
 | Relative superlatives | A domain of the clause's participants | The domain |
 | Comparing amounts, 'more bread', 'eats more' | A quantifier and an adverbial, Bresnan's 'much' compared | Both |
 | Comparing gradable adverbs, 'sooner', 'more often' | A grade on the adverb | Which adverbs are gradable |
+| Subcomparatives, 'longer than it is wide' | A standard's clause with its own adjective, already | Writing that adjective in the clause file |
+| A gap deeper than the standard's clause, 'taller than I thought he was' | A `DegreeGap` in a clause inside the standard's | Letting the parser find it there |
+| A negated comparison, or one with a modal or a command, 'be more careful' | `Negated` and `Modalized` over it, already | Saying each in two clauses where the language compares that way |
+| A clause standard deranked with be or a modal | Nothing new | Deranked copular clauses, which would say it as one clause where it's two today |
 
-## What's built first
+## What's built
 
-Comparatives as they should be, wherever an adjective is:
+Comparatives, wherever an adjective is:
 
-- **The model:** `Grade` on `Adjective`, with `Intensified`, `Comparative` with its standard and the `Much` differential, `Standard` and `DegreeGap`. `Compared` and `Adjective.Intensified` go. The other grades, `Direction`, `Little` and `Measure` wait for the change that says them, as the [roadmap items](#roadmap-items) list, so no type lands with nothing to build it.
-- **Lifted refusals:** *stronger arms than yours*, *slower than before* and *warmer than it should*, the last said with be until copula-like verbs are built, as Hollow says *you look terrible* today.
-- **Everything else in the output stays,** which the same checks the clause model's steps had would show: `CMPR.INTS` is `Much`, said with 'very' as today.
+- **The model:** `Grade` on `Adjective`, with `Intensified`, `Comparative` with its standard and the `Much` differential, `Standard` and `DegreeGap`. `Compared` and `Adjective.Intensified` are gone. The other grades, `Direction`, `Little` and `Measure` wait for the change that says them, as the [roadmap items](#roadmap-items) list, so no type is in the code with nothing to build it.
+- **Lifted refusals:** comparatives in a noun phrase, of a manner and joined, and clauses as standards, as in *stronger arms than yours*, *slower than before* and *warmer than it should*, the last said with be until copula-like verbs are built, as Hollow says *you look terrible*.
+- **What stays refused:** a standard shared by joined adjectives, as in 'older and wiser than his brother'; two comparatives in one clause or noun phrase with one standard; and a comparison of the clause with a standard, be's or a manner's, negated, with a modal or as a command, since a language that compares with two clauses would have to say each.
 
-Equatives, superlatives, the clause-taking grades and copula-like verbs each need a stage of their own and typology of their own, so each is a change of its own, and moves to [the roadmap](roadmap.md) once this is built.
+Equatives, superlatives, the clause-taking grades and copula-like verbs each need a stage of their own and a typology of their own, so each is a change of its own, on [the roadmap](roadmap.md).
 
 ## How it's read and said
 
@@ -189,28 +209,26 @@ Equatives, superlatives, the clause-taking grades and copula-like verbs each nee
 
 - **Grades are glosses on the adjective,** as `CMPR` and `INTS` are: on be's `adjective:`, a noun's adjective, and a `manner:`. `INTS` is 'very' on a plain adjective and 'much' on a comparative, so `small.CMPR.INTS` reads as it does now.
 - **`standard:`** at the clause's level goes with the clause's one comparative, be's adjective or a manner. In a noun phrase, inside its parentheses, it goes with the noun's comparative: `(arm.PL strong.CMPR standard:(arm.PL possessor:2SG))`.
-- **A standard that's a clause** is in brackets, with `_` for its gradable word where it's the comparison's: `standard:[start  subject:3PL  manner:_  time:before]`, `standard:[be.ADVIS  subject:3SG.N  adjective:_]`. How a subcomparative writes its own adjective is open; Hollow has none.
+- **A standard that's a clause** is in brackets, with `_` as its `adjective:` or `manner:`, which the parser gives the comparison's word: `standard:[walk.PST  subject:cat.DEF  manner:_]`, `standard:[be.ADVS  subject:3SG.N  adjective:_]`. It says something, is one clause, and has one `_` and no gap in a role. How a subcomparative writes its own adjective is still open; Hollow has none.
 
 ### Syntax
 
-- **The degree marker** goes on the adjective as it does now, wherever the adjective is. In a manner, it's next to the root, inside the marker that makes the adverb.
-- **A phrasal standard** is marked by the language's type, as now, and goes where the adjective's position puts it:
+- **The grade** is said the same wherever the adjective is: 'very' beside it, or 'much' with 'very' for now, then the comparative's marker nearer, always with no standard and with one where the language marks it alongside a standard. In a manner, the marker is next to the root, inside the marker that makes the adverb, and each adjective joined to another takes its own.
+- **A phrasal standard** is marked by the language's type and goes where the adjective's position puts it, on the side the language puts standards, which is before the adjective in an OV language:
 
 | Type | Be's adjective | In a noun phrase | A manner |
 | --- | --- | --- | --- |
-| Locational | The role's marker, as now | The same, on the adjective's side as its modifiers go | The same, where obliques go |
+| Locational | The role's marker | The same, outside the noun and its adjectives, never between them | The same, beside the manner |
 | Particle | The particle, the standard in the plain case | The same | The same |
-| Exceed | 'Exceed' and the standard as its object | A relative clause that compares, 'arms that are strong, exceed yours' | 'Exceed' after the verb, as a serial verb is |
-| Conjoined | Two clauses, as now | A relative clause that compares, with the clause denying it | Two clauses, the second denying the manner of the standard |
+| Exceed | 'Exceed' and the standard as its object | A relative clause that compares, 'arms that are strong, exceed yours' | 'Exceed' and its object beside the manner |
+| Conjoined | Two clauses | A relative clause saying the adjective plainly, with the clause denying it after the phrase, 'arms that are strong, yours are not strong' | Two clauses, the second denying the manner of the standard |
 
-  Exceed and conjoined comparisons are clause constructions, so inside a noun phrase they become a relative clause, said by the language's relativization.
-- **A clausal standard** takes the type's marking too: after a particle as a balanced clause, as English *than it should* and Russian *čem* have it; deranked in the standard's role in a locational language, as Turkish *bekle-diğ-im-den* 'expect-NMLZ-1SG-ABL' is 'than I expected' and Japanese *omotta yori* 'than (I) thought'; deranked as the object of 'exceed'; and in a conjoined comparison, the standard's clause itself, denied. Its gradable word is left out where it's the comparison's, and every other part said, as 'than they started before', until ellipsis is built.
+  Exceed and conjoined comparisons are clause constructions, so inside a noun phrase they become a relative clause, said by the language's relativization at the present, since a noun phrase has no time of its own; the clause it's in would say it more truly. A noun phrase that has a relative clause already can't compare this way yet.
+- **A clausal standard** takes the type's marking too: after a particle as a balanced clause, as English *than it should* and Russian *čem* have it; deranked in the standard's role in a locational language, as Turkish *bekle-diğ-im-den* 'expect-NMLZ-1SG-ABL' is 'than I expected' and Japanese *omotta yori* 'than (I) thought'; deranked as the object of 'exceed'; and in a conjoined comparison, the standard's clause itself, denied. A locational or exceed language that can't derank the clause yet, as a copular clause or one with a modal can't be, says the comparison in two clauses instead, 'it is warm, it should not be warm', which every language can. The gradable word is left out where it's the comparison's, unless it's the verb, as in a language whose adjectives are verbs, and every other part is said, as 'than they started before', until ellipsis is built.
 
 ## Names
 
-Open:
-
 - **`Grade`**, after the grades of comparison of older grammars, since `Degree` is the grammeme whose values `CMPR` glosses. The grammeme could be renamed instead, though the other grammemes are named for their categories as `Degree` is.
-- **`Consecutive`**, the traditional grammars' name for a 'so … that' clause, and **`Prevented`** and **`Allowed`** for the clauses of 'too' and 'enough'.
-- **`Plain`** for be itself among the copulas.
-- **`Intensified` and `Comparative`** are also Syntax method names, which would shadow the types in patterns, as `Complement` did, so the methods would be renamed.
+- **Syntax's methods** took names apart from the types, as `ComparativeWords` and `Graded`, so they don't shadow them in patterns, as `Complement` did.
+
+Open, for what isn't built: **`Consecutive`**, the traditional grammars' name for a 'so … that' clause; **`Prevented`** and **`Allowed`** for the clauses of 'too' and 'enough'; and **`Plain`** for be itself among the copulas.

@@ -100,15 +100,19 @@ The verb `be` says what its subject is, with `noun:fool` or `adjective:big` in p
 
 ### Comparison
 
-With an adjective, `be` can compare its subject: `CMPR` on the adjective says 'more', and `standard:` what the subject is compared with, if anything is.
+`CMPR` on an adjective says 'more', wherever it is: what `be` says of its subject, an adjective in a noun phrase, a manner, or one of adjectives joined. `standard:` says what it's compared with, if anything is: a noun phrase, or a clause in brackets with `_` as its `adjective:` or `manner:`, standing for what's compared, as comparative deletion leaves it out. `standard:` goes with a clause's one comparative, `be`'s adjective or a manner, and inside a noun phrase's parentheses with its comparative adjective. `INTS` with `CMPR` is 'much', as `small.CMPR.INTS` is 'much smaller'. See the [degree model](degree-model.md).
 
 | Written | Means |
 | --- | --- |
 | `be  subject:marta  adjective:tall.CMPR  standard:man.PL.DEF` | 'Marta is taller than the men' |
 | `be  subject:road.DEF  adjective:long.CMPR` | 'the road is longer' |
+| `walk  subject:dog.DEF  manner:slow.CMPR  standard:cat.DEF` | 'the dog walks more slowly than the cat' |
+| `see.PST  subject:1SG  object:(dog.NDF big.CMPR  standard:cat.DEF)` | 'I saw a bigger dog than the cat' |
+| `be  subject:3SG.N  adjective:warm.CMPR  standard:[be.ADVS  subject:3SG.N  adjective:_]` | 'it's warmer than it should be' |
+| `walk  subject:dog.DEF  manner:slow.CMPR  standard:[walk.PST  subject:cat.DEF  manner:_]` | 'the dog walks more slowly than the cat walked' |
 | `shine  subject:3SG.N  like:water` | 'it shines like water' |
 
-`CMPR` goes only on the adjective `be` says of its subject, not on one in a noun phrase or joined to another, and a comparison can't be negated, take a modal or be a command yet. `like:` says what something is or does something like, with any verb but `be`.
+A standard's clause says something, is one clause, and has one `_`, in its own `adjective:` or `manner:`, not deeper, and no gap in a role; `_` goes nowhere else. Adjectives joined can't share a standard yet, a clause or noun phrase has one comparative a standard goes with, and a comparison of the clause, `be`'s or a manner's with a standard, can't be negated, take a modal or be a command yet. `like:` says what something is or does something like, with any verb but `be`.
 
 How a language marks the standard follows WALS 121A: marked like a place, mostly 'from', as in Turkish ('tall from the men'); with a particle like English *than*; as the object of a verb meaning 'exceed', as in Yoruba ('he is big, exceeds the elephant'); or as two clauses, 'Marta is tall, the men are not tall'. Every language marks a comparative adjective with no standard, with a word or an affix glossed `CMPR`, as Turkish says *daha büyük* 'more big', and some also mark it beside a standard, as English *-er* does. A degree word goes before the adjective in a language whose adjective phrases are head-final and after it in one whose are head-initial, which leans with the order of verb and object as WALS 83A and 91A count together. 'Like' is a word on the side of the phrase the language's adpositions go, or an affix on its edge glossed `SIM`.
 
@@ -128,7 +132,7 @@ A clause can say when, how often, how and for how long, with any number of each:
 
 `when:` is a word of its own saying when, like *now*, *then* or *yesterday*, and `often:` one saying how often or whether something still goes on, like *again* or *still*; the language coins a root for each. `manner:` says how, as an adjective the language makes into an adverb its own way, so 'carefully' is `manner:careful`, 'suddenly' `manner:sudden` and 'well' `manner:good`. Which role an adverb is in says how near the verb it goes, so nothing has to know English adverbs by name. `time:` and `duration:` take a noun phrase, as other roles do, and `be` takes them too. `INTS` on any adjective says 'very', or 'much' with `CMPR`, as `small.CMPR.INTS` is 'much smaller'.
 
-*Here* and *there* fill a role saying where, as `where` does (see [Demonstratives](#demonstratives)), and so do *somewhere*, *nowhere* and *everywhere* (see [Quantifiers and indefinites](#quantifiers-and-indefinites)). Other words for where, like *inside* and *upstream*, can't be said yet, and neither can *ago* or *later* after a noun or a manner that compares, as in 'more slowly'. *Never*, *always* and *sometime* are times, in `time:` (see [Quantifiers and indefinites](#quantifiers-and-indefinites)).
+*Here* and *there* fill a role saying where, as `where` does (see [Demonstratives](#demonstratives)), and so do *somewhere*, *nowhere* and *everywhere* (see [Quantifiers and indefinites](#quantifiers-and-indefinites)). Other words for where, like *inside* and *upstream*, can't be said yet, and neither can *ago* or *later* after a noun. *Never*, *always* and *sometime* are times, in `time:` (see [Quantifiers and indefinites](#quantifiers-and-indefinites)).
 
 Adverbs and manners go where obliques go, ordered as described under [Modifier order](#modifier-order). An adverb is its bare root. A manner adverb is the adjective itself, as German *schnell* is 'quick' and 'quickly'; the adjective with an affix, as English *-ly* and Turkish *-ce* make one, glossed `ADV` as the Leipzig rules have it; or the adjective with a word beside it, as Mandarin *de* and Japanese *ni*, glossed `ADV` too. WALS doesn't count these, so the odds are guesses. A time is marked like a place in most languages, sharing the location's case or adposition, and otherwise by an adposition of its own glossed `during`. A duration is marked like the object, as Latin *duos annos* 'for two years' is accusative, like a time, or by an adposition glossed `for`. 'Very' is a word on the side the language puts degree words, the comparative's side where that's a word too, and is glossed `INTS`, as grammars commonly gloss an intensifier.
 
@@ -192,7 +196,7 @@ Adjectives are written in English order, which already puts the nearest last, so
 | `time:` | When |
 | `duration:` | For how long |
 | `agent:` | Who does it, in a passive |
-| `standard:` | What the subject of `be` is compared with |
+| `standard:` | What a comparative is compared with: a noun phrase, or a clause in brackets with `_` as its `adjective:` or `manner:` |
 | `addressee:` | Who the clause is said to |
 | `when:` | When, as a word of its own |
 | `often:` | How often, or whether still, as a word of its own |
