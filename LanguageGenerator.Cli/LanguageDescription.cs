@@ -486,6 +486,10 @@ public static class LanguageDescription
             (Comparing(Declared(new Event(new Being(new Adjective("big", null)), Phrase("dog", Number.Singular), [], []), Tense.Present, Aspect.Imperfective, false), Phrase("cat", Number.Plural)),
                 "the dog is bigger than the cats"),
             (Comparing(Declared(new Event(new Being(new Adjective("big", null)), Phrase("cat", Number.Singular), [], []), Tense.Present, Aspect.Imperfective, false), null), "the cat is bigger"),
+            (Declared(new Event(new Doing("see", new NounPhrase(new Noun("dog", Number.Singular, [new Adjective("big", new Comparative(Phrase("cat", Number.Singular), null))], null, null, null, Definiteness.Indefinite, null), null)),
+                Phrase("person", Number.Singular), [], []), Tense.Past, Aspect.Perfective, false), "the person saw a bigger dog than the cat"),
+            (Declared(new Event(new Doing("walk", null), Phrase("person", Number.Singular), [], [new Manner(new Adjective("slow", new Comparative(Phrase("dog", Number.Singular), null)))]), Tense.Past, Aspect.Perfective, false),
+                "the person walked more slowly than the dog"),
             (Declared(new Event(new Doing("sleep", null), Phrase("cat", Number.Singular), [new(Role.Similative, Phrase("dog", Number.Singular), Configuration.At)], []), Tense.Present, Aspect.Imperfective, false),
                 "the cat sleeps like the dog"),
         ];

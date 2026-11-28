@@ -345,4 +345,83 @@ public class ComparisonTests
         Assert.Contains(languages, l => l.Comparison.Value is LocationalComparison);
         Assert.Contains(languages, l => l.Comparison.Value is ParticleComparison);
     }
+
+    //'the dog that is big' as a relative clause, compared or said plainly
+    private static Sentence DogThatIs(Adjective adjective) => DogWalks.WithEvent(e => e with
+    {
+        Subject = new NounPhrase(new Noun("dog", Number.Singular, [], null, null, null, null, null), new Proposition(new Event(new Being(adjective), new Gap(null), [], []), Tense.Present)),
+    });
+
+    [Fact]
+    public void Realize_ExceedingInANounPhrase_IsARelativeClauseThatCompares()
+    {
+        var languages = GeneratedLanguages.Sample.Where(l => l.Comparison.Value is ExceedComparison).ToList();
+        Assert.All(languages, l => Assert.Equal(
+            Syntax.Realize(l, DogThatIs(new Adjective("big", new Comparative(Cats, null))), "x").Words.Select(w => w.Gloss),
+            BiggerDog(l, Cats).Words.Select(w => w.Gloss)));
+        Assert.NotEmpty(languages);
+    }
+
+    [Fact]
+    public void Realize_TwoClausesInANounPhrase_AreARelativeClauseThenTheStandardDenied()
+    {
+        var languages = GeneratedLanguages.Sample.Where(l => l.Comparison.Value is ConjoinedComparison).ToList();
+        Assert.All(languages, l =>
+        {
+            var relative = Syntax.Realize(l, DogThatIs(new Adjective("big", null)), "x").Words.Select(w => w.Gloss).ToList();
+            var denial = Syntax.Realize(l, DogIsBig.WithEvent(e => e with { Subject = Cats }).Not(), "x").Words.Select(w => w.Gloss).ToList();
+            var said = BiggerDog(l, Cats).Words.Select(w => w.Gloss).ToList();
+
+            //the denial follows the noun phrase, wherever the sentence puts it
+            var at = Enumerable.Range(0, said.Count - denial.Count + 1).Single(i => said.Skip(i).Take(denial.Count).SequenceEqual(denial));
+            Assert.Equal(relative, [.. said.Take(at), .. said.Skip(at + denial.Count)]);
+        });
+        Assert.NotEmpty(languages);
+    }
+
+    [Fact]
+    public void Realize_NounPhraseComparingByAClause_CantHaveAnotherRelativeClauseYet() =>
+        Assert.All(GeneratedLanguages.Sample.Where(l => l.Comparison.Value is ExceedComparison or ConjoinedComparison), l =>
+        {
+            var sleeping = new Proposition(new Event(new Doing("sleep", null), new Gap(null), [], []), Tense.Present);
+            var both = DogWalks.WithEvent(e => e with { Subject = DogThat(new Adjective("big", new Comparative(Cats, null))) with { Relative = sleeping } });
+            Assert.Throws<ArgumentException>(() => Syntax.Realize(l, both, "x"));
+        });
+
+    [Fact]
+    public void Realize_ExceededManner_PutsExceedOnTheStandardsSide()
+    {
+        var languages = GeneratedLanguages.Sample.Where(l => l.Comparison.Value is ExceedComparison).ToList();
+        Assert.All(languages, l =>
+        {
+            var sentence = WalksBigger(l, Cats);
+            var (exceed, big, cat) = (IndexOf(sentence, ((ExceedComparison)l.Comparison.Value!).Exceed.Root), IndexOf(sentence, "big"), IndexOf(sentence, "cat"));
+
+            Assert.True(l.WordOrder.VerbPhraseDirectionality == HeadDirectionality.Final ? exceed < big : exceed > big);
+            Assert.True(l.WordOrder.VerbPhraseDirectionality == HeadDirectionality.Initial ? exceed < cat : exceed > cat);
+        });
+        Assert.NotEmpty(languages);
+    }
+
+    [Fact]
+    public void Realize_ConjoinedManner_IsTheClauseThenTheStandardDenied()
+    {
+        var languages = GeneratedLanguages.Sample.Where(l => l.Comparison.Value is ConjoinedComparison).ToList();
+        Assert.All(languages, l =>
+        {
+            ValueList<Adverbial> plain = [new Manner(new Adjective("big", null))];
+            var first = Syntax.Realize(l, DogWalks.WithEvent(e => e with { Adverbs = plain }), "x");
+            var second = Syntax.Realize(l, DogWalks.WithEvent(e => e with { Subject = Cats, Adverbs = plain }).Not(), "x");
+
+            Assert.Equal(first.Words.Concat(second.Words).Select(w => w.Gloss), WalksBigger(l, Cats).Words.Select(w => w.Gloss));
+        });
+        Assert.NotEmpty(languages);
+    }
+
+    [Theory]
+    [InlineData("walk.NEG  subject:dog  manner:slow.CMPR  standard:cat", "can't be negated yet")]
+    [InlineData("walk.ABIL  subject:dog  manner:slow.CMPR  standard:cat", "A comparison can't take ABIL")]
+    [InlineData("walk.IMP  manner:slow.CMPR  standard:cat", "A command can't compare yet")]
+    public void Parse_MannerComparedWithAStandard_IsAStatementYet(string gloss, string message) =>
+        Assert.Contains(message, Assert.Throws<ClauseFormatException>(() => ClauseFile.Parse($"x\n  {gloss}")).Message);
 }

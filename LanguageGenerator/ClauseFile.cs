@@ -474,12 +474,13 @@ public static class ClauseFile
             throw new ClauseFormatException(verb == "be" ? "be can't be passive." : "A command can't be passive yet.", number);
         }
         /*
-          a standard: goes with the clause's one comparative, be's adjective: or a manner:. With be, a
-          command can't compare yet, and a comparison can't take a modal
+          a standard: goes with the clause's one comparative, be's adjective: or a manner:. A comparison
+          of the clause, be's or a manner's with a standard, can't be a command, take a modal or be
+          negated yet, since a language that compares with two clauses would have to say each
          */
         var manners = roles.ComparedManners;
         var beCompared = roles.Attribute is { Value: Adjective { Grade.Value: Comparative } };
-        if (features.Imperative && (roles.Compared || standard.HasValue && verb == "be"))
+        if (features.Imperative && (roles.Compared || standard.HasValue))
         {
             throw new ClauseFormatException("A command can't compare yet.", number);
         }
@@ -497,7 +498,11 @@ public static class ClauseFile
         {
             throw new ClauseFormatException("A standard: goes with one comparative, and this clause has more than one.", number);
         }
-        if (features.Modality is { } modality && (features.Imperative || roles.Compared || standard.HasValue && verb == "be"))
+        if (standard.HasValue && !beCompared && features.Negated)
+        {
+            throw new ClauseFormatException("A comparison can't be negated yet.", number);
+        }
+        if (features.Modality is { } modality && (features.Imperative || roles.Compared || standard.HasValue))
         {
             throw new ClauseFormatException(features.Imperative
                 ? $"A command can't take {modality.Gloss}: it already says what to do."
