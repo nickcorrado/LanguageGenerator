@@ -427,12 +427,12 @@ public static class LanguageDescription
             (Declared(new Event(new Doing("see", new Pronoun(Person.Second, Number.Singular)), new Pronoun(Person.First, Number.Singular), [], []), Tense.Present, Aspect.Imperfective, false), "I see you"),
             (Declared(new Event(new Doing("sleep", null), new Pronoun(Person.First, Number.Plural), [], []), Tense.Past, Aspect.Imperfective, false), "we were sleeping"),
             (Declared(new Event(new Doing("see", Phrase("cat", Number.Singular)), Phrase("dog", Number.Singular), [], []), Tense.Past, Aspect.Perfective, true), "the dog didn't see the cat"),
-            (Declared(new Event(new Doing("see", new NounPhrase(new Noun("cat", Number.Plural, [new("small", false)], null, null, null, Definiteness.Definite, null), null)), new NounPhrase(new Noun("dog", Number.Singular, [new("big", false)], null, null, null, Definiteness.Definite, null), null), [], []), Tense.Past, Aspect.Perfective, false), "the big dog saw the small cats"),
-            (Declared(new Event(new Doing("see", new NounPhrase(new Noun("sun", Number.Singular, [new("big", false)], null, null, null, Definiteness.Definite, null), null)), new NounPhrase(new Noun("woman", Number.Singular, [new("old", false)], null, null, null, Definiteness.Definite, null), null), [], []), Tense.Past, Aspect.Perfective, false), "the old woman saw the big sun"),
-            (Declared(new Event(new Doing("sleep", null), Phrase("dog", Number.Singular), [new(Role.Location, new NounPhrase(new Noun("house", Number.Singular, [new("big", false)], null, null, null, Definiteness.Definite, null), null), Configuration.In)], []), Tense.Past, Aspect.Imperfective, false), "the dog was sleeping in the big house"),
+            (Declared(new Event(new Doing("see", new NounPhrase(new Noun("cat", Number.Plural, [new("small", null)], null, null, null, Definiteness.Definite, null), null)), new NounPhrase(new Noun("dog", Number.Singular, [new("big", null)], null, null, null, Definiteness.Definite, null), null), [], []), Tense.Past, Aspect.Perfective, false), "the big dog saw the small cats"),
+            (Declared(new Event(new Doing("see", new NounPhrase(new Noun("sun", Number.Singular, [new("big", null)], null, null, null, Definiteness.Definite, null), null)), new NounPhrase(new Noun("woman", Number.Singular, [new("old", null)], null, null, null, Definiteness.Definite, null), null), [], []), Tense.Past, Aspect.Perfective, false), "the old woman saw the big sun"),
+            (Declared(new Event(new Doing("sleep", null), Phrase("dog", Number.Singular), [new(Role.Location, new NounPhrase(new Noun("house", Number.Singular, [new("big", null)], null, null, null, Definiteness.Definite, null), null), Configuration.In)], []), Tense.Past, Aspect.Imperfective, false), "the dog was sleeping in the big house"),
             (Declared(new Event(new Doing("give", Phrase("fish", Number.Singular)), Phrase("person", Number.Singular), [new(Role.Recipient, Phrase("cat", Number.Plural), Configuration.At)], []), Tense.Past, Aspect.Perfective, false), "the person gave the fish to the cats"),
             (Declared(new Event(new Doing("walk", null), new Pronoun(Person.First, Number.Singular), [new(Role.Source, Phrase("tree", Number.Singular), Configuration.At), new(Role.Goal, Phrase("water", Number.Singular), Configuration.At), new(Role.Companion, new Pronoun(Person.Second, Number.Singular), Configuration.At)], []), Tense.Past, Aspect.Perfective, false), "I walked from the tree to the water with you"),
-            (Declared(new Event(new Doing("see", new NounPhrase(new Noun("dog", ClauseFile.NumberFor(3), [new("big", false)], 3, null, null, null, null), null)), Phrase("person", Number.Singular), [], []), Tense.Past, Aspect.Perfective, false), "the person saw three big dogs"),
+            (Declared(new Event(new Doing("see", new NounPhrase(new Noun("dog", ClauseFile.NumberFor(3), [new("big", null)], 3, null, null, null, null), null)), Phrase("person", Number.Singular), [], []), Tense.Past, Aspect.Perfective, false), "the person saw three big dogs"),
             (Declared(new Event(new Doing("sleep", null), new NounPhrase(new Noun("dog", Number.Singular, [], null, 3, null, Definiteness.Definite, null), null), [new(Role.Location, new NounPhrase(new Noun("house", Number.Singular, [], null, 1, null, Definiteness.Definite, null), null), Configuration.In)], []), Tense.Past, Aspect.Imperfective, false), "the third dog was sleeping in the first house"),
             (Declared(new Event(new Doing("walk", null), Phrase("cat", Number.Singular), [new(Role.Source, Phrase("house", Number.Singular), Configuration.In), new(Role.Route, Phrase("water", Number.Singular), Configuration.Over)], []), Tense.Past, Aspect.Perfective, false), "the cat walked out of the house over the water"),
             (Declared(new Event(new Being(new Oblique(Role.Location, Phrase("tree", Number.Singular), Configuration.Under)), Phrase("bird", Number.Singular), [], []), Tense.Present, Aspect.Imperfective, false), "the bird is under the tree"),
@@ -440,7 +440,7 @@ public static class LanguageDescription
         ];
         (Sentence Clause, string Translation)[] copular =
         [
-            (Declared(new Event(new Being(new Adjective("big", false)), Phrase("dog", Number.Singular), [], []), Tense.Present, Aspect.Imperfective, false), "the dog is big"),
+            (Declared(new Event(new Being(new Adjective("big", null)), Phrase("dog", Number.Singular), [], []), Tense.Present, Aspect.Imperfective, false), "the dog is big"),
             (Declared(new Event(new Being(new NounPhrase(new Noun("bird", Number.Singular, [], null, null, null, Definiteness.Indefinite, null), null)), new Pronoun(Person.Second, Number.Singular), [], []), Tense.Present, Aspect.Imperfective, false), "you are a bird"),
             (Declared(new Event(new Being(new Oblique(Role.Location, Phrase("house", Number.Singular), Configuration.In)), Phrase("dog", Number.Singular), [], []), Tense.Present, Aspect.Imperfective, false), "the dog is in the house"),
         ];
@@ -452,12 +452,12 @@ public static class LanguageDescription
         ];
         (Sentence Clause, string Translation)[] copularCommands =
         [
-            (Told(new Event(new Being(new Adjective("good", false)), new Pronoun(Person.Second, Number.Singular), [], []), false), "be good"),
+            (Told(new Event(new Being(new Adjective("good", null)), new Pronoun(Person.Second, Number.Singular), [], []), false), "be good"),
         ];
         (Utterance Said, string Translation)[] addressed =
         [
             (new Message((Sentence)Declared(new Event(new Being(new Oblique(Role.Location, Phrase("house", Number.Singular), Configuration.In)), Phrase("dog", Number.Singular), [], []), Tense.Present, Aspect.Imperfective, false),
-                new NounPhrase(new Noun("woman", Number.Singular, [new("old", false)], null, null, null, null, null), null)), "old woman, the dog is in the house"),
+                new NounPhrase(new Noun("woman", Number.Singular, [new("old", null)], null, null, null, null, null), null)), "old woman, the dog is in the house"),
             (new Message((Sentence)Told(new Event(new Doing("walk", null), new Pronoun(Person.Second, Number.Plural), [new(Role.Goal, Phrase("water", Number.Singular), Configuration.At)], []), false), new NounPhrase(new Noun("person", Number.Plural, [], null, null, null, null, null), null)),
                 "people, go to the water"),
         ];
@@ -467,14 +467,14 @@ public static class LanguageDescription
                 "the dog and the cat saw the birds"),
             (new Coordinated<Sentence>(Conjunction.But, Declared(new Event(new Doing("sleep", null), Phrase("dog", Number.Singular), [], []), Tense.Past, Aspect.Imperfective, false),
                 Declared(new Event(new Doing("eat", Phrase("fish", Number.Singular)), Phrase("cat", Number.Singular), [], []), Tense.Past, Aspect.Imperfective, false)), "the dog was sleeping, but the cat was eating the fish"),
-            (Declared(new Event(new Being(new AdjectiveCoordination(Conjunction.And, [new("big", false), new("old", false)])), Phrase("house", Number.Singular), [], []), Tense.Present, Aspect.Imperfective, false),
+            (Declared(new Event(new Being(new AdjectiveCoordination(Conjunction.And, [new("big", null), new("old", null)])), Phrase("house", Number.Singular), [], []), Tense.Present, Aspect.Imperfective, false),
                 "the house is big and old"),
         ];
         (Sentence Clause, string Translation)[] subordinated =
         [
             (Under(Declared(new Event(new Doing("eat", Phrase("fish", Number.Singular)), Phrase("cat", Number.Singular), [], []), Tense.Present, Aspect.Imperfective, false), Subordinator.If, Declared(new Event(new Doing("sleep", null), Phrase("dog", Number.Singular), [], []), Tense.Present, Aspect.Imperfective, false), false), "if the dog sleeps, the cat eats the fish"),
             (Under(Declared(new Event(new Doing("walk", null), Phrase("dog", Number.Singular), [new(Role.Goal, Phrase("water", Number.Singular), Configuration.At)], []), Tense.Past, Aspect.Perfective, false), Subordinator.Purpose, Declared(new Event(new Doing("drink", null), Phrase("dog", Number.Singular), [], []), Tense.Past, Aspect.Perfective, false), true), "the dog walked to the water to drink"),
-            (Under(Declared(new Event(new Doing("sleep", null), Phrase("cat", Number.Singular), [], []), Tense.Past, Aspect.Perfective, false), Subordinator.Because, Declared(new Event(new Being(new Adjective("big", false)), Phrase("dog", Number.Singular), [], []), Tense.Past, Aspect.Imperfective, false), false), "the cat slept because the dog was big"),
+            (Under(Declared(new Event(new Doing("sleep", null), Phrase("cat", Number.Singular), [], []), Tense.Past, Aspect.Perfective, false), Subordinator.Because, Declared(new Event(new Being(new Adjective("big", null)), Phrase("dog", Number.Singular), [], []), Tense.Past, Aspect.Imperfective, false), false), "the cat slept because the dog was big"),
         ];
         (Sentence Clause, string Translation)[] passives =
         [
@@ -483,9 +483,13 @@ public static class LanguageDescription
         ];
         (Sentence Clause, string Translation)[] comparatives =
         [
-            (Comparing(Declared(new Event(new Being(new Adjective("big", false)), Phrase("dog", Number.Singular), [], []), Tense.Present, Aspect.Imperfective, false), Phrase("cat", Number.Plural)),
+            (Comparing(Declared(new Event(new Being(new Adjective("big", null)), Phrase("dog", Number.Singular), [], []), Tense.Present, Aspect.Imperfective, false), Phrase("cat", Number.Plural)),
                 "the dog is bigger than the cats"),
-            (Comparing(Declared(new Event(new Being(new Adjective("big", false)), Phrase("cat", Number.Singular), [], []), Tense.Present, Aspect.Imperfective, false), null), "the cat is bigger"),
+            (Comparing(Declared(new Event(new Being(new Adjective("big", null)), Phrase("cat", Number.Singular), [], []), Tense.Present, Aspect.Imperfective, false), null), "the cat is bigger"),
+            (Declared(new Event(new Doing("see", new NounPhrase(new Noun("dog", Number.Singular, [new Adjective("big", new Comparative((Argument)Phrase("cat", Number.Singular), null))], null, null, null, Definiteness.Indefinite, null), null)),
+                Phrase("person", Number.Singular), [], []), Tense.Past, Aspect.Perfective, false), "the person saw a bigger dog than the cat"),
+            (Declared(new Event(new Doing("walk", null), Phrase("person", Number.Singular), [], [new Manner(new Adjective("slow", new Comparative((Argument)Phrase("dog", Number.Singular), null)))]), Tense.Past, Aspect.Perfective, false),
+                "the person walked more slowly than the dog"),
             (Declared(new Event(new Doing("sleep", null), Phrase("cat", Number.Singular), [new(Role.Similative, Phrase("dog", Number.Singular), Configuration.At)], []), Tense.Present, Aspect.Imperfective, false),
                 "the cat sleeps like the dog"),
         ];
@@ -564,9 +568,9 @@ public static class LanguageDescription
         (Sentence Clause, string Translation)[] adverbs =
         [
             (Declared(new Event(new Doing("sleep", null), Phrase("dog", Number.Singular), [], [new Adverb("now", AdverbKind.When)]), Tense.Present, Aspect.Imperfective, false), "the dog is sleeping now"),
-            (Declared(new Event(new Doing("walk", null), Phrase("person", Number.Singular), [], [new Manner(new Adjective("slow", true))]), Tense.Past, Aspect.Perfective, false),
+            (Declared(new Event(new Doing("walk", null), Phrase("person", Number.Singular), [], [new Manner(new Adjective("slow", new Intensified()))]), Tense.Past, Aspect.Perfective, false),
                 "the person walked very slowly"),
-            (Declared(new Event(new Being(new Adjective("big", true)), Phrase("dog", Number.Singular), [], []), Tense.Present, Aspect.Imperfective, false), "the dog is very big"),
+            (Declared(new Event(new Being(new Adjective("big", new Intensified())), Phrase("dog", Number.Singular), [], []), Tense.Present, Aspect.Imperfective, false), "the dog is very big"),
             (Declared(new Event(new Doing("sleep", null), Phrase("cat", Number.Plural), [new(Role.Time, new NounPhrase(new Noun("night", Number.Singular, [], null, null, null, null, null), null), Configuration.At)], []), Tense.Present, Aspect.Imperfective, false),
                 "the cats sleep at night"),
             (Declared(new Event(new Doing("sleep", null), Phrase("bird", Number.Singular), [new(Role.Duration, new NounPhrase(new Noun("year", ClauseFile.NumberFor(3), [], 3, null, null, null, null), null), Configuration.At)], []), Tense.Past, Aspect.Perfective, false), "the bird slept for three years"),
@@ -630,9 +634,9 @@ public static class LanguageDescription
         {
             Propositional = stated.Propositional.Rebuilt(p => p with
             {
-                StateOfAffairs = p.StateOfAffairs.Rebuilt(e => e.Predicate.Value is Being { Attribute.Value: Adjective adjective } being
-                    ? e with { Predicate = being with { Attribute = new Compared(adjective, standard) } }
-                    : throw new ArgumentException("Only an adjective said with be is compared.", nameof(clause))),
+                StateOfAffairs = p.StateOfAffairs.Rebuilt(e => e.Predicate.Value is Being { Attribute.Value: Adjective { Grade: null } adjective } being
+                    ? e with { Predicate = being with { Attribute = adjective with { Grade = new Comparative(standard is { } than ? (Argument)than : (Standard?)null, null) } } }
+                    : throw new ArgumentException("Only an adjective said with be, with no grade yet, is compared.", nameof(clause))),
             }),
         },
         _ => throw new ArgumentException("Only a stated clause compares here.", nameof(clause)),

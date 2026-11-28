@@ -6,6 +6,7 @@ anyone HUM
 anything THING
 appearance THING
 apron THING
+arm THING
 armor THING
 back THING
 bag THING

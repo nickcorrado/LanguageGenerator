@@ -37,7 +37,7 @@ public class CoordinationTests
     {
         var clause = PredicateOf<Being>(Parsed("be  subject:inn.DEF  adjective:(and warm crowded)"));
 
-        Assert.Equal(new AdjectiveCoordination(Conjunction.And, [new("warm", false), new("crowded", false)]), clause.Attribute.Value);
+        Assert.Equal(new AdjectiveCoordination(Conjunction.And, [new("warm", null), new("crowded", null)]), clause.Attribute.Value);
     }
 
     [Fact]
@@ -197,7 +197,7 @@ public class CoordinationTests
     {
         Assert.All(GeneratedLanguages.Sample, l =>
         {
-            var sentence = Syntax.Realize(l, Declared(new Event(new Being(new AdjectiveCoordination(Conjunction.And, [new("big", false), new("old", false)])), Dog, [], []), Tense.Present, Aspect.Imperfective, false), "x");
+            var sentence = Syntax.Realize(l, Declared(new Event(new Being(new AdjectiveCoordination(Conjunction.And, [new("big", null), new("old", null)])), Dog, [], []), Tense.Present, Aspect.Imperfective, false), "x");
 
             Assert.True(IndexOf(sentence, "big") >= 0 && IndexOf(sentence, "old") > IndexOf(sentence, "big"));
         });

@@ -164,14 +164,26 @@ public static class GlossPrompt
               the queen is in the house
                 be  subject:queen.DEF  location.in:house.DEF
 
-            With adjective:, be can also compare its subject: CMPR on the adjective, in its plain
-            form, says 'more', as tall.CMPR for 'taller' or 'more tall', and standard: says what it's
-            compared with, if the sentence says:
+            CMPR on an adjective, in its plain form, says 'more', as tall.CMPR for 'taller' or 'more
+            tall', wherever the adjective is: what be says, one in a noun phrase, or a manner. standard:
+            says what it's compared with, if the sentence says, as a noun phrase or as a clause. One in
+            a noun phrase goes inside its parentheses, with the adjective it compares. A clause goes in
+            brackets with _ as its adjective: or manner:, standing for what's compared, and is written
+            whole even where English shortens it, as 'than it should' is 'than it should be' and 'than
+            before' is 'than they sang before':
 
               Marta is taller than the men
                 be  subject:marta  adjective:tall.CMPR  standard:man.PL.DEF
               the road is longer
                 be  subject:road.DEF  adjective:long.CMPR
+              she has a faster horse than mine
+                have  subject:3SG.F  object:(horse.NDF fast.CMPR  standard:(horse possessor:1SG))
+              he walks more slowly than his father
+                walk  subject:3SG.M  manner:slow.CMPR  standard:(father possessor:3SG.M)
+              the river is colder than it was
+                be  subject:river.DEF  adjective:cold.CMPR  standard:[be.PST  subject:3SG.N  adjective:_]
+              they sing louder than before
+                sing  subject:3PL  manner:loud.CMPR  standard:[sing.PST  subject:3PL  manner:_]
 
             What something is or does something like goes in like:, with any verb but be:
 
@@ -395,9 +407,9 @@ public static class GlossPrompt
             - When a sentence can't be said even loosely, as with a question asking two things, or
               how long, how often, how many, which or whose, or a question inside another clause that isn't quoted (like 'did anyone see what happened?'), a modal other than ABIL,
               PERM, OBLIG, ADVS, DUB or PRSM (like a 'would' or 'could' that imagines something), a relative clause with 'whose' or on a
-              pronoun (like 'he who hesitates'), a comparison other than an adjective with be (like 'runs faster than',
-              'stronger arms than yours' or 'as tall as'), a comparison with a clause (like 'warmer
-              than it should be' or 'slower than before'), a subordinate clause with no main clause
+              pronoun (like 'he who hesitates'), 'as … as' (like 'as tall as'), a comparison with 'less', a comparison
+              that's negated, has a modal or is a command (like 'isn't taller than' or 'be more careful'),
+              one standard for adjectives joined (like 'older and wiser than his brother'), a subordinate clause with no main clause
               (like 'if you come back.' on its own), the most or a superlative (like 'the
               tallest'), or a command to anyone but 'you', like 'let's go', write instead one line: {CantExpress} (what's missing): the sentence.
               This is better than a gloss that changes what the sentence means.

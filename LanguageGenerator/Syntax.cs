@@ -397,6 +397,34 @@ public static class Syntax
         return words;
     }
 
+    /*
+      a noun phrase whose adjective is compared with a standard, in a language that compares by
+      exceeding or with two clauses, which are clause constructions: the phrase without the adjective,
+      with a relative clause in its place. Exceeding, the relative clause compares, as in 'arms that
+      are strong, exceed yours'; with two clauses, it says the adjective plainly, and the clause
+      denying it of the standard follows the phrase, as in 'arms that are strong, yours are not
+      strong'. Both are at the present, since a noun phrase has no time of its own, which the clause
+      it's in would say more truly. Null for any other phrase
+     */
+    private static (NounPhrase Phrase, Sentence? Denial)? ComparedByClause(Language language, NounPhrase phrase)
+    {
+        bool ByClause(Adjective adjective) => Standards(adjective).Any(s => language.Comparison.Value is ExceedComparison || InTwoClauses(language, s));
+        if (phrase.Head.Value is not Noun noun || noun.Adjectives.ToList().FindIndex(ByClause) is var at && at < 0)
+        {
+            return null;
+        }
+        if (phrase.Relative is not null || noun.Adjectives.Skip(at + 1).Any(a => a.Grade is { Value: Comparative { Standard: not null } }))
+        {
+            throw new ArgumentException("A noun phrase that compares by a relative clause can't have another relative clause or comparison yet.", nameof(phrase));
+        }
+        var compared = noun.Adjectives[at];
+        var standard = Standards(compared).Single();
+        var conjoined = InTwoClauses(language, standard);
+        var relative = new Proposition(new Event(new Being(conjoined ? Plain(compared) : compared), new Gap(null), [], []), Tense.Present);
+        Sentence? denial = conjoined ? Denial(Plain(compared), standard) : (Sentence?)null;
+        return (new NounPhrase(noun with { Adjectives = [.. noun.Adjectives.Where((_, i) => i != at)] }, relative), denial);
+    }
+
     //a noun phrase with its relative clause, if it has one, before or after it all
     private static IReadOnlyList<Word> Relativized(Language language, NounPhrase phrase, IReadOnlyList<Word> words)
     {
@@ -625,6 +653,7 @@ public static class Syntax
       including one with a modal, which stays balanced. One that begins or stops something, where
       the language marks that on the verb, is what's begun with its inceptive or cessative
      */
+
     private static ClauseWords? AsDeranked(Language language, Sentence statement, bool dropSubject, Role? markedAs)
     {
         if (statement.Value is not Clause { Value: Declarative { Propositional.Value: Proposition proposition } } || JoinsEvents(proposition.StateOfAffairs))
@@ -638,7 +667,9 @@ public static class Syntax
         }
         var folded = FoldPhase(language, spine, null);
         var voiced = Voiced(language, folded.Clause);
-        if (voiced is not { Event.Predicate.Value: Doing or Done })
+        //a clause that compares its manner with two clauses says both, and keeps its verb
+        if (voiced is not { Event.Predicate.Value: Doing or Done }
+            || voiced.Event.Adverbs.Any(a => InTwoClauses(language, a)))
         {
             return null;
         }
@@ -696,12 +727,17 @@ public static class Syntax
     private static IReadOnlyList<Word> Join(IEnumerable<IReadOnlyList<Word>> parts, Lexeme? between) =>
         [.. parts.SelectMany((part, i) => i == 0 || between is null ? part : [new Word([between.Root]), .. part])];
 
+    //an adjective joined to others, which can be compared but can't take a standard of its own yet
+    private static Adjective Unstandarded(Adjective adjective) => adjective.Grade is { Value: Comparative { Standard: not null } }
+        ? throw new ArgumentException("Adjectives joined can't be compared with standards of their own yet.", nameof(adjective))
+        : adjective;
+
     //a predicate's adjectives and how they're joined: one alone, or several said of the subject
     //together, joined as clauses are, since a predicate is what a clause says
     private static (IReadOnlyList<Adjective> Adjectives, Lexeme? Between)? PredicateAdjectives(Language language, Attribute attribute) => attribute.Value switch
     {
         Adjective adjective => ([adjective], null),
-        AdjectiveCoordination together => ([.. together.Adjectives], language.Conjunctions.BetweenClauses(together.Conjunction)),
+        AdjectiveCoordination together => ([.. together.Adjectives.Select(Unstandarded)], language.Conjunctions.BetweenClauses(together.Conjunction)),
         _ => null,
     };
 
@@ -766,14 +802,18 @@ public static class Syntax
         {
             throw new ArgumentException("A command is said balanced, with no modal or phase.", nameof(rank));
         }
+        if (ConjoinedManner(language, spine, rank) is { } conjoined)
+        {
+            return conjoined;
+        }
         return spine.Event.Predicate switch
         {
             Doing doing => Verbal(language, spine, language.Lexicon.Verb(doing.Verb), doing.Object, null, null, rank),
             Done when spine.Tense is null => throw new ArgumentException("A command can't be passive yet.", nameof(spine)),
             Done done => Verbal(language, spine, language.Lexicon.Verb(done.Verb), null, done.Agent,
                 language.Passive ?? throw new ArgumentException("A language without a passive says it as the active.", nameof(spine)), rank),
-            Being { Attribute.Value: Compared compared } being => Comparative(language, spine, being, compared, rank),
-            Being being => Copular(language, spine, being, rank, [], null),
+            Being { Attribute.Value: Adjective { Grade.Value: Comparative compared } } being => ComparativeWords(language, spine, being, compared, rank),
+            Being being => Copular(language, spine, being, rank, []),
         };
     }
 
@@ -855,12 +895,15 @@ public static class Syntax
         {
             case Adverb adverb:
                 return [new Word([language.Lexicon.Adverb(adverb.Meaning).Root])];
+            //a standard's manner is left out where it's the comparison's, as in 'than they started before'
+            case Manner { Adjective.Grade.Value: DegreeGap }:
+                return [];
             case Manner manner:
             {
                 var root = language.Lexicon.Adjective(manner.Adjective.Meaning).Root;
                 IReadOnlyList<Word> adjective = [new Word([root])];
                 var words = language.Manner is { } marker ? marker.Place(adjective, 0, Reach.Root) : adjective;
-                return Intensified(language, words, root, manner.Adjective);
+                return WithStandards(language, Graded(language, words, root, manner.Adjective), Standards(manner.Adjective));
             }
             //a question asks with it, and moves it where questions move their words
             case QuestionAdverbial asked:
@@ -974,7 +1017,7 @@ public static class Syntax
       in bud' ostorozhen 'be careful'. Its verbal adjective takes the imperative itself, and its
       predicate noun or adjective is what it would be said of 'you'
      */
-    private static ClauseWords Copular(Language language, Spine spine, Being being, Rank rank, IReadOnlyList<Word> standard, Exponent? degree)
+    private static ClauseWords Copular(Language language, Spine spine, Being being, Rank rank, IReadOnlyList<Word> standard)
     {
         if (rank.Value is not Balanced { Phase: null } balanced)
         {
@@ -997,7 +1040,7 @@ public static class Syntax
             //a property word inflects as a verb in a language whose adjectives are verbs, and the last one's is the finite verb
             var lexemes = adjectives.Select(a => language.Lexicon.Adjective(a.Meaning)).ToList();
             var verbs = lexemes.Select(lexeme => Be(lexeme with { PartOfSpeech = PartOfSpeech.Verb })).ToList();
-            var predicate = Join(adjectives.Select((a, i) => Graded(Intensified(language, Linearized(language, verbs[i]), lexemes[i].Root, a), lexemes[i].Root, degree)), between);
+            var predicate = Join(adjectives.Select((a, i) => Graded(language, Linearized(language, verbs[i]), lexemes[i].Root, a)), between);
             return new(Flat(Order(language.WordOrder, subjectWords, Standing(predicate), null, WhereObliquesGo(language, modifiers))), verbs[^1].Outermost.Root);
         }
 
@@ -1008,7 +1051,7 @@ public static class Syntax
             {
                 throw new ArgumentException($"A copular clause can say where its subject is, but not its {location.Role}.", nameof(being));
             }
-            if (standard.Count > 0 || degree.HasValue)
+            if (standard.Count > 0)
             {
                 throw new ArgumentException("Only an adjective can be compared.", nameof(being));
             }
@@ -1023,7 +1066,7 @@ public static class Syntax
           as in Latin canis magnus est 'the dog is big'; otherwise it's just its root
          */
         var complement = being.Attribute.Value is Adjective adjective
-            ? Standing(Graded(PredicateComplement(language, adjective, subject), language.Lexicon.Adjective(adjective.Meaning).Root, degree))
+            ? Standing(PredicateComplement(language, adjective, subject))
             : PredicateComplement(language, being.Attribute, subject);
         var copula = Drops(locational: false) ? null : Be(predication.Copula);
         return new(Flat(Order(language.WordOrder, subjectWords, copula is null ? [] : Linearized(language, copula), complement, WhereObliquesGo(language, modifiers))), copula?.Outermost.Root);
@@ -1047,62 +1090,197 @@ public static class Syntax
       are not tall'. The adjective is comparative where the language marks it so alongside a
       standard, and always with no standard, which is 'more' than something already known
      */
-    private static ClauseWords Comparative(Language language, Spine spine, Being compares, Compared compared, Rank rank)
+    private static ClauseWords ComparativeWords(Language language, Spine spine, Being being, Comparative compared, Rank rank)
     {
         if (spine.Tense is null || rank.Value is not Balanced { Modal: null })
         {
             throw new ArgumentException("Only a clause that states something compares, with no modal yet.", nameof(spine));
         }
-        var being = compares with { Attribute = compared.Adjective };
         if (!compared.Standard.HasValue)
         {
-            return Copular(language, spine, being, rank, [], language.Degree.Marker);
+            return Copular(language, spine, being, rank, []);
         }
         var standard = compared.Standard.GetValueOrDefault();
-        var degree = language.Degree.WithStandard ? language.Degree.Marker : (Exponent?)null;
-        return language.Comparison switch
+        if (!InTwoClauses(language, standard))
         {
-            LocationalComparison locational => Copular(language, spine, being, rank, Marked(language, standard, locational.Role), degree),
-            ParticleComparison particle => Copular(language, spine, being, rank, Than(particle, Inflect(language, standard, Role.IntransitiveSubject)), degree),
-            ExceedComparison exceed => Copular(language, spine, being, rank, Exceeding(language, exceed, standard), degree),
-            ConjoinedComparison => Conjoined(Copular(language, spine, being, rank, [], null),
-                Copular(language, spine with { Event = spine.Event with { Subject = standard, Obliques = [], Adverbs = [] }, Negative = !spine.Negative }, being, new Balanced(null, null, [], false), [], null)),
-        };
-
-        //both clauses say the same verb, so either's will do, where the first dropped its copula and the second didn't
-        static ClauseWords Conjoined(ClauseWords first, ClauseWords second) => new([.. first.Words, .. second.Words], first.Finite ?? second.Finite);
-
-        static IReadOnlyList<Word> Than(ParticleComparison particle, IReadOnlyList<Word> standard) =>
-            particle.BeforeStandard ? [new Word([particle.Than.Root]), .. standard] : [.. standard, new Word([particle.Than.Root])];
+            return Copular(language, spine, being, rank, StandardWords(language, standard));
+        }
+        var plain = Plain((Adjective)being.Attribute.Value!);
+        var first = Copular(language, spine, being with { Attribute = plain }, rank, []);
+        return Conjoined(first, standard switch
+        {
+            Argument phrase => Copular(language, spine with { Event = spine.Event with { Subject = phrase, Obliques = [], Adverbs = [] }, Negative = !spine.Negative },
+                being with { Attribute = plain }, new Balanced(null, null, [], false), []),
+            Propositional => Words(language, Denial(plain, standard)),
+        });
     }
 
-    private static IReadOnlyList<Word> Exceeding(Language language, ExceedComparison exceed, Argument standard)
+    //the two clauses of a conjoined comparison. Both say the same verb, so either's will do, where the first dropped its copula and the second didn't
+    private static ClauseWords Conjoined(ClauseWords first, ClauseWords second) => new([.. first.Words, .. second.Words], first.Finite ?? second.Finite);
+
+    //an adjective as each clause of a conjoined comparison says it, plainly, with the 'very' that says 'much' if it has one
+    private static Adjective Plain(Adjective adjective) =>
+        new(adjective.Meaning, adjective.Grade is { Value: Comparative { Differential.Value: Much } } ? new Intensified() : (Grade?)null);
+
+    /*
+      a clause whose manner is compared with a standard, in a language that compares with two
+      clauses: the clause with its manner said plainly, then the clause again of the standard,
+      denying it, with only that manner, as in 'the dog walks fast, the cat doesn't walk fast'. It's
+      said balanced and states something, with no modal or phase, as be's comparison is. Null for any
+      other clause
+     */
+    private static ClauseWords? ConjoinedManner(Language language, Spine spine, Rank rank)
+    {
+        var adverbs = spine.Event.Adverbs;
+        var at = adverbs.ToList().FindIndex(a => InTwoClauses(language, a));
+        if (at < 0)
+        {
+            return null;
+        }
+        if (spine.Tense is null || spine.Negative || rank.Value is not Balanced { Modal: null, Phase: null })
+        {
+            throw new ArgumentException("A conjoined comparison of a manner is said only of a clause that states something, not negated and with no modal or phase yet.", nameof(spine));
+        }
+        var manner = ((Manner)adverbs[at].Value!).Adjective;
+        var standard = Standards(manner).Single();
+        Adverbial plain = new Manner(Plain(manner));
+        var first = Words(language, spine with { Event = spine.Event with { Adverbs = [.. adverbs.Select((a, i) => i == at ? plain : a)] } }, rank);
+        var second = standard switch
+        {
+            Argument phrase => Words(language, spine with { Event = spine.Event with { Subject = phrase, Obliques = [], Adverbs = [plain] }, Negative = true }, new Balanced(null, null, [], false)),
+            Propositional => Words(language, Denial(Plain(manner), standard)),
+        };
+        return Conjoined(first, second);
+    }
+
+    //whether an adverb is a manner compared in two clauses, as InTwoClauses says
+    private static bool InTwoClauses(Language language, Adverbial adverbial) =>
+        adverbial.Value is Manner { Adjective.Grade.Value: Comparative { Standard: { } standard } } && InTwoClauses(language, standard);
+
+    //'exceed' and its object, on the side of it the language puts objects
+    private static IReadOnlyList<Word> Exceeding(Language language, ExceedComparison exceed, IReadOnlyList<Word> @object)
     {
         IReadOnlyList<Word> verb = [new Word([exceed.Exceed.Root])];
-        var @object = Inflect(language, standard, Role.DirectObject);
         return language.WordOrder.VerbPhraseDirectionality == HeadDirectionality.Initial ? [.. verb, .. @object] : [.. @object, .. verb];
     }
 
-    //an adjective's words with 'very' beside it, if it has it. It goes on before any comparative
-    //marker, so that the comparative's is the nearer, as in 'much bigger'
-    private static IReadOnlyList<Word> Intensified(Language language, IReadOnlyList<Word> words, Root root, Adjective adjective) =>
-        adjective.Intensified ? Graded(words, root, language.Intensifier) : words;
+    /*
+      an adjective's words with its grade said, wherever the adjective is: 'very' beside it if it's
+      intensified, and a comparative's marker where the language marks one, which is always with no
+      standard, and with one only where the language marks it alongside a standard. A comparative by
+      much takes the language's 'very' until a language has a word of its own for 'much', as Turkish
+      çok is both. 'Very' goes on first, so that the comparative's marker is the nearer, as in 'much
+      bigger'
+     */
+    private static IReadOnlyList<Word> Graded(Language language, IReadOnlyList<Word> words, Root root, Adjective adjective) => adjective.Grade switch
+    {
+        null => words,
+        { Value: Intensified } => WithMarker(words, root, language.Intensifier),
+        //a standard's own adjective, said where it's the verb, as other degrees of it are
+        { Value: DegreeGap } => words,
+        { Value: Comparative compared } => WithMarker(WithMarker(words, root, compared.Differential is { Value: Much } ? language.Intensifier : (Exponent?)null), root,
+            compared.Standard.HasValue && !language.Degree.WithStandard ? null : (Exponent?)language.Degree.Marker),
+    };
 
     //an adjective's words with a marker of degree, if it has one: an affix next to its root, inside
     //any agreement or tense, or a word beside it
-    private static IReadOnlyList<Word> Graded(IReadOnlyList<Word> words, Root adjective, Exponent? degree) =>
+    private static IReadOnlyList<Word> WithMarker(IReadOnlyList<Word> words, Root adjective, Exponent? degree) =>
         degree is { } marker ? marker.Place(words, words.ToList().FindIndex(w => w.Root == adjective), Reach.Root) : words;
+
+    /*
+      a standard of comparison beside what's compared, marked as the language marks one: in its
+      role's case or adposition, in the plain case a subject takes with the particle on its side, or
+      as the object of 'exceed'. A clause as the standard is balanced after a particle, as English
+      'than it should be' and Russian čem have it, and deranked in the standard's role or as the
+      object of 'exceed', as Turkish bekle-diğ-im-den 'expect-NMLZ-1SG-ABL' is 'than I expected'. A
+      comparison said in two clauses has its standard in a clause of its own, which InTwoClauses
+      says
+     */
+    private static IReadOnlyList<Word> StandardWords(Language language, Standard standard) => standard switch
+    {
+        Argument phrase => language.Comparison switch
+        {
+            LocationalComparison locational => Marked(language, phrase, locational.Role),
+            ParticleComparison particle => Than(particle, Inflect(language, phrase, Role.IntransitiveSubject)),
+            ExceedComparison exceed => Exceeding(language, exceed, Inflect(language, phrase, Role.DirectObject)),
+            ConjoinedComparison => throw new ArgumentException("A conjoined comparison's standard is said in a clause of its own.", nameof(standard)),
+        },
+        Propositional clause => language.Comparison switch
+        {
+            ParticleComparison particle => Than(particle, Words(language, (Clause)new Declarative(clause)).Words),
+            LocationalComparison => DerankedWords(language, clause),
+            ExceedComparison exceed => Exceeding(language, exceed, DerankedWords(language, clause)),
+            ConjoinedComparison => throw new ArgumentException("A conjoined comparison's standard is said in a clause of its own.", nameof(standard)),
+        },
+    };
+
+    //a clause as a standard is deranked where the language deranks it, which InTwoClauses checks first
+    private static IReadOnlyList<Word> DerankedWords(Language language, Propositional clause) =>
+        (DerankedStandard(language, clause) ?? throw new ArgumentException("A standard that can't be deranked is said in a clause of its own.", nameof(clause))).Words;
+
+    //a clause as a standard, deranked in the standard's role or as the object of 'exceed', or null
+    //where it can't be, as a copular clause or one with a modal can't be yet
+    private static ClauseWords? DerankedStandard(Language language, Propositional clause) => language.Comparison switch
+    {
+        LocationalComparison locational => AsDeranked(language, (Clause)new Declarative(clause), dropSubject: false, markedAs: locational.Role),
+        ExceedComparison => AsDeranked(language, (Clause)new Declarative(clause), dropSubject: false, markedAs: Role.DirectObject),
+        ParticleComparison or ConjoinedComparison => null,
+    };
+
+    /*
+      whether a comparison with this standard is said in two clauses: in a language that compares
+      that way, or with a clause as the standard that the language would derank and can't, which
+      every language can say in two clauses instead, as in 'it is warm, it should not be warm'
+     */
+    private static bool InTwoClauses(Language language, Standard standard) => language.Comparison switch
+    {
+        ConjoinedComparison => true,
+        ParticleComparison => false,
+        LocationalComparison or ExceedComparison => standard.Value is Propositional clause && DerankedStandard(language, clause) is null,
+    };
+
+    //the clause of a comparison said in two clauses that denies the property of its standard: a noun
+    //phrase's, said of it, or a clause's own, with its degree said plainly
+    private static Sentence Denial(Adjective plain, Standard standard) => standard switch
+    {
+        Argument phrase => (Clause)new Declarative(new Proposition(new Negated(new Event(new Being(plain), phrase, [], [])), Tense.Present)),
+        Propositional clause => (Clause)new Declarative(clause.Rebuilt(p => p with { StateOfAffairs = new Negated(p.StateOfAffairs.Rebuilt(Ungapped)) })),
+    };
+
+    //an event with its degree gap said plainly, as a clause denying it says it
+    private static Event Ungapped(Event @event) => @event with
+    {
+        Predicate = @event.Predicate.Value is Being { Attribute.Value: Adjective { Grade.Value: DegreeGap } gapped } being
+            ? being with { Attribute = gapped with { Grade = null } }
+            : @event.Predicate,
+        Adverbs = [.. @event.Adverbs.Select(a => a.Value is Manner { Adjective: { Grade.Value: DegreeGap } gapped } ? new Manner(gapped with { Grade = null }) : a)],
+    };
+
+    //the standard an adjective's compared with, if it has one
+    private static IEnumerable<Standard> Standards(Adjective adjective) => adjective.Grade is { Value: Comparative { Standard: { } standard } } ? [standard] : [];
+
+    private static IReadOnlyList<Word> Than(ParticleComparison particle, IReadOnlyList<Word> standard) =>
+        particle.BeforeStandard ? [new Word([particle.Than.Root]), .. standard] : [.. standard, new Word([particle.Than.Root])];
+
+    //words with a standard's words on the side of them the language puts standards
+    private static IReadOnlyList<Word> WithStandards(Language language, IReadOnlyList<Word> words, IEnumerable<Standard> standards)
+    {
+        var said = standards.SelectMany(s => StandardWords(language, s)).ToList();
+        return said.Count == 0 ? words : StandardBeforeAdjective(language) ? [.. said, .. words] : [.. words, .. said];
+    }
 
     //a predicate noun or adjective, said of this subject
     private static IReadOnlyList<Word> PredicateComplement(Language language, Attribute attribute, Argument subject) => attribute.Value switch
     {
+        //a standard's adjective is left out where it's the comparison's, as in 'than it should be', unless it's the verb
+        Adjective { Grade.Value: DegreeGap } => [],
         NounPhrase noun => Inflect(language, noun, Role.IntransitiveSubject),
-        AdjectiveCoordination together => Join(together.Adjectives.Select(a => PredicateComplement(language, a, subject)), language.Conjunctions.BetweenClauses(together.Conjunction)),
+        AdjectiveCoordination together => Join(together.Adjectives.Select(a => PredicateComplement(language, Unstandarded(a), subject)), language.Conjunctions.BetweenClauses(together.Conjunction)),
         Adjective adjective when language.AdjectiveAgreement == AdjectiveAgreement.Agreement =>
-            Intensified(language, [AgreeingAdjective(language, language.Lexicon.Adjective(adjective.Meaning),
+            Graded(language, [AgreeingAdjective(language, language.Lexicon.Adjective(adjective.Meaning),
                 Features(language.Paradigms.Nouns, [AgreementOf(language, subject).Number, CaseFor(language, language.RoleMarkers[Role.IntransitiveSubject])]),
                 GenderOf(language, subject))], language.Lexicon.Adjective(adjective.Meaning).Root, adjective),
-        Adjective adjective => Intensified(language, [new Word([language.Lexicon.Adjective(adjective.Meaning).Root])], language.Lexicon.Adjective(adjective.Meaning).Root, adjective),
+        Adjective adjective => Graded(language, [new Word([language.Lexicon.Adjective(adjective.Meaning).Root])], language.Lexicon.Adjective(adjective.Meaning).Root, adjective),
         _ => throw new ArgumentException("A predicate is a noun or an adjective.", nameof(attribute)),
     };
 
@@ -1499,6 +1677,8 @@ public static class Syntax
         var pronouns = language.Pronouns.Paradigm;
         return argument switch
         {
+            NounPhrase compares when ComparedByClause(language, compares) is var (relative, denial) =>
+                [.. Inflect(language, relative, @case, localization), .. denial is { } denied ? Words(language, denied).Words : []],
             NounPhrase phrase => Relativized(language, phrase, phrase.Head switch
             {
                 IndefinitePronoun pronoun => Indefinite(language, pronoun, @case, localization),
@@ -1640,7 +1820,7 @@ public static class Syntax
         var adjectives = written.SelectMany(a =>
         {
             var lexeme = language.Lexicon.Adjective(a.Meaning);
-            return Intensified(language, [agreement == AdjectiveAgreement.Agreement
+            return Graded(language, [agreement == AdjectiveAgreement.Agreement
                 ? AgreeingAdjective(language, lexeme, features, language.GenderOf(nounLexeme))
                 : new Word([lexeme.Root])], lexeme.Root, a);
         }).ToList();
@@ -1672,7 +1852,7 @@ public static class Syntax
             words[0] = words[0] with { Morphemes = [.. prefixes, .. words[0].Morphemes] };
             words[^1] = words[^1] with { Morphemes = [.. words[^1].Morphemes, .. suffixes] };
         }
-        return [.. inflected.Take(main), .. words, .. inflected.Skip(main + 1)];
+        return [.. inflected.Take(main), .. WithStandards(language, words, noun.Adjectives.SelectMany(Standards)), .. inflected.Skip(main + 1)];
     }
 
     //the case a noun takes for a role, which is the plain citation case where the role has none

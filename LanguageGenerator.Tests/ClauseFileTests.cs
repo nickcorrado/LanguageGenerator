@@ -70,7 +70,7 @@ public class ClauseFileTests
 
         Assert.Equal(Declared(new Event(new Doing("walk", null), new Pronoun(Person.First, Number.Plural), [
             new(Role.Source, BareNoun("village", Number.Singular), Configuration.At),
-            new(Role.Goal, new NounPhrase(new Noun("river", Number.Singular, [new("big", false)], null, null, null, null, null), null), Configuration.At),
+            new(Role.Goal, new NounPhrase(new Noun("river", Number.Singular, [new("big", null)], null, null, null, null, null), null), Configuration.At),
             new(Role.Companion, new Pronoun(Person.Second, Number.Singular), Configuration.At),
         ], []), Tense.Past, Aspect.Imperfective, false), clause);
         Assert.NotEqual(clause.WithEvent(e => e with { Obliques = [.. clause.Event.Obliques.Reverse()] }), clause);
@@ -94,7 +94,7 @@ public class ClauseFileTests
     {
         var clause = Verbal(Single("the king's old dogs saw her cat\n  see.PST  subject:(dog.PL old possessor:king)  object:(cat possessor:3SG.F)"));
 
-        Assert.Equal(new NounPhrase(new Noun("dog", Number.Plural, [new("old", false)], null, null, null, null, BareNoun("king", Number.Singular)), null), clause.Event.Subject.Value);
+        Assert.Equal(new NounPhrase(new Noun("dog", Number.Plural, [new("old", null)], null, null, null, null, BareNoun("king", Number.Singular)), null), clause.Event.Subject.Value);
         Assert.Equal(new NounPhrase(new Noun("cat", Number.Singular, [], null, null, null, null, new Pronoun(Person.Third, Number.Singular, Gender: Gender.Feminine)), null), PredicateOf<Doing>(clause).Object.GetValueOrDefault().Value);
         Assert.NotEqual(new NounPhrase(new Noun("cat", Number.Singular, [], null, null, null, null, BareNoun("king", Number.Singular)), null), PredicateOf<Doing>(clause).Object.GetValueOrDefault().Value);
     }
@@ -180,7 +180,7 @@ public class ClauseFileTests
     [Fact]
     public void Parse_Be_IsACopularClause()
     {
-        Assert.Equal(Declared(new Event(new Being(new Adjective("locked", false)), BareNoun("gate", Number.Singular), [], []), Tense.Past, Aspect.Imperfective, false),
+        Assert.Equal(Declared(new Event(new Being(new Adjective("locked", null)), BareNoun("gate", Number.Singular), [], []), Tense.Past, Aspect.Imperfective, false),
             Stated(Single("the gate was locked\n  be.PST subject:gate adjective:locked").Utterance).Value);
         Assert.Equal(Declared(new Event(new Being(BareNoun("fool", Number.Plural)), new Pronoun(Person.Second, Number.Plural), [], []), Tense.Present, Aspect.Imperfective, true),
             Stated(Single("you aren't fools\n  be.NEG subject:2PL noun:fool.PL").Utterance).Value);
@@ -189,7 +189,7 @@ public class ClauseFileTests
     [Fact]
     public void Parse_BeWithALocation_SaysWhereItsSubjectIs()
     {
-        Assert.Equal(Declared(new Event(new Being(new Oblique(Role.Location, new NounPhrase(new Noun("house", Number.Singular, [new("big", false)], null, null, null, null, null), null), Configuration.At)), BareNoun("dog", Number.Singular), [], []), Tense.Past, Aspect.Imperfective, true),
+        Assert.Equal(Declared(new Event(new Being(new Oblique(Role.Location, new NounPhrase(new Noun("house", Number.Singular, [new("big", null)], null, null, null, null, null), null), Configuration.At)), BareNoun("dog", Number.Singular), [], []), Tense.Past, Aspect.Imperfective, true),
             Stated(Single("the dog wasn't in the big house\n  be.PST.NEG location:(house big) subject:dog").Utterance).Value);
     }
 
@@ -212,7 +212,7 @@ public class ClauseFileTests
     {
         var clause = Verbal(Single("the big old dogs saw the cat\n  see.PST  subject:(dog.PL big old)  object:(cat)"));
 
-        Assert.Equal(new NounPhrase(new Noun("dog", Number.Plural, [new("big", false), new("old", false)], null, null, null, null, null), null), clause.Event.Subject.Value);
+        Assert.Equal(new NounPhrase(new Noun("dog", Number.Plural, [new("big", null), new("old", null)], null, null, null, null, null), null), clause.Event.Subject.Value);
         Assert.Equal(BareNoun("cat", Number.Singular), PredicateOf<Doing>(clause).Object!.Value.Value);
     }
 

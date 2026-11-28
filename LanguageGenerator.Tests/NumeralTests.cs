@@ -91,7 +91,7 @@ public class NumeralTests
 
     //only the basic meanings, since coining new ones would add to the shared sample's lexicons
     private static Rendering ThreeBigDogsSlept(Language l) =>
-        Syntax.Realize(l, Declared(new Event(new Doing("sleep", null), new NounPhrase(new Noun("dog", Number.Paucal, [new("big", false)], 3, null, null, null, null), null), [], []), Tense.Past, Aspect.Perfective, false), "x");
+        Syntax.Realize(l, Declared(new Event(new Doing("sleep", null), new NounPhrase(new Noun("dog", Number.Paucal, [new("big", null)], 3, null, null, null, null), null), [], []), Tense.Past, Aspect.Perfective, false), "x");
 
     [Fact]
     public void Realize_Numeral_GoesOutsideTheAdjectivesOnItsSide()
@@ -202,7 +202,7 @@ public class NumeralTests
     {
         Assert.All(GeneratedLanguages.Sample, l =>
         {
-            var sentence = Syntax.Realize(l, Declared(new Event(new Doing("sleep", null), new NounPhrase(new Noun("dog", Number.Dual, [new("big", false)], 2, 3, null, null, null), null), [], []), Tense.Past, Aspect.Perfective, false), "x");
+            var sentence = Syntax.Realize(l, Declared(new Event(new Doing("sleep", null), new NounPhrase(new Noun("dog", Number.Dual, [new("big", null)], 2, 3, null, null, null), null), [], []), Tense.Past, Aspect.Perfective, false), "x");
             var (two, third, big, dog) = (IndexOf(sentence, "two"), IndexOf(sentence, "three"), IndexOf(sentence, "big"), IndexOf(sentence, "dog"));
             var headFirst = l.WordOrder.NounPhraseDirectionality == HeadDirectionality.Initial;
 

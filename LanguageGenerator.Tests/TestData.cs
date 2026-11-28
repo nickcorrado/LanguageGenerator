@@ -56,7 +56,7 @@ internal static class Clauses
 {
     public static Clause DogWalks { get; } = Stating(Phrases.Dog, new Doing("walk", null));
     public static Clause DogSleeps { get; } = Stating(Phrases.Dog, new Doing("sleep", null));
-    public static Clause DogIsBig { get; } = Stating(Phrases.Dog, new Being(new Adjective("big", false)));
+    public static Clause DogIsBig { get; } = Stating(Phrases.Dog, new Being(new Adjective("big", null)));
     public static Clause DogEatsFish { get; } = Stating(Phrases.Dog, new Doing("eat", Phrases.Fish));
     public static Clause CatEatsFish { get; } = Stating(Phrases.Cat, new Doing("eat", Phrases.Fish));
 
@@ -155,9 +155,9 @@ internal static class Clauses
         {
             Propositional = stated.Propositional.Rebuilt(p => p with
             {
-                StateOfAffairs = p.StateOfAffairs.Rebuilt(e => e.Predicate.Value is Being { Attribute.Value: Adjective adjective } being
-                    ? e with { Predicate = being with { Attribute = new Compared(adjective, standard) } }
-                    : throw new ArgumentException("Only an adjective said with be is compared.", nameof(clause))),
+                StateOfAffairs = p.StateOfAffairs.Rebuilt(e => e.Predicate.Value is Being { Attribute.Value: Adjective { Grade: null } adjective } being
+                    ? e with { Predicate = being with { Attribute = adjective with { Grade = new Comparative(standard is { } than ? (Argument)than : (Standard?)null, null) } } }
+                    : throw new ArgumentException("Only an adjective said with be, with no grade yet, is compared.", nameof(clause))),
             }),
         },
         _ => throw new ArgumentException("Only a stated clause compares here.", nameof(clause)),

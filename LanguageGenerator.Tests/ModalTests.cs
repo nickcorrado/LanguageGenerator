@@ -53,7 +53,7 @@ public class ModalTests
         {
             DogEatsFish,
             Declared(new Event(new Done("eat", Dog), Fish, [], []), Tense.Past, Aspect.Perfective, false),
-            Declared(new Event(new Being(new Adjective("big", false)), Dog, [], []), Tense.Present, Aspect.Imperfective, false),
+            Declared(new Event(new Being(new Adjective("big", null)), Dog, [], []), Tense.Present, Aspect.Imperfective, false),
             Declared(new Event(new Being(new Oblique(Role.Location, BareNoun("house", Number.Singular), Configuration.At)), Dog, [], []), Tense.Present, Aspect.Imperfective, false),
         };
         Assert.All(GeneratedLanguages.Sample, l =>
@@ -144,7 +144,7 @@ public class ModalTests
         Assert.NotEmpty(languages);
         Assert.All(languages, l =>
         {
-            var big = Declared(new Event(new Being(new Adjective("big", false)), Dog, [], []), Tense.Present, Aspect.Imperfective, false);
+            var big = Declared(new Event(new Being(new Adjective("big", null)), Dog, [], []), Tense.Present, Aspect.Imperfective, false);
             var sentence = Realized(l, WithModal(big, SituationalModality.Obligation, false));
 
             Assert.True(IndexOf(sentence, l.Predication.Copula.Root) >= 0);

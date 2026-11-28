@@ -286,7 +286,8 @@ they stop
   stop  subject:3PL
 
 # > Then they start again, slower than before.
-# can't express yet (comparison with a clause): Then they start again, slower than before.
+then they begin again more slowly than they began before
+  begin  subject:3PL.N  when:then  often:again  manner:slow.CMPR  standard:[begin.PST  subject:3PL.N  manner:_]
 
 # > A pale figure stands in the doorway.
 a pale figure stands in the doorway
@@ -369,7 +370,8 @@ a short bow made of yew
   noun:(bow.NDF short relative:[make.PASS  subject:_  source:yew])
 
 # > It was made for someone with stronger arms than yours.
-# can't express yet (comparison other than an adjective with be): It was made for someone with stronger arms than yours.
+it was made for someone who has stronger arms than your arms
+  make.PST.PFV.PASS  subject:3SG.N  beneficiary:(someone relative:[have  subject:_  object:(arm.PL strong.CMPR  standard:(arm.PL possessor:2SG))])
 
 # > Item: Crow Feather.
 item: crow feather
@@ -380,7 +382,8 @@ the old woman gave you this
   give.PST.PFV  subject:(woman.DEF old)  recipient:2SG  object:PROX
 
 # > It feels warmer than it should.
-# can't express yet (comparison with a clause): It feels warmer than it should.
+it is warmer than it should be
+  be  subject:3SG.N  adjective:warm.CMPR  standard:[be.ADVS  subject:3SG.N  adjective:_]
 
 # > The next morning, the miller finds you at the well.
 the next morning, the miller finds you at the well

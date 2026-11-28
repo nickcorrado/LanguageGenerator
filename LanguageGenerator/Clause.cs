@@ -26,20 +26,35 @@ public record Event(Predicate Predicate, Argument Subject, ValueList<Oblique> Ob
         .. Obliques.Select(o => new Filler(o.Argument, o.Role, o)),
     ];
 
-    /// <summary>Every argument the event says, in order: its fillers', with what be says its subject is after the subject.</summary>
+    /// <summary>
+    /// Every argument the event says, in order: its fillers', with what be says its subject is after
+    /// the subject, then the standards its manners are compared with.
+    /// </summary>
     public IEnumerable<Argument> Arguments =>
     [
         Subject,
         .. Predicate.Arguments,
         .. Obliques.Select(o => o.Argument),
+        .. Adverbs.SelectMany(a => a.Value is Manner manner ? manner.Adjective.Arguments : []),
     ];
 
-    /// <summary>The event with each of its roles filled with what this makes of what fills it now.</summary>
+    /// <summary>The adjectives it says outside its noun phrases: what be says its subject is, alone or joined, and its manners'.</summary>
+    public IEnumerable<Adjective> Adjectives => [.. Attributed, .. Adverbs.Select(a => a.Value).OfType<Manner>().Select(m => m.Adjective)];
+
+    private IEnumerable<Adjective> Attributed => Predicate.Value switch
+    {
+        Being { Attribute.Value: Adjective adjective } => [adjective],
+        Being { Attribute.Value: AdjectiveCoordination together } => together.Adjectives,
+        Doing or Done or Being => [],
+    };
+
+    /// <summary>The event with each of its roles filled with what this makes of what fills it now, and its manners' standards.</summary>
     public Event Refilled(Func<Argument, Argument> fill) => this with
     {
         Subject = fill(Subject),
         Predicate = Predicate.Refilled(fill),
         Obliques = [.. Obliques.Select(o => o with { Argument = fill(o.Argument) })],
+        Adverbs = [.. Adverbs.Select(a => a.Value is Manner manner ? new Manner(manner.Adjective.Refilled(fill)) : a)],
     };
 }
 
@@ -172,11 +187,12 @@ public union Predicate(Doing, Done, Being)
         Being => [],
     };
 
-    /// <summary>The arguments it says: its fillers', what be says its subject is, or what a comparison's standard is.</summary>
+    /// <summary>The arguments it says: its fillers', what be says its subject is, or what its comparisons' standards are.</summary>
     public IEnumerable<Argument> Arguments => this switch
     {
         Being { Attribute.Value: NounPhrase noun } => [noun],
-        Being { Attribute.Value: Compared { Standard: { } standard } } => [standard],
+        Being { Attribute.Value: Adjective adjective } => adjective.Arguments,
+        Being { Attribute.Value: AdjectiveCoordination together } => together.Adjectives.SelectMany(a => a.Arguments),
         Doing or Done or Being => Fillers.Select(f => f.Argument),
     };
 
@@ -186,7 +202,8 @@ public union Predicate(Doing, Done, Being)
         Doing doing => doing with { Object = doing.Object is { } o ? fill(o) : (Argument?)null },
         Done done => done with { Agent = done.Agent is { } agent ? fill(agent) : (Argument?)null },
         Being { Attribute.Value: Oblique location } being => being with { Attribute = location with { Argument = fill(location.Argument) } },
-        Being { Attribute.Value: Compared { Standard: { } standard } compared } being => being with { Attribute = compared with { Standard = fill(standard) } },
+        Being { Attribute.Value: Adjective adjective } being => being with { Attribute = adjective.Refilled(fill) },
+        Being { Attribute.Value: AdjectiveCoordination together } being => being with { Attribute = together with { Adjectives = [.. together.Adjectives.Select(a => a.Refilled(fill))] } },
         Being being => being,
     };
 }
@@ -194,15 +211,30 @@ public union Predicate(Doing, Done, Being)
 /// <summary>A verb, with its object if it has one.</summary>
 public record Doing(string Verb, Argument? Object);
 
-/// <summary>A property, like 'big', said of something, or with Intensified, much of it, as in 'very big'.</summary>
-public record Adjective(string Meaning, bool Intensified);
+/// <summary>
+/// A property, like 'big', said of something, with its grade if it has one, as 'very big' and
+/// 'bigger than the house' have, wherever it is.
+/// </summary>
+public record Adjective(string Meaning, Grade? Grade)
+{
+    /// <summary>The argument it says, if it says one: a comparative's standard, where that's a noun phrase or another argument.</summary>
+    public IEnumerable<Argument> Arguments => Grade is { Value: Comparative { Standard.Value: Argument standard } } ? [standard] : [];
+
+    /// <summary>The clause it says, if it says one: a comparative's standard, where that's a clause.</summary>
+    public IEnumerable<Propositional> Clauses => Grade is { Value: Comparative { Standard.Value: Propositional standard } } ? [standard] : [];
+
+    /// <summary>It with its standard, if that's an argument, what this makes of it.</summary>
+    public Adjective Refilled(Func<Argument, Argument> fill) => Grade is { Value: Comparative { Standard.Value: Argument standard } compared }
+        ? this with { Grade = compared with { Standard = fill(standard) } }
+        : this;
+}
 
 /// <summary>
 /// What be says of its subject: a noun phrase, as in 'you are a fool', an adjective, as in 'the
-/// gate is locked', adjectives together, as in 'the inn is warm and crowded', a location, as in
-/// 'the dog is in the house', or an adjective compared, as in 'Marta is taller than the men'.
+/// gate is locked' or 'Marta is taller than the men', adjectives together, as in 'the inn is warm
+/// and crowded', or a location, as in 'the dog is in the house'.
 /// </summary>
-public union Attribute(NounPhrase, Adjective, AdjectiveCoordination, Oblique, Compared);
+public union Attribute(NounPhrase, Adjective, AdjectiveCoordination, Oblique);
 
 /// <summary>
 /// What or where a clause's subject is, as English says with be, or told, what or where to be, as

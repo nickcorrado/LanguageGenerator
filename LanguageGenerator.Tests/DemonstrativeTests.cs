@@ -122,7 +122,7 @@ public class DemonstrativeTests
 
     //'these three big dogs sleep'
     private static Clause TheseDogsSleep(Distance distance) =>
-        Declared(new Event(new Doing("sleep", null), new NounPhrase(new Noun("dog", Number.Paucal, [new("big", false)], 3, null, null, distance, null), null), [], []), Tense.Present, Aspect.Imperfective, false);
+        Declared(new Event(new Doing("sleep", null), new NounPhrase(new Noun("dog", Number.Paucal, [new("big", null)], 3, null, null, distance, null), null), [], []), Tense.Present, Aspect.Imperfective, false);
 
     private static bool IsDemonstrative(Morpheme m) => m.Value is Affix { Grammemes: [Distance, ..] } or Particle { Grammemes: [Distance, ..] };
 

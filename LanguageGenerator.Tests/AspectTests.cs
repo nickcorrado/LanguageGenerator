@@ -139,7 +139,7 @@ public class AspectTests
     public void Realize_CopulaWithAnAspectMarker_IsNeverDropped() =>
         Assert.All(Languages(AspectKind.Particle, AspectKind.None, s => s.Fix(Settings.ZeroCopula, true).Fix(Settings.PredicativeAdjectives, PredicativeAdjectives.Nonverbal)), l =>
         {
-            var big = Declared(new Event(new Being(new Adjective("big", false)), Dog, [], []), Tense.Present, Aspect.Perfect, false);
+            var big = Declared(new Event(new Being(new Adjective("big", null)), Dog, [], []), Tense.Present, Aspect.Perfect, false);
             Assert.True(IndexOf(Realized(l, big), l.Predication.Copula.Root) >= 0);
         });
 
@@ -160,7 +160,7 @@ public class AspectTests
         {
             aspect => DogEatsFish.At(Tense.Present, aspect),
             aspect => Declared(new Event(new Done("eat", Dog), Fish, [], []), Tense.Past, aspect, false),
-            aspect => Declared(new Event(new Being(new Adjective("big", false)), Dog, [], []), Tense.Present, aspect, false),
+            aspect => Declared(new Event(new Being(new Adjective("big", null)), Dog, [], []), Tense.Present, aspect, false),
             aspect => Asked(DogEatsFish.At(Tense.Past, aspect), null),
         };
         Assert.All(GeneratedLanguages.Sample, l =>
