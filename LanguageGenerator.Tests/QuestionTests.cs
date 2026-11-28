@@ -199,11 +199,11 @@ public class QuestionTests
             Asked(Declared(new Event(new Doing("eat", Fish), who, [], []), Tense.Past, Aspect.Perfective, false), null),
             Asked(Declared(new Event(new Done("eat", who), Fish, [], []), Tense.Past, Aspect.Perfective, false), null),
             Asked(Declared(new Event(new Done("eat", null), Fish, [], []), Tense.Past, Aspect.Perfective, false), QuestionAdverb.Why),
-            Asked(Declared(new Event(new Being(new Adjective("big", false)), Dog, [], []), Tense.Present, Aspect.Imperfective, false), null),
+            Asked(Declared(new Event(new Being(new Adjective("big", null)), Dog, [], []), Tense.Present, Aspect.Imperfective, false), null),
             Asked(Declared(new Event(new Being(new Oblique(Role.Location, new QuestionWord(InterrogativeWord.Where), Configuration.At)), Dog, [], []), Tense.Present, Aspect.Imperfective, false), null),
             Asked(Declared(new Event(new Being(new Oblique(Role.Location, house, Configuration.At)), who, [], []), Tense.Present, Aspect.Imperfective, false), null),
-            Asked(Comparing(Declared(new Event(new Being(new Adjective("big", false)), Dog, [], []), Tense.Present, Aspect.Imperfective, false), Fish), null),
-            Asked(Comparing(Declared(new Event(new Being(new Adjective("big", false)), Dog, [], []), Tense.Present, Aspect.Imperfective, false), Fish), QuestionAdverb.Why),
+            Asked(Comparing(Declared(new Event(new Being(new Adjective("big", null)), Dog, [], []), Tense.Present, Aspect.Imperfective, false), Fish), null),
+            Asked(Comparing(Declared(new Event(new Being(new Adjective("big", null)), Dog, [], []), Tense.Present, Aspect.Imperfective, false), Fish), QuestionAdverb.Why),
             Asked(WithModal(DogEatsFish, SituationalModality.Obligation, true), QuestionAdverb.Why),
         };
         Assert.All(GeneratedLanguages.Sample, l =>

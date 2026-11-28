@@ -270,7 +270,7 @@ public class IndefiniteTests
     public void Realize_Quantifier_GoesOutsideTheNumeralOnItsSide(bool before)
     {
         var language = GeneratedLanguages.With(s => s.Fix(Settings.QuantifiersBeforeNoun, before));
-        var dogs = new NounPhrase(new Noun("dog", Number.Plural, [new("big", false)], 3, null, Quantifier.All, null, null), null);
+        var dogs = new NounPhrase(new Noun("dog", Number.Plural, [new("big", null)], 3, null, Quantifier.All, null, null), null);
         var sentence = Syntax.Realize(language, Declared(new Event(new Doing("sleep", null), dogs, [], []), Tense.Present, Aspect.Imperfective, false), "x");
         var all = IndexOf(sentence, language.Indefinites.Quantifiers[Quantifier.All].Root);
         var others = new[] { IndexOf(sentence, "three"), IndexOf(sentence, "big"), IndexOf(sentence, "dog") };

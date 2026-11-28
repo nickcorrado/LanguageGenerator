@@ -68,7 +68,7 @@ public class PhaseTests
             Dog, [], []), Tense.Past, Aspect.Perfective, false) },
         { "what's begun is negated", Phased("begin", Tense.Past, Aspect.Perfective, DogEatsFish.Not(), negative: false) },
         { "what's begun is said with be", Phased("begin", Tense.Past, Aspect.Perfective,
-            Declared(new Event(new Being(new Adjective("big", false)), Dog, [], []), Tense.Present, Aspect.Imperfective, false), negative: false) },
+            Declared(new Event(new Being(new Adjective("big", null)), Dog, [], []), Tense.Present, Aspect.Imperfective, false), negative: false) },
         { "what's begun begins something itself", Phased("begin", Tense.Past, Aspect.Perfective, Phased("begin", Tense.Present, Aspect.Imperfective, DogEatsFish, negative: false), negative: false) },
         { "nothing is begun", Declared(new Event(new Doing("begin", null), Dog, [], []), Tense.Past, Aspect.Perfective, false) },
         { "what's begun is a thing", Declared(new Event(new Doing("begin", Fish), Dog, [], []), Tense.Past, Aspect.Perfective, false) },

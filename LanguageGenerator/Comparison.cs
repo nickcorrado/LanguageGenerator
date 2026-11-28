@@ -73,8 +73,24 @@ public record SimilativeAffix(Bound Marker);
 public union Similative(SimilativeWord, SimilativeAffix);
 
 /// <summary>
-/// An adjective compared, said of be's subject: more of a property than a standard has, as in
-/// 'Marta is taller than the men', or with no standard, more of it than something already known,
-/// as in 'Marta is taller'.
+/// How much of its property an adjective says, as the degree words and markers of comparison say
+/// it: much of it, as in 'very big', or more of it than something else has, as in 'bigger'.
 /// </summary>
-public record Compared(Adjective Adjective, Argument? Standard);
+public union Grade(Intensified, Comparative);
+
+/// <summary>Much of a property, as English very says, one of Bolinger's degree words.</summary>
+public record Intensified;
+
+/// <summary>
+/// More of a property than a standard has, as in 'Marta is taller than the men', or with no
+/// standard, more of it than something already known, as in 'Marta is taller', and by how much, if
+/// it says, as in 'much taller'.
+/// </summary>
+//the comparee is what the adjective is said of, so it isn't written here
+public record Comparative(Argument? Standard, Differential? Differential);
+
+/// <summary>By how much a comparative's comparee has more of its property than the standard.</summary>
+public union Differential(Much);
+
+/// <summary>By much, as in 'much bigger', which many languages say apart from 'very', as German viel größer is.</summary>
+public record Much;

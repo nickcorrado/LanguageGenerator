@@ -11,7 +11,7 @@ public class CopulaTests
         Syntax.Realize(l, Declared(new Event(new Being(BareNoun("person", Number.Singular)), BareNoun("dog", Number.Singular), [], []), tense, Aspect.Imperfective, negative), "the dog is a person");
 
     private static Rendering DogIsBig(Language l, Tense tense, bool negative = false) =>
-        Syntax.Realize(l, Declared(new Event(new Being(new Adjective("big", false)), BareNoun("dog", Number.Singular), [], []), tense, Aspect.Imperfective, negative), "the dog is big");
+        Syntax.Realize(l, Declared(new Event(new Being(new Adjective("big", null)), BareNoun("dog", Number.Singular), [], []), tense, Aspect.Imperfective, negative), "the dog is big");
 
     private static bool HasCopula(Rendering sentence) => IndexOf(sentence, "COP") >= 0;
 
@@ -121,7 +121,7 @@ public class CopulaTests
         {
             foreach (var (noun, number) in new[] { ("dog", Number.Plural), ("sun", Number.Singular), ("person", Number.Plural) })
             {
-                var sentence = Syntax.Realize(l, Declared(new Event(new Being(new Adjective("big", false)), BareNoun(noun, number), [], []), Tense.Past, Aspect.Imperfective, false), "x");
+                var sentence = Syntax.Realize(l, Declared(new Event(new Being(new Adjective("big", null)), BareNoun(noun, number), [], []), Tense.Past, Aspect.Imperfective, false), "x");
                 var subject = sentence.Words[IndexOf(sentence, noun)].Word;
                 var big = sentence.Words[IndexOf(sentence, "big")].Word;
                 var gender = l.GenderOf(l.Lexicon.Noun(noun));
@@ -140,8 +140,8 @@ public class CopulaTests
             //number from the pronoun, and gender only if it gives one the language has
             var feminine = l.Genders.Values.FirstOrDefault(g => g == Gender.Feminine);
             var they = new Pronoun(Person.Third, Number.Plural, Gender: Gender.Feminine);
-            var sentence = Syntax.Realize(l, Declared(new Event(new Being(new Adjective("old", false)), they, [], []), Tense.Past, Aspect.Imperfective, false), "they were old");
-            var plural = Syntax.Realize(l, Declared(new Event(new Being(new Adjective("old", false)), BareNoun("stone", Number.Plural), [], []), Tense.Past, Aspect.Imperfective, false), "x");
+            var sentence = Syntax.Realize(l, Declared(new Event(new Being(new Adjective("old", null)), they, [], []), Tense.Past, Aspect.Imperfective, false), "they were old");
+            var plural = Syntax.Realize(l, Declared(new Event(new Being(new Adjective("old", null)), BareNoun("stone", Number.Plural), [], []), Tense.Past, Aspect.Imperfective, false), "x");
             var old = sentence.Words[IndexOf(sentence, "old")].Word;
 
             Assert.Equal(Affixes(plural.Words[IndexOf(plural, "old")].Word), Affixes(old));

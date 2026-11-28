@@ -22,10 +22,9 @@ public class ComparisonTests
     [Fact]
     public void Parse_Standard_MakesAComparative()
     {
-        var comparative = Assert.IsType<Compared>(PredicateOf<Being>(Parsed("be  subject:marta  adjective:tall.CMPR  standard:man.PL.DEF")).Attribute.Value);
+        var men = new NounPhrase(new Noun("man", Number.Plural, [], null, null, null, Definiteness.Definite, null), null);
 
-        Assert.Equal(new Adjective("tall", false), comparative.Adjective);
-        Assert.Equal(new NounPhrase(new Noun("man", Number.Plural, [], null, null, null, Definiteness.Definite, null), null), comparative.Standard.Value);
+        Assert.Equal(new Adjective("tall", new Comparative(men, null)), PredicateOf<Being>(Parsed("be  subject:marta  adjective:tall.CMPR  standard:man.PL.DEF")).Attribute.Value);
     }
 
     [Fact]
@@ -33,7 +32,7 @@ public class ComparisonTests
     {
         var addressed = Addressed(Line("be  subject:2SG  adjective:tall.CMPR  standard:1SG  addressee:marta"));
 
-        Assert.Equal(new Pronoun(Person.First, Number.Singular), Assert.IsType<Compared>(PredicateOf<Being>(SentenceOf(addressed)).Attribute.Value).Standard.Value);
+        Assert.Equal(new Adjective("tall", new Comparative(new Pronoun(Person.First, Number.Singular), null)), PredicateOf<Being>(SentenceOf(addressed)).Attribute.Value);
     }
 
     [Theory]
@@ -253,10 +252,7 @@ public class ComparisonTests
     [Fact]
     public void Parse_Comparative_WithoutAStandard_HasNone()
     {
-        var comparative = Assert.IsType<Compared>(PredicateOf<Being>(Parsed("be  subject:marta  adjective:tall.CMPR")).Attribute.Value);
-
-        Assert.Equal(new Adjective("tall", false), comparative.Adjective);
-        Assert.Null(comparative.Standard);
+        Assert.Equal(new Adjective("tall", new Comparative(null, null)), PredicateOf<Being>(Parsed("be  subject:marta  adjective:tall.CMPR")).Attribute.Value);
     }
 
     [Fact]

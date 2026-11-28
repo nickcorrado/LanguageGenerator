@@ -248,7 +248,7 @@ public static class ClauseFile
         return statement.Value switch
         {
             Clause c => [.. c.StateOfAffairs.Events.SelectMany(e => e.Fillers).Where(f => f.Argument.Value is Gap).Select(NameOf),
-                .. c.StateOfAffairs.Events.Any(e => e.Predicate.Value is Being { Attribute.Value: Compared { Standard.Value: Gap } }) ? ["standard"] : Array.Empty<string>()],
+                .. c.StateOfAffairs.Events.Any(e => e.Predicate.Value is Being { Attribute.Value: Adjective { Grade.Value: Comparative { Standard.Value: Gap } } }) ? ["standard"] : Array.Empty<string>()],
             _ => [],
         };
 
@@ -694,8 +694,11 @@ public static class ClauseFile
         static string WordOf(Argument argument) => ((QuestionWord)argument.Value!).Word.ToString().ToLowerInvariant();
     }
 
-    //'Marta is taller than the men': an adjective, said of the subject more than of the standard, or
-    //with no standard, 'Marta is taller', more than of something already known
+    /*
+      'Marta is taller than the men': an adjective, said of the subject more than of the standard, or
+      with no standard, 'Marta is taller', more than of something already known. INTS on it is 'much',
+      by how much more, as in 'much taller'
+     */
     private static Predicate ToCompared(Predicate predicate, Argument? standard, VerbFeatures features, int number)
     {
         if (predicate.Value is not Being { Attribute.Value: Adjective adjective } being)
@@ -706,7 +709,8 @@ public static class ClauseFile
         {
             throw new ClauseFormatException("A comparison can't be negated yet.", number);
         }
-        return being with { Attribute = new Compared(adjective, standard) };
+        var much = adjective.Grade is { Value: Intensified } ? new Much() : (Differential?)null;
+        return being with { Attribute = adjective with { Grade = new Comparative(standard, much) } };
     }
 
     //who a clause is said to: a noun phrase, bare, since vocatives take no article
@@ -1282,7 +1286,7 @@ public static class ClauseFile
         {
             throw new ClauseFormatException($"'{meaning}' can't take {other.Gloss}: adjectives have no features but CMPR and INTS yet.", number);
         }
-        return new Adjective(meaning, features.Contains(Degree.Intensive));
+        return new Adjective(meaning, features.Contains(Degree.Intensive) ? new Intensified() : (Grade?)null);
     }
 
     //how something is done, as an adjective: manner:careful is 'carefully', and manner:slow.INTS

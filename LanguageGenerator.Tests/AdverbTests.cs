@@ -42,7 +42,7 @@ public class AdverbTests
         Assert.All(GeneratedLanguages.Sample, l =>
         {
             //written outermost first, as 'now, again, at the house, well, to the water' could be
-            var sentence = Realized(l, DogWalks.WithEvent(e => e with { Adverbs = [Now, Again, new Manner(new Adjective("good", false))], Obliques = [AtTheHouse, new(Role.Goal, BareNoun("water", Number.Singular), Configuration.At)] }));
+            var sentence = Realized(l, DogWalks.WithEvent(e => e with { Adverbs = [Now, Again, new Manner(new Adjective("good", null))], Obliques = [AtTheHouse, new(Role.Goal, BareNoun("water", Number.Singular), Configuration.At)] }));
 
             var distances = Distances(sentence, "water", "good", "house", "again", "now");
             Assert.Equal(distances.Order(), distances);
@@ -87,7 +87,7 @@ public class AdverbTests
     {
         Assert.All(GeneratedLanguages.Sample, l =>
         {
-            var sentence = Realized(l, DogWalks.WithEvent(e => e with { Adverbs = [new Manner(new Adjective("good", false))] }));
+            var sentence = Realized(l, DogWalks.WithEvent(e => e with { Adverbs = [new Manner(new Adjective("good", null))] }));
             var words = sentence.Words.ToList();
             var good = IndexOf(sentence, "good");
             var morphemes = words[good].Word.Morphemes;
@@ -125,10 +125,10 @@ public class AdverbTests
             var side = l.Intensifier.Side == Side.Before ? -1 : 1;
             Sentence[] statements =
             [
-                DogIsBig.WithEvent(e => e with { Predicate = new Being(new Adjective("big", true)) }),
-                DogWalks.WithEvent(e => e with { Subject = new NounPhrase(new Noun("dog", Number.Singular, [new Adjective("big", true)], null, null, null, null, null), null) }),
-                DogWalks.WithEvent(e => e with { Adverbs = [new Manner(new Adjective("big", true))] }),
-                Told(new Event(new Being(new Adjective("big", true)), new Pronoun(Person.Second, Number.Singular), [], []), false),
+                DogIsBig.WithEvent(e => e with { Predicate = new Being(new Adjective("big", new Intensified())) }),
+                DogWalks.WithEvent(e => e with { Subject = new NounPhrase(new Noun("dog", Number.Singular, [new Adjective("big", new Intensified())], null, null, null, null, null), null) }),
+                DogWalks.WithEvent(e => e with { Adverbs = [new Manner(new Adjective("big", new Intensified()))] }),
+                Told(new Event(new Being(new Adjective("big", new Intensified())), new Pronoun(Person.Second, Number.Singular), [], []), false),
             ];
             Assert.All(statements, s =>
             {
@@ -144,7 +144,7 @@ public class AdverbTests
     public void Realize_IntensifiedComparative_PutsTheComparativeNearer() =>
         Assert.All(GeneratedLanguages.Sample.Where(l => l.Degree.Marker.Value is Free), l =>
         {
-            var sentence = Realized(l, Comparing(DogIsBig.WithEvent(e => e with { Predicate = new Being(new Adjective("big", true)) }), null));
+            var sentence = Realized(l, DogIsBig.WithEvent(e => e with { Predicate = new Being(new Adjective("big", new Comparative(null, new Much()))) }));
             var side = l.Intensifier.Side == Side.Before ? -1 : 1;
 
             Assert.Equal(2 * side, Intensifier(l, sentence, "big"));
@@ -250,7 +250,7 @@ public class AdverbTests
     {
         var clause = Assert.IsType<Clause>(Parsed("walk  subject:dog  when:now  manner:slow.INTS  time:night  often:again  duration:(year 3)").Value);
 
-        ValueList<Adverbial> adverbs = [Now, new Manner(new Adjective("slow", true)), Again];
+        ValueList<Adverbial> adverbs = [Now, new Manner(new Adjective("slow", new Intensified())), Again];
         ValueList<Oblique> obliques = [new(Role.Time, BareNoun("night", Number.Singular), Configuration.At), new(Role.Duration, new NounPhrase(new Noun("year", Number.Paucal, [], 3, null, null, null, null), null), Configuration.At)];
         Assert.Equal(adverbs, clause.Event.Adverbs);
         Assert.Equal(obliques, clause.Event.Obliques);
@@ -263,7 +263,7 @@ public class AdverbTests
         var there = Assert.IsType<Clause>(Parsed("be  subject:dog  location:house  duration:(year 3)").Value);
         var command = Assert.IsType<Clause>(Parsed("be.IMP  adjective:careful  when:now").Value);
 
-        Assert.Equal(new Adjective("big", true), PredicateOf<Being>(big).Attribute.Value);
+        Assert.Equal(new Adjective("big", new Intensified()), PredicateOf<Being>(big).Attribute.Value);
         Assert.Equal(new Oblique(Role.Time, BareNoun("night", Number.Singular), Configuration.At), Assert.Single(big.Event.Obliques));
         Assert.Equal(Now, Assert.Single(big.Event.Adverbs).Value);
         Assert.Equal(Role.Location, Assert.IsType<Oblique>(PredicateOf<Being>(there).Attribute.Value).Role);
@@ -277,12 +277,11 @@ public class AdverbTests
     public void Parse_Intensive_GoesOnAnyAdjective()
     {
         var phrase = Assert.IsType<NounPhrase>(EventOf(Parsed("walk  subject:(dog big.INTS)")).Subject.Value);
-        var comparative = Assert.IsType<Compared>(PredicateOf<Being>(Parsed("be  subject:dog  adjective:big.CMPR.INTS")).Attribute.Value);
         var together = Assert.IsType<AdjectiveCoordination>(PredicateOf<Being>(Parsed("be  subject:dog  adjective:(and big.INTS old)")).Attribute.Value);
 
-        Assert.Equal(new Adjective("big", true), Assert.Single(NounOf(phrase).Adjectives));
-        Assert.Equal(new Adjective("big", true), comparative.Adjective);
-        Assert.Equal<Adjective>([new("big", true), new("old", false)], together.Adjectives);
+        Assert.Equal(new Adjective("big", new Intensified()), Assert.Single(NounOf(phrase).Adjectives));
+        Assert.Equal(new Adjective("big", new Comparative(null, new Much())), PredicateOf<Being>(Parsed("be  subject:dog  adjective:big.CMPR.INTS")).Attribute.Value);
+        Assert.Equal<Adjective>([new("big", new Intensified()), new("old", null)], together.Adjectives);
     }
 
     [Fact]

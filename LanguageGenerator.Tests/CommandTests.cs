@@ -177,7 +177,7 @@ public class CommandTests
     [Fact]
     public void Parse_CommandWithBe_SaysWhatOrWhereToBe()
     {
-        Assert.Equal(Told(new Event(new Being(new Adjective("careful", false)), new Pronoun(Person.Second, Number.Singular), [], []), false), Parsed("be.IMP  adjective:careful").Value);
+        Assert.Equal(Told(new Event(new Being(new Adjective("careful", null)), new Pronoun(Person.Second, Number.Singular), [], []), false), Parsed("be.IMP  adjective:careful").Value);
         Assert.Equal(Told(new Event(new Being(new NounPhrase(new Noun("fool", Number.Singular, [], null, null, null, Definiteness.Indefinite, null), null)), new Pronoun(Person.Second, Number.Plural), [], []), true),
             Parsed("be.IMP.NEG  subject:2PL  noun:fool.NDF").Value);
         Assert.Equal(Told(new Event(new Being(new Oblique(Role.Location, new NounPhrase(new Noun("house", Number.Singular, [], null, null, null, Definiteness.Definite, null), null), Configuration.At)), new Pronoun(Person.Second, Number.Singular), [], []), false),
@@ -189,7 +189,7 @@ public class CommandTests
     {
         Assert.All(Sample, l =>
         {
-            var sentence = Syntax.Realize(l, Told(new Event(new Being(new Adjective("big", false)), new Pronoun(Person.Second, Number.Singular), [], []), false), "");
+            var sentence = Syntax.Realize(l, Told(new Event(new Being(new Adjective("big", null)), new Pronoun(Person.Second, Number.Singular), [], []), false), "");
             var roots = sentence.Words.Select(w => w.Word.Root).ToList();
 
             Assert.Contains(l.Lexicon.Adjective("big").Root, roots);
@@ -206,7 +206,7 @@ public class CommandTests
             foreach (var negative in new[] { false, true })
             {
                 //leaving out the adjective, the copula's words are what any verb's command makes of it
-                var be = Syntax.Realize(l, Told(new Event(new Being(new Adjective("big", false)), new Pronoun(Person.Second, Number.Plural), [], []), negative), "");
+                var be = Syntax.Realize(l, Told(new Event(new Being(new Adjective("big", null)), new Pronoun(Person.Second, Number.Plural), [], []), negative), "");
                 var copula = be.Words.Where(w => w.Word.Root != l.Lexicon.Adjective("big").Root).Select(w => w.Gloss);
                 var eat = Syntax.Realize(l, Told(new Event(new Doing("eat", null), new Pronoun(Person.Second, Number.Plural), [], []), negative), "").Words
                     .Select(w => w.Gloss.Replace("eat", l.Predication.Copula.Root.Meaning));

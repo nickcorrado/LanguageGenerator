@@ -151,7 +151,7 @@ public class ArticleTests
     {
         Assert.All(GeneratedLanguages.Sample.Where(l => l.Articles.Definite is { } d && FirstForm(d).Value is Particle), l =>
         {
-            var sentence = Syntax.Realize(l, Declared(new Event(new Doing("sleep", null), new NounPhrase(new Noun("dog", Number.Dual, [new("big", false)], 2, null, null, Definiteness.Definite, null), null), [], []), Tense.Past, Aspect.Perfective, false), "x");
+            var sentence = Syntax.Realize(l, Declared(new Event(new Doing("sleep", null), new NounPhrase(new Noun("dog", Number.Dual, [new("big", null)], 2, null, null, Definiteness.Definite, null), null), [], []), Tense.Past, Aspect.Perfective, false), "x");
             var article = sentence.Words.ToList().FindIndex(w => w.Word.Morphemes.Any(IsArticle));
             var others = new[] { IndexOf(sentence, "two"), IndexOf(sentence, "big"), IndexOf(sentence, "dog") };
 

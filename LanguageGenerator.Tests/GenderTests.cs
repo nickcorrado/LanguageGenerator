@@ -99,7 +99,7 @@ public class GenderTests
             foreach (var noun in new[] { "sun", "person", "dog" })
             {
                 var gender = language.GenderOf(language.Lexicon.Noun(noun))!;
-                var sentence = Syntax.Realize(language, Declared(new Event(new Doing("sleep", null), new NounPhrase(new Noun(noun, Number.Singular, [new("big", false)], null, null, null, null, null), null), [], []), Tense.Present, Aspect.Imperfective, false), "x");
+                var sentence = Syntax.Realize(language, Declared(new Event(new Doing("sleep", null), new NounPhrase(new Noun(noun, Number.Singular, [new("big", null)], null, null, null, null, null), null), [], []), Tense.Present, Aspect.Imperfective, false), "x");
                 var big = sentence.Words.Single(w => w.Word.Root?.Meaning == "big").Word;
 
                 Assert.Equal(language.Genders.Markers!.Affixes[gender].Form.Count == 0 ? [] : [gender.Gloss], GenderGlosses(big));
@@ -112,7 +112,7 @@ public class GenderTests
     {
         foreach (var language in GeneratedLanguages.Sample.Where(l => l.Genders.Markers is not null && l.AdjectiveAgreement != AdjectiveAgreement.Agreement))
         {
-            var sentence = Syntax.Realize(language, Declared(new Event(new Doing("sleep", null), new NounPhrase(new Noun("sun", Number.Singular, [new("big", false)], null, null, null, null, null), null), [], []), Tense.Present, Aspect.Imperfective, false), "x");
+            var sentence = Syntax.Realize(language, Declared(new Event(new Doing("sleep", null), new NounPhrase(new Noun("sun", Number.Singular, [new("big", null)], null, null, null, null, null), null), [], []), Tense.Present, Aspect.Imperfective, false), "x");
 
             //the verb may agree in gender, but the adjective doesn't
             var big = sentence.Words.Single(w => w.Word.Root?.Meaning == "big").Word;

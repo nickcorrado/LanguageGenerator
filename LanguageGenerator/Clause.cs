@@ -176,7 +176,7 @@ public union Predicate(Doing, Done, Being)
     public IEnumerable<Argument> Arguments => this switch
     {
         Being { Attribute.Value: NounPhrase noun } => [noun],
-        Being { Attribute.Value: Compared { Standard: { } standard } } => [standard],
+        Being { Attribute.Value: Adjective { Grade.Value: Comparative { Standard: { } standard } } } => [standard],
         Doing or Done or Being => Fillers.Select(f => f.Argument),
     };
 
@@ -186,7 +186,8 @@ public union Predicate(Doing, Done, Being)
         Doing doing => doing with { Object = doing.Object is { } o ? fill(o) : (Argument?)null },
         Done done => done with { Agent = done.Agent is { } agent ? fill(agent) : (Argument?)null },
         Being { Attribute.Value: Oblique location } being => being with { Attribute = location with { Argument = fill(location.Argument) } },
-        Being { Attribute.Value: Compared { Standard: { } standard } compared } being => being with { Attribute = compared with { Standard = fill(standard) } },
+        Being { Attribute.Value: Adjective { Grade.Value: Comparative { Standard: { } standard } compared } adjective } being =>
+            being with { Attribute = adjective with { Grade = compared with { Standard = fill(standard) } } },
         Being being => being,
     };
 }
@@ -194,15 +195,18 @@ public union Predicate(Doing, Done, Being)
 /// <summary>A verb, with its object if it has one.</summary>
 public record Doing(string Verb, Argument? Object);
 
-/// <summary>A property, like 'big', said of something, or with Intensified, much of it, as in 'very big'.</summary>
-public record Adjective(string Meaning, bool Intensified);
+/// <summary>
+/// A property, like 'big', said of something, with its grade if it has one, as 'very big' and
+/// 'bigger than the house' have, wherever it is.
+/// </summary>
+public record Adjective(string Meaning, Grade? Grade);
 
 /// <summary>
 /// What be says of its subject: a noun phrase, as in 'you are a fool', an adjective, as in 'the
-/// gate is locked', adjectives together, as in 'the inn is warm and crowded', a location, as in
-/// 'the dog is in the house', or an adjective compared, as in 'Marta is taller than the men'.
+/// gate is locked' or 'Marta is taller than the men', adjectives together, as in 'the inn is warm
+/// and crowded', or a location, as in 'the dog is in the house'.
 /// </summary>
-public union Attribute(NounPhrase, Adjective, AdjectiveCoordination, Oblique, Compared);
+public union Attribute(NounPhrase, Adjective, AdjectiveCoordination, Oblique);
 
 /// <summary>
 /// What or where a clause's subject is, as English says with be, or told, what or where to be, as

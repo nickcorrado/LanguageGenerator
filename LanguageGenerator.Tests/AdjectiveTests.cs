@@ -6,7 +6,7 @@ namespace LanguageGenerator.Tests;
 
 public class AdjectiveTests
 {
-    private static readonly NounPhrase BigOldDogs = new NounPhrase(new Noun("dog", Number.Plural, [new("big", false), new("old", false)], null, null, null, null, null), null);
+    private static readonly NounPhrase BigOldDogs = new NounPhrase(new Noun("dog", Number.Plural, [new("big", null), new("old", null)], null, null, null, null, null), null);
 
     //only the basic meanings, since coining new ones would add to the shared sample's lexicons
     private static Rendering Sleep(Language l, NounPhrase subject) =>

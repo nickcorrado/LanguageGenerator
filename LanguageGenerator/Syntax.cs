@@ -701,7 +701,7 @@ public static class Syntax
     private static (IReadOnlyList<Adjective> Adjectives, Lexeme? Between)? PredicateAdjectives(Language language, Attribute attribute) => attribute.Value switch
     {
         Adjective adjective => ([adjective], null),
-        AdjectiveCoordination together => ([.. together.Adjectives], language.Conjunctions.BetweenClauses(together.Conjunction)),
+        AdjectiveCoordination together => ([.. together.Adjectives.Select(Uncompared)], language.Conjunctions.BetweenClauses(together.Conjunction)),
         _ => null,
     };
 
@@ -772,7 +772,7 @@ public static class Syntax
             Done when spine.Tense is null => throw new ArgumentException("A command can't be passive yet.", nameof(spine)),
             Done done => Verbal(language, spine, language.Lexicon.Verb(done.Verb), null, done.Agent,
                 language.Passive ?? throw new ArgumentException("A language without a passive says it as the active.", nameof(spine)), rank),
-            Being { Attribute.Value: Compared compared } being => Comparative(language, spine, being, compared, rank),
+            Being { Attribute.Value: Adjective { Grade.Value: Comparative compared } } being => ComparativeWords(language, spine, being, compared, rank),
             Being being => Copular(language, spine, being, rank, [], null),
         };
     }
@@ -860,7 +860,7 @@ public static class Syntax
                 var root = language.Lexicon.Adjective(manner.Adjective.Meaning).Root;
                 IReadOnlyList<Word> adjective = [new Word([root])];
                 var words = language.Manner is { } marker ? marker.Place(adjective, 0, Reach.Root) : adjective;
-                return Intensified(language, words, root, manner.Adjective);
+                return WithIntensifier(language, words, root, Uncompared(manner.Adjective));
             }
             //a question asks with it, and moves it where questions move their words
             case QuestionAdverbial asked:
@@ -997,7 +997,7 @@ public static class Syntax
             //a property word inflects as a verb in a language whose adjectives are verbs, and the last one's is the finite verb
             var lexemes = adjectives.Select(a => language.Lexicon.Adjective(a.Meaning)).ToList();
             var verbs = lexemes.Select(lexeme => Be(lexeme with { PartOfSpeech = PartOfSpeech.Verb })).ToList();
-            var predicate = Join(adjectives.Select((a, i) => Graded(Intensified(language, Linearized(language, verbs[i]), lexemes[i].Root, a), lexemes[i].Root, degree)), between);
+            var predicate = Join(adjectives.Select((a, i) => Graded(WithIntensifier(language, Linearized(language, verbs[i]), lexemes[i].Root, a), lexemes[i].Root, degree)), between);
             return new(Flat(Order(language.WordOrder, subjectWords, Standing(predicate), null, WhereObliquesGo(language, modifiers))), verbs[^1].Outermost.Root);
         }
 
@@ -1047,13 +1047,12 @@ public static class Syntax
       are not tall'. The adjective is comparative where the language marks it so alongside a
       standard, and always with no standard, which is 'more' than something already known
      */
-    private static ClauseWords Comparative(Language language, Spine spine, Being compares, Compared compared, Rank rank)
+    private static ClauseWords ComparativeWords(Language language, Spine spine, Being being, Comparative compared, Rank rank)
     {
         if (spine.Tense is null || rank.Value is not Balanced { Modal: null })
         {
             throw new ArgumentException("Only a clause that states something compares, with no modal yet.", nameof(spine));
         }
-        var being = compares with { Attribute = compared.Adjective };
         if (!compared.Standard.HasValue)
         {
             return Copular(language, spine, being, rank, [], language.Degree.Marker);
@@ -1083,10 +1082,19 @@ public static class Syntax
         return language.WordOrder.VerbPhraseDirectionality == HeadDirectionality.Initial ? [.. verb, .. @object] : [.. @object, .. verb];
     }
 
-    //an adjective's words with 'very' beside it, if it has it. It goes on before any comparative
-    //marker, so that the comparative's is the nearer, as in 'much bigger'
-    private static IReadOnlyList<Word> Intensified(Language language, IReadOnlyList<Word> words, Root root, Adjective adjective) =>
-        adjective.Intensified ? Graded(words, root, language.Intensifier) : words;
+    /*
+      an adjective's words with 'very' beside it, if it's intensified, or compared by much, which a
+      language says with its 'very' until it has a word of its own for 'much', as Turkish çok is
+      both. It goes on before any comparative marker, so that the comparative's is the nearer, as in
+      'much bigger'
+     */
+    private static IReadOnlyList<Word> WithIntensifier(Language language, IReadOnlyList<Word> words, Root root, Adjective adjective) =>
+        adjective.Grade is { Value: Intensified } or { Value: Comparative { Differential.Value: Much } } ? Graded(words, root, language.Intensifier) : words;
+
+    //an adjective as it's said where it can't be compared yet, which is anywhere but what be says of its subject
+    private static Adjective Uncompared(Adjective adjective) => adjective.Grade is { Value: Comparative }
+        ? throw new ArgumentException("Only the adjective be says of its subject is compared yet.", nameof(adjective))
+        : adjective;
 
     //an adjective's words with a marker of degree, if it has one: an affix next to its root, inside
     //any agreement or tense, or a word beside it
@@ -1097,12 +1105,12 @@ public static class Syntax
     private static IReadOnlyList<Word> PredicateComplement(Language language, Attribute attribute, Argument subject) => attribute.Value switch
     {
         NounPhrase noun => Inflect(language, noun, Role.IntransitiveSubject),
-        AdjectiveCoordination together => Join(together.Adjectives.Select(a => PredicateComplement(language, a, subject)), language.Conjunctions.BetweenClauses(together.Conjunction)),
+        AdjectiveCoordination together => Join(together.Adjectives.Select(a => PredicateComplement(language, Uncompared(a), subject)), language.Conjunctions.BetweenClauses(together.Conjunction)),
         Adjective adjective when language.AdjectiveAgreement == AdjectiveAgreement.Agreement =>
-            Intensified(language, [AgreeingAdjective(language, language.Lexicon.Adjective(adjective.Meaning),
+            WithIntensifier(language, [AgreeingAdjective(language, language.Lexicon.Adjective(adjective.Meaning),
                 Features(language.Paradigms.Nouns, [AgreementOf(language, subject).Number, CaseFor(language, language.RoleMarkers[Role.IntransitiveSubject])]),
                 GenderOf(language, subject))], language.Lexicon.Adjective(adjective.Meaning).Root, adjective),
-        Adjective adjective => Intensified(language, [new Word([language.Lexicon.Adjective(adjective.Meaning).Root])], language.Lexicon.Adjective(adjective.Meaning).Root, adjective),
+        Adjective adjective => WithIntensifier(language, [new Word([language.Lexicon.Adjective(adjective.Meaning).Root])], language.Lexicon.Adjective(adjective.Meaning).Root, adjective),
         _ => throw new ArgumentException("A predicate is a noun or an adjective.", nameof(attribute)),
     };
 
@@ -1640,9 +1648,9 @@ public static class Syntax
         var adjectives = written.SelectMany(a =>
         {
             var lexeme = language.Lexicon.Adjective(a.Meaning);
-            return Intensified(language, [agreement == AdjectiveAgreement.Agreement
+            return WithIntensifier(language, [agreement == AdjectiveAgreement.Agreement
                 ? AgreeingAdjective(language, lexeme, features, language.GenderOf(nounLexeme))
-                : new Word([lexeme.Root])], lexeme.Root, a);
+                : new Word([lexeme.Root])], lexeme.Root, Uncompared(a));
         }).ToList();
 
         IReadOnlyList<Word> ordinal = noun.Ordinal is { } nth ? language.Numerals.SayOrdinal(nth) : [];
