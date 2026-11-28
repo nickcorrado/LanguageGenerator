@@ -43,8 +43,8 @@ internal static class Templates
 //finding words in a realized sentence, by meaning or by root
 internal static class Sentences
 {
-    public static int IndexOf(Sentence sentence, string meaning) => sentence.Words.ToList().FindIndex(w => w.Word.Root?.Meaning == meaning);
-    public static int IndexOf(Sentence sentence, Root root) => sentence.Words.ToList().FindIndex(w => w.Word.Root == root);
+    public static int IndexOf(Rendering sentence, string meaning) => sentence.Words.ToList().FindIndex(w => w.Word.Root?.Meaning == meaning);
+    public static int IndexOf(Rendering sentence, Root root) => sentence.Words.ToList().FindIndex(w => w.Word.Root == root);
 }
 
 /*
@@ -60,26 +60,197 @@ internal static class Clauses
     public static Clause DogEatsFish { get; } = Stating(Phrases.Dog, new Doing("eat", Phrases.Fish));
     public static Clause CatEatsFish { get; } = Stating(Phrases.Cat, new Doing("eat", Phrases.Fish));
 
-    private static Clause Stating(Argument subject, Predicate predicate) =>
-        new(predicate, new Declarative(Tense.Present, Aspect.Imperfective, subject), false, [], []);
+    private static Clause Stating(Argument subject, Predicate predicate) => Declared(new Event(predicate, subject, [], []), Tense.Present, Aspect.Imperfective, false);
 
-    //a clause stating something at another time, or with another aspect
-    public static Clause At(this Clause clause, Tense tense, Aspect aspect) => clause with
+    //a stated clause at another time, with an aspect over what it states, which the imperfective isn't
+    public static Clause At(this Clause clause, Tense tense, Aspect aspect) => clause switch
     {
-        Force = clause.Force.Value is Declarative stated
-            ? stated with { Tense = tense, Aspect = aspect }
-            : throw new ArgumentException("Only a clause that states something has a tense and an aspect.", nameof(clause)),
+        Declarative stated => stated with
+        {
+            Propositional = stated.Propositional.Rebuilt(p => p with
+            {
+                Tense = tense,
+                StateOfAffairs = aspect == Aspect.Imperfective ? p.StateOfAffairs : new Aspected(aspect, p.StateOfAffairs),
+            }),
+        },
+        _ => throw new ArgumentException("Only a clause that states something has a tense.", nameof(clause)),
     };
 
-    //what a line or a quotation states, where it's a statement and not a fragment
-    public static Statement Stated(Utterance utterance) => utterance switch
+    //a clause with a negation over all it says, or tells
+    public static Clause Not(this Clause clause) => clause switch
     {
-        Statement statement => statement,
-        Fragment fragment => throw new Xunit.Sdk.XunitException($"Expected a statement, but got {fragment}."),
+        Declarative stated => stated with { Propositional = stated.Propositional.Rebuilt(p => p with { StateOfAffairs = new Negated(p.StateOfAffairs) }) },
+        Interrogative asked => asked with { Propositional = asked.Propositional.Rebuilt(p => p with { StateOfAffairs = new Negated(p.StateOfAffairs) }) },
+        Directive told => told with { StateOfAffairs = new Negated(told.StateOfAffairs) },
     };
 
-    public static T PredicateOf<T>(Statement statement) => Assert.IsType<T>(Assert.IsType<Clause>(statement.Value).Predicate.Value);
-    public static T ForceOf<T>(Statement statement) => Assert.IsType<T>(Assert.IsType<Clause>(statement.Value).Force.Value);
+    //a clause with its event what this makes of it, as with another subject or object
+    public static Clause WithEvent(this Clause clause, Func<Event, Event> rebuild) => clause switch
+    {
+        Declarative stated => stated with { Propositional = stated.Propositional.Rebuilt(p => p with { StateOfAffairs = p.StateOfAffairs.Rebuilt(rebuild) }) },
+        Interrogative asked => asked with { Propositional = asked.Propositional.Rebuilt(p => p with { StateOfAffairs = p.StateOfAffairs.Rebuilt(rebuild) }) },
+        Directive told => told with { StateOfAffairs = told.StateOfAffairs.Rebuilt(rebuild) },
+    };
+
+    //what a line or a quotation states, where it's a statement said to no one
+    public static Sentence Stated(Utterance utterance) => utterance.Value is Message { Addressee: null } message
+        ? SentenceOf(message)
+        : throw new Xunit.Sdk.XunitException($"Expected a statement said to no one, but got {utterance.Value}.");
+
+    //a line said to someone, with who it's said to
+    public static Message Addressed(Utterance utterance) => utterance.Value is Message { Addressee: not null } message
+        ? message
+        : throw new Xunit.Sdk.XunitException($"Expected a message said to someone, but got {utterance.Value}.");
+
+    //what a message states, where it's a statement and not a fragment
+    public static Sentence SentenceOf(Message message) => message.Content.Value is Sentence statement
+        ? statement
+        : throw new Xunit.Sdk.XunitException($"Expected a statement, but got {message.Content.Value}.");
+
+    //what the parser makes of one gloss line, as it is
+    public static Utterance Line(string gloss) => Assert.Single(ClauseFile.Parse($"x\n  {gloss}")).Utterance;
+
+    //a clause stating an event at a time, with an aspect, negated or not, the imperfective being no operator
+    public static Clause Declared(Event @event, Tense tense, Aspect aspect, bool negative) => new Declarative(new Proposition(Layered(@event, aspect, negative), tense));
+
+    //a clause telling 'you' to bring an event about, or not to
+    public static Clause Told(Event @event, bool negative) => new Directive(negative ? new Negated(@event) : @event);
+
+    //an event with its aspect, then its negation, over it
+    public static StateOfAffairs Layered(Event @event, Aspect aspect, bool negative)
+    {
+        StateOfAffairs layers = aspect == Aspect.Imperfective ? @event : new Aspected(aspect, @event);
+        return negative ? new Negated(layers) : layers;
+    }
+
+    //a stated clause with a situational modal over what it states, and the modal's own negation over that
+    public static Clause WithModal(Clause clause, SituationalModality modality, bool negative) => clause switch
+    {
+        Declarative stated => stated with { Propositional = stated.Propositional.Rebuilt(p => p with { StateOfAffairs = Negating(new Modalized(modality, p.StateOfAffairs), negative) }) },
+        _ => throw new ArgumentException("Only a stated clause takes a modal here.", nameof(clause)),
+    };
+
+    private static StateOfAffairs Negating(StateOfAffairs layers, bool negative) => negative ? new Negated(layers) : layers;
+
+    //a stated clause the speaker judges possible or sure, and denies that or not
+    public static Clause Judging(Clause clause, EpistemicModality modality, bool denied) => clause switch
+    {
+        Declarative stated => stated with { Propositional = denied ? new Denied(new Judged(modality, stated.Propositional)) : new Judged(modality, stated.Propositional) },
+        _ => throw new ArgumentException("Only a stated clause is judged here.", nameof(clause)),
+    };
+
+    //a stated clause asked, with 'why' or 'how' among its adverbs if it asks either
+    public static Clause Asked(Clause clause, QuestionAdverb? adverb) => clause switch
+    {
+        Declarative stated => new Interrogative(adverb is { } why
+            ? stated.Propositional.Rebuilt(p => p with { StateOfAffairs = p.StateOfAffairs.Rebuilt(e => e with { Adverbs = [.. e.Adverbs, new QuestionAdverbial(why)] }) })
+            : stated.Propositional),
+        _ => throw new ArgumentException("Only a stated clause is asked here.", nameof(clause)),
+    };
+
+    //a stated clause with be and an adjective, its adjective compared with a standard, or with none
+    public static Clause Comparing(Clause clause, Argument? standard) => clause switch
+    {
+        Declarative stated => stated with
+        {
+            Propositional = stated.Propositional.Rebuilt(p => p with
+            {
+                StateOfAffairs = p.StateOfAffairs.Rebuilt(e => e.Predicate.Value is Being { Attribute.Value: Adjective adjective } being
+                    ? e with { Predicate = being with { Attribute = new Compared(adjective, standard) } }
+                    : throw new ArgumentException("Only an adjective said with be is compared.", nameof(clause))),
+            }),
+        },
+        _ => throw new ArgumentException("Only a stated clause compares here.", nameof(clause)),
+    };
+
+    //a stated clause under another, as an adverbial clause of that kind, a purpose clause sharing the main clause's subject or not
+    public static Subordinated Under(Sentence main, Subordinator subordinator, Clause clause, bool sharesSubject) => (subordinator, clause) switch
+    {
+        (Subordinator.Purpose, Declarative stated) => new Subordinated(main, new Purpose(Sharing(stated.Propositional.Proposition.StateOfAffairs, sharesSubject))),
+        (_, Declarative stated) when !sharesSubject => new Subordinated(main, new Circumstance(RelationOf(subordinator), stated.Propositional)),
+        _ => throw new ArgumentException("Only a stated clause goes under another, and only a purpose clause shares its subject here.", nameof(clause)),
+    };
+
+    private static Relation RelationOf(Subordinator subordinator) => subordinator switch
+    {
+        Subordinator.If => Relation.If,
+        Subordinator.When => Relation.When,
+        Subordinator.Before => Relation.Before,
+        Subordinator.After => Relation.After,
+        Subordinator.Until => Relation.Until,
+        Subordinator.Because => Relation.Because,
+        _ => throw new ArgumentOutOfRangeException(nameof(subordinator), subordinator, "A purpose clause has no relation."),
+    };
+
+    //a stated clause as the object of a verb, what's said or what's wanted, the latter sharing the main clause's subject or not
+    public static Complement Complementing(ComplementKind kind, Clause clause, bool sharesSubject) => (kind, clause) switch
+    {
+        (ComplementKind.Proposition, Declarative stated) when !sharesSubject => new Said(stated.Propositional),
+        (ComplementKind.Event, Declarative { Propositional.Value: Proposition wanted }) => new Wanted(Sharing(wanted.StateOfAffairs, sharesSubject)),
+        _ => throw new ArgumentException("Only a stated clause is an object, and only what's wanted shares its subject here.", nameof(clause)),
+    };
+
+    //a state of affairs whose events have the subject of the clause they depend on, or their own
+    public static StateOfAffairs Sharing(StateOfAffairs layers, bool shares) => shares ? layers.Rebuilt(e => e with { Subject = new Shared() }) : layers;
+
+    //a stated clause as a relative clause, with its gap where it has one
+    public static Propositional Relating(Clause clause) => clause switch
+    {
+        Declarative stated => stated.Propositional,
+        _ => throw new ArgumentException("Only a stated clause is a relative clause.", nameof(clause)),
+    };
+
+    //the first event of a clause inside another
+    public static Event EventOf(Complement complement) => complement switch
+    {
+        Said said => said.Propositional.Proposition.StateOfAffairs.Event,
+        Wanted wanted => wanted.StateOfAffairs.Event,
+    };
+
+    public static Event EventOf(AdverbialClause clause) => clause switch
+    {
+        Purpose purpose => purpose.StateOfAffairs.Event,
+        Circumstance circumstance => circumstance.Propositional.Proposition.StateOfAffairs.Event,
+    };
+
+    //a statement's clause, its event, its predicate, its sentence type and the proposition it states or asks, where it has each of these
+    public static Clause ClauseOf(Sentence statement) => Assert.IsType<Clause>(statement.Value);
+    public static Event EventOf(Sentence statement) => ClauseOf(statement).Event;
+    public static T PredicateOf<T>(Sentence statement) => Assert.IsType<T>(EventOf(statement).Predicate.Value);
+    public static T ForceOf<T>(Sentence statement) => Assert.IsType<T>(ClauseOf(statement).Value);
+    //the aspect over a statement's event, or the unmarked one where it has none
+    public static Aspect AspectOf(Sentence statement) => AspectOf(ClauseOf(statement).StateOfAffairs);
+
+    private static Aspect AspectOf(StateOfAffairs layers) => layers switch
+    {
+        Event => Aspect.Imperfective,
+        Aspected aspected => aspected.Aspect,
+        Negated negated => AspectOf(negated.StateOfAffairs),
+        Modalized modalized => AspectOf(modalized.StateOfAffairs),
+        Coordinated<StateOfAffairs> => throw new Xunit.Sdk.XunitException("Joined states of affairs each have an aspect of their own."),
+    };
+
+    public static Proposition PropositionOf(Sentence statement) => ClauseOf(statement).Value switch
+    {
+        Declarative stated => stated.Propositional.Proposition,
+        Interrogative asked => asked.Propositional.Proposition,
+        var other => throw new Xunit.Sdk.XunitException($"Expected a proposition stated or asked, but got {other}."),
+    };
+
+    //the judgment over what a statement states or asks, if it has one
+    public static EpistemicModality? JudgmentOf(Sentence statement) => ClauseOf(statement).Value switch
+    {
+        Declarative stated => JudgmentOf(stated.Propositional),
+        Interrogative asked => JudgmentOf(asked.Propositional),
+        _ => null,
+    };
+
+    private static EpistemicModality? JudgmentOf(Propositional propositional) => propositional switch
+    {
+        Judged judged => judged.Modality,
+        Denied denied => JudgmentOf(denied.Propositional),
+        Proposition => null,
+    };
 }
 
 //a noun on its own, with no modifiers, determiner, possessor or relative clause

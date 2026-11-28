@@ -9,14 +9,14 @@ public class SpatialTests
     //only the basic meanings, since coining new ones would add to the shared sample's lexicons
     private static readonly NounPhrase Stone = BareNoun("stone", Number.Singular);
 
-    private static Sentence Walk(Language language, Role role, Configuration configuration) =>
-        Syntax.Realize(language, new Clause(new Doing("walk", null), new Declarative(Tense.Past, Aspect.Perfective, BareNoun("dog", Number.Singular)), false, [new(role, Stone, configuration)], []), "x");
+    private static Rendering Walk(Language language, Role role, Configuration configuration) =>
+        Syntax.Realize(language, Declared(new Event(new Doing("walk", null), BareNoun("dog", Number.Singular), [new(role, Stone, configuration)], []), Tense.Past, Aspect.Perfective, false), "x");
 
-    private static Statement Parsed(string gloss) => Stated(Assert.Single(ClauseFile.Parse($"x\n  {gloss}")).Utterance);
+    private static Sentence Parsed(string gloss) => Stated(Assert.Single(ClauseFile.Parse($"x\n  {gloss}")).Utterance);
 
     private static ClauseFormatException Error(string gloss) => Assert.Throws<ClauseFormatException>(() => ClauseFile.Parse($"x\n  {gloss}"));
 
-    private static string[] Glosses(Sentence sentence) => string.Join(" ", sentence.Words.Select(w => w.Gloss)).Split('-', '.', ' ', '[', ']');
+    private static string[] Glosses(Rendering sentence) => string.Join(" ", sentence.Words.Select(w => w.Gloss)).Split('-', '.', ' ', '[', ']');
 
     [Theory]
     [InlineData("goal.in", Role.Goal, Configuration.In)]
@@ -28,7 +28,7 @@ public class SpatialTests
     {
         var clause = Assert.IsType<Clause>(Parsed($"walk.PST  subject:3SG.M  {written}:river.DEF").Value);
 
-        Assert.Equal(new Oblique(role, new NounPhrase(new Noun("river", Number.Singular, [], null, null, null, Definiteness.Definite, null), null), configuration), Assert.Single(clause.Obliques));
+        Assert.Equal(new Oblique(role, new NounPhrase(new Noun("river", Number.Singular, [], null, null, null, Definiteness.Definite, null), null), configuration), Assert.Single(clause.Event.Obliques));
     }
 
     [Fact]
@@ -36,7 +36,7 @@ public class SpatialTests
     {
         var clause = PredicateOf<Being>(Parsed("be  subject:key.DEF  location.under:table.DEF"));
 
-        Assert.Equal(new Oblique(Role.Location, new NounPhrase(new Noun("table", Number.Singular, [], null, null, null, Definiteness.Definite, null), null), Configuration.Under), clause.Complement.Value);
+        Assert.Equal(new Oblique(Role.Location, new NounPhrase(new Noun("table", Number.Singular, [], null, null, null, Definiteness.Definite, null), null), Configuration.Under), clause.Attribute.Value);
     }
 
     [Theory]
@@ -163,7 +163,7 @@ public class SpatialTests
         Assert.All(languages, l =>
         {
             var (configuration, marker) = l.Configurations.Markers.First(m => m.Value.Value is SpatialCase);
-            var sentence = Syntax.Realize(l, new Clause(new Doing("walk", null), new Declarative(Tense.Past, Aspect.Perfective, BareNoun("dog", Number.Singular)), false, [new(Role.Location, new Pronoun(Person.Third, Number.Singular), configuration)], []), "x");
+            var sentence = Syntax.Realize(l, Declared(new Event(new Doing("walk", null), BareNoun("dog", Number.Singular), [new(Role.Location, new Pronoun(Person.Third, Number.Singular), configuration)], []), Tense.Past, Aspect.Perfective, false), "x");
 
             Assert.Contains(((SpatialCase)marker.Value!).Localization.Gloss, Glosses(sentence));
         });

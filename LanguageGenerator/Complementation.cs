@@ -138,11 +138,26 @@ public record Complementation(ComplementMarking Proposition, ComplementMarking E
 }
 
 /// <summary>
-/// A clause as the object of a verb, saying what's said, known or wanted, as in 'I told you that
-/// you were late' or 'they want to go home'. SharesSubject says its subject wasn't said, but taken
-/// from the main clause, as an event's often is.
+/// A clause as the object of a verb, after Noonan: what's said, known or seen, a proposition with a
+/// time of its own, as in 'I told you that you were late', or what's wanted, tried, begun or told
+/// to be done, a state of affairs whose time the main verb sets, as in 'they want to go home'.
+/// Being inside another, it does nothing of its own, so it has no sentence type.
 /// </summary>
-public record ComplementClause(ComplementKind Kind, Statement Clause, bool SharesSubject);
+public union Complement(Said, Wanted)
+{
+    /// <summary>What the language marks it as.</summary>
+    public ComplementKind Kind => this switch
+    {
+        Said => ComplementKind.Proposition,
+        Wanted => ComplementKind.Event,
+    };
+}
+
+/// <summary>What's said, known, thought or seen, as in 'that you were late'.</summary>
+public record Said(Propositional Propositional);
+
+/// <summary>What's wanted, tried, begun or told to be done, as in 'to go home', whose subject is often the main clause's.</summary>
+public record Wanted(StateOfAffairs StateOfAffairs);
 
 /// <summary>
 /// What someone said, word for word, as the object of a verb of saying, as in '"you're late," she

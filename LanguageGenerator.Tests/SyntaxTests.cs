@@ -1,21 +1,22 @@
-﻿using static LanguageGenerator.Tests.Phrases;
+﻿using static LanguageGenerator.Tests.Clauses;
+using static LanguageGenerator.Tests.Phrases;
 namespace LanguageGenerator.Tests;
 
 public class SyntaxTests
 {
-    private static Sentence DogSawCat(Language l) =>
-        Syntax.Realize(l, new Clause(new Doing("see", BareNoun("cat", Number.Singular)), new Declarative(Tense.Past, Aspect.Perfective, BareNoun("dog", Number.Singular)), false, [], []), "the dog saw the cat");
+    private static Rendering DogSawCat(Language l) =>
+        Syntax.Realize(l, Declared(new Event(new Doing("see", BareNoun("cat", Number.Singular)), BareNoun("dog", Number.Singular), [], []), Tense.Past, Aspect.Perfective, false), "the dog saw the cat");
 
-    private static Sentence BirdsSleep(Language l) =>
-        Syntax.Realize(l, new Clause(new Doing("sleep", null), new Declarative(Tense.Present, Aspect.Imperfective, BareNoun("bird", Number.Plural)), false, [], []), "the birds are sleeping");
+    private static Rendering BirdsSleep(Language l) =>
+        Syntax.Realize(l, Declared(new Event(new Doing("sleep", null), BareNoun("bird", Number.Plural), [], []), Tense.Present, Aspect.Imperfective, false), "the birds are sleeping");
 
-    private static Sentence PersonSeesDogs(Language l) =>
-        Syntax.Realize(l, new Clause(new Doing("see", BareNoun("dog", Number.Plural)), new Declarative(Tense.Present, Aspect.Imperfective, BareNoun("person", Number.Singular)), false, [], []), "the person sees the dogs");
+    private static Rendering PersonSeesDogs(Language l) =>
+        Syntax.Realize(l, Declared(new Event(new Doing("see", BareNoun("dog", Number.Plural)), BareNoun("person", Number.Singular), [], []), Tense.Present, Aspect.Imperfective, false), "the person sees the dogs");
 
     //every gloss label in the sentence, including covert ones in brackets
-    private static HashSet<string> Glosses(Sentence sentence) => [.. sentence.Words.SelectMany(w => w.Gloss.Split('-', '.', '[', ']'))];
+    private static HashSet<string> Glosses(Rendering sentence) => [.. sentence.Words.SelectMany(w => w.Gloss.Split('-', '.', '[', ']'))];
 
-    private static int Position(Sentence sentence, string meaning) =>
+    private static int Position(Rendering sentence, string meaning) =>
         sentence.Words.ToList().FindIndex(w => w.Gloss.Split('-', '.', '[', ']').Contains(meaning));
 
     private static bool HasCategory(Paradigm paradigm, string category) =>
@@ -103,7 +104,7 @@ public class SyntaxTests
     {
         var language = GeneratedLanguages.With(s => s.Fix(Settings.Tenses, Tenses.PresentPast));
 
-        var sentence = Syntax.Realize(language, new Clause(new Doing("eat", null), new Declarative(Tense.Future, Aspect.Perfective, BareNoun("dog", Number.Singular)), false, [], []), "the dog will eat");
+        var sentence = Syntax.Realize(language, Declared(new Event(new Doing("eat", null), BareNoun("dog", Number.Singular), [], []), Tense.Future, Aspect.Perfective, false), "the dog will eat");
 
         Assert.Contains("PRS", Glosses(sentence));
     }
@@ -115,7 +116,7 @@ public class SyntaxTests
     {
         var language = GeneratedLanguages.With(s => s.Fix(Settings.NounNumber, numbers));
 
-        var sentence = Syntax.Realize(language, new Clause(new Doing("sleep", null), new Declarative(Tense.Present, Aspect.Imperfective, BareNoun("bird", Number.Dual)), false, [], []), "the two birds are sleeping");
+        var sentence = Syntax.Realize(language, Declared(new Event(new Doing("sleep", null), BareNoun("bird", Number.Dual), [], []), Tense.Present, Aspect.Imperfective, false), "the two birds are sleeping");
 
         Assert.Contains(expected, Glosses(sentence));
         Assert.DoesNotContain("SG", Glosses(sentence));

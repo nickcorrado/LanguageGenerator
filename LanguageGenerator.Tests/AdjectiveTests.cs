@@ -1,4 +1,5 @@
-﻿using static LanguageGenerator.Tests.Phrases;
+﻿using static LanguageGenerator.Tests.Clauses;
+using static LanguageGenerator.Tests.Phrases;
 using static LanguageGenerator.Tests.Sentences;
 
 namespace LanguageGenerator.Tests;
@@ -8,10 +9,10 @@ public class AdjectiveTests
     private static readonly NounPhrase BigOldDogs = new NounPhrase(new Noun("dog", Number.Plural, [new("big", false), new("old", false)], null, null, null, null, null), null);
 
     //only the basic meanings, since coining new ones would add to the shared sample's lexicons
-    private static Sentence Sleep(Language l, NounPhrase subject) =>
-        Syntax.Realize(l, new Clause(new Doing("sleep", null), new Declarative(Tense.Present, Aspect.Imperfective, subject), false, [], []), "the big old dogs are sleeping");
+    private static Rendering Sleep(Language l, NounPhrase subject) =>
+        Syntax.Realize(l, Declared(new Event(new Doing("sleep", null), subject, [], []), Tense.Present, Aspect.Imperfective, false), "the big old dogs are sleeping");
 
-    private static Word WordOf(Sentence sentence, string meaning) => sentence.Words[IndexOf(sentence, meaning)].Word;
+    private static Word WordOf(Rendering sentence, string meaning) => sentence.Words[IndexOf(sentence, meaning)].Word;
 
     //a word's affixes, by gloss, on either side of its root, as in PL-ACC
     private static (string Prefixes, string Suffixes) Affixes(Word word)

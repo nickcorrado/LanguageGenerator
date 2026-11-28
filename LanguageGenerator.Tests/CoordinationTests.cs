@@ -6,11 +6,11 @@ namespace LanguageGenerator.Tests;
 
 public class CoordinationTests
 {
-    private static Statement Parsed(string gloss) => Stated(Assert.Single(ClauseFile.Parse($"x\n  {gloss}")).Utterance);
+    private static Sentence Parsed(string gloss) => Stated(Assert.Single(ClauseFile.Parse($"x\n  {gloss}")).Utterance);
 
     private static ClauseFormatException Error(string text) => Assert.Throws<ClauseFormatException>(() => ClauseFile.Parse(text));
 
-    private static Argument SubjectOf(Statement statement) => ForceOf<Declarative>(statement).Subject;
+    private static Argument SubjectOf(Sentence statement) => EventOf(statement).Subject;
 
     [Fact]
     public void Parse_NounsJoined_AreACoordinationInOrder()
@@ -37,7 +37,7 @@ public class CoordinationTests
     {
         var clause = PredicateOf<Being>(Parsed("be  subject:inn.DEF  adjective:(and warm crowded)"));
 
-        Assert.Equal(new AdjectiveCoordination(Conjunction.And, [new("warm", false), new("crowded", false)]), clause.Complement.Value);
+        Assert.Equal(new AdjectiveCoordination(Conjunction.And, [new("warm", false), new("crowded", false)]), clause.Attribute.Value);
     }
 
     [Fact]
@@ -50,9 +50,9 @@ public class CoordinationTests
               but  sleep  subject:3SG.F
             """));
 
-        var outer = Assert.IsType<Coordinated>(Stated(entry.Utterance).Value);
+        var outer = Assert.IsType<Coordinated<Sentence>>(Stated(entry.Utterance).Value);
         Assert.Equal(Conjunction.But, outer.Conjunction);
-        var inner = Assert.IsType<Coordinated>(outer.First.Value);
+        var inner = Assert.IsType<Coordinated<Sentence>>(outer.First.Value);
         Assert.Equal(("sit", "argue"), (PredicateOf<Doing>(inner.First).Verb, PredicateOf<Doing>(inner.Second).Verb));
         Assert.Equal("sleep", PredicateOf<Doing>(outer.Second).Verb);
     }
@@ -95,9 +95,9 @@ public class CoordinationTests
     //only the basic meanings, since coining new ones would add to the shared sample's lexicons
     private static readonly NounPhrase Birds = BareNoun("bird", Number.Plural);
 
-    private static Sentence Saw(Language l, Argument subject) => Syntax.Realize(l, new Clause(new Doing("see", Birds), new Declarative(Tense.Past, Aspect.Perfective, subject), false, [], []), "x");
+    private static Rendering Saw(Language l, Argument subject) => Syntax.Realize(l, Declared(new Event(new Doing("see", Birds), subject, [], []), Tense.Past, Aspect.Perfective, false), "x");
 
-    private static string VerbGloss(Sentence sentence) => sentence.Words[IndexOf(sentence, "see")].Gloss;
+    private static string VerbGloss(Rendering sentence) => sentence.Words[IndexOf(sentence, "see")].Gloss;
 
     [Fact]
     public void Realize_NounsJoinedByAnd_FollowTheLanguagesStrategy()
@@ -176,14 +176,14 @@ public class CoordinationTests
     [Fact]
     public void Realize_ClausesJoined_AreEachAsTheyWouldBeAloneWithTheConjunctionBetween()
     {
-        var first = new Clause(new Doing("sleep", null), new Declarative(Tense.Past, Aspect.Imperfective, Dog), false, [], []);
-        var second = new Clause(new Doing("sleep", null), new Declarative(Tense.Past, Aspect.Imperfective, Cat), false, [], []);
+        var first = Declared(new Event(new Doing("sleep", null), Dog, [], []), Tense.Past, Aspect.Imperfective, false);
+        var second = Declared(new Event(new Doing("sleep", null), Cat, [], []), Tense.Past, Aspect.Imperfective, false);
 
         Assert.All(GeneratedLanguages.Sample, l =>
         {
             foreach (var conjunction in Enum.GetValues<Conjunction>())
             {
-                var joined = Syntax.Realize(l, new Coordinated(conjunction, first, second), "x").Words.Select(w => w.Gloss);
+                var joined = Syntax.Realize(l, new Coordinated<Sentence>(conjunction, first, second), "x").Words.Select(w => w.Gloss);
                 var word = l.Conjunctions.BetweenClauses(conjunction);
                 IEnumerable<string> between = word is null ? [] : [word.Root.Meaning];
 
@@ -197,9 +197,113 @@ public class CoordinationTests
     {
         Assert.All(GeneratedLanguages.Sample, l =>
         {
-            var sentence = Syntax.Realize(l, new Clause(new Being(new AdjectiveCoordination(Conjunction.And, [new("big", false), new("old", false)])), new Declarative(Tense.Present, Aspect.Imperfective, Dog), false, [], []), "x");
+            var sentence = Syntax.Realize(l, Declared(new Event(new Being(new AdjectiveCoordination(Conjunction.And, [new("big", false), new("old", false)])), Dog, [], []), Tense.Present, Aspect.Imperfective, false), "x");
 
             Assert.True(IndexOf(sentence, "big") >= 0 && IndexOf(sentence, "old") > IndexOf(sentence, "big"));
+        });
+    }
+
+    private static Event Doing(string verb, Argument subject) => new(new Doing(verb, null), subject, [], []);
+
+    [Fact]
+    public void Parse_JoinedEvents_ShareTheSubjectAndTense()
+    {
+        var she = new Pronoun(Person.Third, Number.Singular, Gender: Gender.Feminine);
+        var away = new Oblique(Role.Goal, BareNoun("away", Number.Singular), Configuration.At);
+
+        Assert.Equal<Clause>(new Declarative(new Proposition(new Coordinated<StateOfAffairs>(Conjunction.And, Doing("turn", she), Doing("walk", she) with { Obliques = [away] }), Tense.Past)),
+            ClauseOf(Parsed("and.PST  subject:3SG.F  [turn]  [walk  goal:away]")));
+    }
+
+    [Fact]
+    public void Parse_JoinedEvents_KeepSubjectsOfTheirOwnAndOperatorsOfTheirOwn()
+    {
+        var joined = new Coordinated<StateOfAffairs>(Conjunction.Or, Doing("eat", Dog), new Negated(Doing("sleep", Cat)));
+
+        Assert.Equal<Clause>(new Declarative(new Proposition(joined, Tense.Past)), ClauseOf(Parsed("or.PST  [eat  subject:dog]  [sleep.NEG  subject:cat]")));
+    }
+
+    [Fact]
+    public void Parse_JoinedEvents_HaveTheAspectOverThemAll()
+    {
+        var joined = new Coordinated<StateOfAffairs>(Conjunction.And, Doing("eat", Dog), Doing("drink", Dog));
+
+        Assert.Equal<Clause>(new Declarative(new Proposition(new Aspected(Aspect.Perfect, joined), Tense.Past)), ClauseOf(Parsed("and.PST.PRF  subject:dog  [eat]  [drink]")));
+    }
+
+    [Fact]
+    public void Parse_JoinedCommands_AreToldToYou()
+    {
+        var you = new Pronoun(Person.Second, Number.Plural);
+
+        Assert.Equal<Clause>(new Directive(new Coordinated<StateOfAffairs>(Conjunction.And, Doing("sit", you), Doing("eat", you))), ClauseOf(Parsed("and.IMP  subject:2PL  [sit]  [eat]")));
+    }
+
+    [Fact]
+    public void Parse_ThreeJoinedEvents_NestToTheLeft()
+    {
+        var joined = new Coordinated<StateOfAffairs>(Conjunction.And, new Coordinated<StateOfAffairs>(Conjunction.And, Doing("see", Dog), Doing("eat", Dog)), Doing("sleep", Dog));
+
+        Assert.Equal<Clause>(new Declarative(new Proposition(joined, Tense.Present)), ClauseOf(Parsed("and  subject:dog  [see]  [eat]  [sleep]")));
+    }
+
+    [Fact]
+    public void Parse_JoinedEventsThenAClause_JoinsTheClauseToThem()
+    {
+        var coordinated = Assert.IsType<Coordinated<Sentence>>(Stated(Assert.Single(ClauseFile.Parse("x\n  and.PST  subject:dog  [eat]  [drink]\n  but  sleep.PST  subject:cat")).Utterance).Value);
+
+        Assert.Equal(2, ClauseOf(coordinated.First).StateOfAffairs.Events.Count());
+    }
+
+    [Theory]
+    [InlineData("x\n  and.PST.NEG  subject:dog  [eat]  [drink]", "can't be said yet")]
+    [InlineData("x\n  and.ABIL  subject:dog  [eat]  [drink]", "can't be said yet")]
+    [InlineData("x\n  and.Q  subject:dog  [eat]  [drink]", "can't be said yet")]
+    [InlineData("x\n  and  subject:dog  [eat.PST]  [drink]", "goes on the conjunction")]
+    [InlineData("x\n  and  subject:dog  [eat.IMP]  [drink]", "goes on the conjunction")]
+    [InlineData("x\n  but  subject:dog  [eat]  [drink]", "but joins only clauses")]
+    [InlineData("x\n  and  subject:dog  [eat]", "two events or more")]
+    [InlineData("x\n  and  subject:dog  location:house  [eat]  [drink]", "goes in the brackets")]
+    [InlineData("x\n  and  subject:dog  [eat  object:what]  [drink]", "can't ask yet")]
+    [InlineData("x\n  and  [eat]  [drink]", "needs a subject")]
+    [InlineData("x\n  see  subject:1SG  object:(cat relative:[and  [sleep  subject:_]  [eat  subject:_]])", "can't join events yet")]
+    public void Parse_BadJoinedEvents_SayWhy(string text, string message) => Assert.Contains(message, Error(text).Message);
+
+    [Fact]
+    public void Realize_JoinedEvents_SayASharedSubjectOnce()
+    {
+        Assert.All(GeneratedLanguages.Sample, l =>
+        {
+            var sentence = Syntax.Realize(l, new Declarative(new Proposition(new Coordinated<StateOfAffairs>(Conjunction.And, Doing("eat", Dog), Doing("sleep", Dog)), Tense.Past)), "x");
+
+            Assert.Single(sentence.Words, w => w.Word.Root?.Meaning == "dog");
+            Assert.True(IndexOf(sentence, "eat") >= 0 && IndexOf(sentence, "sleep") > IndexOf(sentence, "eat"));
+        });
+    }
+
+    [Fact]
+    public void Realize_JoinedEventsWithSubjectsOfTheirOwn_AreEachClauseAsItsSaidAlone()
+    {
+        Assert.All(GeneratedLanguages.Sample, l =>
+        {
+            var (eats, sleeps) = (Doing("eat", Dog), Doing("sleep", Cat));
+            var joined = Syntax.Realize(l, new Declarative(new Proposition(new Coordinated<StateOfAffairs>(Conjunction.And, eats, sleeps), Tense.Past)), "x").Words.Select(w => w.Gloss);
+            IEnumerable<string> between = l.Conjunctions.BetweenClauses(Conjunction.And) is { } word ? [word.Root.Meaning] : [];
+            IEnumerable<string> Alone(Event e) => Syntax.Realize(l, new Declarative(new Proposition(e, Tense.Past)), "x").Words.Select(w => w.Gloss);
+
+            Assert.Equal(Alone(eats).Concat(between).Concat(Alone(sleeps)), joined);
+        });
+    }
+
+    [Fact]
+    public void Realize_JoinedCommands_TellEach()
+    {
+        Assert.All(GeneratedLanguages.Sample, l =>
+        {
+            var you = new Pronoun(Person.Second, Number.Singular);
+            var sentence = Syntax.Realize(l, new Directive(new Coordinated<StateOfAffairs>(Conjunction.And, Doing("eat", you), Doing("drink", you))), "x");
+
+            Assert.True(IndexOf(sentence, "eat") >= 0 && IndexOf(sentence, "drink") > IndexOf(sentence, "eat"));
         });
     }
 }

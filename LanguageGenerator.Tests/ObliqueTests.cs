@@ -1,4 +1,5 @@
-﻿using static LanguageGenerator.Tests.Phrases;
+﻿using static LanguageGenerator.Tests.Clauses;
+using static LanguageGenerator.Tests.Phrases;
 using static LanguageGenerator.Tests.Sentences;
 
 namespace LanguageGenerator.Tests;
@@ -7,8 +8,8 @@ public class ObliqueTests
 {
     //only the basic meanings, since coining new ones would add to the shared sample's lexicons
 
-    private static Sentence Walk(Language language, params Oblique[] obliques) =>
-        Syntax.Realize(language, new Clause(new Doing("walk", null), new Declarative(Tense.Past, Aspect.Perfective, BareNoun("dog", Number.Singular)), false, [.. obliques], []), "x");
+    private static Rendering Walk(Language language, params Oblique[] obliques) =>
+        Syntax.Realize(language, Declared(new Event(new Doing("walk", null), BareNoun("dog", Number.Singular), [.. obliques], []), Tense.Past, Aspect.Perfective, false), "x");
 
     private static Oblique Stone(Role role) => new(role, BareNoun("stone", Number.Singular), Configuration.At);
 
@@ -111,7 +112,7 @@ public class ObliqueTests
         foreach (var language in GeneratedLanguages.Sample)
         {
             var order = language.WordOrder;
-            var transitive = Syntax.Realize(language, new Clause(new Doing("see", BareNoun("cat", Number.Singular)), new Declarative(Tense.Past, Aspect.Perfective, BareNoun("dog", Number.Singular)), false, [Stone(Role.Location)], []), "x");
+            var transitive = Syntax.Realize(language, Declared(new Event(new Doing("see", BareNoun("cat", Number.Singular)), BareNoun("dog", Number.Singular), [Stone(Role.Location)], []), Tense.Past, Aspect.Perfective, false), "x");
             var (s, v, o, x) = (IndexOf(transitive, "dog"), IndexOf(transitive, "see"), IndexOf(transitive, "cat"), IndexOf(transitive, "stone"));
 
             //the core constituents keep their order

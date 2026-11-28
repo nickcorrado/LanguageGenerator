@@ -95,9 +95,50 @@ public record Subordination(IReadOnlyDictionary<Subordinator, SubordinatorMarkin
         SemanticMap.Regions(SubordinatorMap.Subordinators, Joined).First(r => r.Contains(subordinator));
 }
 
+/// <summary>A sentence with an adverbial clause under it, as in 'if you hear the song, cover your ears'.</summary>
+public record Subordinated(Sentence Main, AdverbialClause Clause);
+
 /// <summary>
-/// A statement with a clause subordinate to it, as in 'if you hear the song, cover your ears'.
-/// SharesSubject says the subordinate clause's subject wasn't said, but taken from the main clause,
-/// as a purpose clause's is in 'to cross the river, you need a rope'.
+/// A clause saying more of the one it's under: what it's for, or a circumstance of it, after
+/// Thompson, Longacre and Hwang's adverbial clauses. Being under another, it does nothing of its
+/// own, so it has no sentence type.
 /// </summary>
-public record Subordinated(Statement Main, Subordinator Subordinator, Statement Clause, bool SharesSubject);
+public union AdverbialClause(Purpose, Circumstance)
+{
+    /// <summary>What the language marks it as.</summary>
+    public Subordinator Subordinator => this switch
+    {
+        Purpose => Subordinator.Purpose,
+        Circumstance circumstance => circumstance.Relation switch
+        {
+            Relation.If => Subordinator.If,
+            Relation.When => Subordinator.When,
+            Relation.Before => Subordinator.Before,
+            Relation.After => Subordinator.After,
+            Relation.Until => Subordinator.Until,
+            Relation.Because => Subordinator.Because,
+            var relation => throw new ArgumentOutOfRangeException(nameof(relation), relation, null),
+        },
+    };
+}
+
+/// <summary>
+/// What the clause it's under is for, as in 'to cross the river, you need a rope'. It has no time
+/// of its own, since the main clause's sets it, and its subject is often the main clause's, which
+/// it then leaves unsaid.
+/// </summary>
+public record Purpose(StateOfAffairs StateOfAffairs);
+
+/// <summary>A circumstance of the clause it's under, as in 'if you hear the song' or 'when the bell rings'.</summary>
+public record Circumstance(Relation Relation, Propositional Propositional);
+
+/// <summary>How a circumstance bears on the clause it's under: every subordinator but purpose.</summary>
+public enum Relation
+{
+    If,
+    When,
+    Before,
+    After,
+    Until,
+    Because,
+}

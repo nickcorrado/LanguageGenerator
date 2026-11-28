@@ -717,14 +717,14 @@ internal static class SettingWrites
         }
         //question words' markers serve persons and things alike, but words of their own are a kind's, and a generic noun needs none
         var markers = drawn.Persons.Value as InterrogativeIndefinites ?? drawn.Things.Value as InterrogativeIndefinites;
-        IndefiniteSource Interrogative() => markers ?? throw NoForm("Indefinites made from question words");
+        IndefiniteSource InterrogativeWord() => markers ?? throw NoForm("Indefinites made from question words");
         IndefiniteSource Special(IndefiniteSource source) => source.Value as SpecialIndefinites ?? throw NoForm("Indefinites of their own");
         return type switch
         {
-            IndefinitePronouns.InterrogativeBased => drawn with { Persons = Interrogative(), Things = Interrogative() },
+            IndefinitePronouns.InterrogativeBased => drawn with { Persons = InterrogativeWord(), Things = InterrogativeWord() },
             IndefinitePronouns.GenericNounBased => drawn with { Persons = new GenericNounIndefinites(), Things = new GenericNounIndefinites() },
             IndefinitePronouns.Special => drawn with { Persons = Special(drawn.Persons), Things = Special(drawn.Things) },
-            IndefinitePronouns.Mixed => drawn with { Persons = new GenericNounIndefinites(), Things = Interrogative() },
+            IndefinitePronouns.Mixed => drawn with { Persons = new GenericNounIndefinites(), Things = InterrogativeWord() },
             _ => throw new ArgumentOutOfRangeException(nameof(type), type, null),
         };
     }

@@ -34,35 +34,35 @@ public class MorphosyntaxSettingTests
     public void Generate_ModalitiesMarkedDifferently_AreNeverJoined()
     {
         //'can' and 'may' share a marker 60% of the time, but not when they're marked differently
-        var spec = LanguageSpec.Free.Fix(Settings.ModalOf(Modality.Ability), ModalKind.Particle).Fix(Settings.ModalOf(Modality.Permission), ModalKind.Verb);
+        var spec = LanguageSpec.Free.Fix(Settings.ModalOf(SituationalModality.Ability), ModalKind.Particle).Fix(Settings.ModalOf(SituationalModality.Permission), ModalKind.Verb);
 
         Assert.All(Enumerable.Range(0, 20).Select(seed => Generator.Generate(seed, spec)), l =>
         {
-            Assert.DoesNotContain((Modality.Ability, Modality.Permission), l.Modals.Joined);
-            Assert.IsType<Free>(l.Modals.Markers[Modality.Ability].Value);
-            Assert.IsType<ModalVerb>(l.Modals.Markers[Modality.Permission].Value);
+            Assert.DoesNotContain((SituationalModality.Ability, SituationalModality.Permission), l.Modals.Joined);
+            Assert.IsType<Free>(l.Modals.Markers[SituationalModality.Ability].Value);
+            Assert.IsType<ModalVerb>(l.Modals.Markers[SituationalModality.Permission].Value);
         });
     }
 
     [Fact]
     public void Generate_ModalitiesJoined_ShareTheKindFixedForOne()
     {
-        var spec = LanguageSpec.Free.Fix(Settings.ModalityEdge(Modality.Ability, Modality.Permission), true).Fix(Settings.ModalOf(Modality.Ability), ModalKind.Particle);
+        var spec = LanguageSpec.Free.Fix(Settings.ModalityEdge(SituationalModality.Ability, SituationalModality.Permission), true).Fix(Settings.ModalOf(SituationalModality.Ability), ModalKind.Particle);
 
         Assert.All(Enumerable.Range(0, 20).Select(seed => Generator.Generate(seed, spec)), l =>
-            Assert.IsType<Free>(l.Modals.Markers[Modality.Permission].Value));
+            Assert.IsType<Free>(l.Modals.Markers[SituationalModality.Permission].Value));
     }
 
     [Fact]
     public void Write_ModalParticleOverAVerb_KeepsItsFormForTheWholeRegion()
     {
         var drawn = GeneratedLanguages.Sample.Select(l => l.Modals)
-            .First(m => m.Joined.Contains((Modality.Ability, Modality.Permission)) && m.Markers[Modality.Ability].Value is ModalVerb);
-        var form = ((ModalVerb)drawn.Markers[Modality.Ability].Value).Verb.Root.Form;
+            .First(m => m.Joined.Contains((SituationalModality.Ability, SituationalModality.Permission)) && m.Markers[SituationalModality.Ability].Value is ModalVerb);
+        var form = ((ModalVerb)drawn.Markers[SituationalModality.Ability].Value).Verb.Root.Form;
 
-        var written = Settings.ModalOf(Modality.Ability).Write(drawn, [ModalKind.Particle]);
+        var written = Settings.ModalOf(SituationalModality.Ability).Write(drawn, [ModalKind.Particle]);
 
-        Assert.All([Modality.Ability, Modality.Permission], m => Assert.Equal(form, Assert.IsType<Free>(written.Markers[m].Value).Particle.Form));
+        Assert.All([SituationalModality.Ability, SituationalModality.Permission], m => Assert.Equal(form, Assert.IsType<Free>(written.Markers[m].Value).Particle.Form));
     }
 
     [Theory]

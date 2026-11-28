@@ -73,9 +73,8 @@ public record SimilativeAffix(Bound Marker);
 public union Similative(SimilativeWord, SimilativeAffix);
 
 /// <summary>
-/// A copular clause saying its subject has more of a property than a standard, as in 'Marta is
-/// taller than the men', or with no standard, more of it than something already known, as in
-/// 'Marta is taller'.
+/// An adjective compared, said of be's subject: more of a property than a standard has, as in
+/// 'Marta is taller than the men', or with no standard, more of it than something already known,
+/// as in 'Marta is taller'.
 /// </summary>
-//the clause is always declarative, and says its subject is an adjective
-public record Comparative(Clause Clause, Argument? Standard);
+public record Compared(Adjective Adjective, Argument? Standard);

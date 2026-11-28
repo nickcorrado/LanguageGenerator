@@ -47,6 +47,8 @@ public static class ModifierOrder
         Manner => Closeness.Manner,
         Adverb { Kind: AdverbKind.Often } => Closeness.Extent,
         Adverb => Closeness.Time,
+        //'why' and 'how' asked go where a phrase saying why would, furthest out
+        QuestionAdverbial => Closeness.Reason,
     };
 
     /// <summary>

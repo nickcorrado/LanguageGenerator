@@ -45,48 +45,40 @@ public static class ModalityMap
 {
     /// <summary>The modalities, in no order that matters but the edges'.</summary>
     public static IReadOnlyList<Modality> Modalities { get; } =
-        [Modality.Ability, Modality.Permission, Modality.Obligation, Modality.Advisability, Modality.Dubitative, Modality.Presumptive];
+        [SituationalModality.Ability, SituationalModality.Permission, SituationalModality.Obligation, SituationalModality.Advisability, EpistemicModality.Dubitative, EpistemicModality.Presumptive];
 
     public static IReadOnlyList<(Modality First, Modality Second, double Weight)> Edges { get; } =
     [
         //English can, French pouvoir, Russian moč', Turkish -ebil, against German können and dürfen
         //or Mandarin néng and kěyǐ
-        (Modality.Ability, Modality.Permission, 0.6),
+        (SituationalModality.Ability, SituationalModality.Permission, 0.6),
         //a marker of possibility and necessity alike, as Old English mōt was 'may' and 'must', and
         //St'át'imcets's modals are neither
-        (Modality.Permission, Modality.Obligation, 0.05),
+        (SituationalModality.Permission, SituationalModality.Obligation, 0.05),
         /*
           'should' as a softer 'must', which many languages don't tell apart, or tell apart only by
           putting 'must' in a conditional, as French devrais and Spanish debería do, against English
           should, German sollen or Russian sledovalo by
          */
-        (Modality.Obligation, Modality.Advisability, 0.5),
+        (SituationalModality.Obligation, SituationalModality.Advisability, 0.5),
         /*
           van der Auwera and Plungian find epistemic possibility growing out of permission and
           epistemic necessity out of obligation, as English may and must are both. WALS 76A counts
           the two overlaps together, so Generator.GenerateModals draws them together from its table,
           and these weights are each one's share alone, where 'either' is split evenly
          */
-        (Modality.Permission, Modality.Dubitative, 69.0 / 207),
-        (Modality.Obligation, Modality.Presumptive, 69.0 / 207),
+        (SituationalModality.Permission, EpistemicModality.Dubitative, 69.0 / 207),
+        (SituationalModality.Obligation, EpistemicModality.Presumptive, 69.0 / 207),
     ];
 
     /// <summary>The English verb that glosses a modal verb in this meaning.</summary>
     public static string VerbGloss(Modality modality) =>
-        modality == Modality.Ability ? "can"
-        : modality == Modality.Permission ? "may"
-        : modality == Modality.Obligation ? "must"
-        : modality == Modality.Advisability ? "should"
-        : modality == Modality.Dubitative ? "might"
-        : modality == Modality.Presumptive ? "must"
+        modality == SituationalModality.Ability ? "can"
+        : modality == SituationalModality.Permission ? "may"
+        : modality == SituationalModality.Obligation ? "must"
+        : modality == SituationalModality.Advisability ? "should"
+        : modality == EpistemicModality.Dubitative ? "might"
+        : modality == EpistemicModality.Presumptive ? "must"
         : throw new ArgumentOutOfRangeException(nameof(modality), modality, null);
 }
 
-/// <summary>
-/// A statement said to be possible or necessary, as in 'you must find the key'. Negative negates
-/// the modal, as in 'you cannot swim', and the statement's own negation its verb, as in 'you must
-/// not sing'. An epistemic one judges the statement whole, its tense and aspect too, as in 'he
-/// must have left'.
-/// </summary>
-//a clause with a verb, a passive or a copular clause
-public record Modalized(Statement Clause, Modality Modality, bool Negative);

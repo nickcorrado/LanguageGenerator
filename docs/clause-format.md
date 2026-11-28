@@ -7,7 +7,7 @@ the hunter saw the wolves
   see.PST.PFV  subject:hunter.DEF  object:wolf.PL.DEF
 ```
 
-The verb comes first, then its arguments as `role:noun`. A line with no verb is a [fragment](#fragments). See [examples/scene.txt](../examples/scene.txt) for a whole file, and `ClauseFile` for the parser.
+The verb comes first, then its arguments as `role:noun`. A line with no verb is a [fragment](#fragments). What a line is read as is described in [the clause model](clause-model.md). See [examples/scene.txt](../examples/scene.txt) for a whole file, and `ClauseFile` for the parser.
 
 Words are English meanings, whatever their case, which the language coins roots for as needed.
 
@@ -198,7 +198,7 @@ Adjectives are written in English order, which already puts the nearest last, so
 | `often:` | How often, or whether still, as a word of its own |
 | `manner:` | How, as an adjective |
 
-Any clause can be said to someone, with `addressee:marta` or `addressee:(man old)`, a bare noun that comes first in the vocative case where the language has one. A command to a plural addressee, as in `addressee:child.PL`, is to all of them.
+Any clause can be said to someone, with `addressee:marta` or `addressee:(man old)`, a bare noun that comes first in the vocative case where the language has one. A command to a plural addressee, as in `addressee:child.PL`, is to all of them. Who's addressed is the whole sentence's, so it goes on the first line, not on a line joined to it, nor in a clause inside another unless that clause is quoted.
 
 ## Noun phrases
 
@@ -289,6 +289,25 @@ hunters sit by the fire and argue
 
 'But' joins only clauses.
 
+### Joined events
+
+Events that share their tense and sentence type can be joined under one clause instead, which Haspelmath tells apart from clauses joined. The conjunction heads them, glossed with what they share, the tense, `IMP` and any aspect over them all, with the subject they share, if they do, and who's addressed; each event goes in brackets, with its own roles and its own `NEG`, modal, aspect or `PASS`:
+
+```
+she turns and walks away
+  and.PST  subject:3SG.F  [turn]  [walk  goal:away]
+
+the dog ate and the cat slept
+  and.PST  [eat  subject:dog.DEF]  [sleep  subject:cat.DEF]
+
+sit down and eat
+  and.IMP  [sit]  [eat]
+```
+
+An event with no subject has the shared one, or a command's 'you'. Three or more go under one conjunction, as in `and  subject:dog  [see]  [eat]  [sleep]`, and a line starting with `and`, `or` or `but` can join a clause to them. An oblique that applies to all of them is written in each.
+
+Each event is said as a clause of its own at the shared tense, with the aspect on the conjunction on each, as 'had eaten and drunk' has, and the language's word for the conjunction between, as clauses are joined. A subject the event before it has isn't said again. A negation, a modal or `Q` on the conjunction can't be said yet, since saying it on each changes what it says: 'you can't eat and drink here', meaning not both, isn't 'you can't eat and you can't drink here'. Nor can a question word in one of the events, joined events in a relative clause, or 'but' heading them.
+
 ## Subordinate clauses
 
 A clause under another goes on an indented line of its own after the main clause, starting with what it says. The language decides which comes first, so the main clause is always written first, whatever order the English has:
@@ -309,7 +328,7 @@ if you hear the song, cover your ears
 | `because` | For the reason that |
 | `purpose` | In order to |
 
-A purpose clause can leave out its subject when it's the main clause's, as in `purpose  cross  object:river.DEF` for 'to cross the river'. A clause under another can't be a command or have an addressee of its own.
+A purpose clause can leave out its subject when it's the main clause's, as in `purpose  cross  object:river.DEF` for 'to cross the river', and has no tense or epistemic modal of its own, since the main clause sets its time. A clause under another can't be a command or have an addressee of its own.
 
 ## Clauses as objects
 
@@ -320,7 +339,7 @@ A clause can be the object of a verb, written in square brackets in the object's
 | `that` | Something said, known, thought, seen or heard, with a time of its own | `tell.PST.PFV  subject:1SG  recipient:2SG  object:[that  be.PST  subject:2SG  adjective:late]` |
 | `to` | Something wanted, tried, begun or told to be done, whose time the main verb sets | `want  subject:3PL  object:[to  go  goal:home]` |
 
-These follow Noonan's division of complements by time reference, which is what decides how languages mark them more than the verb does. A clause starting with `to` has no tense or aspect, since its time is the main verb's, and leaves out its subject when that's the main clause's subject, as in 'they want to go home'; 'I told you to wait' says it, as `object:[to  wait  subject:2SG]`. A clause starting with `that` always has a subject. A clause in brackets can hold another, as in `say  subject:3SG.F  object:[that  know  subject:1SG  object:[that  come.PST  subject:2SG]]`, and a question can be about one, as in `tell.PST  subject:who  recipient:2SG  object:[that  come.PST  subject:1SG]` for 'who told you that I was coming?'. A question inside one, as in 'did anyone see what happened?', can't be said yet, and neither can a command, or a clause in any role but the object.
+These follow Noonan's division of complements by time reference, which is what decides how languages mark them more than the verb does. A clause starting with `to` has no tense, aspect or epistemic modal, since its time is the main verb's, and leaves out its subject when that's the main clause's subject, as in 'they want to go home'; 'I told you to wait' says it, as `object:[to  wait  subject:2SG]`. A clause starting with `that` always has a subject. A clause in brackets can hold another, as in `say  subject:3SG.F  object:[that  know  subject:1SG  object:[that  come.PST  subject:2SG]]`, and a question can be about one, as in `tell.PST  subject:who  recipient:2SG  object:[that  come.PST  subject:1SG]` for 'who told you that I was coming?'. A question inside one, as in 'did anyone see what happened?', can't be said yet, and neither can a command, or a clause in any role but the object.
 
 What someone said word for word is `quote:[...]`, in place of an object, on the verb that says it. It's as the speaker said it, so its 'I' and 'you' are the speaker's, and it can be anything a line on its own can but a heading: a command, a question, a clause said to someone or a [fragment](#fragments):
 

@@ -199,18 +199,18 @@ public class PhonologyTests
         }
 
         //the example doesn't give any commands
-        Statement[] commands =
+        Sentence[] commands =
         [
-            new Clause(new Doing("see", null), new Directive(Number.Singular), false, [], []),
-            new Clause(new Doing("see", null), new Directive(Number.Plural), false, [], []),
-            new Clause(new Doing("see", null), new Directive(Number.Singular), true, [], []),
-            new Clause(new Doing("see", null), new Directive(Number.Plural), true, [], []),
+            Told(new Event(new Doing("see", null), new Pronoun(Person.Second, Number.Singular), [], []), false),
+            Told(new Event(new Doing("see", null), new Pronoun(Person.Second, Number.Plural), [], []), false),
+            Told(new Event(new Doing("see", null), new Pronoun(Person.Second, Number.Singular), [], []), true),
+            Told(new Event(new Doing("see", null), new Pronoun(Person.Second, Number.Plural), [], []), true),
         ];
         var example = ClauseFile.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "scene.txt")));
-        var statements = example.Select(e => Stated(e.Utterance)).Concat(commands).ToList();
+        var utterances = example.Select(e => e.Utterance).Concat(commands.Select(c => (Utterance)new Message(c, null))).ToList();
         foreach (var language in Enumerable.Range(0, 100).Select(seed => Generator.Generate(seed, LanguageSpec.Free)))
         {
-            var said = statements.SelectMany(s => Syntax.Realize(language, s, "").Words.Select(w => w.Word));
+            var said = utterances.SelectMany(u => Syntax.Realize(language, u, "").Words.Select(w => w.Word));
             Assert.Empty(GeneratedLanguages.AllWords(language).Concat(said).Where(Repeats).Select(w => w.Gloss));
         }
     }

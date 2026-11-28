@@ -248,10 +248,31 @@ public static class GlossPrompt
               The English line is still the whole sentence, every clause in it, as here, and so is
               it for a clause under another, below.
 
+              Verbs that share their tense and subject, as in 'she turns and walks away', are always
+              joined under one clause instead: the conjunction heads them, glossed with the tense, IMP
+              or an aspect they share, with the subject they share, and each verb goes in brackets with
+              its own roles. Each bracketed verb keeps glosses of its own, a NEG, a modal, an aspect or
+              PASS, so one verb negated or with an aspect of its own is still joined, and so is be,
+              comparisons too. 'Without' doing something is the other verb negated. Join clauses on
+              lines of their own only where the tenses or subjects differ, or where 'not', a modal or a
+              question would go over them all, as in 'you can't eat and drink here'. The English line
+              says the subject once, as the gloss does:
+
+                she turns and walks away
+                  and.PST  subject:3SG.F  [turn]  [walk  goal:away]
+                sit down and eat
+                  and.IMP  [sit]  [eat]
+                Marta laughs without smiling
+                  and  subject:marta  [laugh]  [smile.NEG]
+                an old woman sits by the fire, mending a net
+                  and  subject:(woman.NDF old)  [sit  location.beside:fire.DEF]  [mend.PROG  object:net.NDF]
+                the river is wider than the road and deeper than the well
+                  and  subject:river.DEF  [be  adjective:wide.CMPR  standard:road.DEF]  [be  adjective:deep.CMPR  standard:well.DEF]
+
             - A clause under another, saying if, when, before, after, until, because or in order to,
               goes on an indented line of its own starting with if, when, before, after, until,
               because or purpose, after the main clause, whichever order the English has. A purpose
-              clause can leave out its subject when it's the main clause's:
+              clause can leave out its subject when it's the main clause's, and takes no tense:
 
                 if you hear the song, cover your ears
                   cover.IMP  object:(ear.PL possessor:2SG)
@@ -438,7 +459,7 @@ public static class GlossPrompt
     }
 
     //sentences whose glosses didn't parse, with what was wrong, to try again
-    public static string Retry(IReadOnlyList<string> context, IReadOnlyList<(string Sentence, string Attempt, string Error)> failures)
+    public static string Retry(IReadOnlyList<string> context, IReadOnlyList<(string Rendering, string Attempt, string Error)> failures)
     {
         var lines = new List<string>();
         if (context.Count > 0)
@@ -451,7 +472,7 @@ public static class GlossPrompt
         foreach (var (failure, i) in failures.Select((f, i) => (f, i)))
         {
             lines.Add("");
-            lines.Add($"[{i + 1}] {failure.Sentence}");
+            lines.Add($"[{i + 1}] {failure.Rendering}");
             lines.Add("Your gloss:");
             lines.AddRange(failure.Attempt.Split('\n').Select(l => $"  {l}"));
             lines.Add($"The parser said: {failure.Error}");

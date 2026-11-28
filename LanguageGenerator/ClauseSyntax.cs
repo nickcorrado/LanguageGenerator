@@ -2,7 +2,7 @@ namespace LanguageGenerator;
 
 /*
   a gloss line as it's written, before anything in it is understood: what's nested in what, and
-  which role each part is written with, which ClauseFile then builds into a Statement. Each part
+  which role each part is written with, which ClauseFile then builds into a Sentence. Each part
   keeps its text, for errors to quote
  */
 

@@ -19,5 +19,8 @@ public record Adverb(string Meaning, AdverbKind Kind);
 /// <summary>How something is done, said with an adjective, as 'carefully' is said with 'careful'.</summary>
 public record Manner(Adjective Adjective);
 
-/// <summary>Something said of a whole clause that fills no role: an adverb, or how it's done.</summary>
-public union Adverbial(Adverb, Manner);
+/// <summary>
+/// Something said of a whole clause that fills no role: an adverb, how it's done, or 'why' or 'how'
+/// asked.
+/// </summary>
+public union Adverbial(Adverb, Manner, QuestionAdverbial);

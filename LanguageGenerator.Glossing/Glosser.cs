@@ -33,9 +33,9 @@ public sealed partial class Glosser(IChatModel model, int batchSize = 20, int re
         var usage = TokenUsage.None;
 
         //each distinct sentence still to gloss, in order, with the sentences before it for context
-        var pending = sentences.Select((s, i) => (Sentence: s, Index: i))
-            .Where(p => !reused.ContainsKey(p.Sentence))
-            .DistinctBy(p => p.Sentence)
+        var pending = sentences.Select((s, i) => (Rendering: s, Index: i))
+            .Where(p => !reused.ContainsKey(p.Rendering))
+            .DistinctBy(p => p.Rendering)
             .ToList();
         IReadOnlyList<string> ContextFor(int index) => [.. sentences.Take(index).TakeLast(contextSentences)];
 
@@ -45,7 +45,7 @@ public sealed partial class Glosser(IChatModel model, int batchSize = 20, int re
             foreach (var batch in pending.Chunk(batchSize))
             {
                 progress?.Invoke($"Glossing sentences {batch[0].Index + 1}-{batch[^1].Index + 1} of {sentences.Count}...");
-                usage += await GlossBatch([.. batch.Select(b => b.Sentence)], ContextFor(batch[0].Index), glossed, progress, cancellationToken);
+                usage += await GlossBatch([.. batch.Select(b => b.Rendering)], ContextFor(batch[0].Index), glossed, progress, cancellationToken);
             }
         }
         catch (Exception e) when (e is not OperationCanceledException)
@@ -54,8 +54,8 @@ public sealed partial class Glosser(IChatModel model, int batchSize = 20, int re
         }
 
         var blocks = sentences.Where(s => reused.ContainsKey(s) || glossed.ContainsKey(s))
-            .Select(s => (Sentence: s, Block: reused.TryGetValue(s, out var r) ? r : glossed[s])).ToList();
-        var text = string.Join("\n\n", blocks.Select(b => $"{SentenceMarker}{b.Sentence}\n{b.Block}")) + "\n";
+            .Select(s => (Rendering: s, Block: reused.TryGetValue(s, out var r) ? r : glossed[s])).ToList();
+        var text = string.Join("\n\n", blocks.Select(b => $"{SentenceMarker}{b.Rendering}\n{b.Block}")) + "\n";
         return new Result(text, usage, sentences.Count,
             Reused: sentences.Count(reused.ContainsKey),
             Unexpressible: blocks.Count(b => b.Block.StartsWith(GlossPrompt.CantExpress)),
@@ -149,12 +149,12 @@ public sealed partial class Glosser(IChatModel model, int batchSize = 20, int re
             progress?.Invoke($"Retrying {failures.Count} that didn't parse...");
             var retry = await model.Complete(GlossPrompt.System, GlossPrompt.Retry(context, failures), cancellationToken);
             usage += retry.Usage;
-            failures = Keep([.. failures.Select(f => f.Sentence)], Numbered(retry.Text), glossed);
+            failures = Keep([.. failures.Select(f => f.Rendering)], Numbered(retry.Text), glossed);
         }
         //what still doesn't parse is left as a comment, so the file still does
         foreach (var failure in failures)
         {
-            glossed[failure.Sentence] = $"{CouldNotGloss} ({failure.Error.ReplaceLineEndings(" ")})";
+            glossed[failure.Rendering] = $"{CouldNotGloss} ({failure.Error.ReplaceLineEndings(" ")})";
         }
         return usage;
     }
@@ -164,10 +164,10 @@ public sealed partial class Glosser(IChatModel model, int batchSize = 20, int re
       answer has to repeat its sentence, since a model that splits one sentence in two or skips one
       shifts every answer after it, and the shifted glosses all still parse
      */
-    private static List<(string Sentence, string Attempt, string Error)> Keep(IReadOnlyList<string> asked,
+    private static List<(string Rendering, string Attempt, string Error)> Keep(IReadOnlyList<string> asked,
         Dictionary<int, Answer> answers, Dictionary<string, string> glossed)
     {
-        var failures = new List<(string Sentence, string Attempt, string Error)>();
+        var failures = new List<(string Rendering, string Attempt, string Error)>();
         foreach (var (sentence, i) in asked.Select((s, i) => (s, i)))
         {
             var answer = answers.GetValueOrDefault(i + 1, new Answer("", ""));

@@ -6,7 +6,7 @@ namespace LanguageGenerator.Tests;
 
 public class SubordinationTests
 {
-    private static Statement Parsed(string text) => Stated(Assert.Single(ClauseFile.Parse(text)).Utterance);
+    private static Sentence Parsed(string text) => Stated(Assert.Single(ClauseFile.Parse(text)).Utterance);
 
     private static ClauseFormatException Error(string text) => Assert.Throws<ClauseFormatException>(() => ClauseFile.Parse(text));
 
@@ -16,9 +16,9 @@ public class SubordinationTests
         var subordinated = Assert.IsType<Subordinated>(Parsed("x\n  cover.IMP  object:ear.PL\n  if  hear  subject:2SG  object:song.DEF").Value);
 
         ForceOf<Directive>(subordinated.Main);
-        Assert.Equal(Subordinator.If, subordinated.Subordinator);
-        Assert.Equal("hear", PredicateOf<Doing>(subordinated.Clause).Verb);
-        Assert.False(subordinated.SharesSubject);
+        Assert.Equal(Subordinator.If, subordinated.Clause.Subordinator);
+        Assert.Equal("hear", Assert.IsType<Doing>(EventOf(subordinated.Clause).Predicate.Value).Verb);
+        Assert.Equal(new Pronoun(Person.Second, Number.Singular), EventOf(subordinated.Clause).Subject.Value);
     }
 
     [Fact]
@@ -26,21 +26,21 @@ public class SubordinationTests
     {
         var subordinated = Assert.IsType<Subordinated>(Parsed("x\n  need  subject:2SG  object:rope.NDF\n  purpose  cross  object:river.DEF").Value);
 
-        Assert.True(subordinated.SharesSubject);
-        Assert.Equal(new Pronoun(Person.Second, Number.Singular), ForceOf<Declarative>(subordinated.Clause).Subject.Value);
+        Assert.IsType<Purpose>(subordinated.Clause.Value);
+        Assert.IsType<Shared>(EventOf(subordinated.Clause).Subject.Value);
     }
 
     [Fact]
     public void Parse_PurposeWithASubject_KeepsIt() =>
-        Assert.False(Assert.IsType<Subordinated>(Parsed("x\n  shout  subject:1SG\n  purpose  hear  subject:3SG.M").Value).SharesSubject);
+        Assert.Equal(new Pronoun(Person.Third, Number.Singular, Gender: Gender.Masculine), EventOf(Assert.IsType<Subordinated>(Parsed("x\n  shout  subject:1SG\n  purpose  hear  subject:3SG.M").Value).Clause).Subject.Value);
 
     [Fact]
     public void Parse_JoinedAndSubordinateLines_NestInTheOrderWritten()
     {
         var subordinated = Assert.IsType<Subordinated>(Parsed("x\n  sit  subject:dog\n  and  eat  subject:dog\n  until  sleep  subject:cat").Value);
 
-        Assert.IsType<Coordinated>(subordinated.Main.Value);
-        Assert.Equal(Subordinator.Until, subordinated.Subordinator);
+        Assert.IsType<Coordinated<Sentence>>(subordinated.Main.Value);
+        Assert.Equal(Subordinator.Until, subordinated.Clause.Subordinator);
     }
 
     [Theory]
@@ -48,6 +48,7 @@ public class SubordinationTests
     [InlineData("x\n  sleep  subject:dog\n  when  sleep  subject:cat  addressee:marta", "in the main clause")]
     [InlineData("x\n  sleep  subject:dog\n  because  sleep", "needs a subject")]
     [InlineData("x\n  if  sleep  subject:dog", "can't come first")]
+    [InlineData("x\n  need.PST  subject:2SG  object:rope\n  purpose  cross.PST  object:river", "the clause it's under says when")]
     public void Parse_BadSubordinateClauses_SayWhy(string text, string message) => Assert.Contains(message, Error(text).Message);
 
     [Fact]
@@ -121,7 +122,7 @@ public class SubordinationTests
         Assert.NotEmpty(marked);
         Assert.All(marked, l =>
         {
-            var sentence = Syntax.Realize(l, new Subordinated(DogEatsFish, Subordinator.Purpose, DogSleeps, true), "x");
+            var sentence = Syntax.Realize(l, Under(DogEatsFish, Subordinator.Purpose, DogSleeps, true), "x");
             var sleep = IndexOf(sentence, "sleep");
 
             Assert.DoesNotContain(sentence.Words, w => w.Word.Morphemes.Any(IsMarker));
@@ -155,7 +156,7 @@ public class SubordinationTests
             foreach (var subordinator in Enum.GetValues<Subordinator>())
             {
                 var marking = l.Subordination.Markers[subordinator];
-                var sentence = Syntax.Realize(l, new Subordinated(CatEatsFish, subordinator, DogSleeps, false), "x");
+                var sentence = Syntax.Realize(l, Under(CatEatsFish, subordinator, DogSleeps, false), "x");
                 var (dog, cat, sleep) = (IndexOf(sentence, "dog"), IndexOf(sentence, "cat"), IndexOf(sentence, "sleep"));
                 var marker = sentence.Words.ToList().FindIndex(w => w.Word.Morphemes.Any(IsMarker));
 
@@ -182,7 +183,7 @@ public class SubordinationTests
     {
         Assert.All(GeneratedLanguages.Sample.Where(l => l.Subordination.Markers[Subordinator.If].Balance == Balance.Deranked), l =>
         {
-            var sentence = Syntax.Realize(l, new Subordinated(CatEatsFish, Subordinator.If, DogSleeps, false), "x");
+            var sentence = Syntax.Realize(l, Under(CatEatsFish, Subordinator.If, DogSleeps, false), "x");
             var verb = sentence.Words[IndexOf(sentence, "sleep")].Word;
 
             Assert.All(verb.Morphemes, m => Assert.True(m.Value is Root || IsMarker(m)));
@@ -196,7 +197,7 @@ public class SubordinationTests
 
         Assert.All(GeneratedLanguages.Sample, l =>
         {
-            var sentence = Syntax.Realize(l, new Subordinated(DogEatsFish, Subordinator.Purpose, DogSleeps, true), "x");
+            var sentence = Syntax.Realize(l, Under(DogEatsFish, Subordinator.Purpose, DogSleeps, true), "x");
 
             Assert.Single(sentence.Words, w => w.Word.Root?.Meaning == "dog");
         });
@@ -207,7 +208,7 @@ public class SubordinationTests
     {
         Assert.All(GeneratedLanguages.Sample.Where(l => l.Subordination.Markers[Subordinator.When] is { Balance: Balance.Balanced, Position: not ExponentPosition.Suffix }), l =>
         {
-            var sentence = Syntax.Realize(l, new Subordinated(CatEatsFish, Subordinator.When, DogSleeps, false), "x");
+            var sentence = Syntax.Realize(l, Under(CatEatsFish, Subordinator.When, DogSleeps, false), "x");
             var alone = Syntax.Realize(l, DogSleeps, "x").Words.Select(w => w.Gloss);
 
             Assert.Contains(string.Join(" ", alone), string.Join(" ", sentence.Words.Select(w => w.Gloss)));

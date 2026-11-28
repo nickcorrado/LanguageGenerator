@@ -15,7 +15,7 @@ namespace LanguageGenerator;
 
   docs/clause-format.md describes the format. A gloss line is read in two steps: ClauseSyntax reads
   what's nested in what, words, groups in parentheses and clauses in brackets, each with the role
-  it's written with, and this builds what that means into a Statement, refusing whatever the
+  it's written with, and this builds what that means into a Sentence, refusing whatever the
   generator can't express yet, never dropping it
  */
 public static class ClauseFile
@@ -47,7 +47,8 @@ public static class ClauseFile
                 translation = (line.Trim(), number);
                 continuing = false;
             }
-            else if (ConjunctionOf(line) is not null || SubordinatorOf(line) is not null)
+            //an entry's first gloss line can be headed by a conjunction, joining events, but never by a subordinator
+            else if (SubordinatorOf(line) is not null || translation is null && ConjunctionOf(line) is not null)
             {
                 //a line starting with a conjunction joins its clause to the ones above it, and one
                 //starting with a subordinator puts its clause under them
@@ -56,16 +57,15 @@ public static class ClauseFile
                     throw new ClauseFormatException($"A line starting with '{line.Trim().Split(' ')[0]}' joins a clause to the one above it, so it can't come first.", number);
                 }
                 var previous = entries[^1];
-                var main = previous.Utterance switch
-                {
-                    Statement statement => statement,
-                    Fragment => throw new ClauseFormatException($"A line starting with '{line.Trim().Split(' ')[0]}' joins a clause to the one above it, which a fragment with no verb isn't.", number),
-                };
+                var message = previous.Utterance.Value is Message { Content.Value: Sentence } said ? said
+                    : throw new ClauseFormatException($"A line starting with '{line.Trim().Split(' ')[0]}' joins a clause to the one above it, which a fragment with no verb isn't.", number);
+                var main = (Sentence)message.Content.Value!;
                 var rest = line.Trim()[(line.Trim().IndexOf(' ') + 1)..];
-                Statement joined = ConjunctionOf(line) is { } conjunction
-                    ? ToCoordinated(conjunction, main, Ungapped(ParseClause(ClauseSyntax.Read(rest, number), number, null), number), number)
+                Sentence joined = ConjunctionOf(line) is { } conjunction
+                    ? ToCoordinated(conjunction, main, Ungapped(ParseClause(ClauseSyntax.Read(rest, number), number, null,
+                        "Say who's addressed on the first line, not on one joined to it: the whole sentence is said to them."), number), number)
                     : ToSubordinated(main, SubordinatorOf(line).GetValueOrDefault(), ClauseSyntax.Read(rest, number), number);
-                entries[^1] = previous with { Utterance = joined };
+                entries[^1] = previous with { Utterance = message with { Content = joined } };
             }
             else if (translation is { } english)
             {
@@ -108,30 +108,49 @@ public static class ClauseFile
       the main clause's, as in 'to cross the river, you need a rope'. It can't be a command, or be said
       to someone, since the main clause is
      */
-    private static Subordinated ToSubordinated(Statement main, Subordinator subordinator, SyntaxClause line, int number)
+    private static Subordinated ToSubordinated(Sentence main, Subordinator subordinator, SyntaxClause line, int number)
     {
-        var shares = subordinator == Subordinator.Purpose && !line.Items.Any(i => i.Role == "subject");
-        var clause = Ungapped(ParseClause(line, number, shares ? Syntax.SubjectOf(main) : (Argument?)null), number);
+        var purpose = subordinator == Subordinator.Purpose;
+        var shares = purpose && !line.Items.Any(i => i.Role == "subject");
+        //a purpose clause's time is the main clause's
+        if (purpose && line.Items is [{ Role: null, Value.Value: SyntaxWord verb }, ..]
+            && ParseWord(verb.Text, number).Features.FirstOrDefault(f => f is Tense or EpistemicModality) is { } time)
+        {
+            throw new ClauseFormatException($"A purpose clause can't take {time.Gloss}: the clause it's under says when.", number);
+        }
+        var clause = Ungapped(ParseClause(line, number, shares ? new Shared() : (Argument?)null, "Say who's addressed in the main clause, not in one under it."), number);
         return clause.Value switch
         {
-            Clause { Force.Value: Directive } => throw new ClauseFormatException($"A clause under another can't be a command: {subordinator.ToString().ToLowerInvariant()} takes a clause with a subject.", number),
-            Addressed => throw new ClauseFormatException("Say who's addressed in the main clause, not in one under it.", number),
-            Question => throw new ClauseFormatException("A clause under another can't be a question: ask it in the main clause.", number),
-            _ => new Subordinated(main, subordinator, clause, shares),
+            Clause { Value: Directive } => throw new ClauseFormatException($"A clause under another can't be a command: {subordinator.ToString().ToLowerInvariant()} takes a clause with a subject.", number),
+            Clause { Value: Interrogative } => throw new ClauseFormatException("A clause under another can't be a question: ask it in the main clause.", number),
+            Clause { Value: Declarative { Propositional: var said } } => new Subordinated(main, purpose
+                ? new Purpose(said.Proposition.StateOfAffairs)
+                : new Circumstance(Relations[subordinator], said)),
+            _ => throw new ClauseFormatException("A clause under another is one clause.", number),
         };
     }
 
+    //how a circumstance bears on the clause it's under, by the subordinator that says it
+    private static readonly Dictionary<Subordinator, Relation> Relations = new()
+    {
+        [Subordinator.If] = Relation.If,
+        [Subordinator.When] = Relation.When,
+        [Subordinator.Before] = Relation.Before,
+        [Subordinator.After] = Relation.After,
+        [Subordinator.Until] = Relation.Until,
+        [Subordinator.Because] = Relation.Because,
+    };
+
     //clauses joined by a conjunction, neither of them a question yet
-    private static Coordinated ToCoordinated(Conjunction conjunction, Statement first, Statement second, int number) =>
+    private static Coordinated<Sentence> ToCoordinated(Conjunction conjunction, Sentence first, Sentence second, int number) =>
         IsQuestion(first) || IsQuestion(second)
             ? throw new ClauseFormatException("A question can't be joined to another clause yet.", number)
-            : new Coordinated(conjunction, first, second);
+            : new Coordinated<Sentence>(conjunction, first, second);
 
-    private static bool IsQuestion(Statement statement) => statement.Value switch
+    private static bool IsQuestion(Sentence statement) => statement.Value switch
     {
-        Question => true,
-        Addressed a => IsQuestion(a.Statement),
-        Coordinated c => IsQuestion(c.First) || IsQuestion(c.Second),
+        Clause { Value: Interrogative } => true,
+        Coordinated<Sentence> c => IsQuestion(c.First) || IsQuestion(c.Second),
         Subordinated s => IsQuestion(s.Main),
         _ => false,
     };
@@ -140,36 +159,49 @@ public static class ClauseFile
     public static IReadOnlyList<(string Noun, string Translation)> Nouns(IEnumerable<Entry> entries) =>
         [.. entries.SelectMany(e => ArgumentsOf(e.Utterance).SelectMany(NounsIn).Select(n => (Noun: n, e.Translation))).DistinctBy(n => n.Noun)];
 
+    //what an utterance says, then who it's said to
     private static IEnumerable<Argument> ArgumentsOf(Utterance utterance) => utterance switch
     {
-        Statement statement => ArgumentsOf(statement),
+        Message message => [.. ArgumentsOf(message.Content), .. message.Addressee is { } addressee ? [addressee] : Array.Empty<Argument>()],
+        Call call => [call.Addressee],
+    };
+
+    private static IEnumerable<Argument> ArgumentsOf(Content content) => content switch
+    {
+        Sentence statement => ArgumentsOf(statement),
         Fragment fragment => ArgumentsOf(fragment),
     };
 
-    private static IEnumerable<Argument> ArgumentsOf(Fragment fragment) =>
-    [
-        .. fragment.Addressee is { } addressee ? [addressee] : Array.Empty<Argument>(),
-        .. fragment.Part is { } part
-            ? part switch
-            {
-                Standalone standalone => [standalone.Argument],
-                Oblique oblique => [oblique.Argument],
-                Heading heading => [heading.Label, heading.Title],
-                Interjection or Answer => Array.Empty<Argument>(),
-            }
-            : Array.Empty<Argument>(),
-    ];
-
-    private static IEnumerable<Argument> ArgumentsOf(Statement statement) => statement switch
+    private static IEnumerable<Argument> ArgumentsOf(Fragment fragment) => fragment switch
     {
-        Clause c => c.Arguments,
-        Comparative c => [.. ArgumentsOf(c.Clause), .. Given(c.Standard)],
-        Addressed a => [.. ArgumentsOf(a.Statement), a.Addressee],
-        Coordinated c => [.. ArgumentsOf(c.First), .. ArgumentsOf(c.Second)],
-        Subordinated s => [.. ArgumentsOf(s.Main), .. ArgumentsOf(s.Clause)],
-        Modalized m => ArgumentsOf(m.Clause),
-        Question q => ArgumentsOf(q.Statement),
+        Standalone standalone => [standalone.Argument],
+        Oblique oblique => [oblique.Argument],
+        Heading heading => [heading.Label, heading.Title],
+        Interjection or Answer => [],
     };
+
+    private static IEnumerable<Argument> ArgumentsOf(Sentence statement) => statement switch
+    {
+        Clause c => c.StateOfAffairs.Events.SelectMany(e => e.Arguments),
+        Coordinated<Sentence> c => [.. ArgumentsOf(c.First), .. ArgumentsOf(c.Second)],
+        Subordinated s => [.. ArgumentsOf(s.Main), .. ArgumentsOf(s.Clause)],
+    };
+
+    private static IEnumerable<Argument> ArgumentsOf(AdverbialClause clause) => clause switch
+    {
+        Purpose purpose => ArgumentsOf(purpose.StateOfAffairs),
+        Circumstance circumstance => ArgumentsOf(circumstance.Propositional),
+    };
+
+    private static IEnumerable<Argument> ArgumentsOf(Complement complement) => complement switch
+    {
+        Said said => ArgumentsOf(said.Propositional),
+        Wanted wanted => ArgumentsOf(wanted.StateOfAffairs),
+    };
+
+    private static IEnumerable<Argument> ArgumentsOf(Propositional propositional) => ArgumentsOf(propositional.Proposition.StateOfAffairs);
+
+    private static IEnumerable<Argument> ArgumentsOf(StateOfAffairs layers) => layers.Events.SelectMany(e => e.Arguments);
 
     private static IEnumerable<Argument> Given(Argument? argument) => argument.HasValue ? [argument.GetValueOrDefault()] : [];
 
@@ -181,44 +213,42 @@ public static class ClauseFile
         Pronoun => [],
         QuestionWord or DemonstrativePronoun or DemonstrativePlace => [],
         Coordination c => c.Items.SelectMany(NounsIn),
-        ComplementClause c => ArgumentsOf(c.Clause).SelectMany(NounsIn),
+        Complement c => ArgumentsOf(c).SelectMany(NounsIn),
         Quotation q => ArgumentsOf(q.Utterance).SelectMany(NounsIn),
-        Gap or RelativeWord => [],
+        Gap or RelativeWord or Shared => [],
     };
 
     /*
       the gaps in a statement outside its relative clauses, wherever they are: in its roles, in noun
-      phrases, joined to others, or in clauses inside it. A complement's subject that's the main
-      clause's is no gap of its own, even where the main clause's is one
+      phrases, joined to others, or in clauses inside it. A complement's shared subject is no gap of
+      its own, even where the main clause's is one
      */
-    private static int Gaps(Statement statement) => ArgumentsOf(statement).Sum(Gaps);
+    private static int Gaps(Sentence statement) => ArgumentsOf(statement).Sum(Gaps);
 
     private static int Gaps(Argument argument) => argument switch
     {
         Gap => 1,
         NounPhrase n => n.Head.Value is Noun { Possessor: { } possessor } ? Gaps(possessor) : 0,
         Coordination c => c.Items.Sum(Gaps),
-        ComplementClause { SharesSubject: true } c => Gaps(c.Clause) - (Syntax.SubjectOf(c.Clause).Value is Gap ? 1 : 0),
-        ComplementClause c => Gaps(c.Clause),
+        Complement c => ArgumentsOf(c).Sum(Gaps),
         Quotation q => ArgumentsOf(q.Utterance).Sum(Gaps),
-        Pronoun or DemonstrativePronoun or QuestionWord or DemonstrativePlace or RelativeWord => 0,
+        Pronoun or DemonstrativePronoun or QuestionWord or DemonstrativePlace or RelativeWord or Shared => 0,
     };
 
     //a clause that isn't relative has no gap, which marks only where a relative clause's noun goes
-    private static Statement Ungapped(Statement statement, int number) => Gaps(statement) == 0 ? statement
+    private static Sentence Ungapped(Sentence statement, int number) => Gaps(statement) == 0 ? statement
         : throw new ClauseFormatException("_ marks the role a relative clause's noun fills in it, so it goes only inside relative:[...], as in object:(net.DEF relative:[mend.PST  subject:3SG.F  object:_]).", number);
 
     /*
       the roles of a relative clause's own that its gap is in. It can be its subject, its object, the
       agent of a passive or an oblique, but not what it compares something with
      */
-    private static IEnumerable<string> GapRoles(Statement statement)
+    private static IEnumerable<string> GapRoles(Sentence statement)
     {
         return statement.Value switch
         {
-            Clause c => c.Fillers.Where(f => f.Argument.Value is Gap).Select(NameOf),
-            Comparative c => [.. GapRoles(c.Clause), .. c.Standard is { Value: Gap } ? ["standard"] : Array.Empty<string>()],
-            Modalized m => GapRoles(m.Clause),
+            Clause c => [.. c.StateOfAffairs.Events.SelectMany(e => e.Fillers).Where(f => f.Argument.Value is Gap).Select(NameOf),
+                .. c.StateOfAffairs.Events.Any(e => e.Predicate.Value is Being { Attribute.Value: Compared { Standard.Value: Gap } }) ? ["standard"] : Array.Empty<string>()],
             _ => [],
         };
 
@@ -234,9 +264,15 @@ public static class ClauseFile
     }
 
     //a line with a verb first is a clause, and one that starts with a role has none, so it's a fragment
-    private static Utterance ParseUtterance(SyntaxClause written, int number) => written.Items is [{ Role: not null }, ..]
-        ? ParseFragment(written, number)
-        : Ungapped(ParseClause(written, number, null), number);
+    private static Utterance ParseUtterance(SyntaxClause written, int number)
+    {
+        if (written.Items is [{ Role: not null }, ..])
+        {
+            return ParseFragment(written, number);
+        }
+        var statement = Ungapped(ParseClause(written, number, null, out var addressee), number);
+        return new Message(statement, addressee);
+    }
 
     /*
       a line with no verb: a phrase on its own, as noun:, or an oblique, as goal: or beneficiary:,
@@ -244,12 +280,12 @@ public static class ClauseFile
       or just addressee:, calling someone. It asks nothing, and has no gap, which only a relative
       clause has
      */
-    private static Fragment ParseFragment(SyntaxClause written, int number)
+    private static Utterance ParseFragment(SyntaxClause written, int number)
     {
         const string Says = "A line with no verb is a fragment, which says a noun:, an oblique such as goal: or beneficiary:, a heading's label: and noun:, an interjection:, an answer:, or who's called, as addressee:";
         NounPhrase? addressee = null;
         //an interjection or an answer, which are said alike
-        FragmentPart? exclamation = null;
+        Fragment? exclamation = null;
         Argument? label = null;
         Argument? noun = null;
         Oblique? oblique = null;
@@ -302,25 +338,25 @@ public static class ClauseFile
         {
             return noun.HasValue || label.HasValue || oblique is not null
                 ? throw new ClauseFormatException("An interjection: or answer: is said on its own, or to someone with addressee:, not with a noun: or an oblique yet.", number)
-                : new Fragment(exclaimed, addressee);
+                : new Message(exclaimed, addressee);
         }
         if (label is { } heading)
         {
             return noun is { } title
-                ? addressee is null ? new Fragment(new Heading(heading, title), null)
+                ? addressee is null ? new Message((Fragment)new Heading(heading, title), null)
                     : throw new ClauseFormatException("A heading is said to no one, so it takes no addressee:.", number)
                 : throw new ClauseFormatException("A heading's label: needs its title as noun:, as in label:item  noun:(key rusty).", number);
         }
-        //each branch apart, since a null oblique would convert to a part holding nothing
         if (noun is { } standing)
         {
-            return new Fragment(new Standalone(standing), addressee);
+            return new Message((Fragment)new Standalone(standing), addressee);
         }
         if (oblique is { } placed)
         {
-            return new Fragment(placed, addressee);
+            return new Message((Fragment)placed, addressee);
         }
-        return new Fragment(null, addressee);
+        //every item says something, so a line with none of the others calls someone
+        return new Call(addressee ?? throw new InvalidOperationException("A fragment's line has at least one item."));
     }
 
     //an interjection is its meaning, a word with no glosses, as in interjection:hello, but for yes
@@ -358,24 +394,25 @@ public static class ClauseFile
       noun phrase or a clause inside it, where its noun goes. It says something of its noun, so it
       can't be a command, a question or said to someone
      */
-    private static Statement ParseRelative(SyntaxValue value, int number)
+    private static Propositional ParseRelative(SyntaxValue value, int number)
     {
         const string Example = "relative:[mend.PST  subject:3SG.F  object:_]";
         if (value.Value is not SyntaxClause written || written.Items.Count == 0)
         {
             throw new ClauseFormatException($"relative: is a clause in brackets with _ where its noun goes, as in (net.DEF {Example}), not '{value.Text}'.", number);
         }
-        var clause = ParseClause(written, number, null);
+        var clause = ParseClause(written, number, null, "A relative clause can't be said to someone: say who's addressed in the main clause.");
         var roles = GapRoles(clause).ToList();
         return clause.Value switch
         {
-            Clause { Force.Value: Directive } => throw new ClauseFormatException("A relative clause can't be a command: it says something of its noun.", number),
-            Question => throw new ClauseFormatException("A relative clause can't be a question.", number),
-            Addressed => throw new ClauseFormatException("A relative clause can't be said to someone: say who's addressed in the main clause.", number),
+            Clause { Value: Directive } => throw new ClauseFormatException("A relative clause can't be a command: it says something of its noun.", number),
+            Clause { Value: Interrogative } => throw new ClauseFormatException("A relative clause can't be a question.", number),
+            Clause c when c.StateOfAffairs.Events.Skip(1).Any() => throw new ClauseFormatException("A relative clause can't join events yet.", number),
             _ when roles.Count == 0 && Gaps(clause) == 0 => throw new ClauseFormatException($"A relative clause needs _ in the role its noun fills in it, as in {Example}.", number),
             _ when roles.Count != 1 || Gaps(clause) != 1 => throw new ClauseFormatException("A relative clause has one _, in a role of its own, not inside a noun phrase or another clause in it.", number),
             _ when roles[0] == "standard" => throw new ClauseFormatException("A relative clause's noun can't be what it compares something with yet.", number),
-            _ => clause,
+            Clause { Value: Declarative stated } => stated.Propositional,
+            _ => throw new ClauseFormatException("A relative clause is one clause.", number),
         };
     }
 
@@ -393,8 +430,15 @@ public static class ClauseFile
     public static IReadOnlyList<string> RoleNames => Roles;
     public static IReadOnlyList<T> ValuesOf<T>() where T : Grammeme => [.. Glosses.Values.OfType<T>()];
 
-    //a subject that isn't said is the given one, if there is one
-    private static Statement ParseClause(SyntaxClause written, int number, Argument? impliedSubject)
+    //a clause that can't be said to anyone, as one inside another can't, with what to say where it is
+    private static Sentence ParseClause(SyntaxClause written, int number, Argument? impliedSubject, string unaddressable)
+    {
+        var statement = ParseClause(written, number, impliedSubject, out var addressee);
+        return addressee is null ? statement : throw new ClauseFormatException(unaddressable, number);
+    }
+
+    //a clause, and who it's said to, if anyone. A subject that isn't said is the given one, if there is one
+    private static Sentence ParseClause(SyntaxClause written, int number, Argument? impliedSubject, out NounPhrase? addressee)
     {
         if (written.Items is not [{ Role: null, Value.Value: SyntaxWord head }, ..])
         {
@@ -403,6 +447,10 @@ public static class ClauseFile
                 : new ClauseFormatException($"A clause starts with its verb, not with '{written.Items[0].Text}'.", number);
         }
         var (verb, glosses) = ParseWord(head.Text, number);
+        if (Conjunctions.TryGetValue(verb, out var conjunction))
+        {
+            return ParseJoined(conjunction, verb, glosses, written, number, impliedSubject, out addressee);
+        }
         var features = ParseVerbFeatures(verb, glosses, number);
         //why and how fill no role, so they're written on their own
         static bool IsAdverb(SyntaxItem item) => item is { Role: null, Value.Value: SyntaxWord { Text: var text } } && QuestionAdverbs.ContainsKey(text);
@@ -413,7 +461,7 @@ public static class ClauseFile
             _ => throw new ClauseFormatException("A question can only ask one thing yet: one why or how.", number),
         };
         var roles = ParseRoles(verb, written.Items.Skip(1).Where(i => !IsAdverb(i)), features.Imperative, impliedSubject, number);
-        var addressee = roles.Arguments.TryGetValue("addressee", out var called) ? ToAddressee(called, number) : null;
+        addressee = roles.Arguments.TryGetValue("addressee", out var called) ? ToAddressee(called, number) : null;
         Argument? standard = roles.Arguments.TryGetValue("standard", out var than) ? than : (Argument?)null;
         if (roles.Arguments.ContainsKey("agent") && !features.Passive)
         {
@@ -433,7 +481,7 @@ public static class ClauseFile
         {
             throw new ClauseFormatException("A command can't compare yet.", number);
         }
-        if (standard.HasValue && !roles.Compared && roles.Complement is { Value: Adjective adjective })
+        if (standard.HasValue && !roles.Compared && roles.Attribute is { Value: Adjective adjective })
         {
             throw new ClauseFormatException($"A standard: compares a comparative adjective:, as in adjective:{adjective.Meaning}.CMPR for 'more {adjective.Meaning} than'.", number);
         }
@@ -446,38 +494,138 @@ public static class ClauseFile
         /*
           an epistemic modal judges a perfect or progressive whole, as 'he must have left' is sure
           now of a past; a situational one with either is mostly a regret, as 'you should have gone'
-          is, which can't be said yet
+          is, or the perfect over a modal, as in 'she has had to leave', which can't be said yet
          */
-        if (features.Modality is { Epistemic: false } situational && features.Aspect is { } aspect && (aspect == Aspect.Perfect || aspect == Aspect.Progressive))
+        if (features.Modality is SituationalModality situational && features.Aspect is { } aspect && (aspect == Aspect.Perfect || aspect == Aspect.Progressive))
         {
             throw new ClauseFormatException($"{situational.Gloss} can't take {aspect.Gloss} yet, as in 'should have gone' or 'should be waiting'. " +
-                $"A modal that's sure or unsure of what happened, as in 'must have gone' or 'might be waiting', is {Modality.Presumptive.Gloss} or {Modality.Dubitative.Gloss}.", number);
+                $"A modal that's sure or unsure of what happened, as in 'must have gone' or 'might be waiting', is {EpistemicModality.Presumptive.Gloss} or {EpistemicModality.Dubitative.Gloss}.", number);
         }
         var asked = CheckQuestion(features, roles, adverb, number);
 
-        Force force = features.Imperative ? ToDirective(verb, features, roles, addressee, number) : ToDeclarative(features, roles, impliedSubject, number);
-        var clause = new Clause(ToPredicate(verb, features, roles, number), force, features.Negative, verb == "be" ? CopularObliques(roles) : roles.AllObliques, [.. roles.Adverbs]);
-        //only be compares, and not in a command, which the checks above make sure of
-        Statement statement = roles.Compared || standard.HasValue ? ToComparative(clause, standard, number) : clause;
+        var subject = features.Imperative ? ToDirectiveSubject(verb, features, roles, addressee, number) : ToSubject(roles, impliedSubject, number);
+        var predicate = ToPredicate(verb, features, roles, number);
+        if (roles.Compared || standard.HasValue)
+        {
+            //only be compares, and not in a command, which the checks above make sure of
+            predicate = ToCompared(predicate, standard, features, number);
+        }
+        var @event = new Event(predicate, subject, verb == "be" ? CopularObliques(roles) : roles.AllObliques,
+            [.. roles.Adverbs, .. adverb is { } why ? [new QuestionAdverbial(why)] : Array.Empty<Adverbial>()]);
         //a negative indefinite says the clause is negated, and a language whose verb takes negation
         //beside one adds it itself
-        if ((features.Negative || features.ModalNegative) && ArgumentsOf(statement).Any(Indefinites.IsNegative))
+        if (features.Negated && @event.Arguments.Any(Indefinites.IsNegative))
         {
             throw new ClauseFormatException("A clause with nobody, nothing, nowhere or no already says 'not', so its verb takes no NEG, as in come.PST subject:nobody for 'nobody came'.", number);
         }
-        if (features.Modality is { } modal)
+        //each operator wraps what's written before it, as glosses put a morpheme outside what it scopes over
+        StateOfAffairs layers = @event;
+        foreach (var @operator in features.Operators)
         {
-            statement = new Modalized(statement, modal, features.ModalNegative);
+            layers = @operator switch
+            {
+                Polarity => new Negated(layers),
+                SituationalModality modal => new Modalized(modal, layers),
+                Aspect aspected => new Aspected(aspected, layers),
+                _ => throw new InvalidOperationException($"{@operator.Gloss} scopes over nothing here."),
+            };
         }
-        if (asked)
+        if (features.Imperative)
         {
-            statement = new Question(statement, adverb);
+            return (Clause)new Directive(layers);
         }
-        return addressee is null ? statement : new Addressed(statement, addressee);
+        //a judgment wraps the proposition, and a negation written after it denies the judgment
+        Propositional proposition = new Proposition(layers, features.Tense ?? Tense.Present);
+        if (features.Modality is EpistemicModality epistemic)
+        {
+            proposition = new Judged(epistemic, proposition);
+            proposition = features.Denied ? new Denied(proposition) : proposition;
+        }
+        return asked ? (Clause)new Interrogative(proposition) : new Declarative(proposition);
+    }
+
+    /*
+      states of affairs joined under one tense and sentence type, as in 'she turns and walks away':
+      the conjunction heads them, glossed with what they share, the tense, the mood and any aspect
+      over them all, with the subject they share, if they do, and who's addressed, and each event
+      goes in brackets with its own roles and its own negation, modal, aspect or passive. An event
+      with no subject has the shared one, or a command's 'you'. A negation, a modal or a question
+      over them all can't be said yet, since saying it on each changes what it says, and but joins
+      only clauses
+     */
+    private static Sentence ParseJoined(Conjunction conjunction, string word, IReadOnlyList<Grammeme> glosses, SyntaxClause written, int number, Argument? impliedSubject, out NounPhrase? addressee)
+    {
+        const string Example = "and.PST  subject:3SG.F  [turn]  [walk  goal:away]";
+        //a verb after it is a clause joined to the one above, which the line can't follow when it's first
+        if (written.Items.Skip(1).FirstOrDefault() is { Role: null, Value.Value: SyntaxWord })
+        {
+            throw new ClauseFormatException($"A line starting with '{word}' joins a clause to the one above it, so it can't come first.", number);
+        }
+        if (conjunction == Conjunction.But)
+        {
+            throw new ClauseFormatException("but joins only clauses, on a line of its own starting with but.", number);
+        }
+        var features = ParseVerbFeatures(word, glosses, number);
+        if (features.Question || features.Modality is not null || features.Negated)
+        {
+            throw new ClauseFormatException("A negation, a modal or Q over joined events can't be said yet, since saying it on each changes what it says: "
+                + "write it on each event, or join whole clauses on lines of their own.", number);
+        }
+        if (features.Imperative && features.Aspect is not null || features.Passive)
+        {
+            throw new ClauseFormatException(features.Passive ? "PASS goes on the event that's passive, not on the conjunction." : "A command has no aspect.", number);
+        }
+        List<SyntaxClause> events = [];
+        Argument? subject = impliedSubject;
+        addressee = null;
+        foreach (var item in written.Items.Skip(1))
+        {
+            switch (item)
+            {
+                case { Role: null, Value.Value: SyntaxClause @event }:
+                    events.Add(@event);
+                    break;
+                case { Role: "subject" }:
+                    subject = ParseArgument(item.Value, number);
+                    break;
+                case { Role: "addressee" }:
+                    addressee = ToAddressee(ParseArgument(item.Value, number), number);
+                    break;
+                default:
+                    throw new ClauseFormatException($"Joined events share only their subject: and who's addressed, on the conjunction; '{item.Text}' goes in the brackets of the event it's part of.", number);
+            }
+        }
+        if (events.Count < 2)
+        {
+            throw new ClauseFormatException($"A conjunction heading a clause joins two events or more, each in brackets, as in {Example}.", number);
+        }
+        var shared = features.Imperative ? new Pronoun(Person.Second, Told(subject, addressee, number)) : subject;
+        StateOfAffairs? layers = null;
+        foreach (var @event in events)
+        {
+            if (@event.Items is [{ Role: null, Value.Value: SyntaxWord verb }, ..]
+                && ParseWord(verb.Text, number).Features.FirstOrDefault(f => f is Tense or EpistemicModality || f == Mood.Imperative || f == Mood.Interrogative) is { } whole)
+            {
+                throw new ClauseFormatException($"{whole.Gloss} is what joined events share, so it goes on the conjunction, as in and.{whole.Gloss}, not on one of them.", number);
+            }
+            var clause = ParseClause(@event, number, shared, "Who's addressed goes on the conjunction, not on one of the events it joins.");
+            var joined = clause.Value is Clause { Value: Declarative { Propositional.Value: Proposition proposition } }
+                ? proposition.StateOfAffairs
+                : throw new ClauseFormatException("An event in brackets says something, and can't ask yet.", number);
+            layers = layers is { } before ? new Coordinated<StateOfAffairs>(conjunction, before, joined) : joined;
+        }
+        //an aspect on the conjunction is over them all
+        foreach (var aspect in features.Operators.OfType<Aspect>())
+        {
+            layers = new Aspected(aspect, layers!.Value);
+        }
+        return features.Imperative
+            ? (Clause)new Directive(layers!.Value)
+            : new Declarative(new Proposition(layers!.Value, features.Tense ?? Tense.Present));
     }
 
     //the question words, in the roles they ask about
-    private static readonly Dictionary<string, Interrogative> QuestionWords = Enum.GetValues<Interrogative>().ToDictionary(w => w.ToString().ToLowerInvariant());
+    private static readonly Dictionary<string, InterrogativeWord> QuestionWords = Enum.GetValues<InterrogativeWord>().ToDictionary(w => w.ToString().ToLowerInvariant());
 
     //the question words that fill no role, written on their own
     private static readonly Dictionary<string, QuestionAdverb> QuestionAdverbs = Enum.GetValues<QuestionAdverb>().ToDictionary(w => w.ToString().ToLowerInvariant());
@@ -526,13 +674,13 @@ public static class ClauseFile
             {
                 throw new ClauseFormatException($"A question can't ask for how long yet, as in duration:{WordOf(argument)}.", number);
             }
-            if (word == Interrogative.Where && role is not ("location" or "goal" or "source"))
+            if (word == InterrogativeWord.Where && role is not ("location" or "goal" or "source"))
             {
                 throw new ClauseFormatException($"where asks about a place, so it's location:where, goal:where for 'where to' or source:where for 'where from', not {role}:where.", number);
             }
-            if ((word == Interrogative.When) != (role == "time"))
+            if ((word == InterrogativeWord.When) != (role == "time"))
             {
-                throw new ClauseFormatException(word == Interrogative.When
+                throw new ClauseFormatException(word == InterrogativeWord.When
                     ? $"when asks about a time, so it's time:when, not {role}:when."
                     : $"A question asking when is time:when, not time:{WordOf(argument)}.", number);
             }
@@ -548,17 +696,17 @@ public static class ClauseFile
 
     //'Marta is taller than the men': an adjective, said of the subject more than of the standard, or
     //with no standard, 'Marta is taller', more than of something already known
-    private static Comparative ToComparative(Clause clause, Argument? standard, int number)
+    private static Predicate ToCompared(Predicate predicate, Argument? standard, VerbFeatures features, int number)
     {
-        if (clause.Predicate.Value is not Being { Complement.Value: Adjective })
+        if (predicate.Value is not Being { Attribute.Value: Adjective adjective } being)
         {
             throw new ClauseFormatException("A standard: compares an adjective:, as in adjective:tall.CMPR standard:(man.PL) for 'taller than the men'.", number);
         }
-        if (clause.Negative)
+        if (features.Negated)
         {
             throw new ClauseFormatException("A comparison can't be negated yet.", number);
         }
-        return new Comparative(clause, standard);
+        return being with { Attribute = new Compared(adjective, standard) };
     }
 
     //who a clause is said to: a noun phrase, bare, since vocatives take no article
@@ -572,12 +720,22 @@ public static class ClauseFile
         _ => throw new ClauseFormatException("An addressee is a noun, as in addressee:marta. A clause said to 'you' needs none.", number),
     };
 
-    //Negative negates the verb, and ModalNegative the modal
-    private record VerbFeatures(Tense? Tense, Aspect? Aspect, bool Negative, bool Imperative, bool Question, bool Passive, Modality? Modality, bool ModalNegative);
+    /*
+      a verb's glosses: its tense, its mood, the passive and its modal, if it has one, and the
+      operators over its event, negation, a situational modal and aspect, innermost first, as glosses
+      put a morpheme outside what it scopes over: swim.ABIL.NEG is 'can't swim', and sing.NEG.OBLIG
+      'must not sing'. Aspect is the one written, if any, and the imperfective is no operator, since
+      a state of affairs with no aspect has it
+     */
+    //a negation after an epistemic modal denies the judgment, as leave.PRF.DUB.NEG is 'can't have left'
+    private record VerbFeatures(Tense? Tense, Aspect? Aspect, bool Imperative, bool Question, bool Passive, Modality? Modality, IReadOnlyList<Grammeme> Operators, bool Denied)
+    {
+        public bool Negated => Operators.Contains(Polarity.Negative) || Denied;
+    }
 
     //the obliques keep the role they were written with, which is how be finds its location:.
     //Compared is whether the adjective: is comparative, as tall.CMPR is
-    private record ClauseRoles(Dictionary<string, Argument> Arguments, List<(string Role, Oblique Oblique)> Obliques, Complement? Complement, bool Compared, List<Adverbial> Adverbs)
+    private record ClauseRoles(Dictionary<string, Argument> Arguments, List<(string Role, Oblique Oblique)> Obliques, Attribute? Attribute, bool Compared, List<Adverbial> Adverbs)
     {
         public Argument? Object => Arguments.TryGetValue("object", out var argument) ? argument : (Argument?)null;
         public ValueList<Oblique> AllObliques => [.. Obliques.Select(o => o.Oblique)];
@@ -589,25 +747,23 @@ public static class ClauseFile
         {
             throw Unsupported(verb, unsupported, number);
         }
-        if (glosses.GroupBy(g => g.GetType()).FirstOrDefault(g => g.Count() > 1) is { } repeated)
+        //a modal of either kind is one category here, as a verb takes one of them
+        if (glosses.GroupBy(g => g is Modality ? typeof(Modality) : g.GetType()).FirstOrDefault(g => g.Count() > 1) is { } repeated)
         {
             throw new ClauseFormatException($"'{verb}' has more than one {repeated.Key.Name.ToLowerInvariant()}.", number);
         }
-        //a negation after the modal negates the modal, as glosses put a morpheme outside what it
-        //scopes over: swim.ABIL.NEG is 'can't swim', and sing.NEG.OBLIG 'must not sing'
         var modality = glosses.OfType<Modality>().SingleOrDefault();
-        var negative = glosses.Contains(Polarity.Negative);
         var order = glosses.ToList();
-        var modalNegative = negative && modality is not null && order.IndexOf(Polarity.Negative) > order.IndexOf(modality);
+        var denied = modality is EpistemicModality && order.IndexOf(Polarity.Negative) > order.IndexOf(modality);
         return new VerbFeatures(
             glosses.OfType<Tense>().SingleOrDefault(),
             glosses.OfType<Aspect>().SingleOrDefault(),
-            negative && !modalNegative,
             glosses.Contains(Mood.Imperative),
             glosses.Contains(Mood.Interrogative),
             glosses.Contains(Voice.Passive),
             modality,
-            modalNegative);
+            [.. glosses.Where(g => g == Polarity.Negative && !denied || g is SituationalModality || g is Aspect aspect && aspect != Aspect.Imperfective)],
+            denied);
     }
 
     private static ClauseFormatException Unsupported(string verb, Grammeme feature, int number) => feature switch
@@ -628,19 +784,9 @@ public static class ClauseFile
         var arguments = new Dictionary<string, Argument>();
         var obliques = new List<(string Role, Oblique Oblique)>();
         var adverbs = new List<Adverbial>();
-        Complement? complement = null;
+        Attribute? attribute = null;
         var compared = false;
         var quoted = false;
-        Argument Sharer()
-        {
-            var subject = arguments.TryGetValue("subject", out var said) ? said : impliedSubject;
-            if (imperative)
-            {
-                var addressee = arguments.TryGetValue("addressee", out var called) ? ToAddressee(called, number) : null;
-                return new Pronoun(Person.Second, Told(subject, addressee, number));
-            }
-            return subject ?? throw new ClauseFormatException("The clause needs a subject, as in subject:dog.", number);
-        }
         foreach (var item in items.OrderBy(i => i.Role is "subject" or "addressee" ? 0 : 1))
         {
             if (item.Role is not { } written)
@@ -661,11 +807,11 @@ public static class ClauseFile
             {
                 throw new ClauseFormatException($"'{role}' isn't a role. The roles are {string.Join(", ", Roles)}.", number);
             }
-            if (arguments.ContainsKey(role) || obliques.Any(o => o.Role == role) || role is "noun" or "adjective" && complement.HasValue)
+            if (arguments.ContainsKey(role) || obliques.Any(o => o.Role == role) || role is "noun" or "adjective" && attribute.HasValue)
             {
                 throw new ClauseFormatException(role is "noun" or "adjective" ? "The clause has more than one noun or adjective." : $"The clause has more than one {role}.", number);
             }
-            if (verb == "be" && role is "noun" or "adjective" or "location" && (complement.HasValue || obliques.Any(o => o.Role == "location")))
+            if (verb == "be" && role is "noun" or "adjective" or "location" && (attribute.HasValue || obliques.Any(o => o.Role == "location")))
             {
                 throw new ClauseFormatException("be says one thing of its subject: a noun:, an adjective: or a location:.", number);
             }
@@ -675,7 +821,7 @@ public static class ClauseFile
             }
             if (value.Value is SyntaxClause embedded)
             {
-                arguments["object"] = role is "object" or "quote" ? ParseEmbedded(role, embedded, Sharer(), number)
+                arguments["object"] = role is "object" or "quote" ? ParseEmbedded(role, embedded, number)
                     : throw Misplaced($"{role}:", number);
                 quoted |= role == "quote";
                 continue;
@@ -693,7 +839,7 @@ public static class ClauseFile
                     adverbs.Add(ParseManner(value, number));
                     break;
                 case "noun":
-                    complement = ParseArgument(value, number).Value switch
+                    attribute = ParseArgument(value, number).Value switch
                     {
                         NounPhrase noun => noun,
                         QuestionWord => throw new ClauseFormatException($"be can't ask what its subject is yet, as in noun:{value.Text} for '{value.Text} are you?'.", number),
@@ -701,14 +847,14 @@ public static class ClauseFile
                     };
                     break;
                 case "adjective" when value.Value is SyntaxGroup together:
-                    complement = ParseAdjectiveCoordination(together, number);
+                    attribute = ParseAdjectiveCoordination(together, number);
                     break;
                 case "adjective":
                     //only what be says of its subject can be comparative, so CMPR is taken off here
                     //before the adjective is read
                     var glossed = value.Text.Split('.');
                     compared = glossed.Skip(1).Contains(Degree.Comparative.Gloss);
-                    complement = ParseAdjective(compared ? string.Join('.', glossed.Where(p => p != Degree.Comparative.Gloss)) : value.Text, number);
+                    attribute = ParseAdjective(compared ? string.Join('.', glossed.Where(p => p != Degree.Comparative.Gloss)) : value.Text, number);
                     break;
                 case var name when ObliqueRoles.TryGetValue(name, out var oblique):
                     if (configuration != Configuration.At && !Oblique.Spatial.Contains(oblique))
@@ -724,7 +870,7 @@ public static class ClauseFile
                     break;
             }
         }
-        return new ClauseRoles(arguments, obliques, complement, compared, adverbs);
+        return new ClauseRoles(arguments, obliques, attribute, compared, adverbs);
     }
 
     //where relative to a place a spatial role says, written after the role with a period, as in
@@ -750,19 +896,19 @@ public static class ClauseFile
 
     //a command is said to one person or several: as many as its subject says, or as its addressee
     //is, as 'children, come' tells several
-    private static Directive ToDirective(string verb, VerbFeatures features, ClauseRoles roles, NounPhrase? addressee, int number)
+    private static Pronoun ToDirectiveSubject(string verb, VerbFeatures features, ClauseRoles roles, NounPhrase? addressee, int number)
     {
         if (features.Tense is not null || features.Aspect is not null)
         {
             throw new ClauseFormatException($"'{verb}' can't take {(features.Tense as Grammeme ?? features.Aspect)!.Gloss}: a command has no tense or aspect.", number);
         }
-        return new Directive(Told(roles.Arguments.TryGetValue("subject", out var subject) ? subject : (Argument?)null, addressee, number));
+        return new Pronoun(Person.Second, Told(roles.Arguments.TryGetValue("subject", out var subject) ? subject : (Argument?)null, addressee, number));
     }
 
-    //a clause that isn't a command says when, present and imperfective unless it says otherwise, and needs a subject
-    private static Declarative ToDeclarative(VerbFeatures features, ClauseRoles roles, Argument? impliedSubject, int number) =>
+    //a clause that isn't a command needs a subject
+    private static Argument ToSubject(ClauseRoles roles, Argument? impliedSubject, int number) =>
         (roles.Arguments.TryGetValue("subject", out var said) ? said : impliedSubject) is { } subject
-            ? new Declarative(features.Tense ?? Tense.Present, features.Aspect ?? Aspect.Imperfective, subject)
+            ? subject
             : throw new ClauseFormatException("The clause needs a subject, as in subject:dog.", number);
 
     //how many a command is said to
@@ -794,7 +940,7 @@ public static class ClauseFile
       begun, whose time the main verb sets, so it has no tense or aspect; and only an event can leave
       out its subject, which is then the main clause's, as in 'they want to go home'
      */
-    private static Argument ParseEmbedded(string role, SyntaxClause embedded, Argument subject, int number)
+    private static Argument ParseEmbedded(string role, SyntaxClause embedded, int number)
     {
         if (role == "quote")
         {
@@ -803,7 +949,7 @@ public static class ClauseFile
                 throw new ClauseFormatException("A quote: needs what was said inside its brackets.", number);
             }
             var said = ParseUtterance(embedded, number);
-            return said.Value is Fragment { Part.Value: Heading }
+            return said.Value is Message { Content.Value: Fragment { Value: Heading } }
                 ? throw new ClauseFormatException("A heading isn't said, so it can't be quoted: quote: takes a clause or a fragment.", number)
                 : new Quotation(said);
         }
@@ -819,13 +965,15 @@ public static class ClauseFile
             throw new ClauseFormatException($"A clause starting with to can't take {time.Gloss}: the verb it's the object of says when.", number);
         }
         var shares = kind == ComplementKind.Event && !rest.Items.Any(i => i.Role == "subject");
-        var clause = ParseClause(rest, number, shares ? subject : (Argument?)null);
+        var clause = ParseClause(rest, number, shares ? new Shared() : (Argument?)null, "Say who's addressed in the main clause, not in one inside it, unless it's quoted with quote:[...].");
         return clause.Value switch
         {
-            Clause { Force.Value: Directive } => throw new ClauseFormatException($"A clause in object: can't be a command: write {(kind == ComplementKind.Event ? "to" : "that")} with a subject, or quote the command with quote:[...].", number),
-            Addressed => throw new ClauseFormatException("Say who's addressed in the main clause, not in one inside it, unless it's quoted with quote:[...].", number),
-            Question => throw new ClauseFormatException("A question inside another clause can't be said yet, unless it's quoted with quote:[...].", number),
-            _ => new ComplementClause(kind, clause, shares),
+            Clause { Value: Directive } => throw new ClauseFormatException($"A clause in object: can't be a command: write {(kind == ComplementKind.Event ? "to" : "that")} with a subject, or quote the command with quote:[...].", number),
+            Clause { Value: Interrogative } => throw new ClauseFormatException("A question inside another clause can't be said yet, unless it's quoted with quote:[...].", number),
+            Clause { Value: Declarative { Propositional: var said } } when kind == ComplementKind.Proposition => (Complement)new Said(said),
+            Clause { Value: Declarative { Propositional.Value: Proposition wanted } } => (Complement)new Wanted(wanted.StateOfAffairs),
+            Clause { Value: Declarative } => throw new ClauseFormatException("A clause starting with to can't take an epistemic modal: what's wanted isn't judged so or not.", number),
+            _ => throw new ClauseFormatException("A clause in object: is one clause.", number),
         };
     }
 
@@ -837,9 +985,9 @@ public static class ClauseFile
     {
         if (verb == "be")
         {
-            return new Being(CopularComplement(roles, number));
+            return new Being(CopularAttribute(roles, number));
         }
-        RejectComplement(verb, roles, number);
+        RejectAttribute(verb, roles, number);
         if (!features.Passive)
         {
             return new Doing(verb, roles.Object);
@@ -857,17 +1005,17 @@ public static class ClauseFile
     private static ValueList<Oblique> CopularObliques(ClauseRoles roles) => [.. roles.Obliques.Where(o => CopularRoles.Contains(o.Role)).Select(o => o.Oblique)];
 
     //what be says its subject is, or where it is
-    private static Complement CopularComplement(ClauseRoles roles, int number)
+    private static Attribute CopularAttribute(ClauseRoles roles, int number)
     {
         if (roles.Arguments.ContainsKey("object"))
         {
             throw new ClauseFormatException("be has no object. Say what its subject is with noun: or adjective:, as in noun:fool.", number);
         }
         //where its subject is, as in location:house
-        var complement = roles.Complement;
+        var attribute = roles.Attribute;
         if (roles.Obliques.Find(o => o.Role == "location") is { Oblique: { } location })
         {
-            complement = location;
+            attribute = location;
         }
         if (roles.Obliques.Any(o => o.Role == "like"))
         {
@@ -877,16 +1025,16 @@ public static class ClauseFile
         {
             throw new ClauseFormatException($"be can't take {A(other)} yet, only a noun:, adjective: or location: saying what or where its subject is, and time: or duration:.", number);
         }
-        if (!complement.HasValue)
+        if (!attribute.HasValue)
         {
             throw new ClauseFormatException("be needs a noun, adjective or location saying what or where its subject is, as in noun:fool, adjective:big or location:house.", number);
         }
-        return complement.GetValueOrDefault();
+        return attribute.GetValueOrDefault();
     }
 
-    private static void RejectComplement(string verb, ClauseRoles roles, int number)
+    private static void RejectAttribute(string verb, ClauseRoles roles, int number)
     {
-        if (roles.Complement.HasValue)
+        if (roles.Attribute.HasValue)
         {
             throw new ClauseFormatException($"Only be takes a noun: or adjective:. '{verb}' takes an object:.", number);
         }
@@ -940,7 +1088,7 @@ public static class ClauseFile
         int? ordinal = null;
         Quantifier? quantifier = null;
         Argument? possessor = null;
-        Statement? relative = null;
+        Propositional? relative = null;
         var adjectives = new List<Adjective>();
         foreach (var item in items.Skip(1))
         {
@@ -1304,7 +1452,7 @@ public static class ClauseFile
         }
         if (QuestionWords.TryGetValue(meaning, out var asked))
         {
-            throw new ClauseFormatException(asked == Interrogative.When
+            throw new ClauseFormatException(asked == InterrogativeWord.When
                 ? $"when asks about a time, so it's time:when, not {role}:when."
                 : $"{meaning} isn't an adverb: a question word goes in the role it asks about, as in subject:who.", number);
         }
@@ -1494,9 +1642,9 @@ public static class ClauseFile
             : throw new ClauseFormatException($"'{gloss}' isn't a gloss.{Suggestion(gloss)}", number))]);
     }
 
-    //every value of every category, by its gloss
+    //every value of every category, by its gloss, a category being a kind of grammeme, or a kind of one, as a situational modality is
     private static readonly Dictionary<string, Grammeme> Glosses = typeof(Grammeme).Assembly.GetTypes()
-        .Where(t => t.BaseType == typeof(Grammeme))
+        .Where(t => t.IsSubclassOf(typeof(Grammeme)))
         .SelectMany(t => t.GetProperties(BindingFlags.Public | BindingFlags.Static).Where(p => p.PropertyType == t))
         .Select(p => (Grammeme)p.GetValue(null)!)
         .ToDictionary(t => t.Gloss);

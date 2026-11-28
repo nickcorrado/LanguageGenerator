@@ -8,33 +8,30 @@ namespace LanguageGenerator.Tests;
 //how a clause says them
 public class ComplementationTests
 {
-    private static Statement Parsed(string text) => Stated(Assert.Single(ClauseFile.Parse(text)).Utterance);
+    private static Sentence Parsed(string text) => Stated(Assert.Single(ClauseFile.Parse(text)).Utterance);
 
     private static ClauseFormatException Error(string text) => Assert.Throws<ClauseFormatException>(() => ClauseFile.Parse(text));
 
-    private static T ObjectOf<T>(Statement statement) => Assert.IsType<T>(PredicateOf<Doing>(statement).Object.GetValueOrDefault().Value);
+    private static T ObjectOf<T>(Sentence statement) => Assert.IsType<T>(PredicateOf<Doing>(statement).Object.GetValueOrDefault().Value);
 
     [Fact]
     public void Parse_ThatInBrackets_IsAPropositionWithItsOwnSubject()
     {
-        var complement = ObjectOf<ComplementClause>(Parsed("x\n  tell.PST  subject:1SG  recipient:2SG  object:[that  be.PST  subject:2SG  adjective:late]"));
+        var complement = ObjectOf<Complement>(Parsed("x\n  tell.PST  subject:1SG  recipient:2SG  object:[that  be.PST  subject:2SG  adjective:late]"));
 
         Assert.Equal(ComplementKind.Proposition, complement.Kind);
-        Assert.False(complement.SharesSubject);
-        PredicateOf<Being>(complement.Clause);
-        var clause = ForceOf<Declarative>(complement.Clause);
-        Assert.Equal(Tense.Past, clause.Tense);
-        Assert.Equal(new Pronoun(Person.Second, Number.Singular), clause.Subject.Value);
+        Assert.IsType<Being>(EventOf(complement).Predicate.Value);
+        Assert.Equal(Tense.Past, Assert.IsType<Said>(complement.Value).Propositional.Proposition.Tense);
+        Assert.Equal(new Pronoun(Person.Second, Number.Singular), EventOf(complement).Subject.Value);
     }
 
     [Fact]
     public void Parse_ToWithoutASubject_IsAnEventSharingTheMainClauses()
     {
-        var complement = ObjectOf<ComplementClause>(Parsed("x\n  want  subject:3PL  object:[to  go  goal:home]"));
+        var complement = ObjectOf<Complement>(Parsed("x\n  want  subject:3PL  object:[to  go  goal:home]"));
 
         Assert.Equal(ComplementKind.Event, complement.Kind);
-        Assert.True(complement.SharesSubject);
-        Assert.Equal(new Pronoun(Person.Third, Number.Plural), ForceOf<Declarative>(complement.Clause).Subject.Value);
+        Assert.IsType<Shared>(EventOf(complement).Subject.Value);
     }
 
     [Fact]
@@ -42,9 +39,9 @@ public class ComplementationTests
     {
         var command = Parsed("x\n  try.IMP  subject:2PL  object:[to  sleep]");
         ForceOf<Directive>(command);
-        var complement = Assert.IsType<ComplementClause>(PredicateOf<Doing>(command).Object.GetValueOrDefault().Value);
+        var complement = Assert.IsType<Complement>(PredicateOf<Doing>(command).Object.GetValueOrDefault().Value);
 
-        Assert.Equal(new Pronoun(Person.Second, Number.Plural), ForceOf<Declarative>(complement.Clause).Subject.Value);
+        Assert.IsType<Shared>(EventOf(complement).Subject.Value);
     }
 
     [Fact]
@@ -52,30 +49,32 @@ public class ComplementationTests
     {
         var quotation = ObjectOf<Quotation>(Parsed("x\n  say  subject:3SG.F  quote:[go.IMP  goal:inn.DEF  addressee:marta]"));
 
-        var addressed = Assert.IsType<Addressed>(Stated(quotation.Utterance).Value);
-        ForceOf<Directive>(addressed.Statement);
+        var addressed = Addressed(quotation.Utterance);
+        ForceOf<Directive>(SentenceOf(addressed));
     }
 
     [Fact]
     public void Parse_ClauseInsideAClauseInsideAClause_Nests()
     {
-        var outer = ObjectOf<ComplementClause>(Parsed("x\n  say  subject:3SG.F  object:[that  know  subject:1SG  object:[that  come.PST  subject:(man.DEF old)]]"));
-        var inner = ObjectOf<ComplementClause>(outer.Clause);
+        var outer = ObjectOf<Complement>(Parsed("x\n  say  subject:3SG.F  object:[that  know  subject:1SG  object:[that  come.PST  subject:(man.DEF old)]]"));
+        var inner = Assert.IsType<Complement>(Assert.IsType<Doing>(EventOf(outer).Predicate.Value).Object.GetValueOrDefault().Value);
 
-        Assert.Equal("come", PredicateOf<Doing>(inner.Clause).Verb);
+        Assert.Equal("come", Assert.IsType<Doing>(EventOf(inner).Predicate.Value).Verb);
     }
 
     [Fact]
     public void Parse_QuestionAboutAClause_AsksTheMainOne()
     {
-        var question = Assert.IsType<Question>(Parsed("x\n  tell.PST  subject:who  recipient:2SG  object:[that  come.PST  subject:1SG]").Value);
+        var question = Parsed("x\n  tell.PST  subject:who  recipient:2SG  object:[that  come.PST  subject:1SG]");
 
-        Assert.IsType<ComplementClause>(PredicateOf<Doing>(question.Statement).Object.GetValueOrDefault().Value);
+        ForceOf<Interrogative>(question);
+        Assert.IsType<Complement>(PredicateOf<Doing>(question).Object.GetValueOrDefault().Value);
     }
 
     [Theory]
     [InlineData("x\n  say  subject:1SG  object:[sleep  subject:dog]", "starts with that")]
     [InlineData("x\n  want  subject:1SG  object:[to  sleep.PST]", "can't take PST")]
+    [InlineData("x\n  want  subject:1SG  object:[to  sleep.DUB]", "can't take an epistemic modal")]
     [InlineData("x\n  say  subject:1SG  object:[that  go.IMP]", "can't be a command")]
     [InlineData("x\n  see.PST  subject:1SG  object:[that  sleep.Q  subject:dog]", "A question inside another clause")]
     [InlineData("x\n  say  subject:1SG  object:[that  sleep  subject:dog  addressee:marta]", "Say who's addressed")]
@@ -121,17 +120,17 @@ public class ComplementationTests
 
     private static readonly Clause DogSlept = DogSleeps.At(Tense.Past, Aspect.Imperfective);
 
-    private static Clause Says(Argument said) => new Clause(new Doing("say", said), new Declarative(Tense.Past, Aspect.Perfective, BareNoun("woman", Number.Singular)), false, [], []);
+    private static Clause Says(Argument said) => Declared(new Event(new Doing("say", said), BareNoun("woman", Number.Singular), [], []), Tense.Past, Aspect.Perfective, false);
 
-    private static Clause Wants(Argument wanter, Statement wanted, bool shares) =>
-        new Clause(new Doing("want", new ComplementClause(ComplementKind.Event, wanted, shares)), new Declarative(Tense.Present, Aspect.Imperfective, wanter), false, [], []);
+    private static Clause Wants(Argument wanter, Clause wanted, bool shares) =>
+        Declared(new Event(new Doing("want", Complementing(ComplementKind.Event, wanted, shares)), wanter, [], []), Tense.Present, Aspect.Imperfective, false);
 
     [Fact]
     public void Realize_PropositionWithItsComplementizerFirst_PutsItBetweenTheClauses()
     {
         var language = GeneratedLanguages.With(s => s.Fix(Settings.PropositionComplementizer, ComplementizerPosition.Initial)
             .Fix(Settings.PropositionBalance, Balance.Balanced).Fix(Settings.ComplementsLast, true));
-        var sentence = Syntax.Realize(language, Says(new ComplementClause(ComplementKind.Proposition, DogSlept, false)), "x");
+        var sentence = Syntax.Realize(language, Says(Complementing(ComplementKind.Proposition, DogSlept, false)), "x");
         var complementizer = sentence.Words.ToList().FindIndex(w => w.Gloss == "COMP");
 
         Assert.True(IndexOf(sentence, "say") < complementizer);
@@ -145,7 +144,7 @@ public class ComplementationTests
     public void Realize_PropositionInAnOVLanguage_GoesLastOrWhereTheObjectGoes(bool last)
     {
         var language = GeneratedLanguages.With(s => s.ObjectFirst(true).Fix(Settings.PropositionBalance, Balance.Balanced).Fix(Settings.ComplementsLast, last));
-        var sentence = Syntax.Realize(language, Says(new ComplementClause(ComplementKind.Proposition, DogSlept, false)), "x");
+        var sentence = Syntax.Realize(language, Says(Complementing(ComplementKind.Proposition, DogSlept, false)), "x");
 
         Assert.Equal(last, IndexOf(sentence, "sleep") > IndexOf(sentence, "say"));
     }
@@ -156,7 +155,7 @@ public class ComplementationTests
         var language = GeneratedLanguages.With(s => s.Fix(Settings.EventBalance, Balance.Balanced).Fix(Settings.Desiderative, DesiderativeKind.Verb)
             .Fix(Settings.EventComplementizer, ComplementizerPosition.None).Fix(Settings.ComplementsLast, true));
         var it = new Pronoun(Person.Third, Number.Singular);
-        var alone = Syntax.Realize(language, CatEatsFish with { Force = new Declarative(Tense.Present, Aspect.Imperfective, it) }, "x");
+        var alone = Syntax.Realize(language, CatEatsFish.WithEvent(e => e with { Subject = it }), "x");
         var wanted = Syntax.Realize(language, Wants(BareNoun("cat", Number.Singular), CatEatsFish, true), "x");
 
         Assert.Equal(alone.Words[IndexOf(alone, "eat")].Gloss, wanted.Words[IndexOf(wanted, "eat")].Gloss);
@@ -206,9 +205,9 @@ public class ComplementationTests
     public void Realize_UnmarkedQuotationLast_IsSaidAsItWouldBeAlone()
     {
         var language = GeneratedLanguages.With(s => s.Fix(Settings.Quotative, QuotativeKind.None).Fix(Settings.ComplementsLast, true));
-        var command = new Clause(new Doing("walk", null), new Directive(Number.Singular), false, [new(Role.Goal, BareNoun("house", Number.Singular), Configuration.At)], []);
+        var command = Told(new Event(new Doing("walk", null), new Pronoun(Person.Second, Number.Singular), [new(Role.Goal, BareNoun("house", Number.Singular), Configuration.At)], []), false);
         var alone = Syntax.Realize(language, command, "x").Words.Select(w => w.Gloss);
-        var quoted = Syntax.Realize(language, Says(new Quotation((Statement)command)), "x").Words.Select(w => w.Gloss);
+        var quoted = Syntax.Realize(language, Says(new Quotation(new Message((Sentence)command, null))), "x").Words.Select(w => w.Gloss);
 
         Assert.Equal(alone, quoted.TakeLast(alone.Count()));
     }
@@ -219,7 +218,7 @@ public class ComplementationTests
     public void Realize_MarkedQuotation_TakesTheQuotative(QuotativeKind kind)
     {
         var language = GeneratedLanguages.With(s => s.Fix(Settings.Quotative, kind).Fix(Settings.PropositionComplementizer, ComplementizerPosition.Initial, ComplementizerPosition.Final));
-        var sentence = Syntax.Realize(language, Says(new Quotation((Statement)DogSlept)), "x");
+        var sentence = Syntax.Realize(language, Says(new Quotation(new Message((Sentence)DogSlept, null))), "x");
         var quotative = Assert.Single(sentence.Words, w => w.Gloss == "QUOT");
 
         if (kind == QuotativeKind.Complementizer)

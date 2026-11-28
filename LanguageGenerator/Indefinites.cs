@@ -137,12 +137,12 @@ public record Indefinites(IndefiniteSource Persons, IndefiniteSource Things, IRe
     };
 
     /// <summary>The question word an indefinite of this kind is made from, where it's made from one.</summary>
-    public static Interrogative QuestionWordFor(Ontology kind) => kind switch
+    public static InterrogativeWord QuestionWordFor(Ontology kind) => kind switch
     {
-        Ontology.Person => Interrogative.Who,
-        Ontology.Thing => Interrogative.What,
-        Ontology.Place => Interrogative.Where,
-        Ontology.Time => Interrogative.When,
+        Ontology.Person => InterrogativeWord.Who,
+        Ontology.Thing => InterrogativeWord.What,
+        Ontology.Place => InterrogativeWord.Where,
+        Ontology.Time => InterrogativeWord.When,
         _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
     };
 

@@ -45,7 +45,7 @@ public enum PolarQuestion
 }
 
 /// <summary>A question word that fills a role, as 'who' does in 'who saw you?'.</summary>
-public enum Interrogative
+public enum InterrogativeWord
 {
     Who,
     What,
@@ -66,20 +66,14 @@ public enum QuestionAdverb
 }
 
 /// <summary>A question word in a role, which inflects for that role as a noun does.</summary>
-public record QuestionWord(Interrogative Word);
+public record QuestionWord(InterrogativeWord Word);
 
 /// <summary>
 /// How a language asks: how it marks a yes-no question, whether its question words go first in a
 /// content question, and the question words themselves.
 /// </summary>
 //why and how are words of their own, since they fill no role, but take the place a question word does
-public record Questions(PolarQuestionMarking Polar, bool FrontsQuestionWords, IReadOnlyDictionary<Interrogative, Lexeme> Words, IReadOnlyDictionary<QuestionAdverb, Lexeme> Adverbs);
+public record Questions(PolarQuestionMarking Polar, bool FrontsQuestionWords, IReadOnlyDictionary<InterrogativeWord, Lexeme> Words, IReadOnlyDictionary<QuestionAdverb, Lexeme> Adverbs);
 
-/// <summary>
-/// A statement asked rather than said. With a question word in one of its roles, or an adverb, it
-/// asks for what that is, as in 'who saw you?', 'why didn't you come?' or 'how did you get here?';
-/// with neither, it asks whether it's true, as in 'did you see them?'.
-/// </summary>
-//a clause with a verb, a passive, a copular clause or a comparison, with any modal, and at most one
-//question word, as a direct argument of a role
-public record Question(Statement Statement, QuestionAdverb? Adverb);
+/// <summary>'Why' or 'how' asked, among a clause's adverbs, as in 'why didn't you come?'.</summary>
+public record QuestionAdverbial(QuestionAdverb Word);

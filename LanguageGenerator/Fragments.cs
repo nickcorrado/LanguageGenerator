@@ -1,20 +1,11 @@
 namespace LanguageGenerator;
 
-/// <summary>What a line of text says: a statement, or a fragment, which has no clause.</summary>
-public union Utterance(Statement, Fragment);
-
 /// <summary>
-/// What a line says with no clause, as game text is full of: a phrase on its own, as in 'an old
-/// iron key', 'for your ears' or 'Item: Rusty Key', said to someone or not, or someone called with
-/// nothing else, as in 'stranger!'. It has a part, an addressee or both.
+/// What a line says with no clause, as game text is full of: a phrase standing alone, as in 'an old
+/// iron key', an oblique, as in 'for your ears', a heading, as in 'Item: Rusty Key', an
+/// interjection, as in 'hello', or an answer, 'yes' or 'no'.
 /// </summary>
-public record Fragment(FragmentPart? Part, NounPhrase? Addressee);
-
-/// <summary>
-/// What a fragment says: a phrase standing alone, an oblique, as in 'for your ears', a heading, as
-/// in 'Item: Rusty Key', an interjection, as in 'hello', or an answer, 'yes' or 'no'.
-/// </summary>
-public union FragmentPart(Standalone, Oblique, Heading, Interjection, Answer);
+public union Fragment(Standalone, Oblique, Heading, Interjection, Answer);
 
 /// <summary>A word said on its own, as 'hello', 'oh' or 'alas', which has no part in a clause.</summary>
 public record Interjection(string Meaning);
