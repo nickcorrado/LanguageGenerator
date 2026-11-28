@@ -26,20 +26,25 @@ public record Event(Predicate Predicate, Argument Subject, ValueList<Oblique> Ob
         .. Obliques.Select(o => new Filler(o.Argument, o.Role, o)),
     ];
 
-    /// <summary>Every argument the event says, in order: its fillers', with what be says its subject is after the subject.</summary>
+    /// <summary>
+    /// Every argument the event says, in order: its fillers', with what be says its subject is after
+    /// the subject, then the standards its manners are compared with.
+    /// </summary>
     public IEnumerable<Argument> Arguments =>
     [
         Subject,
         .. Predicate.Arguments,
         .. Obliques.Select(o => o.Argument),
+        .. Adverbs.SelectMany(a => a.Value is Manner manner ? manner.Adjective.Arguments : []),
     ];
 
-    /// <summary>The event with each of its roles filled with what this makes of what fills it now.</summary>
+    /// <summary>The event with each of its roles filled with what this makes of what fills it now, and its manners' standards.</summary>
     public Event Refilled(Func<Argument, Argument> fill) => this with
     {
         Subject = fill(Subject),
         Predicate = Predicate.Refilled(fill),
         Obliques = [.. Obliques.Select(o => o with { Argument = fill(o.Argument) })],
+        Adverbs = [.. Adverbs.Select(a => a.Value is Manner manner ? new Manner(manner.Adjective.Refilled(fill)) : a)],
     };
 }
 
@@ -172,11 +177,12 @@ public union Predicate(Doing, Done, Being)
         Being => [],
     };
 
-    /// <summary>The arguments it says: its fillers', what be says its subject is, or what a comparison's standard is.</summary>
+    /// <summary>The arguments it says: its fillers', what be says its subject is, or what its comparisons' standards are.</summary>
     public IEnumerable<Argument> Arguments => this switch
     {
         Being { Attribute.Value: NounPhrase noun } => [noun],
-        Being { Attribute.Value: Adjective { Grade.Value: Comparative { Standard: { } standard } } } => [standard],
+        Being { Attribute.Value: Adjective adjective } => adjective.Arguments,
+        Being { Attribute.Value: AdjectiveCoordination together } => together.Adjectives.SelectMany(a => a.Arguments),
         Doing or Done or Being => Fillers.Select(f => f.Argument),
     };
 
@@ -186,8 +192,8 @@ public union Predicate(Doing, Done, Being)
         Doing doing => doing with { Object = doing.Object is { } o ? fill(o) : (Argument?)null },
         Done done => done with { Agent = done.Agent is { } agent ? fill(agent) : (Argument?)null },
         Being { Attribute.Value: Oblique location } being => being with { Attribute = location with { Argument = fill(location.Argument) } },
-        Being { Attribute.Value: Adjective { Grade.Value: Comparative { Standard: { } standard } compared } adjective } being =>
-            being with { Attribute = adjective with { Grade = compared with { Standard = fill(standard) } } },
+        Being { Attribute.Value: Adjective adjective } being => being with { Attribute = adjective.Refilled(fill) },
+        Being { Attribute.Value: AdjectiveCoordination together } being => being with { Attribute = together with { Adjectives = [.. together.Adjectives.Select(a => a.Refilled(fill))] } },
         Being being => being,
     };
 }
@@ -199,7 +205,16 @@ public record Doing(string Verb, Argument? Object);
 /// A property, like 'big', said of something, with its grade if it has one, as 'very big' and
 /// 'bigger than the house' have, wherever it is.
 /// </summary>
-public record Adjective(string Meaning, Grade? Grade);
+public record Adjective(string Meaning, Grade? Grade)
+{
+    /// <summary>The argument it says, if it says one: a comparative's standard.</summary>
+    public IEnumerable<Argument> Arguments => Grade is { Value: Comparative { Standard: { } standard } } ? [standard] : [];
+
+    /// <summary>It with its standard, if it has one, what this makes of it.</summary>
+    public Adjective Refilled(Func<Argument, Argument> fill) => Grade is { Value: Comparative { Standard: { } standard } compared }
+        ? this with { Grade = compared with { Standard = fill(standard) } }
+        : this;
+}
 
 /// <summary>
 /// What be says of its subject: a noun phrase, as in 'you are a fool', an adjective, as in 'the

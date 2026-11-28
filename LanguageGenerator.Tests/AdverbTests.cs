@@ -298,7 +298,6 @@ public class AdverbTests
     [InlineData("walk  subject:dog  when:who", "who isn't an adverb")]
     [InlineData("walk  subject:dog  when:when", "so it's time:when")]
     [InlineData("walk  subject:dog  often:(again always)", "An adverb is one word, as in often:again")]
-    [InlineData("walk  subject:dog  manner:slow.CMPR", "A manner can't compare yet")]
     [InlineData("walk  subject:dog  manner:(and slow quiet)", "manner: takes one adjective")]
     [InlineData("walk  subject:dog  manner:slow.ADV", "an adverb made from an adjective is written manner:slow")]
     [InlineData("be  subject:dog  adjective:big.INTS.INTS", "more than one INTS")]

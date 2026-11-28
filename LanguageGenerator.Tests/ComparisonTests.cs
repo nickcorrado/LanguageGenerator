@@ -36,7 +36,14 @@ public class ComparisonTests
     }
 
     [Theory]
-    [InlineData("see  subject:dog  standard:cat", "Only be takes a standard:")]
+    [InlineData("see  subject:dog  standard:cat", "compares a comparative adjective: or manner:")]
+    [InlineData("walk  subject:dog  manner:slow  standard:cat", "compares a comparative adjective: or manner:")]
+    [InlineData("walk  subject:dog  manner:slow.CMPR  manner:quiet.CMPR  standard:cat", "goes with one comparative")]
+    [InlineData("be  subject:dog  adjective:(and big.CMPR old.CMPR)  standard:cat", "can't share a standard: yet")]
+    [InlineData("walk  subject:(dog big  standard:cat)", "compares its comparative adjective")]
+    [InlineData("walk  subject:(dog big.CMPR old.CMPR  standard:cat)", "goes with one comparative")]
+    [InlineData("walk  subject:(dog big.CMPR  standard:cat  standard:fish)", "more than one standard")]
+    [InlineData("walk  subject:(dog big.CMPR  standard:what)", "can't ask about its standard yet")]
     [InlineData("be  subject:dog  noun:fool  standard:cat", "compares an adjective:")]
     [InlineData("be  subject:dog  location:house  standard:cat", "compares an adjective:")]
     [InlineData("be.NEG  subject:dog  adjective:big.CMPR  standard:cat", "can't be negated yet")]
@@ -267,12 +274,75 @@ public class ComparisonTests
     [InlineData("be  subject:dog  adjective:big  standard:cat", "adjective:big.CMPR")]
     [InlineData("be.IMP  adjective:big.CMPR", "A command can't compare yet")]
     [InlineData("be.ABIL  subject:dog  adjective:big.CMPR", "A comparison can't take ABIL")]
-    [InlineData("see  subject:(dog big.CMPR)", "Only the adjective: be says of its subject can take CMPR")]
-    [InlineData("be  subject:dog  adjective:(and big.CMPR old)", "Only the adjective: be says of its subject can take CMPR")]
+    [InlineData("be  subject:dog  adjective:big.CMPR.CMPR", "more than one CMPR")]
     [InlineData("be  subject:dog  adjective:big.PL", "adjectives have no features but CMPR")]
     [InlineData("be  subject:dog  adjective:big  like:cat", "be can't say what its subject is like yet")]
     [InlineData("walk  subject:dog  like:what", "can't ask what something is like")]
     [InlineData("walk  subject:dog  like:cat  like:fish", "more than one like")]
     public void Parse_BadComparativesAndSimiles_SayWhy(string gloss, string message) =>
         Assert.Contains(message, Assert.Throws<ClauseFormatException>(() => ClauseFile.Parse($"x\n  {gloss}")).Message);
+
+    private static NounPhrase DogThat(Adjective adjective) => new(new Noun("dog", Number.Singular, [adjective], null, null, null, null, null), null);
+
+    [Fact]
+    public void Parse_Comparatives_GoOnAnyAdjective()
+    {
+        Assert.Equal(new Event(new Doing("walk", null), DogThat(new Adjective("big", new Comparative(null, null))), [], []), EventOf(Parsed("walk  subject:(dog big.CMPR)")));
+        Assert.Equal(new Event(new Doing("walk", null), DogThat(new Adjective("big", new Comparative(Cat, null))), [], []), EventOf(Parsed("walk  subject:(dog big.CMPR  standard:cat)")));
+        Assert.Equal(new Event(new Doing("walk", null), Dog, [], [new Manner(new Adjective("slow", new Comparative(Cat, new Much())))]),
+            EventOf(Parsed("walk  subject:dog  manner:slow.CMPR.INTS  standard:cat")));
+        Assert.Equal(new Event(new Being(new AdjectiveCoordination(Conjunction.And, [new("big", new Comparative(null, null)), new("old", null)])), Dog, [], []),
+            EventOf(Parsed("be  subject:dog  adjective:(and big.CMPR old)")));
+    }
+
+    [Fact]
+    public void Nouns_IncludeStandardsInNounPhrasesAndManners() =>
+        Assert.Equal(["cat", "dog", "fish"], ClauseFile.Nouns(ClauseFile.Parse("x\n  walk  subject:(dog big.CMPR  standard:cat)  manner:slow.CMPR  standard:fish")).Select(n => n.Noun).Order());
+
+    //'the bigger dog walks' and 'the dog walks bigger', with the comparative where be doesn't say it,
+    //and the same with 'than the cats'
+    private static Rendering BiggerDog(Language l, Argument? standard) =>
+        Syntax.Realize(l, DogWalks.WithEvent(e => e with { Subject = DogThat(new Adjective("big", new Comparative(standard, null))) }), "x");
+
+    private static Rendering WalksBigger(Language l, Argument? standard) =>
+        Syntax.Realize(l, DogWalks.WithEvent(e => e with { Adverbs = [new Manner(new Adjective("big", new Comparative(standard, null)))] }), "x");
+
+    [Fact]
+    public void Realize_ComparativeOutsideBe_MarksTheAdjective() =>
+        Assert.All(GeneratedLanguages.Sample, l =>
+        {
+            Assert.True(Marked(l, BiggerDog(l, null)));
+            Assert.True(Marked(l, WalksBigger(l, null)));
+        });
+
+    [Fact]
+    public void Realize_ComparativesJoined_AreEachMarked() =>
+        Assert.All(GeneratedLanguages.Sample, l =>
+        {
+            var joined = new AdjectiveCoordination(Conjunction.And, [new("big", new Comparative(null, null)), new("old", new Comparative(null, null))]);
+            var sentence = Syntax.Realize(l, DogIsBig.WithEvent(e => e with { Predicate = new Being(joined) }), "x");
+
+            Assert.Equal(2, sentence.Words.Sum(w => w.Gloss.Split('-', '.', '[', ']').Count(g => g == "CMPR")));
+        });
+
+    [Fact]
+    public void Realize_StandardOutsideBe_GoesOnTheStandardsSideOfThePhrase()
+    {
+        var languages = GeneratedLanguages.Sample.Where(l => l.Comparison.Value is LocationalComparison or ParticleComparison).ToList();
+        Assert.All(languages, l =>
+        {
+            var before = l.WordOrder.VerbPhraseDirectionality == HeadDirectionality.Final;
+            var dog = BiggerDog(l, Cats);
+            var walks = WalksBigger(l, Cats);
+            var (cat, big, noun) = (IndexOf(dog, "cat"), IndexOf(dog, "big"), IndexOf(dog, "dog"));
+
+            //the standard goes outside the noun and its adjectives, never between them
+            Assert.True(before ? cat < Math.Min(big, noun) : cat > Math.Max(big, noun));
+            Assert.True(before ? IndexOf(walks, "cat") < IndexOf(walks, "big") : IndexOf(walks, "cat") > IndexOf(walks, "big"));
+            Assert.Equal(l.Degree.WithStandard ? true : null, Marked(l, dog));
+            Assert.Equal(l.Degree.WithStandard ? true : null, Marked(l, walks));
+        });
+        Assert.Contains(languages, l => l.Comparison.Value is LocationalComparison);
+        Assert.Contains(languages, l => l.Comparison.Value is ParticleComparison);
+    }
 }

@@ -209,7 +209,8 @@ public static class ClauseFile
     {
         //an indefinite pronoun's noun is the language's to say, and no noun of the text's
         NounPhrase { Head.Value: IndefinitePronoun } n => n.Relative is { } relative ? ArgumentsOf(relative).SelectMany(NounsIn) : [],
-        NounPhrase { Head.Value: Noun noun } n => [noun.Meaning, .. Given(noun.Possessor).SelectMany(NounsIn), .. n.Relative is { } relative ? ArgumentsOf(relative).SelectMany(NounsIn) : []],
+        NounPhrase { Head.Value: Noun noun } n => [noun.Meaning, .. Given(noun.Possessor).SelectMany(NounsIn), .. noun.Adjectives.SelectMany(a => a.Arguments).SelectMany(NounsIn),
+            .. n.Relative is { } relative ? ArgumentsOf(relative).SelectMany(NounsIn) : []],
         Pronoun => [],
         QuestionWord or DemonstrativePronoun or DemonstrativePlace => [],
         Coordination c => c.Items.SelectMany(NounsIn),
@@ -228,7 +229,8 @@ public static class ClauseFile
     private static int Gaps(Argument argument) => argument switch
     {
         Gap => 1,
-        NounPhrase n => n.Head.Value is Noun { Possessor: { } possessor } ? Gaps(possessor) : 0,
+        NounPhrase { Head.Value: Noun noun } => Given(noun.Possessor).Sum(Gaps) + noun.Adjectives.SelectMany(a => a.Arguments).Sum(Gaps),
+        NounPhrase => 0,
         Coordination c => c.Items.Sum(Gaps),
         Complement c => ArgumentsOf(c).Sum(Gaps),
         Quotation q => ArgumentsOf(q.Utterance).Sum(Gaps),
@@ -471,21 +473,31 @@ public static class ClauseFile
         {
             throw new ClauseFormatException(verb == "be" ? "be can't be passive." : "A command can't be passive yet.", number);
         }
-        if (standard.HasValue && (verb != "be" || features.Imperative))
-        {
-            throw new ClauseFormatException(features.Imperative
-                ? "A command can't compare yet."
-                : $"Only be takes a standard:, as in be subject:marta adjective:tall.CMPR standard:(man.PL) for 'Marta is taller than the men'.", number);
-        }
-        if (roles.Compared && features.Imperative)
+        /*
+          a standard: goes with the clause's one comparative, be's adjective: or a manner:. With be, a
+          command can't compare yet, and a comparison can't take a modal
+         */
+        var manners = roles.ComparedManners;
+        var beCompared = roles.Attribute is { Value: Adjective { Grade.Value: Comparative } };
+        if (features.Imperative && (roles.Compared || standard.HasValue && verb == "be"))
         {
             throw new ClauseFormatException("A command can't compare yet.", number);
         }
-        if (standard.HasValue && !roles.Compared && roles.Attribute is { Value: Adjective adjective })
+        if (standard.HasValue && !beCompared && manners.Count == 0)
         {
-            throw new ClauseFormatException($"A standard: compares a comparative adjective:, as in adjective:{adjective.Meaning}.CMPR for 'more {adjective.Meaning} than'.", number);
+            throw new ClauseFormatException(roles.Attribute switch
+            {
+                { Value: Adjective adjective } => $"A standard: compares a comparative adjective:, as in adjective:{adjective.Meaning}.CMPR for 'more {adjective.Meaning} than'.",
+                { Value: AdjectiveCoordination } when roles.Compared => "Adjectives joined can't share a standard: yet, as in 'older and wiser than his brother'.",
+                _ when verb == "be" => "A standard: compares an adjective:, as in adjective:tall.CMPR standard:(man.PL) for 'taller than the men'.",
+                _ => "A standard: compares a comparative adjective: or manner:, as in manner:slow.CMPR standard:cat for 'more slowly than the cat'.",
+            }, number);
         }
-        if (features.Modality is { } modality && (features.Imperative || roles.Compared || standard.HasValue))
+        if (standard.HasValue && (beCompared ? 1 : 0) + manners.Count > 1)
+        {
+            throw new ClauseFormatException("A standard: goes with one comparative, and this clause has more than one.", number);
+        }
+        if (features.Modality is { } modality && (features.Imperative || roles.Compared || standard.HasValue && verb == "be"))
         {
             throw new ClauseFormatException(features.Imperative
                 ? $"A command can't take {modality.Gloss}: it already says what to do."
@@ -505,13 +517,19 @@ public static class ClauseFile
 
         var subject = features.Imperative ? ToDirectiveSubject(verb, features, roles, addressee, number) : ToSubject(roles, impliedSubject, number);
         var predicate = ToPredicate(verb, features, roles, number);
-        if (roles.Compared || standard.HasValue)
+        IReadOnlyList<Adverbial> adverbs = roles.Adverbs;
+        if (beCompared)
         {
-            //only be compares, and not in a command, which the checks above make sure of
-            predicate = ToCompared(predicate, standard, features, number);
+            //not in a command, which the checks above make sure of
+            predicate = ToCompared((Being)predicate.Value!, standard, features, number);
+        }
+        else if (standard.HasValue)
+        {
+            //the one comparative manner, which the checks above make sure of
+            adverbs = [.. adverbs.Select((a, i) => i == manners[0] ? new Manner(Compared(((Manner)a.Value!).Adjective, standard.GetValueOrDefault())) : a)];
         }
         var @event = new Event(predicate, subject, verb == "be" ? CopularObliques(roles) : roles.AllObliques,
-            [.. roles.Adverbs, .. adverb is { } why ? [new QuestionAdverbial(why)] : Array.Empty<Adverbial>()]);
+            [.. adverbs, .. adverb is { } why ? [new QuestionAdverbial(why)] : Array.Empty<Adverbial>()]);
         //a negative indefinite says the clause is negated, and a language whose verb takes negation
         //beside one adds it itself
         if (features.Negated && @event.Arguments.Any(Indefinites.IsNegative))
@@ -695,23 +713,22 @@ public static class ClauseFile
     }
 
     /*
-      'Marta is taller than the men': an adjective, said of the subject more than of the standard, or
-      with no standard, 'Marta is taller', more than of something already known. INTS on it is 'much',
-      by how much more, as in 'much taller'
+      'Marta is taller than the men': be's comparative adjective, said of the subject more than of the
+      standard, or with no standard, 'Marta is taller', more than of something already known
      */
-    private static Predicate ToCompared(Predicate predicate, Argument? standard, VerbFeatures features, int number)
+    private static Being ToCompared(Being being, Argument? standard, VerbFeatures features, int number)
     {
-        if (predicate.Value is not Being { Attribute.Value: Adjective adjective } being)
-        {
-            throw new ClauseFormatException("A standard: compares an adjective:, as in adjective:tall.CMPR standard:(man.PL) for 'taller than the men'.", number);
-        }
         if (features.Negated)
         {
             throw new ClauseFormatException("A comparison can't be negated yet.", number);
         }
-        var much = adjective.Grade is { Value: Intensified } ? new Much() : (Differential?)null;
-        return being with { Attribute = adjective with { Grade = new Comparative(standard, much) } };
+        return standard is { } than ? being with { Attribute = Compared((Adjective)being.Attribute.Value!, than) } : being;
     }
+
+    //a comparative adjective compared with this standard
+    private static Adjective Compared(Adjective adjective, Argument standard) =>
+        adjective.Grade is { Value: Comparative compared } ? adjective with { Grade = compared with { Standard = standard } }
+            : throw new ArgumentException("Only a comparative adjective takes a standard.", nameof(adjective));
 
     //who a clause is said to: a noun phrase, bare, since vocatives take no article
     private static NounPhrase ToAddressee(Argument argument, int number) => argument.Value switch
@@ -737,12 +754,18 @@ public static class ClauseFile
         public bool Negated => Operators.Contains(Polarity.Negative) || Denied;
     }
 
-    //the obliques keep the role they were written with, which is how be finds its location:.
-    //Compared is whether the adjective: is comparative, as tall.CMPR is
-    private record ClauseRoles(Dictionary<string, Argument> Arguments, List<(string Role, Oblique Oblique)> Obliques, Attribute? Attribute, bool Compared, List<Adverbial> Adverbs)
+    //the obliques keep the role they were written with, which is how be finds its location:
+    private record ClauseRoles(Dictionary<string, Argument> Arguments, List<(string Role, Oblique Oblique)> Obliques, Attribute? Attribute, List<Adverbial> Adverbs)
     {
         public Argument? Object => Arguments.TryGetValue("object", out var argument) ? argument : (Argument?)null;
         public ValueList<Oblique> AllObliques => [.. Obliques.Select(o => o.Oblique)];
+
+        //whether be compares its subject, with a comparative adjective: alone, as tall.CMPR is, or joined to others
+        public bool Compared => Attribute is { Value: Adjective { Grade.Value: Comparative } }
+            || Attribute is { Value: AdjectiveCoordination together } && together.Adjectives.Any(a => a.Grade is { Value: Comparative });
+
+        //the indexes of the manners that are comparative, as manner:slow.CMPR is
+        public List<int> ComparedManners => [.. Adverbs.Select((a, i) => (a, i)).Where(m => m.a.Value is Manner { Adjective.Grade.Value: Comparative }).Select(m => m.i)];
     }
 
     private static VerbFeatures ParseVerbFeatures(string verb, IReadOnlyList<Grammeme> glosses, int number)
@@ -789,7 +812,6 @@ public static class ClauseFile
         var obliques = new List<(string Role, Oblique Oblique)>();
         var adverbs = new List<Adverbial>();
         Attribute? attribute = null;
-        var compared = false;
         var quoted = false;
         foreach (var item in items.OrderBy(i => i.Role is "subject" or "addressee" ? 0 : 1))
         {
@@ -854,11 +876,7 @@ public static class ClauseFile
                     attribute = ParseAdjectiveCoordination(together, number);
                     break;
                 case "adjective":
-                    //only what be says of its subject can be comparative, so CMPR is taken off here
-                    //before the adjective is read
-                    var glossed = value.Text.Split('.');
-                    compared = glossed.Skip(1).Contains(Degree.Comparative.Gloss);
-                    attribute = ParseAdjective(compared ? string.Join('.', glossed.Where(p => p != Degree.Comparative.Gloss)) : value.Text, number);
+                    attribute = ParseAdjective(value.Text, number);
                     break;
                 case var name when ObliqueRoles.TryGetValue(name, out var oblique):
                     if (configuration != Configuration.At && !Oblique.Spatial.Contains(oblique))
@@ -874,7 +892,7 @@ public static class ClauseFile
                     break;
             }
         }
-        return new ClauseRoles(arguments, obliques, attribute, compared, adverbs);
+        return new ClauseRoles(arguments, obliques, attribute, adverbs);
     }
 
     //where relative to a place a spatial role says, written after the role with a period, as in
@@ -1056,9 +1074,9 @@ public static class ClauseFile
         {
             throw Misplaced($"'{clause.Text}' in a noun phrase", number);
         }
-        if (items.FirstOrDefault(i => i.Value.Value is SyntaxGroup && i.Role != "possessor") is { } nested)
+        if (items.FirstOrDefault(i => i.Value.Value is SyntaxGroup && i.Role is not ("possessor" or "standard")) is { } nested)
         {
-            throw new ClauseFormatException($"Only a possessor can be a noun phrase of its own inside parentheses, as in (son possessor:(sister possessor:1SG)), not '{nested.Text}'.", number);
+            throw new ClauseFormatException($"Only a possessor or a standard can be a noun phrase of its own inside parentheses, as in (son possessor:(sister possessor:1SG)), not '{nested.Text}'.", number);
         }
         if (items.Count == 0)
         {
@@ -1077,9 +1095,9 @@ public static class ClauseFile
         {
             throw new ClauseFormatException($"{head} can't take adjectives: a demonstrative goes on its noun, as in (key.{demonstrative.Distance.Gloss} small).", number);
         }
-        foreach (var item in items.Skip(1).Where(i => i.Role is not (null or "possessor" or "relative")))
+        foreach (var item in items.Skip(1).Where(i => i.Role is not (null or "possessor" or "relative" or "standard")))
         {
-            throw new ClauseFormatException($"Noun phrases can't have {A(item.Role!)} yet, only adjectives, a number, an ordinal, a quantifier, a possessor and a relative clause.", number);
+            throw new ClauseFormatException($"Noun phrases can't have {A(item.Role!)} yet, only adjectives, a number, an ordinal, a quantifier, a possessor, a standard and a relative clause.", number);
         }
         var parsed = ParseArgument(items[0].Value, number).Value as NounPhrase
             ?? throw new ClauseFormatException($"{head} can't take adjectives, a number or a possessor yet.", number);
@@ -1092,6 +1110,7 @@ public static class ClauseFile
         int? ordinal = null;
         Quantifier? quantifier = null;
         Argument? possessor = null;
+        Argument? standard = null;
         Propositional? relative = null;
         var adjectives = new List<Adjective>();
         foreach (var item in items.Skip(1))
@@ -1112,6 +1131,18 @@ public static class ClauseFile
                 if (possessor.GetValueOrDefault().Value is QuestionWord)
                 {
                     throw new ClauseFormatException("A possessor can't be a question word yet, as in 'whose house'.", number);
+                }
+            }
+            else if (item.Role == "standard")
+            {
+                if (standard.HasValue)
+                {
+                    throw new ClauseFormatException($"'{head}' has more than one standard.", number);
+                }
+                standard = ParseArgument(item.Value, number);
+                if (standard.GetValueOrDefault().Value is QuestionWord)
+                {
+                    throw new ClauseFormatException("A comparison can't ask about its standard yet.", number);
                 }
             }
             else if (word.All(char.IsAsciiDigit))
@@ -1191,6 +1222,18 @@ public static class ClauseFile
                 throw new ClauseFormatException($"Only all goes with a number, as in ({head} all 3), not {name}.", number);
             }
         }
+        //a standard goes with the noun's one comparative adjective, as in (arm.PL strong.CMPR standard:...)
+        if (standard is { } than)
+        {
+            var compared = adjectives.FindAll(a => a.Grade is { Value: Comparative });
+            if (compared.Count != 1)
+            {
+                throw new ClauseFormatException(compared.Count == 0
+                    ? $"A standard: in a noun phrase compares its comparative adjective, as in ({head} big.CMPR standard:cat) for 'a bigger {head.Split('.')[0]} than the cat'."
+                    : $"A standard: goes with one comparative, and '{head}' has more than one.", number);
+            }
+            adjectives = [.. adjectives.Select(a => a == compared[0] ? Compared(a, than) : a)];
+        }
         //a number gives the noun its number unless the noun has one already
         var given = ParseWord(head, number).Features.OfType<Number>().Any();
         return new NounPhrase(noun with
@@ -1262,7 +1305,10 @@ public static class ClauseFile
         return new AdjectiveCoordination(conjunction, [.. items.Select(item => ParseAdjective(item.Text, number))]);
     }
 
-    //an adjective, maybe with INTS for 'very'
+    /*
+      an adjective, maybe with INTS for 'very' or CMPR for 'more', or both for 'much more', as
+      small.CMPR.INTS is 'much smaller'. A standard is the phrase's or the clause's to give it
+     */
     private static Adjective ParseAdjective(string token, int number)
     {
         var (meaning, features) = ParseWord(token, number);
@@ -1270,23 +1316,23 @@ public static class ClauseFile
         {
             throw new ClauseFormatException($"{meaning} isn't an adjective: a question word goes in the role it asks about, as in subject:who.", number);
         }
-        if (features.Contains(Degree.Comparative))
-        {
-            throw new ClauseFormatException($"Only the adjective: be says of its subject can take CMPR yet, as in be subject:3SG adjective:{meaning}.CMPR, not one in a noun phrase or joined to another.", number);
-        }
         if (features.Contains(Derivation.Adverbial))
         {
             throw new ClauseFormatException($"'{meaning}' can't take ADV: an adverb made from an adjective is written manner:{meaning}, as in climb subject:2SG manner:careful for 'you climb carefully'.", number);
         }
-        if (features.Count(f => f == Degree.Intensive) > 1)
-        {
-            throw new ClauseFormatException($"'{meaning}' has more than one INTS.", number);
-        }
-        if (features.Find(f => f != Degree.Intensive) is { } other)
+        if (features.Find(f => f != Degree.Intensive && f != Degree.Comparative) is { } other)
         {
             throw new ClauseFormatException($"'{meaning}' can't take {other.Gloss}: adjectives have no features but CMPR and INTS yet.", number);
         }
-        return new Adjective(meaning, features.Contains(Degree.Intensive) ? new Intensified() : (Grade?)null);
+        if (features.GroupBy(f => f).FirstOrDefault(g => g.Count() > 1) is { } repeated)
+        {
+            throw new ClauseFormatException($"'{meaning}' has more than one {repeated.Key.Gloss}.", number);
+        }
+        var intensive = features.Contains(Degree.Intensive);
+        Grade? grade = features.Contains(Degree.Comparative) ? new Comparative(null, intensive ? new Much() : (Differential?)null)
+            : intensive ? new Intensified()
+            : (Grade?)null;
+        return new Adjective(meaning, grade);
     }
 
     //how something is done, as an adjective: manner:careful is 'carefully', and manner:slow.INTS
@@ -1296,10 +1342,6 @@ public static class ClauseFile
         if (value.Value is not SyntaxWord { Text: var token })
         {
             throw new ClauseFormatException($"manner: takes one adjective, as in manner:careful, not '{value.Text}'. Write manner: again for another.", number);
-        }
-        if (token.Split('.').Skip(1).Contains(Degree.Comparative.Gloss))
-        {
-            throw new ClauseFormatException("A manner can't compare yet, as in 'more slowly'.", number);
         }
         return new Manner(ParseAdjective(token, number));
     }
